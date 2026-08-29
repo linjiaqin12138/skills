@@ -1,0 +1,14 @@
+#!/bin/sh
+# Project-local wrapper for agent-browser CLI.
+# Points at the Chrome for Testing binary vendored in vendor/browsers/
+# so nothing needs to be installed globally or in $HOME.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export AGENT_BROWSER_EXECUTABLE_PATH="$ROOT/vendor/browsers/chrome-linux64/chrome"
+# This machine's kernel/AppArmor blocks Chrome's unprivileged-user-namespace
+# sandbox, so Chrome must run with --no-sandbox. Direct outbound network is
+# partially blocked, so browser traffic goes through the local proxy.
+export AGENT_BROWSER_ARGS="--no-sandbox,--proxy-server=http://127.0.0.1:7890,--disable-blink-features=AutomationControlled"
+# Anti-bot-detection shim (removes navigator.webdriver etc.), needed for
+# sites with JS challenges such as Reddit.
+export AGENT_BROWSER_INIT_SCRIPTS="$ROOT/vendor/stealth.js"
+exec "$ROOT/vendor/agent-browser-cli/node_modules/.bin/agent-browser" "$@"

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Project-local wrapper for redditlens CLI (built in vendor/redditlens).
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Route Reddit requests through the local proxy (direct access is blocked
+# on this network).
+export PROXIES_FILE="${PROXIES_FILE:-$ROOT/vendor/proxies.txt}"
+# Optional Reddit login cookie, captured via agent-browser after a manual
+# login (Reddit login-walls .json endpoints on some IPs).
+[ -f "$ROOT/vendor/.reddit-cookie" ] && REDDIT_COOKIE="$(cat "$ROOT/vendor/.reddit-cookie")" && export REDDIT_COOKIE
+exec node "$ROOT/vendor/redditlens/dist/cli.js" "$@"

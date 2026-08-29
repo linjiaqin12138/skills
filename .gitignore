@@ -1,0 +1,5 @@
+vendor/*/node_modules/
+vendor/browsers/
+vendor/.reddit-cookie
+vendor/agent-browser/
+vendor/redditlens/
