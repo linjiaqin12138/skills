@@ -1,60 +1,29 @@
-# The Minimalist Entrepreneur — Claude Code Skills
+# Skills 探索仓库
 
-Claude Code skills based on [The Minimalist Entrepreneur](https://www.minimalistentrepreneur.com/) by Sahil Lavingia.
+一个用来探索市面上各类 Agent Skill 和项目点子的个人工作仓库。
 
-## Installation
+平时会在这里让 Agent 调研网上有没有可用的 Skill，把调研结果整理总结下来；遇到感兴趣的就下载一两个回来实际体验一下，偶尔也会顺手产出一些市场调研和小 demo。
 
-In Claude Code:
+## 目录结构
 
-```
-/plugin marketplace add slavingia/skills
-/plugin install minimalist-entrepreneur
-```
+| 目录 | 内容 |
+|------|------|
+| `skills/` | 收集的 Skill 源文件（目前主要是 The Minimalist Entrepreneur 系列，源自 [slavingia/skills](https://github.com/slavingia/skills)） |
+| `.claude/skills/` | 实际启用挂载的 Skill，供 Claude Code 直接使用 |
+| `vendor/` | 下载回来体验的第三方项目源码（如 agent-browser、redditlens） |
+| `bin/` | 编译/安装好的可执行文件（vendor 项目的产物） |
+| `deliverables/` | Agent 产出的调研报告：市场调研、Skill 盘点、技术选型等 |
+| `research/` | 深度调研项目（多章节、带完整产出物的大型调研） |
+| `demo/` | 随手做的小 demo |
 
-That's it — Claude Code will fetch the repo and register all 10 skills automatically.
+## 使用方式
 
-<details>
-<summary>Alternative: install from a local clone</summary>
+- **调研 Skill / 点子**：直接让 Agent 联网调研，产出报告存入 `deliverables/` 或 `research/`
+- **体验 Skill**：下载源码到 `vendor/`，编译产物放 `bin/`，可用的 Skill 挂载到 `.claude/skills/`
+- **做 demo**：放到 `demo/` 下
 
-```bash
-git clone https://github.com/slavingia/skills.git ~/.claude/plugins/skills
-```
+## 现有 Skill 一览
 
-Then in Claude Code:
+源自《The Minimalist Entrepreneur》一书的 10 个 Skill：`find-community`、`validate-idea`、`mvp`、`processize`、`first-customers`、`pricing`、`marketing-plan`、`grow-sustainably`、`company-values`、`minimalist-review`。
 
-```
-/plugin marketplace add ~/.claude/plugins/skills
-/plugin install minimalist-entrepreneur
-```
-
-</details>
-
-## Skills
-
-| Skill | Command | When to use |
-|-------|---------|-------------|
-| **Find Community** | `/find-community` | Looking for a business idea, trying to find your community |
-| **Validate Idea** | `/validate-idea` | Testing if a business idea is worth pursuing |
-| **MVP** | `/mvp` | Ready to build your first product, struggling with scope |
-| **Processize** | `/processize` | Have a product idea, want to deliver value by hand before writing code |
-| **First Customers** | `/first-customers` | Have a product, need to find your first 100 customers |
-| **Pricing** | `/pricing` | Setting prices, considering price changes |
-| **Marketing Plan** | `/marketing-plan` | Have product-market fit, ready to scale with content |
-| **Grow Sustainably** | `/grow-sustainably` | Making decisions about spending, hiring, or scaling |
-| **Company Values** | `/company-values` | Defining culture, preparing to hire |
-| **Minimalist Review** | `/minimalist-review` | Gut-checking any business decision |
-
-## The Minimalist Entrepreneur Journey
-
-The skills follow the book's progression:
-
-1. **Community** — Start by finding your people
-2. **Validate** — Make sure the problem is worth solving
-3. **Build** — Ship a manual process, then productize it
-4. **Processize** — Turn your product idea into a manual process you can deliver today
-5. **Sell** — Get to 100 customers one by one
-6. **Price** — Charge something from day one
-7. **Market** — Build an audience through content
-8. **Grow** — Stay profitable, grow sustainably
-9. **Culture** — Build the house you want to live in
-10. **Review** — Apply minimalist principles to every decision
+另有体验中的第三方 Skill：`agent-browser`（浏览器自动化）、`redditlens`（Reddit 调研）。
