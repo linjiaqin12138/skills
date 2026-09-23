@@ -23,9 +23,9 @@
 ## 关键路径与命令
 
 - 手搓代码：本目录根（Cargo.toml / src/）。`src/lib.rs` 协议、`src/main.rs` miniduckd、`src/control.rs` 50Hz 控制任务、`src/io.rs` RobotIo+FakeIo、`src/model.rs` 关节常量、`src/bin/mini-duckctl.rs` CLI
-- 构建/测试：`export PATH="$HOME/.cargo/bin:$PATH" && cargo build && cargo test`
-- 验收：`./target/debug/miniduckd &` → `./target/debug/mini-duckctl health` / `timeout 3 ... subscribe` → `pkill -x miniduckd`
-- Rust 工具链：rustc 1.98.1 经 rustup 安装；cargo 源已配 rsproxy 镜像（`~/.cargo/config.toml`）
+- 构建/测试：在容器里做，见 `docs/dev-container.md`。`docker compose exec rust cargo build && docker compose exec rust cargo test`
+- 验收：`./target/debug/miniduckd &` → `./target/debug/mini-duckctl health` / `timeout 3 ... subscribe` → `pkill -x miniduckd`（二进制由容器编出，在宿主机跑）
+- Rust 工具链：容器 `miniduck-rust`，rustc 1.98.1（`rust:1-bookworm`，DaoCloud 镜像）。宿主机不装 rustup
 - HF Hub 直连本机超时，M3 下载策略权重需走镜像（hf-mirror.com）或代理——届时处理
 
 ## 用户背景与偏好

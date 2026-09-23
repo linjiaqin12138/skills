@@ -1,0 +1,18 @@
+services:
+  rust:
+    build:
+      context: ./docker
+      args:
+        UID: "1000"
+        GID: "1000"
+    image: miniduck-rust:dev
+    container_name: miniduck-rust
+    working_dir: /work
+    volumes:
+      - .:/work
+      - cargo-home:/cargo
+    tty: true
+    stdin_open: true
+
+volumes:
+  cargo-home:
