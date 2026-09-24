@@ -17,6 +17,8 @@
 | D11 | healthy 恒 true，无 deadline 检测 | M1 | M5 | 待收敛 |
 | D12 | RobotIo 只有 read/write，无 set_gain/set_torque/reboot/slow_sensors | M1 | M5（跌倒卸力需要 gain） | 待收敛 |
 | D13 | IoError 不分类（单一字符串错误） | M1 | M8 | 待收敛 |
-| D14 | robot.state 推送 1 Hz 且只带 positions（无 velocities/imu） | M0/M1 | M2 补 imu 字段，M5 对齐 50 Hz | 待收敛 |
+| D14 | robot.state 仍 1 Hz。M2 已补 imu 与 obs；velocities 不单列（在 obs 的 20..34）。50 Hz 未对齐 | M0/M1 | M5 对齐 50 Hz | 待收敛 |
+| D17 | last_action 恒为 0，观测里没有真实的上一拍策略输出 | M2 | M3 | 待收敛 |
+| D18 | command 恒为默认零，速度/头/机身命令还没入口 | M2 | M4 | 待收敛 |
 | D15 | API_VERSION=1 且握手差异只报告不拒绝（行为与原版一致，版本号起点不同） | M0 | M8 | 待收敛 |
 | D16 | control 循环用 interval 默认 Burst；原版选 Skip 并有论证（Burst 会把积压电机命令连发叠上总线；Delay 实测掉到 43.1Hz，reference/robotd/src/main.rs:1787-1801） | M1 | M3（接入 ONNX 推理后单拍耗时上升，默认值变成真问题） | 待收敛 |

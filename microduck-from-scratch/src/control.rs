@@ -1,9 +1,12 @@
-//! 50 Hz 控制任务：read → 计算本拍目标 → write，并把最新 Sensors
-//! 通过 watch 频道发布给 RPC 层。
+//! 50 Hz 控制任务：read → 计算本拍目标 → write，并把最新快照
+//! （Sensors + 观测向量）通过 watch 频道发布给 RPC 层。
 //!
 //! M1 的全部策略就是"起立"：从启动时的当前姿态出发，2 秒线性插值到
 //! DEFAULT_POSITION，之后保持。插值做成纯函数 `ramp_target`，
 //! 是为了让"1 秒时在中点"能用普通单元测试断言，而不是去跑真时钟。
+//!
+//! M2 在每拍成功 read 后组装 61 维观测并一并推出去——本里程碑没有策略，
+//! last_action / command 都用常量零，避免预埋一个永远不写的可变状态。
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -14,6 +17,7 @@ use tokio::time::Instant;
 
 use crate::io::{JointTargets, RobotIo, Sensors};
 use crate::model::{DEFAULT_POSITION, NUM_JOINTS};
+use crate::obs::{Command, OBS_LEN, Observation};
 
 pub const TICK_PERIOD: Duration = Duration::from_millis(20);
 
@@ -42,10 +46,28 @@ pub fn ramp_target(start: &[f64; NUM_JOINTS], tick_in_ramp: u64) -> [f64; NUM_JO
     out
 }
 
-/// 启动控制任务，返回计数器和最新传感数据的接收端。
-pub fn spawn(mut io: impl RobotIo + 'static) -> (Arc<Stats>, watch::Receiver<Sensors>) {
+/// 控制循环每拍成功 read 后发布的快照。读失败不发：没有新样本，
+/// watch 里留着上一帧成功的快照，1 Hz 推送会重复它，而不是造一帧空数据。
+#[derive(Debug, Clone)]
+pub struct FrameSnapshot {
+    pub sensors: Sensors,
+    pub obs: [f32; OBS_LEN],
+}
+
+impl Default for FrameSnapshot {
+    fn default() -> Self {
+        Self {
+            sensors: Sensors::default(),
+            // [f32; 61] 不在 Default 自动实现范围内（>32），手写避免派生失败。
+            obs: [0.0; OBS_LEN],
+        }
+    }
+}
+
+/// 启动控制任务，返回计数器和最新快照的接收端。
+pub fn spawn(mut io: impl RobotIo + 'static) -> (Arc<Stats>, watch::Receiver<FrameSnapshot>) {
     let stats = Arc::new(Stats::default());
-    let (sensors_tx, sensors_rx) = watch::channel(Sensors::default());
+    let (frame_tx, frame_rx) = watch::channel(FrameSnapshot::default());
 
     {
         let stats = stats.clone();
@@ -93,7 +115,7 @@ pub fn spawn(mut io: impl RobotIo + 'static) -> (Arc<Stats>, watch::Receiver<Sen
                     Err(_) => {
                         // 读失败（总线未就绪/瞬断）：跳过本拍，计数，
                         // 不 panic 不退出——机器人没电是可以恢复的状态，
-                        // 进程退出不是。
+                        // 进程退出不是。本拍没有新样本，不发快照。
                         stats.skipped_reads.fetch_add(1, Ordering::Relaxed);
                         tick += 1;
                         stats.tick.store(tick, Ordering::Relaxed);
@@ -101,7 +123,23 @@ pub fn spawn(mut io: impl RobotIo + 'static) -> (Arc<Stats>, watch::Receiver<Sen
                     }
                 };
                 stats.reads.fetch_add(1, Ordering::Relaxed);
-                let _ = sensors_tx.send(sensors.clone());
+
+                // M2：组观测给订阅端核对布局；无策略，所以 last_action/command
+                // 直接传零/默认——预埋可变 last_action 却从不写入只会制造假象。
+                let obs = Observation::build(
+                    &sensors.imu,
+                    &sensors.positions,
+                    &sensors.velocities,
+                    &DEFAULT_POSITION,
+                    &[0.0; crate::obs::ACTION_LEN],
+                    &Command::default(),
+                );
+                let mut obs_arr = [0.0f32; OBS_LEN];
+                obs_arr.copy_from_slice(obs.as_slice());
+                let _ = frame_tx.send(FrameSnapshot {
+                    sensors: sensors.clone(),
+                    obs: obs_arr,
+                });
 
                 let (origin_tick, start_pose) =
                     *ramp_origin.get_or_insert((tick, sensors.positions));
@@ -116,7 +154,7 @@ pub fn spawn(mut io: impl RobotIo + 'static) -> (Arc<Stats>, watch::Receiver<Sen
         });
     }
 
-    (stats, sensors_rx)
+    (stats, frame_rx)
 }
 
 /// 排序取 P99。deltas 会被原地排序（调用方统计完即丢弃，无副作用问题）。

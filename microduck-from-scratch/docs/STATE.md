@@ -3,8 +3,8 @@
 > 新会话续传入口：读本文件 + deviations.md + questions.md + docs/milestones/ 最新一章，然后从"下一步"继续。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `reference/`，只读）
-- **当前位置**：Phase 3 进行中，Bite 2（M1）已通过验收
-- **下一步**：用户说"继续"→ 构建 Bite 3（里程碑 M2：61 维观测向量构建，见 docs/phase-2.md 里程碑表）
+- **当前位置**：Phase 3 进行中，Bite 3（M2）已通过验收
+- **下一步**：用户说"继续"→ 构建 Bite 4（里程碑 M3：单策略推理，站立。下载 velstand.onnx + ONNX Runtime，load 时校验维度。HF 直连超时，走 hf-mirror.com 或代理 `http://172.19.160.1:7890`）
 
 ## 里程碑进度
 
@@ -12,7 +12,7 @@
 |---|---|
 | M0 IPC 骨架 | ✅ 验收通过（milestones/m0-ipc-skeleton/，教程+验收档案） |
 | M1 身体模型+FakeIo | ✅ 验收通过（milestones/m1-body-fakeio/，教程+验收档案） |
-| M2 观测向量 61 维 | 未开始 |
+| M2 观测向量 61 维 | ✅ 验收通过（milestones/m2-obs-vector/，教程+验收档案） |
 | M3 单策略推理（站立） | 未开始 |
 | M4 仿真行走（MuJoCo over TCP） | 未开始 |
 | M5 安全层（deadman/限位/跌倒） | 未开始 |
@@ -22,7 +22,8 @@
 
 ## 关键路径与命令
 
-- 手搓代码：本目录根（Cargo.toml / src/）。`src/lib.rs` 协议、`src/main.rs` miniduckd、`src/control.rs` 50Hz 控制任务、`src/io.rs` RobotIo+FakeIo、`src/model.rs` 关节常量、`src/bin/mini-duckctl.rs` CLI
+- 手搓代码：本目录根（Cargo.toml / src/）。`src/lib.rs` 协议、`src/main.rs` miniduckd、`src/control.rs` 50Hz 控制任务、`src/obs.rs` 61 维观测、`src/io.rs` RobotIo+FakeIo、`src/model.rs` 关节常量、`src/bin/mini-duckctl.rs` CLI
+- 参考克隆：`reference/`（只读）。浅克隆走 Windows 代理 `http://172.19.160.1:7890`（WSL 里的 127.0.0.1 到不了 Windows 的 7890）
 - 构建/测试：在容器里做，见 `docs/dev-container.md`。`docker compose exec rust cargo build && docker compose exec rust cargo test`
 - 验收：`./target/debug/miniduckd &` → `./target/debug/mini-duckctl health` / `timeout 3 ... subscribe` → `pkill -x miniduckd`（二进制由容器编出，在宿主机跑）
 - Rust 工具链：容器 `miniduck-rust`，rustc 1.98.1（`rust:1-bookworm`，DaoCloud 镜像）。宿主机不装 rustup
@@ -31,6 +32,8 @@
 ## 用户背景与偏好
 
 见 `skills/clone-from-scrach-tutor/user-prefs.md`。要点：类比用 TypeScript/Node.js 生态；里程碑代码由 coder subagent 构建、主 agent 复核验收；终态必须与原项目一致（铁律 8/9）。
+
+偏差簿：18 条登记（D1–D18）。D2 已豁免，D3–D6 尚未引入，其余待收敛。M2 新开 D17、D18，D14 的 imu 部分已落地。
 
 ## 决策记录（用户裁决过的事）
 

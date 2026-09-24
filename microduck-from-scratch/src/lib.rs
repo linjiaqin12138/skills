@@ -11,6 +11,7 @@ use serde_json::Value;
 pub mod control;
 pub mod io;
 pub mod model;
+pub mod obs;
 
 pub const JSONRPC: &str = "2.0";
 

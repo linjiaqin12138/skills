@@ -1,17 +1,16 @@
-//! miniduckd：M1 的守护进程。
+//! miniduckd：M2 的守护进程。
 //!
 //! M0 的 JSON-RPC 骨架（hello / robot.health / robot.state 订阅）之上，
 //! 现在有一个真的 50 Hz 控制任务在跑：FakeIo 假总线从全零姿态出发，
-//! 2 秒线性插值到 home 姿态并保持（见 control.rs）。M0 的"tick 计数器"
-//! 被这个控制任务接管——tick 的语义仍是"控制循环在跑"，只是现在
-//! 循环里真的有 read → compute → write 了。
+//! 2 秒线性插值到 home 姿态并保持（见 control.rs）。M2 在 robot.state
+//! 里附带 IMU 与 61 维观测，推送频率仍 1 Hz——先能核对布局，再谈 50 Hz。
 
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use futures::{SinkExt, StreamExt};
-use miniduck::io::{FakeIo, Sensors};
+use miniduck::io::FakeIo;
 use miniduck::{API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request, ServerMessage, control};
 use serde_json::json;
 use tokio::net::{UnixListener, UnixStream};
@@ -32,9 +31,9 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or(0);
     let io = FakeIo::failing_reads(failing_reads);
 
-    // 50 Hz 控制任务。stats 由循环自己记账，sensors_rx 是最新一帧
-    // 传感数据的订阅口（watch：人人读到的是"最新值"，不是队列）。
-    let (stats, sensors_rx) = control::spawn(io);
+    // 50 Hz 控制任务。stats 由循环自己记账，frame_rx 是最新快照
+    // （传感 + 观测）的订阅口（watch：人人读到的是"最新值"，不是队列）。
+    let (stats, frame_rx) = control::spawn(io);
 
     // 上次异常退出残留的 socket 文件会让 bind 报 AddrInUse。先清再绑。
     let _ = std::fs::remove_file(SOCK_PATH);
@@ -44,14 +43,14 @@ async fn main() -> std::io::Result<()> {
     loop {
         let (stream, _) = listener.accept().await?;
         // 每个连接一个任务：某条连接的客户端卡住不能拖死其他连接。
-        tokio::spawn(serve(stream, stats.clone(), sensors_rx.clone(), boot));
+        tokio::spawn(serve(stream, stats.clone(), frame_rx.clone(), boot));
     }
 }
 
 async fn serve(
     stream: UnixStream,
     stats: Arc<control::Stats>,
-    sensors_rx: watch::Receiver<Sensors>,
+    frame_rx: watch::Receiver<control::FrameSnapshot>,
     boot: Instant,
 ) {
     let mut framed = Framed::new(stream, LinesCodec::new());
@@ -119,12 +118,19 @@ async fn serve(
                 // borrow() 只在取数这一瞬持有，随后立即释放——不能带着
                 // watch 的读锁跨 await（ send 是异步的），否则控制任务
                 // 每拍 publish 时都要等这条连接的网络。
-                let positions = sensors_rx.borrow().positions;
+                let frame = frame_rx.borrow().clone();
+                let imu = &frame.sensors.imu;
                 let note = ServerMessage::notify(
                     "robot.state",
                     json!({
                         "tick": stats.tick.load(Ordering::Relaxed),
-                        "positions": positions,
+                        "positions": frame.sensors.positions,
+                        "imu": {
+                            "gyro": imu.gyro,
+                            "gravity": imu.gravity,
+                            "quat": imu.quat,
+                        },
+                        "obs": frame.obs.as_slice(),
                     }),
                 );
                 if framed.send(serde_json::to_string(&note).unwrap()).await.is_err() {
