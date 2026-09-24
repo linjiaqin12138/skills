@@ -108,3 +108,25 @@
 - 复制的是句柄，不是把计数器或传感器再存一份。每个连接拿到同一份数据的另一个使用权
 - `stats` 是 `Arc<Stats>`：堆上一份 `Stats` 加引用计数。`clone` 复制指针并把计数加 1
 - `sensors_rx` 是 `watch::Receiver`：`clone` 再做一个接收端，指向同一条只保留最新一帧的通道
+
+## Q20（读 policy.rs:105-130）：LSTM 是什么？这段 match 在分支什么？
+- 卡在术语 LSTM，不是卡在 `match` 语法。诊断：缺背景，不是缺这段 Rust
+- 纯函数：同样输入永远同样输出。LSTM 多两张便签 `h`（露出的）和 `c`（内部传送带），下一拍由调用方再喂回去，所以同样的观测可以出不同动作。三道门先不用管
+- `inputs.len()` / `outputs.len()` 数的是图上的命名张量块，不是 obs 里的 61 个数。(1,1) 是 velstand：只塞 `obs`，`state = None`。(3,3) 才是 `obs/h_in/c_in → actions/h_out/c_out`。其他个数 load 失败
+- 这条分支当前不执行（D20）。深读：`docs/concepts/lstm.md`。动画：https://nndl.ai/viz/lstm-gates/ 与 https://www.bilibili.com/video/BV1ih4y147YQ/
+
+## Q21：只加载 velstand，为什么还要区分 (1,1) 和 (3,3)？
+- velstand 实测是 1 入 1 出，只会走进 `(1, 1)`，`state = None`。`(3, 3)` 当前不会执行
+- 这条分支是提前写上的（D20）。放弃的是「本里程碑只实现验收用得到的路径」。赌的是以后会加载一份 recurrent 文件，这段就能直接用。失效边界：到 M8 仍没有这种文件，就删掉
+- 同一段里仍然要留的是宽度校验：`obs` 宽 61、动作宽 14。一份同样是 1 入 1 出的错误文件（旧的 51 维策略、下到一半的 onnx）会在 load 时被拒绝。那不是第二条网络，是同一条路径上的形状门
+
+## Q22（读 policy.rs:158-178）：`map_err` 之后 `outputs` 会变成 error，还是直接 return？
+- `session.run` 的结果是 `Result`。`map_err` 只改 `Err` 里的内容，整包仍是 `Result`：成功时载荷不变，失败时变成 `PolicyError::Inference`
+- 真正离开函数的是后面的 `?`。`Err` 时 `infer` 立刻返回这个错误，`outputs` 不会被绑定。`Ok` 时 `?` 剥出成功值，`outputs` 才是会话的输出表，接着执行第 168 行
+- 第 170 行的 `?` 同样：抽出张量失败就返回。第 171–175 行是手写的 `return Err`，不经过 `?`
+
+## Q23（读 policy.rs:185）：`drop(outputs)` 是干什么？
+- `outputs` 是 `SessionOutputs`，里面的张量切片借用着 `self.session`。数字已经在上一行 `copy_from_slice` 进了 `result`，以及（LSTM 路径）`copy_lstm_outputs` 进了 `state`
+- `drop` 提前结束这次借用。下一行失败分支要 `self.reset_state()`，那是 `&mut self`。`outputs` 还活着时编译器不允许再可变借用 `self`
+- velstand 的 `state` 是 `None`，第 180 行的 `if` 整段不进，这一行不执行。feed-forward 路径函数结束时 `outputs` 自己离开作用域
+

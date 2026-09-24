@@ -1,2 +1,5 @@
 /target
 /reference
+/policies/*.onnx
+/third_party/
+/tests/fixtures/*.onnx

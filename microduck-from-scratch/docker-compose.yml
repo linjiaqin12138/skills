@@ -8,6 +8,9 @@ services:
     image: miniduck-rust:dev
     container_name: miniduck-rust
     working_dir: /work
+    environment:
+      # ort load-dynamic；与 scripts/fetch-m3.sh 摊平后的路径一致。
+      ORT_DYLIB_PATH: /work/third_party/onnxruntime/lib/libonnxruntime.so
     volumes:
       - .:/work
       - cargo-home:/cargo
