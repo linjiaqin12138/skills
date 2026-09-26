@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>一阶低通滤波：y = α·x + (1−α)·prevY</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 960px; margin: 24px auto; padding: 0 16px; color: #222; }
+  canvas { width: 100%; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+  .row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+  label { font-size: 14px; }
+  input[type=range] { width: 200px; vertical-align: middle; }
+  .legend span { display: inline-block; margin-right: 16px; font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 4px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+  button { padding: 6px 14px; border: 1px solid #888; background: #fff; border-radius: 6px; cursor: pointer; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; }
+  .note { font-size: 13px; color: #555; }
+</style>
+</head>
+<body>
+<h2>一阶低通滤波演示</h2>
+<p class="note">
+  灰线 = 策略每 20ms 输出的原始目标（带高频抖动）。<br>
+  每拍执行 <code>y = α·x + (1−α)·prevY</code>：<b>α 越小，曲线越平滑，但跟上新指令越慢</b>。
+  microduck 里头部 α=0.5（更钝）、腿 α=0.7。
+</p>
+<div class="legend">
+  <span><i class="sw" style="background:#bbb"></i>原始 x（策略输出）</span>
+  <span><i class="sw" style="background:#e07020"></i>头部滤波 α=0.5</span>
+  <span><i class="sw" style="background:#2060d0"></i>腿部滤波 α=0.7</span>
+</div>
+<canvas id="cv" width="928" height="380"></canvas>
+<div class="row">
+  <label>α：<input id="alpha" type="range" min="0.05" max="1" step="0.01" value="0.7">
+    <b id="alphaVal">0.70</b>（拖动对比：α=1 等于不滤波）</label>
+  <button id="btn">暂停</button>
+  <button id="reset">重置 prevY</button>
+</div>
+<p class="note">
+  观察重点：① 阶跃（方波跳变）时，α=0.5 需要几拍才追平？② 高频毛刺在两条彩色曲线上分别被削掉多少？
+  ③ 把 α 拖到 1 再看——那就是「不做低通」的世界，舵机会每拍硬跳。
+</p>
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const TICK_MS = 20;          // 与 microduck 一样：50Hz
+const alphaHead = 0.5, alphaLegs = 0.7;
+
+// 每帧数据点：{x, head, legs, custom}
+let pts = [];
+let prevHead = 0, prevLegs = 0, prevCustom = 0;
+let t = 0, running = true;
+let customAlpha = 0.7;
+
+// 策略原始输出：方波指令 + 高频毛刺（模拟推理噪声）
+function rawSignal(t) {
+  const period = 250; // 5 秒一个方波周期（250 拍）
+  const base = (Math.floor(t / period) % 2 === 0) ? 0.6 : -0.4;
+  const jitter = 0.12 * Math.sin(t * 2.1) + 0.08 * Math.sin(t * 5.7 + 1.3);
+  return base + jitter;
+}
+
+function step() {
+  const x = rawSignal(t);
+  prevHead = alphaHead * x + (1 - alphaHead) * prevHead;
+  prevLegs = alphaLegs * x + (1 - alphaLegs) * prevLegs;
+  prevCustom = customAlpha * x + (1 - customAlpha) * prevCustom;
+  pts.push({ x, head: prevHead, legs: prevLegs, custom: prevCustom });
+  if (pts.length > W / 2) pts.shift();
+  t++;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const mid = H / 2, scale = H / 3;
+
+  // 网格：每 50 拍 = 1 秒
+  ctx.strokeStyle = '#eee';
+  for (let i = 0; i * 50 < W / 2 + 50; i++) {
+    const px = W - (pts.length - i * 50) * 2;
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.strokeStyle = '#ccc'; ctx.stroke();
+
+  const line = (key, color, width) => {
+    ctx.beginPath();
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    pts.forEach((p, i) => {
+      const px = W - (pts.length - i) * 2, py = mid - p[key] * scale;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  };
+  line('x', '#bbb', 1);
+  line('head', '#e07020', 2);
+  line('legs', '#2060d0', 2);
+  if (Math.abs(customAlpha - alphaHead) > 1e-9 && Math.abs(customAlpha - alphaLegs) > 1e-9) {
+    line('custom', '#20a060', 2);
+  }
+  ctx.lineWidth = 1;
+}
+
+let acc = 0, last = performance.now();
+function frame(now) {
+  if (running) {
+    acc += now - last;
+    while (acc >= TICK_MS) { step(); acc -= TICK_MS; }
+  }
+  last = now;
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+document.getElementById('alpha').addEventListener('input', e => {
+  customAlpha = parseFloat(e.target.value);
+  document.getElementById('alphaVal').textContent = customAlpha.toFixed(2);
+});
+document.getElementById('btn').addEventListener('click', e => {
+  running = !running; e.target.textContent = running ? '暂停' : '继续';
+});
+document.getElementById('reset').addEventListener('click', () => {
+  // 重置 prevY：观察「从错误起点出发」要多少拍收敛——这就是 prevY 锚点的作用
+  prevHead = prevLegs = prevCustom = 1.0;
+});
+</script>
+</body>
+</html>

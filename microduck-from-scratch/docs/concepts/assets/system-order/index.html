@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>一阶 vs 二阶：系统有几个"记忆"</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 24px auto; padding: 0 16px; color: #222; }
+  .panels { display: flex; gap: 16px; }
+  .panel { flex: 1; }
+  canvas { width: 100%; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+  .legend span { display: inline-block; margin-right: 14px; font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 4px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+  button { padding: 5px 12px; border: 1px solid #888; background: #fff; border-radius: 6px; cursor: pointer; margin-right: 6px; font-size: 13px; }
+  label { font-size: 14px; }
+  input[type=range] { width: 180px; vertical-align: middle; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; }
+  .note { font-size: 13px; color: #555; }
+  .readout { font-family: ui-monospace, monospace; font-size: 13px; background: #f6f8fa; border-radius: 6px; padding: 8px 12px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h2>一阶 vs 二阶：阶跃输入下，系统有几个"记忆"</h2>
+<p class="note">
+  t=1s 时输入从 0 跳到 1（灰阶跃）。<b>一阶</b>（左）只记得"自己在哪"，永远单调爬向目标，永不超调；
+  <b>二阶</b>（右）同时记得"在哪"和"动多快"（虚线是速度）——到位了速度没归零，就会冲过头。
+  舵机、悬挂、弹簧都是二阶；低通滤波器、RC 电路是一阶。
+</p>
+<div class="legend">
+  <span><i class="sw" style="background:#999"></i>输入（阶跃）</span>
+  <span><i class="sw" style="background:#2060d0"></i>输出（位置）</span>
+  <span><i class="sw" style="background:#e07020"></i>速度（仅二阶，第二份记忆）</span>
+</div>
+<div class="panels">
+  <div class="panel">
+    <h3>一阶：x' = (目标 − x)/τ　<b style="font-weight:normal;color:#555">记忆：{位置}</b></h3>
+    <canvas id="cv1" width="470" height="300"></canvas>
+    <label>τ（时间常数）：<input id="tau" type="range" min="0.05" max="0.6" step="0.01" value="0.2"> <b id="tauV">0.20</b> s</label>
+    <div class="readout" id="ro1"></div>
+  </div>
+  <div class="panel">
+    <h3>二阶：a = ω²(目标−x) − 2ζω·v　<b style="font-weight:normal;color:#555">记忆：{位置, 速度}</b></h3>
+    <canvas id="cv2" width="470" height="300"></canvas>
+    <label>ζ（阻尼比）：<input id="zeta" type="range" min="0.1" max="2" step="0.05" value="0.3"> <b id="zetaV">0.30</b></label>
+    <div style="margin-top:4px">
+      <button data-z="0.2">0.2 欠阻尼</button>
+      <button data-z="0.7">0.7 轻快</button>
+      <button data-z="1.0">1.0 临界</button>
+      <button data-z="1.5">1.5 过阻尼（≈一阶）</button>
+    </div>
+    <div class="readout" id="ro2"></div>
+  </div>
+</div>
+<div style="margin-top:12px">
+  <button id="restart" style="font-size:14px">重播</button>
+  <span class="note">观察重点：① ζ&lt;1 时虚线速度在"位置到顶"那一刻不是零——这就是超调的来源。② ζ 拉到 1.5，二阶退化成一阶的样子：速度记忆被阻尼耗掉了。③ 一阶无论怎么调 τ 都不会超调。</span>
+</div>
+<script>
+const T_END = 6, STEP_T = 1, DT = 0.002, OMEGA = 8;
+let t = 0, x1 = 0, x2 = 0, v2 = 0, hist1 = [], hist2 = [];
+
+function stepSim() {
+  const target = t >= STEP_T ? 1 : 0;
+  const tau = parseFloat(document.getElementById('tau').value);
+  const zeta = parseFloat(document.getElementById('zeta').value);
+  x1 += (target - x1) / tau * DT;
+  const acc = OMEGA * OMEGA * (target - x2) - 2 * zeta * OMEGA * v2;
+  v2 += acc * DT; x2 += v2 * DT;
+  hist1.push({ t, in: target, x: x1 });
+  hist2.push({ t, in: target, x: x2, v: v2 });
+  t += DT;
+}
+
+function draw(cv, hist, withVel, readout, extra) {
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const px = tt => 40 + tt / T_END * (W - 60), py = val => H - 40 - val / 1.8 * (H - 70);
+  // 网格
+  ctx.strokeStyle = '#eee';
+  for (let s = 0; s <= T_END; s++) { ctx.beginPath(); ctx.moveTo(px(s), 10); ctx.lineTo(px(s), H - 40); ctx.stroke(); }
+  ctx.strokeStyle = '#ccc'; ctx.beginPath(); ctx.moveTo(40, py(0)); ctx.lineTo(W - 20, py(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(40, py(1)); ctx.lineTo(W - 20, py(1)); ctx.stroke();
+  ctx.fillStyle = '#999'; ctx.font = '10px sans-serif'; ctx.fillText('0', 28, py(0) + 3); ctx.fillText('1', 28, py(1) + 3);
+  ctx.fillText('0s', px(0) - 4, H - 26); ctx.fillText('6s', px(6) - 6, H - 26);
+  // 曲线
+  const line = (fn, color, width, dash) => {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    hist.forEach((p, i) => { i === 0 ? ctx.moveTo(px(p.t), py(fn(p))) : ctx.lineTo(px(p.t), py(fn(p))); });
+    ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+  };
+  line(p => p.in, '#999', 1.5);
+  line(p => p.x, '#2060d0', 2.5);
+  if (withVel) line(p => p.v / OMEGA + 0, '#e07020', 1.5, [5, 4]); // 速度除以ω缩放到同图
+  document.getElementById(readout).textContent = extra;
+}
+
+let acc = 0, last = performance.now(), running = true;
+const preT = parseFloat(new URLSearchParams(location.search).get('t') || '0');
+while (t < preT && t < T_END) stepSim();
+function frame(now) {
+  acc += now - last; last = now;
+  while (acc >= 16 && t < T_END) { stepSim(); stepSim(); acc -= 16; } // 8ms 模拟/16ms 帧
+  const tau = parseFloat(document.getElementById('tau').value);
+  const zeta = parseFloat(document.getElementById('zeta').value);
+  const peak = hist2.reduce((m, p) => Math.max(m, p.x), 0);
+  draw(document.getElementById('cv1'), hist1, false, 'ro1',
+    `t=${t.toFixed(2)}s  位置=${x1.toFixed(3)}  状态={x} 一个数就够  τ=${tau.toFixed(2)}s（63% 到位所需时间）`);
+  draw(document.getElementById('cv2'), hist2, true, 'ro2',
+    `t=${t.toFixed(2)}s  位置=${x2.toFixed(3)}  速度=${v2.toFixed(2)}（虚线已缩放）  ζ=${zeta.toFixed(2)}  峰值超调=${Math.max(0, (peak - 1) * 100).toFixed(1)}%`);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+document.getElementById('restart').addEventListener('click', () => { t = 0; x1 = 0; x2 = 0; v2 = 0; hist1 = []; hist2 = []; });
+for (const id of ['tau', 'zeta']) document.getElementById(id).addEventListener('input', e => {
+  document.getElementById(id === 'tau' ? 'tauV' : 'zetaV').textContent = parseFloat(e.target.value).toFixed(2);
+});
+document.querySelectorAll('button[data-z]').forEach(b => b.addEventListener('click', () => {
+  document.getElementById('zeta').value = b.dataset.z;
+  document.getElementById('zetaV').textContent = parseFloat(b.dataset.z).toFixed(2);
+  document.getElementById('restart').click();
+}));
+</script>
+</body>
+</html>

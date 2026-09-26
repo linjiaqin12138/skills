@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>为什么 last_action 能区分"同位置、不同滤波惯性"</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 980px; margin: 24px auto; padding: 0 16px; color: #222; }
+  .panels { display: flex; gap: 16px; }
+  .panel { flex: 1; }
+  canvas { width: 100%; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+  .legend span { display: inline-block; margin-right: 14px; font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 4px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+  button { padding: 6px 14px; border: 1px solid #888; background: #fff; border-radius: 6px; cursor: pointer; margin-right: 8px; }
+  label { font-size: 14px; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; }
+  .note { font-size: 13px; color: #555; }
+  .readout { font-family: ui-monospace, monospace; font-size: 14px; background: #f6f8fa; border-radius: 6px; padding: 10px 14px; margin: 12px 0; white-space: pre; }
+  .hl { background: #fff3c4; }
+</style>
+</head>
+<body>
+<h2>同一个"现在"，两种未来：last_action 为什么有用</h2>
+<p class="note">
+  两个局面走到 <b>now</b>（第 10 拍）时，<b>舵机位置完全相同（都是 0.000）</b>。
+  但 A 的滤波器是静止的，B 的滤波器刚被一记 +0.63 的大命令拽起来、内部还留着 +0.18 的"惯性"——
+  接下来几拍 B 会被滤波器继续往前推，A 原地不动。<br>
+  策略若只看<b>当前位置</b>，A 和 B 无法区分；看到 <code>last_action</code> 才知道自己处在哪个局面。
+  链条：<code>action → α=0.7 低通（橙）→ 舵机滞后 p=0.8f+0.2p（蓝）</code>。<br>
+  ⚠️ 已知简化：本例舵机只有一阶，now 时刻两局面的 vel 实际不同（A=0, B=+0.72），pos+vel 联立也能区分——
+  真实舵机是二阶以上且 vel 带噪，那时才轮到 last_action 补上解不开的那个状态（见 Q36）。
+</p>
+<div class="legend">
+  <span><i class="sw" style="background:#bbb"></i>原始 action（阶梯）</span>
+  <span><i class="sw" style="background:#e07020"></i>滤波输出 target</span>
+  <span><i class="sw" style="background:#2060d0"></i>舵机位置 pos（≈ 观测所见）</span>
+</div>
+<div class="panels">
+  <div class="panel"><h3>局面 A：过去一直零命令</h3><canvas id="cvA" width="460" height="300"></canvas></div>
+  <div class="panel"><h3>局面 B：持续 −0.8 后突然 +0.63</h3><canvas id="cvB" width="460" height="300"></canvas></div>
+</div>
+<div class="readout" id="readout"></div>
+<div>
+  <button id="btn">暂停</button>
+  <button id="restart">重播</button>
+  <label><input type="checkbox" id="policyView"> 策略视角（只看 pos / vel / last_action）</label>
+  <label><input type="checkbox" id="hideAction"> 遮住 last_action</label>
+  <label><input type="checkbox" id="hideVel"> 连 vel 也遮住 → 真正不可区分</label>
+</div>
+<p class="note">
+  播放会在 now 处自动停一下。开"策略视角"后橙色滤波线和灰色 action 历史被遮住——那是策略永远看不到的上帝视角。
+  注意：本例舵机只有一阶，遮住 last_action 后 vel 仍会泄露局面（B 冲到 0 时 vel=+0.72）；
+  连 vel 也遮住，A/B 才真正逐比特相同。真实舵机二阶以上且 vel 带噪时，last_action 的价值才完整显现（见 Q36）。
+</p>
+<script>
+const NOW = 10, T = 20;
+const X = (0.18 + 0.216) / 0.63;      // 0.6286：让 B 在 now 时刻 pos 恰好回到 0
+const actsA = Array(T + 1).fill(0);
+const actsB = [...Array(10).fill(-0.8), X, ...Array(10).fill(0)];
+
+function sim(acts) {
+  let f = 0, p = 0; const out = [];
+  for (const a of acts) { f = 0.7 * (0.9 * a) + 0.3 * f; p = 0.8 * f + 0.2 * p; out.push({ a, f, p }); }
+  return out;
+}
+const dataA = sim(actsA), dataB = sim(actsB);
+
+const Y = 0.8; // 纵轴 ±0.8 rad
+let cursor = parseInt(new URLSearchParams(location.search).get('t') || '0'), running = true, acc = 0, last = performance.now(), pausedAtNow = false;
+if (new URLSearchParams(location.search).has('t')) running = false;
+
+function draw(cv, data, label) {
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height, mid = H / 2, sc = H / 2 / Y;
+  const policy = document.getElementById('policyView').checked;
+  const hideA = document.getElementById('hideAction').checked;
+  ctx.clearRect(0, 0, W, H);
+  const x = t => 30 + t * (W - 50) / T, y = v => mid - v * sc;
+
+  ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+  // now 线
+  ctx.strokeStyle = '#c00'; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(x(NOW), 8); ctx.lineTo(x(NOW), H - 8); ctx.stroke();
+  ctx.setLineDash([]); ctx.fillStyle = '#c00'; ctx.font = '11px sans-serif'; ctx.fillText('now', x(NOW) + 3, 16);
+
+  const upTo = Math.min(cursor, T);
+  // action 阶梯（上帝视角）
+  if (!policy) {
+    ctx.strokeStyle = '#bbb'; ctx.beginPath();
+    for (let t = 0; t <= upTo; t++) {
+      const px = x(t), py = y(data[t].a * 0.9); // 画成命令单位
+      t === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      if (t < upTo) ctx.lineTo(x(t + 1), py);
+    }
+    ctx.stroke();
+    // 滤波输出
+    ctx.strokeStyle = '#e07020'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let t = 0; t <= upTo; t++) t === 0 ? ctx.moveTo(x(t), y(data[t].f)) : ctx.lineTo(x(t), y(data[t].f));
+    ctx.stroke(); ctx.lineWidth = 1;
+  }
+  // 舵机位置（策略可见）
+  ctx.strokeStyle = '#2060d0'; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let t = 0; t <= upTo; t++) t === 0 ? ctx.moveTo(x(t), y(data[t].p)) : ctx.lineTo(x(t), y(data[t].p));
+  ctx.stroke(); ctx.lineWidth = 1;
+
+  // 当前读数气泡
+  const c = data[Math.min(cursor, T)];
+  ctx.fillStyle = '#2060d0';
+  ctx.beginPath(); ctx.arc(x(Math.min(cursor, T)), y(c.p), 4, 0, 7); ctx.fill();
+  return c;
+}
+
+function readout(ca, cb) {
+  const policy = document.getElementById('policyView').checked;
+  const hideA = document.getElementById('hideAction').checked;
+  const hideV = document.getElementById('hideVel').checked;
+  const t = Math.min(cursor, T);
+  let s = `第 ${t} 拍`;
+  if (policy) {
+    const vis = (data, c, lastA) => {
+      const vel = t > 0 ? c.p - data[t - 1].p : 0;
+      return `pos=${c.p.toFixed(3)}  vel=${hideV ? '???（被遮住）' : vel.toFixed(3)}  last_action=${hideA ? '???（被遮住）' : lastA.toFixed(3)}`;
+    };
+    s += '  [策略视角]\nA: ' + vis(dataA, ca, actsA[t]) + '\nB: ' + vis(dataB, cb, actsB[t]);
+    if (hideA && hideV) s += '\n→ A/B 可见信息完全一致，策略无法区分两个局面（部分可观测）';
+    else if (hideA && !hideV) s += '\n⚠ 本例一阶舵机：vel 仍会泄露局面（now 时 A=0, B=+0.72）；真实二阶舵机+带噪 vel 才轮到 last_action 补位';
+  } else {
+    s += `\nA: action=${ca.a.toFixed(3)}  filter=${ca.f.toFixed(3)}  pos=${ca.p.toFixed(3)}`;
+    s += `\nB: action=${cb.a.toFixed(3)}  filter=${cb.f.toFixed(3)}  pos=${cb.p.toFixed(3)}`;
+    if (t === NOW) s += '\n★ 此刻 pos 相同（0.000），但 B 的滤波器里还有 +' + cb.f.toFixed(2) + ' 惯性，未来几拍会继续被推出去';
+  }
+  document.getElementById('readout').textContent = s;
+}
+
+function frame(now) {
+  const dt = now - last; last = now;
+  if (running) {
+    if (pausedAtNow) { if (dt > 0 && acc > 1600) { pausedAtNow = false; acc = 0; } else acc += dt; }
+    else { acc += dt; if (acc > 350) { acc = 0; cursor = Math.min(cursor + 1, T); if (cursor === NOW) { pausedAtNow = true; acc = 0; } } }
+  }
+  const ca = draw(document.getElementById('cvA'), dataA);
+  const cb = draw(document.getElementById('cvB'), dataB);
+  readout(ca, cb);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+document.getElementById('btn').addEventListener('click', e => { running = !running; e.target.textContent = running ? '暂停' : '继续'; });
+document.getElementById('restart').addEventListener('click', () => { cursor = 0; acc = 0; pausedAtNow = false; running = true; document.getElementById('btn').textContent = '暂停'; });
+</script>
+</body>
+</html>

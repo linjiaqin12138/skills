@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PROXY="${https_proxy:-${HTTPS_PROXY:-http://172.19.160.1:7890}}"
+PROXY="${https_proxy:-${HTTPS_PROXY:-http://localhost:7890}}"
 export http_proxy="$PROXY" https_proxy="$PROXY" HTTP_PROXY="$PROXY" HTTPS_PROXY="$PROXY"
 
 curl_retry() {

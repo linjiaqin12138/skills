@@ -1,0 +1,183 @@
+grid-rows: 1
+grid-gap: 24
+horizontal-gap: 24
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 60
+  }
+}
+
+classes: {
+  imu: {
+    style: {
+      fill: "#dbeafe"
+      stroke: "#2563eb"
+      font-color: "#1e3a8a"
+    }
+  }
+  joint: {
+    style: {
+      fill: "#dcfce7"
+      stroke: "#16a34a"
+      font-color: "#14532d"
+    }
+  }
+  cmd: {
+    style: {
+      fill: "#fef3c7"
+      stroke: "#d97706"
+      font-color: "#78350f"
+    }
+  }
+  zero: {
+    style: {
+      fill: "#e5e7eb"
+      stroke: "#6b7280"
+      font-color: "#4b5563"
+      fill-pattern: lines
+      stroke-dash: 4
+    }
+  }
+}
+
+title: "观测向量 obs[61] 位分布图（src/obs.rs:17-28）" {
+  near: top-center
+  shape: text
+  style.font-size: 28
+  style.bold: true
+}
+
+# ---------- IMU：6 维 ----------
+gyro: "[0..3) gyro · 3 维 · IMU 角速度 xyz (rad/s)" {
+  shape: sql_table
+  class: imu
+  "0": "gyro.x"
+  "1": "gyro.y"
+  "2": "gyro.z"
+}
+
+gravity: "[3..6) gravity · 3 维 · 重力方向单位向量 (IMU 系)" {
+  shape: sql_table
+  class: imu
+  "3": "gravity.x"
+  "4": "gravity.y"
+  "5": "gravity.z"
+}
+
+# ---------- 关节：42 维 ----------
+joint_pos: "[6..20) joint_pos · 14 维 · 关节位置 − home (rad, 跳过嘴)" {
+  shape: sql_table
+  class: joint
+  "6": "pos[0]"
+  "7": "pos[1]"
+  "8": "pos[2]"
+  "9": "pos[3]"
+  "10": "pos[4]"
+  "11": "pos[5]"
+  "12": "pos[6]"
+  "13": "pos[7]"
+  "14": "pos[8]"
+  "15": "pos[9]"
+  "16": "pos[10]"
+  "17": "pos[11]"
+  "18": "pos[12]"
+  "19": "pos[13]"
+}
+
+joint_vel: "[20..34) joint_vel · 14 维 · 关节角速度 (rad/s, 跳过嘴)" {
+  shape: sql_table
+  class: joint
+  "20": "vel[0]"
+  "21": "vel[1]"
+  "22": "vel[2]"
+  "23": "vel[3]"
+  "24": "vel[4]"
+  "25": "vel[5]"
+  "26": "vel[6]"
+  "27": "vel[7]"
+  "28": "vel[8]"
+  "29": "vel[9]"
+  "30": "vel[10]"
+  "31": "vel[11]"
+  "32": "vel[12]"
+  "33": "vel[13]"
+}
+
+last_action: "[34..48) last_action · 14 维 · 上一拍策略输出 (无量纲, 嘴槽恒 0)" {
+  shape: sql_table
+  class: joint
+  "34": "act[0]"
+  "35": "act[1]"
+  "36": "act[2]"
+  "37": "act[3]"
+  "38": "act[4]"
+  "39": "act[5]"
+  "40": "act[6]"
+  "41": "act[7]"
+  "42": "act[8]"
+  "43": "act[9]"
+  "44": "act[10]"
+  "45": "act[11]"
+  "46": "act[12]"
+  "47": "act[13] (嘴槽恒 0)"
+}
+
+# ---------- 命令：13 维 ----------
+twist: "[48..51) twist · 3 维 · 速度命令 (躯干系)" {
+  shape: sql_table
+  class: cmd
+  "48": "vx"
+  "49": "vy"
+  "50": "ω"
+}
+
+head: "[51..55) head · 4 维 · 头部命令" {
+  shape: sql_table
+  class: cmd
+  "51": "pitch"
+  "52": "yaw"
+  "53": "roll"
+  "54": "pitch 速率"
+}
+
+body_xy: "[55..57) body_xy · 2 维 · 恒 0（训练未绑 x/y）" {
+  shape: sql_table
+  class: zero
+  "55 body_x（恒 0）": "-"
+  "56 body_y（恒 0）": "-"
+}
+
+body_z: "[57..58) body_z · 1 维 · 站姿高度偏移" {
+  shape: sql_table
+  class: cmd
+  "57": "body_z"
+}
+
+body_roll: "[58..59) body_roll · 1 维" {
+  shape: sql_table
+  class: cmd
+  "58": "body_roll"
+}
+
+body_pitch: "[59..60) body_pitch · 1 维" {
+  shape: sql_table
+  class: cmd
+  "59": "body_pitch"
+}
+
+body_yaw: "[60..61) body_yaw · 1 维 · 恒 0（训练未绑 yaw）" {
+  shape: sql_table
+  class: zero
+  "60 body_yaw（恒 0）": "-"
+}
+
+summary: |md
+  **分组汇总**：IMU **6** + 关节 **42** + 命令 **13** = **61**
+  3 (gyro) + 3 (gravity) + 14 (pos) + 14 (vel) + 14 (last_action) + 13 (cmd) = 61
+  灰色斜纹 = 恒 0 维度：**55, 56, 60**（另有 last_action 嘴槽恒 0，共 4 处）
+| {
+  near: bottom-center
+}
