@@ -8,8 +8,12 @@ RUN groupadd -o -g ${GID} dev \
     && mkdir -p /cargo \
     && chown -R dev:dev /cargo \
     && apt-get update \
-    && apt-get install -y --no-install-recommends python3-onnx \
+    && apt-get install -y --no-install-recommends python3-onnx python3-pip \
+        libosmesa6 libgl1 \
     && rm -rf /var/lib/apt/lists/*
+
+# M4 仿真体（sim/duck_body.py）与网页画面（MJPEG viewer，osmesa 离屏渲染）
+RUN python3 -m pip install --break-system-packages --no-cache-dir mujoco pillow
 
 # 镜像里的 rustc/cargo 在 /usr/local/cargo/bin；依赖缓存单独放到 /cargo
 ENV CARGO_HOME=/cargo

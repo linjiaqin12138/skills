@@ -13,8 +13,9 @@ const SOCK_PATH: &str = "/tmp/miniduckd.sock";
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     // M0 用手写参数解析；clap 留给功能面膨胀到值得它的里程碑。
-    let cmd = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("usage: mini-duckctl <health|subscribe>");
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let cmd = args.first().cloned().unwrap_or_else(|| {
+        eprintln!("usage: mini-duckctl <health|subscribe|drive <vx> <vyaw> [--secs N]>");
         std::process::exit(2);
     });
 
@@ -28,10 +29,10 @@ async fn main() -> std::io::Result<()> {
 
     match cmd.as_str() {
         "health" => {
-            call(&mut framed, 2, "robot.health").await?;
+            call(&mut framed, 2, "robot.health", serde_json::Value::Null).await?;
         }
         "subscribe" => {
-            call(&mut framed, 2, "robot.state").await?;
+            call(&mut framed, 2, "robot.state", serde_json::Value::Null).await?;
             // 之后这条连接上只剩通知流，打到对端断开或 Ctrl-C。
             while let Some(frame) = framed.next().await {
                 match frame {
@@ -42,6 +43,33 @@ async fn main() -> std::io::Result<()> {
                     }
                 }
                 let _ = std::io::stdout().flush();
+            }
+        }
+        "drive" => {
+            // drive <vx> <vyaw> [--secs N]：发速度命令；带 --secs 时等 N 秒后
+            // 发零命令停车，不带则由调用方负责停车。
+            let vx: f64 = args.get(1).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
+                eprintln!("usage: mini-duckctl drive <vx> <vyaw> [--secs N]");
+                std::process::exit(2);
+            });
+            let vyaw: f64 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
+                eprintln!("usage: mini-duckctl drive <vx> <vyaw> [--secs N]");
+                std::process::exit(2);
+            });
+            let secs: Option<u64> = match args.get(3).map(String::as_str) {
+                Some("--secs") => args.get(4).and_then(|s| s.parse().ok()),
+                None => None,
+                Some(other) => {
+                    eprintln!("unknown drive flag: {other}");
+                    std::process::exit(2);
+                }
+            };
+            call(&mut framed, 2, "robot.drive", serde_json::json!({"vx": vx, "vyaw": vyaw}))
+                .await?;
+            if let Some(secs) = secs {
+                tokio::time::sleep(std::time::Duration::from_secs(secs)).await;
+                call(&mut framed, 3, "robot.drive", serde_json::json!({"vx": 0.0, "vyaw": 0.0}))
+                    .await?;
             }
         }
         other => {
@@ -55,7 +83,7 @@ async fn main() -> std::io::Result<()> {
 type Conn = Framed<UnixStream, LinesCodec>;
 
 async fn hello(framed: &mut Conn) -> std::io::Result<()> {
-    send(framed, 1, "hello").await?;
+    send(framed, 1, "hello", serde_json::Value::Null).await?;
     let line = framed
         .next()
         .await
@@ -69,8 +97,13 @@ async fn hello(framed: &mut Conn) -> std::io::Result<()> {
     Ok(())
 }
 
-async fn call(framed: &mut Conn, id: u64, method: &str) -> std::io::Result<()> {
-    send(framed, id, method).await?;
+async fn call(
+    framed: &mut Conn,
+    id: u64,
+    method: &str,
+    params: serde_json::Value,
+) -> std::io::Result<()> {
+    send(framed, id, method, params).await?;
     let line = framed
         .next()
         .await
@@ -80,12 +113,17 @@ async fn call(framed: &mut Conn, id: u64, method: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-async fn send(framed: &mut Conn, id: u64, method: &str) -> std::io::Result<()> {
+async fn send(
+    framed: &mut Conn,
+    id: u64,
+    method: &str,
+    params: serde_json::Value,
+) -> std::io::Result<()> {
     let req = Request {
         jsonrpc: miniduck::JSONRPC.into(),
         id,
         method: method.into(),
-        params: serde_json::Value::Null,
+        params,
     };
     framed
         .send(serde_json::to_string(&req).unwrap())

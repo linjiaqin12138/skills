@@ -7,6 +7,9 @@
 
 use crate::model::NUM_JOINTS;
 use std::fmt;
+use std::io::{BufRead, BufReader, Write};
+use std::net::{TcpStream, ToSocketAddrs};
+use std::time::Duration;
 
 /// 总线错误。M1 只需要"读/写失败了"这一个事实（控制循环据此跳过本拍），
 /// 不分类——分类等到有调用点真的按类别分支时再加。
@@ -65,6 +68,16 @@ pub trait RobotIo: Send {
     fn write(&mut self, targets: &JointTargets) -> Result<()>;
 }
 
+/// Box 转发：main 按 --sim 在 FakeIo/SimIo 间二选一，需要 trait object。
+impl RobotIo for Box<dyn RobotIo> {
+    fn read(&mut self) -> Result<Sensors> {
+        (**self).read()
+    }
+    fn write(&mut self, targets: &JointTargets) -> Result<()> {
+        (**self).write(targets)
+    }
+}
+
 /// 假舵机总线：完美跟踪——write 之后 read 原样返回写入的位置，
 /// 相当于"舵机瞬间完美跟随"。故意不做一阶惯性模型：M1 没有任何
 /// 逻辑依赖跟踪延迟，加了只会让测试多一个要调的参数。
@@ -97,6 +110,158 @@ impl FakeIo {
 impl Default for FakeIo {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ---- SimIo：MuJoCo 仿真体，TCP + NDJSON（M4）----
+//
+// 第三个 RobotIo 实现（FakeIo、真实总线之外）。协议自定、形状对齐原版
+// duck-control/src/sim.rs（偏差 D4，M8 对齐帧格式）：op 标签帧，hello 握手
+// 带 protocol 版本号与关节数，read/write 一问一答。
+//
+// 断线语义：任何错误都丢连接、返回 Err，由控制循环下一拍重连——控制循环
+// 本身就是重试定时器，不需要后台重连线程。
+
+/// 仿真侧协议版本；与 sim/duck_body.py 的 PROTOCOL 一致，不一致就报错（报两个号）。
+pub const SIM_PROTOCOL: u32 = 1;
+
+/// 单次请求等应答的上限。比一拍（20ms）宽得多——接触密集的步进可以偶尔迟到；
+/// 又短到不会让卡死的仿真体拖死控制循环。
+const SIM_TIMEOUT: Duration = Duration::from_millis(200);
+
+pub struct SimIo {
+    addr: String,
+    link: Option<(TcpStream, BufReader<TcpStream>)>,
+}
+
+impl SimIo {
+    /// 只记地址，不连接：仿真体没起时守护进程也必须能起来，与总线没电同理。
+    pub fn new(addr: impl Into<String>) -> Self {
+        SimIo {
+            addr: addr.into(),
+            link: None,
+        }
+    }
+
+    fn connect(&mut self) -> Result<&mut (TcpStream, BufReader<TcpStream>)> {
+        if self.link.is_none() {
+            let address = self
+                .addr
+                .to_socket_addrs()
+                .map_err(|e| IoError(format!("resolve {}: {e}", self.addr)))?
+                .next()
+                .ok_or_else(|| IoError(format!("{} resolved to no address", self.addr)))?;
+            let stream = TcpStream::connect_timeout(&address, SIM_TIMEOUT)
+                .map_err(|e| IoError(format!("connect {}: {e}", self.addr)))?;
+            // Nagle 会把小包攒最多 ~40ms——两拍——每拍都变成超时事故，必须关。
+            let _ = stream.set_nodelay(true);
+            let _ = stream.set_read_timeout(Some(SIM_TIMEOUT));
+            let _ = stream.set_write_timeout(Some(SIM_TIMEOUT));
+            let reader = BufReader::new(
+                stream
+                    .try_clone()
+                    .map_err(|e| IoError(format!("clone stream: {e}")))?,
+            );
+            self.link = Some((stream, reader));
+
+            let hello: serde_json::Value = self.call(&serde_json::json!({
+                "op": "hello",
+                "protocol": SIM_PROTOCOL,
+                "joints": NUM_JOINTS,
+            }))?;
+            let protocol = hello.get("protocol").and_then(|v| v.as_u64()).unwrap_or(0);
+            if protocol != SIM_PROTOCOL as u64 {
+                self.link = None;
+                return Err(IoError(format!(
+                    "simulator speaks protocol {protocol}, daemon speaks {SIM_PROTOCOL}"
+                )));
+            }
+        }
+        Ok(self.link.as_mut().expect("just connected"))
+    }
+
+    /// 一问一答；任何环节失败都丢连接（行协议无法重新同步帧边界，只能重来）。
+    fn call(&mut self, request: &serde_json::Value) -> Result<serde_json::Value> {
+        let result = (|| {
+            let (writer, reader) = self.connect()?;
+            let mut line = serde_json::to_string(request)
+                .map_err(|e| IoError(e.to_string()))?;
+            line.push('\n');
+            writer
+                .write_all(line.as_bytes())
+                .map_err(|e| IoError(format!("send: {e}")))?;
+            let mut answer = String::new();
+            let n = reader
+                .read_line(&mut answer)
+                .map_err(|e| IoError(format!("recv: {e}")))?;
+            if n == 0 {
+                return Err(IoError("simulator closed the connection".into()));
+            }
+            let value: serde_json::Value =
+                serde_json::from_str(&answer).map_err(|e| IoError(format!("bad frame: {e}")))?;
+            if let Some(err) = value.get("error").and_then(|e| e.as_str()) {
+                return Err(IoError(format!("simulator refused: {err}")));
+            }
+            Ok(value)
+        })();
+        if result.is_err() {
+            self.link = None;
+        }
+        result
+    }
+}
+
+impl RobotIo for SimIo {
+    fn read(&mut self) -> Result<Sensors> {
+        let frame = self.call(&serde_json::json!({"op": "read"}))?;
+        let arr = |key: &str, len: usize| -> Result<Vec<f64>> {
+            let v: Vec<f64> = serde_json::from_value(
+                frame
+                    .get(key)
+                    .cloned()
+                    .ok_or_else(|| IoError(format!("frame missing {key}")))?,
+            )
+            .map_err(|e| IoError(format!("frame {key}: {e}")))?;
+            if v.len() != len {
+                return Err(IoError(format!("frame {key}: {} != {len} numbers", v.len())));
+            }
+            Ok(v)
+        };
+        let mut sensors = Sensors::default();
+        sensors.positions.copy_from_slice(&arr("positions", NUM_JOINTS)?);
+        sensors.velocities.copy_from_slice(&arr("velocities", NUM_JOINTS)?);
+        let imu = frame
+            .get("imu")
+            .ok_or_else(|| IoError("frame missing imu".into()))?;
+        let copy3 = |key: &str, dst: &mut [f64; 3]| -> Result<()> {
+            let v: Vec<f64> = serde_json::from_value(
+                imu.get(key)
+                    .cloned()
+                    .ok_or_else(|| IoError(format!("frame imu missing {key}")))?,
+            )
+            .map_err(|e| IoError(format!("frame imu {key}: {e}")))?;
+            dst.copy_from_slice(&v);
+            Ok(())
+        };
+        copy3("gyro", &mut sensors.imu.gyro)?;
+        copy3("gravity", &mut sensors.imu.gravity)?;
+        let mut quat: Vec<f64> = serde_json::from_value(
+            imu.get("quat")
+                .cloned()
+                .ok_or_else(|| IoError("frame imu missing quat".into()))?,
+        )
+        .map_err(|e| IoError(format!("frame imu quat: {e}")))?;
+        quat.resize(4, 0.0);
+        sensors.imu.quat.copy_from_slice(&quat);
+        Ok(sensors)
+    }
+
+    fn write(&mut self, targets: &JointTargets) -> Result<()> {
+        self.call(&serde_json::json!({
+            "op": "write",
+            "targets": targets.positions,
+        }))?;
+        Ok(())
     }
 }
 
@@ -145,5 +310,78 @@ mod tests {
         }
         assert!(io.read().is_ok());
         assert_eq!(io.reads, 4);
+    }
+
+    /// 脚本化假仿真体：每条连接按剧本应答，一行请求换一行应答。
+    fn scripted_sim(
+        scripts: Vec<Vec<&'static str>>,
+    ) -> (String, std::thread::JoinHandle<Vec<String>>) {
+        use std::net::TcpListener;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let handle = std::thread::spawn(move || {
+            let mut heard = Vec::new();
+            for script in scripts {
+                let (stream, _) = listener.accept().unwrap();
+                let mut out = stream.try_clone().unwrap();
+                let mut lines = BufReader::new(stream);
+                for reply in script {
+                    let mut line = String::new();
+                    if lines.read_line(&mut line).unwrap() == 0 {
+                        break;
+                    }
+                    heard.push(line.trim().to_string());
+                    out.write_all(reply.as_bytes()).unwrap();
+                    out.write_all(b"\n").unwrap();
+                }
+            }
+            heard
+        });
+        (addr, handle)
+    }
+
+    const SIM_HELLO: &str = r#"{"protocol":1,"joints":15}"#;
+    const SIM_SENSORS: &str = concat!(
+        r#"{"positions":[0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"#,
+        r#""velocities":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.5],"#,
+        r#""imu":{"gyro":[0,0,0],"gravity":[0,0,-1],"quat":[1,0,0,0]},"#,
+        r#""body_pos":[0,0,0.1],"sim_time":0.02}"#
+    );
+
+    #[test]
+    fn sim_io_read_carries_sensors() {
+        let (addr, sim) = scripted_sim(vec![vec![SIM_HELLO, SIM_SENSORS]]);
+        let mut io = SimIo::new(addr);
+        let sensors = io.read().unwrap();
+        assert_eq!(sensors.positions[0], 0.1);
+        assert_eq!(sensors.velocities[NUM_JOINTS - 1], 0.5);
+        assert_eq!(sensors.imu.gravity, [0.0, 0.0, -1.0]);
+    }
+
+    #[test]
+    fn sim_io_reconnects_after_disconnect() {
+        // 仿真体改模型会重启：第一次连接中途挂断，下一拍必须无人工干预重连。
+        let (addr, sim) = scripted_sim(vec![vec![SIM_HELLO], vec![SIM_HELLO, SIM_SENSORS]]);
+        let mut io = SimIo::new(addr);
+        assert!(io.read().is_err());
+        let sensors = io.read().unwrap();
+        assert_eq!(sensors.positions[0], 0.1);
+        let heard = sim.join().unwrap();
+        assert_eq!(heard.iter().filter(|l| l.contains("hello")).count(), 2);
+    }
+
+    #[test]
+    fn sim_io_refusal_is_an_error() {
+        let (addr, _sim) = scripted_sim(vec![vec![
+            SIM_HELLO,
+            r#"{"error":"targets must be 15 numbers"}"#,
+        ]]);
+        let mut io = SimIo::new(addr);
+        let err = io
+            .write(&JointTargets {
+                positions: [0.0; NUM_JOINTS],
+            })
+            .unwrap_err();
+        assert!(err.to_string().contains("15 numbers"), "{err}");
     }
 }

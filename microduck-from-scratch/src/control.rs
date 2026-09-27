@@ -43,6 +43,15 @@ pub struct Stats {
     pub skipped_reads: AtomicU64,
 }
 
+/// 控制循环与 RPC 层共享的速度/姿态命令（M4：收敛 D18）。
+/// Mutex 而非 watch：命令不是帧流，"最近一条为准"且不许丢——watch 的
+/// borrow 语义对调用方多绕一层，这里 15 字节拷出来最直白。
+pub type SharedCommand = Arc<std::sync::Mutex<Command>>;
+
+pub fn shared_command() -> SharedCommand {
+    Arc::new(std::sync::Mutex::new(Command::default()))
+}
+
 /// 插值第 `tick_in_ramp` 拍的目标位置。线性，起点为 `start`，终点为
 /// DEFAULT_POSITION，超过 RAMP_TICKS 后钉在 home（保持）。
 pub fn ramp_target(start: &[f64; NUM_JOINTS], tick_in_ramp: u64) -> [f64; NUM_JOINTS] {
@@ -106,9 +115,11 @@ impl Default for FrameSnapshot {
 }
 
 /// 启动控制任务，返回计数器和最新快照的接收端。
+/// `command` 由 RPC 层写（robot.drive）、循环每拍读，组装观测的 command 块。
 pub fn spawn(
     mut io: impl RobotIo + 'static,
     mut policy: Policy,
+    command: SharedCommand,
 ) -> (Arc<Stats>, watch::Receiver<FrameSnapshot>) {
     let stats = Arc::new(Stats::default());
     let (frame_tx, frame_rx) = watch::channel(FrameSnapshot::default());
@@ -175,13 +186,14 @@ pub fn spawn(
 
                 // 观测始终用当前 last_action 组装；成功推理后再更新 last_action，
                 // 所以快照里的 obs 是「本拍喂给策略的向量」，不是写回后的下一拍。
+                let cmd = *command.lock().expect("command mutex poisoned");
                 let observation = Observation::build(
                     &sensors.imu,
                     &sensors.positions,
                     &sensors.velocities,
                     &DEFAULT_POSITION,
                     &last_action,
-                    &Command::default(),
+                    &cmd,
                 );
 
                 let (target, action_out) = if tick_in_ramp < RAMP_TICKS {

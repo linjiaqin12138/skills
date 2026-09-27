@@ -14,6 +14,9 @@ services:
     volumes:
       - .:/work
       - cargo-home:/cargo
+    ports:
+      # 7802：sim/duck_body.py --view-port 的 MJPEG 网页画面（浏览器看鸭子）
+      - "127.0.0.1:7802:7802"
     tty: true
     stdin_open: true
 

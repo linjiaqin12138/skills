@@ -55,7 +55,7 @@ all_finite: true
 
 ## 3. 实现走读
 
-**下载与 Runtime。** `scripts/fetch-m3.sh` 经代理 `http://172.19.160.1:7890` 拉 `velstand.onnx` 和 ONNX Runtime ≥ 1.23（脚本钉 1.23.2）。`Cargo.toml` 里 `ort = "=2.0.0-rc.11"`，`load-dynamic`：进程用 `ORT_DYLIB_PATH` 找到 `libonnxruntime.so`，不是把 Runtime 静态链进二进制。
+**下载与 Runtime。** `scripts/fetch-m3.sh` 经代理 `http://127.0.0.1:7890` 拉 `velstand.onnx` 和 ONNX Runtime ≥ 1.23（脚本钉 1.23.2）。`Cargo.toml` 里 `ort = "=2.0.0-rc.11"`，`load-dynamic`：进程用 `ORT_DYLIB_PATH` 找到 `libonnxruntime.so`，不是把 Runtime 静态链进二进制。
 
 **load 时校验维数。** `Policy::load`（`src/policy.rs:85-144`）先读文件（打不开就 `Read` 错误），再建 Session，对名为 `obs` 的输入和动作输出跑 `check_matrix`（`src/policy.rs:263-278`）：必须是 float32、两维、宽分别为 61 和 14。错了现在失败，而不是跑起来像调参问题。随后用全零观测 warmup 一次，把冷启动挡在控制循环外，再 `reset_state`。
 
@@ -128,6 +128,6 @@ subscribe 第一帧（tick=198）原文：
 
 ## 6. 常见坑
 
-1. **代理下载。** HF / GitHub 直连常超时。用 `scripts/fetch-m3.sh`（默认代理 `http://172.19.160.1:7890`）。WSL 里 `127.0.0.1:7890` 到不了 Windows 主机上的代理。
+1. **代理下载。** HF / GitHub 直连常超时。用 `scripts/fetch-m3.sh`（默认代理 `http://127.0.0.1:7890`）。已迁回原生 Linux 环境，代理在 127.0.0.1:7890（容器内 PyPI 直连可达，无需代理）。
 2. **`docker compose exec` 不要包 `bash -lc`。** 登录 shell 可能丢掉容器里为 `cargo` 配好的 PATH，表现为找不到 `cargo`。直接 `docker compose exec rust cargo test`。
 3. **`SessionOutputs` 要先 drop 才能改 LSTM 状态。** `src/policy.rs:180-189` 先拷结果再 `drop(outputs)`。这是死分支上的坑——velstand 不走进去；真加载 recurrent 权重时再认真看，现在不要把它当成必需实现。

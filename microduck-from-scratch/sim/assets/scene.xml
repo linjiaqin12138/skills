@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- M4 仿真场景：microduck_rl 官方训练模型 + 地板 + STAND keyframe。
+
+     robot_walk.xml 与 assets/ 来自 pollen-robotics/microduck_rl
+     （src/mjlab_microduck/robot/microduck/，克隆日期 2026-09-26，Apache-2.0，
+     逐字未改，详见 PROVENANCE.md）：真实惯量、视觉 mesh、足部碰撞 mesh、
+     逐关节实测 damping/armature/frictionloss，以及 14 个实测增益的位置执行器
+     （class=chosen_actuator，kp=0.55 kv=0 forcerange ±0.96Nm——即其训练管线
+     的 "--no-bam = XML PD" 降级路径）。本场景不再自设关节 default 与执行器，
+     D21 的几何/惯量/阻尼/增益部分由此收敛。
+
+     地板/灯光/天空盒/haze 照搬同仓库 scene_walk.xml 的视觉设定。
+     唯一自加的硬件是 gyro name="imu_gyro"（duck_body.py 按此名读取；
+     RL 自带的 imu_ang_vel/angular-velocity 等传感器并存，不动）。 -->
+<mujoco model="microduck_scene">
+  <compiler angle="radian" autolimits="true" />
+  <option timestep="0.001" />
+  <include file="robot_walk.xml" />
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="160" elevation="-20" />
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0"
+             width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge"
+             rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8"
+             width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true"
+              texrepeat="5 5" reflectance="0.2" />
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" pos="0 0 0" type="plane" material="groundplane" />
+  </worldbody>
+
+  <!-- 训练侧用 mjlab 的 FULL_COLLISION CollisionCfg 在 Python 里给
+       foot_collision 网格开碰撞（condim=3, priority=1, friction=1.0）；
+       XML 里它们的 contype/conaffinity 继承为 0。不改 RL 文件的前提下，
+       用显式 contact pair 达到同一件事（pair 不受位掩码过滤）。 -->
+  <contact>
+    <pair geom1="floor" geom2="left_foot_collision" condim="3" friction="1.0 1.0 0.01 0.001 0.5" />
+    <pair geom1="floor" geom2="right_foot_collision" condim="3" friction="1.0 1.0 0.01 0.001 0.5" />
+  </contact>
+
+  <sensor>
+    <!-- gyro 在 imu site 局部系；site 四元数恒等 = 与 trunk 系对齐。 -->
+    <gyro name="imu_gyro" site="imu" />
+  </sensor>
+
+  <keyframe>
+    <!-- STAND = 控制侧 DEFAULT_POSITION（model.rs）= RL scene_walk.xml 的
+         STAND keyframe（数值逐位一致）。qpos 布局：freejoint 7 维（xyz+wxyz）
+         + 14 关节（文档序，无嘴）。 -->
+    <key name="STAND" qpos="0 0 0.12 1 0 0 0
+         0 -0.08726646259971647 -0.457924 -0.004940 0.452984
+         0.3490658503988659 0.3490658503988659 0 0
+         0 0.08726646259971647 0.457924 0.004940 -0.452984" />
+  </keyframe>
+</mujoco>

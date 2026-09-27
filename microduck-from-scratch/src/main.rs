@@ -1,15 +1,17 @@
-//! miniduckd：M3 的守护进程。
+//! miniduckd：M4 的守护进程。
 //!
 //! M0 的 JSON-RPC 骨架（hello / robot.health / robot.state 订阅）之上，
-//! 50 Hz 控制任务：FakeIo 从全零插值到 home，满 100 拍后用 velstand.onnx
-//! 闭环站立。robot.state 附带 IMU、61 维观测与 14 维动作（仍 1 Hz 推送）。
+//! 50 Hz 控制任务：插值到 home，满 100 拍后用 velstand.onnx 闭环。
+//! M4 新增：`--sim host:port` 走 SimIo 驱动 MuJoCo 仿真体（否则 FakeIo）；
+//! `robot.drive {vx, vyaw}` 写共享速度命令，观测的 command 块随之取真值。
 
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use futures::{SinkExt, StreamExt};
-use miniduck::io::FakeIo;
+use miniduck::control::SharedCommand;
+use miniduck::io::{FakeIo, RobotIo, SimIo};
 use miniduck::policy::Policy;
 use miniduck::{API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request, ServerMessage, control};
 use serde_json::json;
@@ -19,10 +21,29 @@ use tokio_util::codec::{Framed, LinesCodec};
 
 const SOCK_PATH: &str = "/tmp/miniduckd.sock";
 const DEFAULT_POLICY: &str = "policies/velstand.onnx";
+const INVALID_PARAMS: i32 = -32602;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let boot = Instant::now();
+
+    // 手写参数解析：--sim host:port 选 SimIo，否则 FakeIo。
+    let mut sim_addr: Option<String> = None;
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--sim" => {
+                sim_addr = Some(args.next().unwrap_or_else(|| {
+                    eprintln!("--sim wants host:port");
+                    std::process::exit(2);
+                }));
+            }
+            other => {
+                eprintln!("unknown argument: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
 
     let policy_path = std::env::var("MINIDUCK_POLICY").unwrap_or_else(|_| DEFAULT_POLICY.into());
     let policy = Policy::load(&policy_path).map_err(|e| {
@@ -30,16 +51,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         e
     })?;
 
-    // 故障注入开关（容错验收用）：MINIDUCK_FAKE_FAILING_READS=100 让
-    // 假总线前 100 次 read 报错，模拟舵机电源未就绪。默认 0。
-    let failing_reads = std::env::var("MINIDUCK_FAKE_FAILING_READS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
-    let io = FakeIo::failing_reads(failing_reads);
+    let io: Box<dyn RobotIo> = match &sim_addr {
+        Some(addr) => {
+            eprintln!("miniduckd driving MuJoCo body at {addr}");
+            Box::new(SimIo::new(addr.clone()))
+        }
+        None => {
+            // 故障注入开关（容错验收用）：MINIDUCK_FAKE_FAILING_READS=100 让
+            // 假总线前 100 次 read 报错，模拟舵机电源未就绪。默认 0。
+            let failing_reads = std::env::var("MINIDUCK_FAKE_FAILING_READS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+            Box::new(FakeIo::failing_reads(failing_reads))
+        }
+    };
+
+    let command = control::shared_command();
 
     // 50 Hz 控制任务。stats 由循环自己记账，frame_rx 是最新快照的订阅口。
-    let (stats, frame_rx) = control::spawn(io, policy);
+    let (stats, frame_rx) = control::spawn(io, policy, command.clone());
 
     // 上次异常退出残留的 socket 文件会让 bind 报 AddrInUse。先清再绑。
     let _ = std::fs::remove_file(SOCK_PATH);
@@ -48,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         let (stream, _) = listener.accept().await?;
-        tokio::spawn(serve(stream, stats.clone(), frame_rx.clone(), boot));
+        tokio::spawn(serve(stream, stats.clone(), frame_rx.clone(), command.clone(), boot));
     }
 }
 
@@ -56,6 +87,7 @@ async fn serve(
     stream: UnixStream,
     stats: Arc<control::Stats>,
     frame_rx: watch::Receiver<control::FrameSnapshot>,
+    command: SharedCommand,
     boot: Instant,
 ) {
     let mut framed = Framed::new(stream, LinesCodec::new());
@@ -103,6 +135,28 @@ async fn serve(
                     "robot.state" => {
                         subscribed = true;
                         ServerMessage::ok(req.id, json!({ "subscribed": true }))
+                    }
+                    // 第一个 mutating 调用（收敛 D18）：速度命令进共享 Command，
+                    // 控制循环下一拍组装观测时取真值。vy 恒 0（侧向未开放）。
+                    // SO_PEERCRED 校验按偏差簿 D8 留给 M5/M7。
+                    "robot.drive" => {
+                        let vx = req.params.get("vx").and_then(|v| v.as_f64());
+                        let vyaw = req.params.get("vyaw").and_then(|v| v.as_f64());
+                        match (vx, vyaw) {
+                            (Some(vx), Some(vyaw)) if vx.is_finite() && vyaw.is_finite() => {
+                                let mut cmd = command.lock().expect("command mutex poisoned");
+                                cmd.twist = [vx, 0.0, vyaw];
+                                ServerMessage::ok(
+                                    req.id,
+                                    json!({ "driving": true, "vx": vx, "vyaw": vyaw }),
+                                )
+                            }
+                            _ => ServerMessage::err(
+                                req.id,
+                                INVALID_PARAMS,
+                                "robot.drive wants finite numbers {vx, vyaw}",
+                            ),
+                        }
                     }
                     other => ServerMessage::err(
                         req.id,
