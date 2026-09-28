@@ -41,7 +41,10 @@ sleep 2
 echo "== 3. health（控制循环应已在跑）=="
 ./target/debug/mini-duckctl health || { echo "FAIL: health"; exit 1; }
 
-echo "== 4. 站稳（3 秒，插值 2s + 策略闭环 1s）=="
+echo "== 3b. enable（M5 起启动抱持不动，必须显式使能）=="
+./target/debug/mini-duckctl enable || { echo "FAIL: enable"; exit 1; }
+
+echo "== 4. 站稳（3 秒，斜坡 2s + 策略闭环 1s）=="
 sleep 3
 BODY0=$(python3 -c "
 import json, socket

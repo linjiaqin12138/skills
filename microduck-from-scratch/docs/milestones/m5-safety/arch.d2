@@ -1,0 +1,231 @@
+direction: down
+
+vars: {
+  d2-config: {
+    layout-engine: dagre
+    theme-id: 0
+  }
+}
+
+classes: {
+  cli: {
+    style: {
+      fill: "#2563EB"
+      font-color: "#FFFFFF"
+      stroke: "#1E40AF"
+      border-radius: 8
+      bold: true
+    }
+  }
+  rpc: {
+    style: {
+      fill: "#0D9488"
+      font-color: "#FFFFFF"
+      stroke: "#115E59"
+      border-radius: 8
+      bold: true
+    }
+  }
+  ctrl: {
+    style: {
+      fill: "#EA580C"
+      font-color: "#FFFFFF"
+      stroke: "#9A3412"
+      border-radius: 8
+      bold: true
+    }
+  }
+  policy: {
+    style: {
+      fill: "#CA8A04"
+      font-color: "#FFFFFF"
+      stroke: "#854D0E"
+      border-radius: 8
+      bold: true
+    }
+  }
+  safety: {
+    style: {
+      fill: "#DC2626"
+      font-color: "#FFFFFF"
+      stroke: "#991B1B"
+      border-radius: 8
+      bold: true
+    }
+  }
+  io: {
+    style: {
+      fill: "#7C3AED"
+      font-color: "#FFFFFF"
+      stroke: "#5B21B6"
+      border-radius: 8
+      bold: true
+    }
+  }
+  sim: {
+    style: {
+      fill: "#16A34A"
+      font-color: "#FFFFFF"
+      stroke: "#166534"
+      border-radius: 8
+      bold: true
+    }
+  }
+  ext: {
+    style: {
+      fill: "#F1F5F9"
+      font-color: "#334155"
+      stroke: "#94A3B8"
+      stroke-dash: 3
+      border-radius: 8
+    }
+  }
+  chan: {
+    style: {
+      fill: "#475569"
+      font-color: "#FFFFFF"
+      stroke: "#1E293B"
+      border-radius: 8
+    }
+  }
+  procbox: {
+    style: {
+      fill: "#FFFFFF"
+      font-color: "#0F172A"
+      stroke: "#64748B"
+      stroke-width: 2
+      border-radius: 12
+    }
+  }
+}
+
+title: "microduck M5 系统架构 —— 所有碰电机的箭头必须穿过 Safety（唯一写句柄）" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+# ---------- 进程 1：CLI ----------
+p_cli: "进程 1：mini-duckctl（CLI 客户端）" {
+  class: procbox
+  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\n子命令：\nhello / health / state [--every N]\nenable / disable\ndrive vx vyaw [--secs N]\n（--secs 时每 100ms 重发意图，\n配合 deadman）" {
+    class: cli
+  }
+}
+
+# ---------- 进程 2：守护进程 ----------
+p_daemon: "进程 2：miniduckd（守护进程）" {
+  class: procbox
+
+  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\n方法：hello / robot.health\nrobot.state(订阅) / robot.drive\nrobot.enable / robot.disable" {
+    class: rpc
+  }
+
+  shared: "SharedControl\n(control.rs, Mutex)\n{ command(twist/head/body)\n  last_intent_at, enabled }" {
+    class: ctrl
+  }
+
+  stats: "Stats\n(control.rs, 原子计数器)\ntick/reads/writes/skipped_reads\nconsecutive_read_errors\nachieved_millihz/policy_ok\nlast_tick_millis" {
+    class: chan
+  }
+
+  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五相位状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp → RampDown(100拍)\n每拍：read→observe→gate→推理→apply" {
+    class: ctrl
+  }
+
+  p_infer: "策略推理（每拍闭环）" {
+    style: {
+      fill: "#FEF9C3"
+      font-color: "#713F12"
+      stroke: "#CA8A04"
+      stroke-width: 2
+      border-radius: 10
+    }
+    obs: "Obs 组装\n(obs.rs)\nobs[61] = gyro3 + gravity3\n+ pos14 + vel14\n+ last_action14 + command13" {
+      class: policy
+    }
+    policy: "Policy\n(policy.rs)\nvelstand.onnx 推理\nobs[61] → action[14]" {
+      class: policy
+    }
+  }
+
+  watch: "watch 频道\nFrameSnapshot\nsensors + obs + action\n+ fallen/enabled/gain/torque" {
+    class: chan
+  }
+
+  safety: "Safety\n(safety.rs)\n拥有唯一 RobotIo 写句柄\n四条防线：\nNaN 整包拒绝→写 hold\n±π 执行器行程夹紧\ndeadman 500ms 只清 twist\n跌倒判定(gravity z > -0.5\n持续 200ms，报告不门控)\ngain 缓存去重(200运行/50卸力)" {
+    class: safety
+  }
+
+  p_io: "RobotIo（io.rs trait）\nread / write / set_gain / set_torque / imu_ready" {
+    style: {
+      fill: "#F5F3FF"
+      font-color: "#4C1D95"
+      stroke: "#7C3AED"
+      stroke-width: 2
+      border-radius: 10
+    }
+    fake: "FakeIo\n(io.rs)\n完美跟踪假总线\n进程内（默认）" {
+      class: io
+    }
+    sim: "SimIo\n(io.rs)\nTCP + NDJSON op 帧\n（--sim host:port 时启用）" {
+      class: io
+    }
+  }
+}
+
+# ---------- 进程 3：仿真体 ----------
+p_sim: "进程 3：duck_body.py（MuJoCo 仿真体）" {
+  class: procbox
+  body: "duck_body.py\n(sim/duck_body.py)\nTCP 服务器，NDJSON op 帧\nread = 步进 20ms 物理\n回 15 关节位置/速度 + IMU\n+ body_pos + gain/torque 回显\npush = 躯干 qvel 扰动（推倒验收）\n模型资产：sim/assets/\n（microduck_rl 官方训练模型）" {
+    class: sim
+  }
+}
+
+# ---------- 外部资源 ----------
+onnx: "policies/velstand.onnx\n（策略权重文件）" {
+  class: ext
+}
+ort: "ONNX Runtime\nlibonnxruntime.so\n（third_party/onnxruntime，\nORT_DYLIB_PATH 指向）" {
+  class: ext
+}
+
+# ---------- 数据流 ----------
+
+# 1. CLI ↔ RPC
+p_cli.ctl -> p_daemon.rpc: "JSON-RPC 请求/响应\nUnix socket /tmp/miniduckd.sock（0660=全部鉴权）"
+p_daemon.rpc -> p_cli.ctl: "robot.state 推送 @50Hz\n（订阅后逐帧）"
+
+# 2. RPC → SharedControl
+p_daemon.rpc -> p_daemon.shared: "drive 写 twist + last_intent_at\nenable/disable 写 enabled"
+
+# 3. SharedControl → 控制循环
+p_daemon.shared -> p_daemon.loop: "每拍读 command / enabled\n意图年龄 → deadman"
+
+# 4. 控制循环 ↔ Safety（每拍五相位的出入口）
+p_daemon.loop -> p_daemon.safety: "每拍：read → observe → gate\n→ apply(targets[15], hold, gain)\n回 sensors(15关节+IMU) + fallen/gain"
+
+# 5. 控制循环 → Obs → Policy → 回控制循环
+p_daemon.loop -> p_daemon.p_infer.obs: "sensors + last_action\n+ gated command"
+p_daemon.p_infer.obs -> p_daemon.p_infer.policy: "obs[61]"
+p_daemon.p_infer.policy -> p_daemon.loop: "action[14]\n→ home + 0.9×scatter + 低通\n→ targets[15]"
+
+# 6. Safety → RobotIo（唯一电机出口）
+p_daemon.safety -> p_daemon.p_io.fake: "进程内内存读写"
+p_daemon.safety -> p_daemon.p_io.sim: "write targets[15] @50Hz\nset_gain / set_torque"
+
+# 7. SimIo → 仿真体
+p_daemon.p_io.sim -> p_sim.body: "TCP NDJSON op 帧：\nhello / read(步进20ms→pos/vel/IMU 应答)\nwrite / set_gain / set_torque"
+
+# 8. watch → RPC → CLI
+p_daemon.loop -> p_daemon.watch: "每拍发布 FrameSnapshot"
+p_daemon.watch -> p_daemon.rpc: "changed() 唤醒\n（latest-wins 不积压）"
+
+# 9. Stats
+p_daemon.loop -> p_daemon.stats: "原子写（每拍记账）"
+p_daemon.stats -> p_daemon.rpc: "robot.health 原子读\n（stall 500ms / 45Hz 地板\n连续错误 10 / 策略缺失）"
+
+# 10. 外部资源 → Policy
+onnx -> p_daemon.p_infer.policy: "加载策略文件"
+ort -> p_daemon.p_infer.policy: "动态库加载"

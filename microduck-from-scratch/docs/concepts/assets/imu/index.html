@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>IMU 演示：动起来时 gyro / gravity / quat 怎么变</title>
+<style>
+  :root { color-scheme: light; }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; background: #f4f1ea; color: #1c1915; }
+  header, main { max-width: 1060px; margin: 0 auto; padding: 14px 20px; }
+  h2 { font-size: 21px; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 14px 0 4px; }
+  p { margin: 0 0 8px; }
+  .note { font-size: 13px; color: #5c564c; }
+  .layout { display: grid; grid-template-columns: 1fr 330px; gap: 16px; align-items: start; }
+  canvas { width: 100%; background: #fffdf8; border: 1px solid #d9d2c5; border-radius: 8px; }
+  button { margin: 4px 6px 0 0; padding: 5px 10px; border: 1px solid #b7ad9e; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  button.on { background: #1c1915; color: #fff; }
+  #sliders label { display: grid; grid-template-columns: 130px 1fr 64px; gap: 8px; align-items: center; margin: 4px 0; font-size: 13px; }
+  #sliders output { text-align: right; font-variant-numeric: tabular-nums; }
+  .panel { background: #fffdf8; border: 1px solid #d9d2c5; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+  .panel h4 { margin: 0 0 2px; font-size: 14px; }
+  .panel .rule { font-size: 12px; color: #5c564c; margin: 0 0 8px; }
+  .meter { display: grid; grid-template-columns: 82px 1fr 118px; gap: 6px; align-items: center; margin: 4px 0; font-size: 12px; }
+  .meter b { font-weight: 400; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { position: relative; height: 12px; background: #eee9df; border-radius: 3px; overflow: hidden; }
+  .bar i { position: absolute; top: 0; bottom: 0; }
+  .bar::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #c9c2b4; }
+  #caption { font-size: 14px; background: #fdf6e3; border: 1px solid #e5d9b8; border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
+  #fallState { font-size: 13px; margin: 4px 0 0; }
+  .legend { font-size: 12px; color: #5c564c; }
+  .legend span { white-space: nowrap; margin-right: 12px; }
+  .sw { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  code { background: #eee9df; padding: 0 4px; border-radius: 3px; font-size: 13px; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h2>IMU 演示：动起来时，gyro / gravity / quat 各怎么变</h2>
+  <p>躯干坐标系：<b>x 朝前、y 朝左、z 朝上</b>（和项目 <code>src/io.rs</code> 的 <code>ImuData</code> 同一套约定）。
+  左边鸭子按预设自己动，或者切手动拖滑块；右边三组数是这颗想象中的芯片每一拍读到的东西，下面是最近 4 秒的波形。</p>
+  <p class="note">盯住一件事就够了：<b>角速度只在"正在转"时非零，停住立刻归零；gravity 管"歪没歪"，停住了也留在坡上。</b>这是三组数里最容易搞混的一条。</p>
+</header>
+<main>
+  <div class="layout">
+    <section>
+      <canvas id="scene" width="660" height="470"></canvas>
+      <div id="presets">
+        <button data-mode="yaw" class="on">① 原地向左转圈</button>
+        <button data-mode="pitch">② 前倾点头再回正</button>
+        <button data-mode="roll">③ 向右翻倒再翻回</button>
+        <button data-mode="chaos">④ 三轴一起乱晃</button>
+        <button data-mode="manual">手动</button>
+        <button id="pause">暂停</button>
+      </div>
+      <div id="sliders">
+        <label>摇头（向左转为正）<input id="sYaw" type="range" min="-180" max="180" step="0.5" value="0"><output id="oYaw">0°</output></label>
+        <label>点头（前倾为正）<input id="sPitch" type="range" min="-60" max="60" step="0.5" value="0"><output id="oPitch">0°</output></label>
+        <label>侧倒（向右倒为正）<input id="sRoll" type="range" min="-100" max="100" step="0.5" value="0"><output id="oRoll">0°</output></label>
+      </div>
+      <p id="caption"></p>
+    </section>
+    <aside>
+      <div class="panel">
+        <h4>gyro[3] · 角速度</h4>
+        <p class="rule">我现在转多快。停住就归零——哪怕人还歪着。</p>
+        <div id="gyroPanel"></div>
+      </div>
+      <div class="panel">
+        <h4>gravity[3] · 投影重力</h4>
+        <p class="rule">重力相对我指向哪。歪了就变，停着也在。直立 = [0, 0, -1]（指向脚）。</p>
+        <div id="gravityPanel"></div>
+      </div>
+      <div class="panel">
+        <h4>quat[4] · 姿态四元数（wxyz 序）</h4>
+        <p class="rule">姿态的打包形式：绕一根轴转一个角度收成四个数。w 接近 1 = 没怎么转；w 到 0 = 转了 180°。</p>
+        <div id="quatPanel"></div>
+      </div>
+      <div class="panel">
+        <h4>跌倒判定（M5 安全层同款规则）</h4>
+        <p class="rule">gravity[2] 高过 −0.5 就开始计时，连续 200ms 锁存 fallen；回到线内任意一拍立刻清零（<code>src/safety.rs</code>）。</p>
+        <div class="meter"><span>越线计时</span><div class="bar"><i id="fallFill" style="background:#d62728"></i></div><b id="fallMs">0 / 200 ms</b></div>
+        <p id="fallState">状态：站得稳</p>
+      </div>
+    </aside>
+  </div>
+  <section>
+    <h3>最近 4 秒的波形</h3>
+    <p class="legend">
+      <span><i class="sw" style="background:#2060d0"></i>gyro.z（摇头角速度，上半区）</span>
+      <span><i class="sw" style="background:#e07a3d"></i>gravity.x</span>
+      <span><i class="sw" style="background:#999999"></i>gravity.y</span>
+      <span><i class="sw" style="background:#2e7d32"></i>gravity.z（加粗，跌倒判定只看它）</span>
+      <span><i class="sw" style="background:#d62728"></i>红虚线 = −0.5 跌倒阈值；gravity.z 越线的段落标红</span>
+    </p>
+    <canvas id="wave" width="1020" height="300"></canvas>
+  </section>
+  <p class="note">
+    回到项目：观测向量的前 6 维就是 gyro + gravity（M2 的 obs[0..6]）；跌倒判定只看 gravity[2] 与 −0.5 阈值加 200ms 去抖（M5 的 <code>safety.rs</code>）。
+    预设③里能看到完整链路：翻倒 → gravity.z 爬过 −0.5 → 计时条走满 200ms → fallen 锁存；翻回来线内一拍，立刻清零。
+  </p>
+</main>
+<script>
+const D = Math.PI / 180;
+
+// ---- 姿态 -> quat / gravity / gyro（闭式公式已与独立的矩阵实现交叉对表，误差 < 1e-9）----
+// 合成顺序：先 roll（绕前轴，正 = 向右倒），再 pitch（绕左轴，正 = 前倾），最后 yaw（绕上轴，正 = 向左转）。
+function qmul(a, b) {
+  return [
+    a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+    a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+    a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+    a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+  ];
+}
+function computeImu(r, p, y, dr, dp, dy) {
+  const qx = [Math.cos(r / 2), Math.sin(r / 2), 0, 0];
+  const qy = [Math.cos(p / 2), 0, Math.sin(p / 2), 0];
+  const qz = [Math.cos(y / 2), 0, 0, Math.sin(y / 2)];
+  const q = qmul(qz, qmul(qy, qx));
+  const w = q[0], qx2 = q[1], qy2 = q[2], qz2 = q[3];
+  const gravity = [
+    2 * (qy2 * w - qx2 * qz2),
+    -2 * (qy2 * qz2 + qx2 * w),
+    2 * (qx2 * qx2 + qy2 * qy2) - 1,
+  ];
+  const cr = Math.cos(r), sr = Math.sin(r), cp = Math.cos(p), sp = Math.sin(p);
+  const gyro = [dr - dy * sp, dp * cr + dy * sr * cp, -dp * sr + dy * cr * cp];
+  return { quat: q, gravity, gyro };
+}
+
+// ---- 四种预设：姿态和角速度都给解析式，"停住"时段角速度严格为 0 ----
+function smooth(u) { return u * u * (3 - 2 * u); }
+function dSmooth(u) { return 6 * u * (1 - u); }
+
+// 0 → 顶点 → 停 → 回 → 停 的循环片段。返回 [角度, 角速度]。
+function rampHold(t, holdStart, up, holdTop, down, amp) {
+  if (t < holdStart) return [0, 0];
+  if (t < holdStart + up) {
+    const u = (t - holdStart) / up;
+    return [amp * smooth(u), amp * dSmooth(u) / up];
+  }
+  if (t < holdStart + up + holdTop) return [amp, 0];
+  if (t < holdStart + up + holdTop + down) {
+    const u = (t - holdStart - up - holdTop) / down;
+    return [amp * (1 - smooth(u)), -amp * dSmooth(u) / down];
+  }
+  return [0, 0];
+}
+
+function poseAt(mode, t, dt) {
+  if (mode === 'yaw') {
+    const rate = 90 * D;   // 4 秒一圈
+    return { r: 0, p: 0, y: (rate * t) % (2 * Math.PI), dr: 0, dp: 0, dy: rate };
+  }
+  if (mode === 'pitch') {
+    const seg = rampHold(t % 4, 0.5, 1.0, 0.5, 1.0, 35 * D);
+    return { r: 0, p: seg[0], y: 0, dr: 0, dp: seg[1], dy: 0 };
+  }
+  if (mode === 'roll') {
+    const seg = rampHold(t % 5, 0.4, 1.0, 1.5, 1.0, 90 * D);  // 90° 侧躺停 1.5 秒，gravity 稳在 [0,-1,0]
+    return { r: seg[0], p: 0, y: 0, dr: seg[1], dp: 0, dy: 0 };
+  }
+  if (mode === 'chaos') {
+    return {
+      r: 35 * D * Math.sin(1.1 * t + 2), p: 28 * D * Math.sin(1.3 * t + 1), y: 45 * D * Math.sin(0.9 * t),
+      dr: 35 * D * 1.1 * Math.cos(1.1 * t + 2), dp: 28 * D * 1.3 * Math.cos(1.3 * t + 1), dy: 45 * D * 0.9 * Math.cos(0.9 * t),
+    };
+  }
+  // 手动：角速度 = 滑块角位移 / 时间，松手即严格归零
+  const y = Number(sYaw.value) * D, p = Number(sPitch.value) * D, r = Number(sRoll.value) * D;
+  let dr = 0, dp = 0, dy = 0;
+  if (manPrev && dt > 1e-4) {
+    dr = (r - manPrev.r) / dt; dp = (p - manPrev.p) / dt; dy = (y - manPrev.y) / dt;
+  }
+  manPrev = { r, p, y };
+  return { r, p, y, dr, dp, dy };
+}
+
+// ---- 控件 ----
+const sYaw = document.getElementById('sYaw');
+const sPitch = document.getElementById('sPitch');
+const sRoll = document.getElementById('sRoll');
+const oYaw = document.getElementById('oYaw');
+const oPitch = document.getElementById('oPitch');
+const oRoll = document.getElementById('oRoll');
+let mode = 'yaw', paused = false, presetTime = 0, clock = 0, manPrev = null;
+let fallingFor = 0, fallen = false;
+
+function setMode(m) {
+  mode = m;
+  presetTime = 0;
+  manPrev = null;
+  if (m === 'manual') {          // 手动模式始终实时响应滑块，"暂停"对它无意义
+    paused = false;
+    pauseBtn.textContent = '暂停';
+  }
+  document.querySelectorAll('#presets button[data-mode]').forEach(b =>
+    b.classList.toggle('on', b.dataset.mode === m));
+}
+document.querySelectorAll('#presets button[data-mode]').forEach(b =>
+  b.addEventListener('click', () => setMode(b.dataset.mode)));
+const pauseBtn = document.getElementById('pause');
+pauseBtn.addEventListener('click', () => {
+  paused = !paused;
+  pauseBtn.textContent = paused ? '继续' : '暂停';
+});
+[sYaw, sPitch, sRoll].forEach(s => s.addEventListener('input', () => { if (mode !== 'manual') setMode('manual'); }));
+
+// ---- 变量面板的条形表 ----
+function makeMeters(hostId, names, color) {
+  const host = document.getElementById(hostId);
+  return names.map(n => {
+    const row = document.createElement('div');
+    row.className = 'meter';
+    row.innerHTML = `<span>${n}</span><div class="bar"><i style="background:${color}"></i></div><b>0</b>`;
+    host.appendChild(row);
+    return { fill: row.querySelector('i'), val: row.querySelector('b') };
+  });
+}
+function setMeter(m, v, max, text) {
+  const f = Math.max(-1, Math.min(1, v / max));
+  m.fill.style.left = f < 0 ? `${50 + f * 50}%` : '50%';
+  m.fill.style.width = `${Math.abs(f) * 50}%`;
+  m.val.textContent = text;
+}
+const gyroMeters = makeMeters('gyroPanel', ['x 侧倒速度', 'y 点头速度', 'z 摇头速度'], '#2060d0');
+const gravityMeters = makeMeters('gravityPanel', ['x（+ = 前）', 'y（+ = 左）', 'z（+ = 上）'], '#2e7d32');
+const quatMeters = makeMeters('quatPanel', ['w', 'x', 'y', 'z'], '#7b5ea7');
+const fallFill = document.getElementById('fallFill');
+const fallMs = document.getElementById('fallMs');
+const fallState = document.getElementById('fallState');
+const caption = document.getElementById('caption');
+
+// ---- 3D 场景：斜投影，前 = 画面右下，左 = 画面左下，上 = 画面上 ----
+const scene = document.getElementById('scene'), sc = scene.getContext('2d');
+const S = 700, OX = 330, OY = 300;
+const LIFT = 0.121;   // 机体系原点在躯干中心，抬高到脚底贴地（z=0）
+
+function lift(v) { return [v[0], v[1], v[2] + LIFT]; }
+
+function rot(v, r, p, y) {
+  let c = Math.cos(r), s = Math.sin(r);
+  let x = v[0], z1 = 0, y1 = c * v[1] - s * v[2];
+  z1 = s * v[1] + c * v[2];
+  c = Math.cos(p); s = Math.sin(p);
+  const x2 = c * x + s * z1, z2 = -s * x + c * z1;
+  c = Math.cos(y); s = Math.sin(y);
+  return [c * x2 - s * y1, s * x2 + c * y1, z2];
+}
+function projP(v) {
+  return [
+    OX + (v[0] - v[1]) * 0.87 * S,
+    OY - v[2] * S + (v[0] + v[1]) * 0.35 * S,
+  ];
+}
+
+const FACES = [
+  { n: [1, 0, 0],  c: [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]] },
+  { n: [-1, 0, 0], c: [[-1, 1, -1], [-1, -1, -1], [-1, -1, 1], [-1, 1, 1]] },
+  { n: [0, 1, 0],  c: [[1, 1, -1], [-1, 1, -1], [-1, 1, 1], [1, 1, 1]] },
+  { n: [0, -1, 0], c: [[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1]] },
+  { n: [0, 0, 1],  c: [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]] },
+  { n: [0, 0, -1], c: [[-1, 1, -1], [1, 1, -1], [1, -1, -1], [-1, -1, -1]] },
+];
+const LIGHT = [0.4, -0.5, 0.75];
+
+function box(faces, cx, cy, cz, sx, sy, sz, rgb, r, p, y) {
+  for (const f of FACES) {
+    const pts3 = f.c.map(k => lift(rot([cx + k[0] * sx / 2, cy + k[1] * sy / 2, cz + k[2] * sz / 2], r, p, y)));
+    const nw = rot(f.n, r, p, y);
+    const dot = nw[0] * LIGHT[0] + nw[1] * LIGHT[1] + nw[2] * LIGHT[2];
+    const bright = 0.68 + 0.32 * (dot * 0.5 + 0.5);
+    faces.push({
+      pts: pts3.map(projP),
+      depth: (pts3[0][0] + pts3[1][0] + pts3[2][0] + pts3[3][0] + pts3[0][1] + pts3[1][1] + pts3[2][1] + pts3[3][1]) / 4,
+      rgb: [Math.round(rgb[0] * bright), Math.round(rgb[1] * bright), Math.round(rgb[2] * bright)],
+    });
+  }
+}
+
+function drawScene(r, p, y) {
+  sc.clearRect(0, 0, scene.width, scene.height);
+  // 地面网格（世界系，z=0）
+  sc.strokeStyle = '#e4ddd0';
+  for (let i = -4; i <= 4; i++) {
+    const a = projP([i * 0.04, -0.16, 0]), b = projP([i * 0.04, 0.16, 0]);
+    sc.beginPath(); sc.moveTo(a[0], a[1]); sc.lineTo(b[0], b[1]); sc.stroke();
+    const c2 = projP([-0.16, i * 0.04, 0]), d = projP([0.16, i * 0.04, 0]);
+    sc.beginPath(); sc.moveTo(c2[0], c2[1]); sc.lineTo(d[0], d[1]); sc.stroke();
+  }
+  // 世界坐标标签
+  sc.fillStyle = '#b0a793'; sc.font = '11px system-ui'; sc.textAlign = 'center';
+  let t = projP([0.19, 0, 0]); sc.fillText('前 x', t[0], t[1]);
+  t = projP([0, 0.19, 0]); sc.fillText('左 y', t[0], t[1]);
+
+  // 鸭子（机体坐标系建模，再整体旋转）
+  const faces = [];
+  const yellow = [240, 193, 74], orange = [224, 122, 61], leg = [205, 116, 62];
+  box(faces, 0.01, 0.035, -0.112, 0.07, 0.05, 0.018, orange, r, p, y);   // 左脚
+  box(faces, 0.01, -0.035, -0.112, 0.07, 0.05, 0.018, orange, r, p, y);  // 右脚
+  box(faces, 0, 0.032, -0.075, 0.024, 0.024, 0.075, leg, r, p, y);       // 左腿
+  box(faces, 0, -0.032, -0.075, 0.024, 0.024, 0.075, leg, r, p, y);      // 右腿
+  box(faces, 0, 0, 0.02, 0.115, 0.085, 0.115, yellow, r, p, y);          // 身体
+  box(faces, 0.03, 0, 0.105, 0.07, 0.065, 0.06, yellow, r, p, y);        // 头
+  box(faces, 0.085, 0, 0.10, 0.045, 0.032, 0.022, orange, r, p, y);      // 嘴
+  faces.sort((a, b) => a.depth - b.depth);
+  for (const f of faces) {
+    sc.fillStyle = `rgb(${f.rgb[0]},${f.rgb[1]},${f.rgb[2]})`;
+    sc.strokeStyle = '#1c1915';
+    sc.beginPath();
+    sc.moveTo(f.pts[0][0], f.pts[0][1]);
+    for (let i = 1; i < 4; i++) sc.lineTo(f.pts[i][0], f.pts[i][1]);
+    sc.closePath(); sc.fill(); sc.lineWidth = 1; sc.stroke();
+  }
+
+  // 机体系三根轴：前 x 红、左 y 绿、上 z 蓝
+  const axes = [
+    { from: [0.05, 0, 0.02], to: [0.18, 0, 0.02], color: '#c0392b', label: '前' },
+    { from: [0, 0.05, 0.02], to: [0, 0.16, 0.02], color: '#2e7d32', label: '左' },
+    { from: [0, 0, 0.08], to: [0, 0, 0.22], color: '#2060d0', label: '上' },
+  ];
+  sc.font = 'bold 12px system-ui';
+  for (const a of axes) {
+    const p1 = projP(lift(rot(a.from, r, p, y))), p2 = projP(lift(rot(a.to, r, p, y)));
+    sc.strokeStyle = a.color; sc.lineWidth = 2.5;
+    sc.beginPath(); sc.moveTo(p1[0], p1[1]); sc.lineTo(p2[0], p2[1]); sc.stroke();
+    sc.fillStyle = a.color;
+    sc.beginPath(); sc.arc(p2[0], p2[1], 3.5, 0, Math.PI * 2); sc.fill();
+    sc.fillText(a.label, p2[0] + 10, p2[1] + 4);
+  }
+  sc.lineWidth = 1;
+
+  // 世界里的重力：永远朝下，不动
+  sc.strokeStyle = '#2e7d32'; sc.fillStyle = '#2e7d32'; sc.lineWidth = 3;
+  sc.beginPath(); sc.moveTo(612, 60); sc.lineTo(612, 130); sc.stroke();
+  sc.beginPath(); sc.moveTo(606, 122); sc.lineTo(612, 134); sc.lineTo(618, 122); sc.closePath(); sc.fill();
+  sc.lineWidth = 1;
+  sc.font = '11px system-ui'; sc.textAlign = 'right';
+  sc.fillText('世界里的重力：永远朝下', 606, 70);
+  sc.textAlign = 'left';
+}
+
+// ---- 波形图 ----
+const wave = document.getElementById('wave'), wc = wave.getContext('2d');
+const WW = wave.width, WH = wave.height;
+const X0 = 46, X1 = WW - 10, SPAN = 4;
+const GZ_C = 64, GZ_K = 12;         // gyro.z：中心 y=64，±3.5 rad/s 映射 ±42px，条区高 104px
+const GV_C = 205, GV_SCALE = 66;    // gravity：中心 y=205，±1 = 66px，条区高 146px
+const hist = [];
+
+function drawWave() {
+  wc.clearRect(0, 0, WW, WH);
+  wc.fillStyle = '#fffdf8'; wc.fillRect(0, 0, WW, WH);
+  // 两个条区的分隔与零线
+  wc.strokeStyle = '#e4ddd0';
+  wc.strokeRect(X0, 12, X1 - X0, 104);
+  wc.strokeRect(X0, 132, X1 - X0, 146);
+  wc.beginPath(); wc.moveTo(X0, GZ_C); wc.lineTo(X1, GZ_C); wc.stroke();
+  wc.strokeStyle = '#d8d1c3';
+  wc.beginPath(); wc.moveTo(X0, GV_C); wc.lineTo(X1, GV_C); wc.stroke();
+  // 标签
+  wc.fillStyle = '#8a8274'; wc.font = '11px system-ui'; wc.textAlign = 'left';
+  wc.fillText('gyro.z（rad/s）±3.5 ≈ ±200°/s', X0 + 6, 24);
+  wc.fillText('gravity 三分量，量程 ±1', X0 + 6, 144);
+  // −0.5 跌倒阈值
+  const thY = GV_C + 0.5 * GV_SCALE;
+  wc.setLineDash([6, 4]);
+  wc.strokeStyle = '#d62728';
+  wc.beginPath(); wc.moveTo(X0, thY); wc.lineTo(X1, thY); wc.stroke();
+  wc.setLineDash([]);
+  wc.fillStyle = '#d62728'; wc.textAlign = 'right';
+  wc.fillText('−0.5 跌倒阈值', X1 - 6, thY - 4);
+  wc.textAlign = 'left';
+  // 时间刻度
+  wc.fillStyle = '#b0a793'; wc.textAlign = 'center';
+  for (let s = -4; s <= 0; s++) {
+    const x = X0 + (s + SPAN) / SPAN * (X1 - X0);
+    wc.fillText(s === 0 ? '现在' : `${s}s`, x, WH - 6);
+  }
+  wc.textAlign = 'left';
+
+  const t1 = clock, t0 = clock - SPAN;
+  const tx = t => X0 + (t - t0) / SPAN * (X1 - X0);
+  function trace(get, color, width) {
+    wc.strokeStyle = color; wc.lineWidth = width;
+    wc.beginPath();
+    let started = false;
+    for (const s of hist) {
+      if (s.t < t0) continue;
+      const x = tx(s.t), yv = get(s);
+      if (!started) { wc.moveTo(x, yv); started = true; } else wc.lineTo(x, yv);
+    }
+    wc.stroke();
+    wc.lineWidth = 1;
+  }
+  trace(s => GZ_C - s.gz * GZ_K, '#2060d0', 1.5);
+  trace(s => GV_C - s.gx * GV_SCALE, '#e07a3d', 1);
+  trace(s => GV_C - s.gy2 * GV_SCALE, '#999999', 1);
+  // gravity.z：越线（高过 −0.5）的段落标红
+  let prev = null;
+  for (const s of hist) {
+    if (s.t < t0) { prev = s; continue; }
+    if (prev && prev.t >= t0 - 1) {
+      wc.strokeStyle = s.down ? '#d62728' : '#2e7d32';
+      wc.lineWidth = 2.5;
+      wc.beginPath();
+      wc.moveTo(tx(prev.t), GV_C - prev.gzv * GV_SCALE);
+      wc.lineTo(tx(s.t), GV_C - s.gzv * GV_SCALE);
+      wc.stroke();
+    }
+    prev = s;
+  }
+  wc.lineWidth = 1;
+}
+
+// ---- 主循环 ----
+let last = performance.now();
+function frame(now) {
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.1) dt = 0.1;
+  if (dt < 0) dt = 0;
+  const running = !paused || mode === 'manual';   // 手动模式始终实时响应滑块
+  if (running) { presetTime += dt; clock += dt; }
+
+  const pose = poseAt(mode, presetTime, running ? dt : 0);
+  const imu = computeImu(pose.r, pose.p, pose.y, pose.dr, pose.dp, pose.dy);
+  const g = imu.gravity, gy = imu.gyro, q = imu.quat;
+
+  // 跌倒判定：照抄 safety.rs 的语义——越线累加，够 200ms 锁存；线内一拍立刻清零
+  const down = g[2] > -0.5;
+  if (down) {
+    fallingFor += dt;
+    if (fallingFor >= 0.2) fallen = true;
+  } else {
+    fallingFor = 0;
+    fallen = false;
+  }
+
+  if (running) {
+    hist.push({ t: clock, gz: gy[2], gx: g[0], gy2: g[1], gzv: g[2], down });
+    while (hist.length && hist[0].t < clock - SPAN - 0.3) hist.shift();
+  }
+
+  // 面板
+  for (let i = 0; i < 3; i++) {
+    setMeter(gyroMeters[i], gy[i], 3.5, `${gy[i].toFixed(2)} ≈ ${(gy[i] / D).toFixed(0)}°/s`);
+    setMeter(gravityMeters[i], g[i], 1, g[i].toFixed(3));
+  }
+  for (let i = 0; i < 4; i++) setMeter(quatMeters[i], q[i], 1, q[i].toFixed(3));
+
+  const ms = Math.min(fallingFor, 0.2) * 1000;
+  fallFill.style.left = '0';
+  fallFill.style.width = `${ms / 2}%`;
+  fallMs.textContent = fallen ? '200 / 200 ms' : `${Math.round(fallingFor * 1000)} / 200 ms`;
+  if (fallen) {
+    fallState.textContent = '状态：fallen = true（已锁存：连续越线满 200ms）';
+    fallState.style.color = '#d62728';
+  } else if (down) {
+    fallState.textContent = '状态：越线了，计时中……满 200ms 才算倒';
+    fallState.style.color = '#b8860b';
+  } else {
+    fallState.textContent = '状态：站得稳';
+    fallState.style.color = '#2e7d32';
+  }
+
+  // 一句话读数
+  const moving = Math.max(Math.abs(gy[0]), Math.abs(gy[1]), Math.abs(gy[2])) > 0.03;
+  const tilted = g[2] > -0.985;
+  if (moving && tilted) caption.textContent = '现在：边转边歪——gyro 和 gravity 都在动。';
+  else if (moving) caption.textContent = '现在：在转但没歪——只有 gyro 有数，gravity 纹丝不动。';
+  else if (tilted) caption.textContent = '现在：停住了但还歪着——gyro 全 0，gravity 停在坡上不动。';
+  else caption.textContent = '现在：直立不动——gyro 全 0，gravity = [0, 0, -1]，quat = [1, 0, 0, 0]。';
+
+  // 预设模式下把滑块同步到当前姿态（切手动时从当前姿态接着拖）
+  if (mode !== 'manual') {
+    let yd = pose.y / D;
+    yd = ((yd + 180) % 360 + 360) % 360 - 180;
+    sYaw.value = yd.toFixed(1); oYaw.textContent = `${yd.toFixed(0)}°`;
+    const pd = pose.p / D, rd = pose.r / D;
+    sPitch.value = pd.toFixed(1); oPitch.textContent = `${pd.toFixed(0)}°`;
+    sRoll.value = rd.toFixed(1); oRoll.textContent = `${rd.toFixed(0)}°`;
+  } else {
+    oYaw.textContent = `${Number(sYaw.value).toFixed(0)}°`;
+    oPitch.textContent = `${Number(sPitch.value).toFixed(0)}°`;
+    oRoll.textContent = `${Number(sRoll.value).toFixed(0)}°`;
+  }
+
+  drawScene(pose.r, pose.p, pose.y);
+  drawWave();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

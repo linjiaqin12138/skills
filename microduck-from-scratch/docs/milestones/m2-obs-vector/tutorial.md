@@ -39,6 +39,8 @@ M1 的控制循环每拍能读到传感器，但读到的是结构体：关节�
 
 命令块：`vx,vy,vyaw`（48..51），四个头关节（51..55），然后 body x、y 恒为 0（55..57），body z、roll、pitch（57..60），body yaw 恒为 0（60）。顺序是 z、roll、pitch。每个数拉动时机身怎么动，打开 [命令量示意](../../concepts/assets/command-motion/index.html)。
 
+前 6 维（陀螺仪 + 重力方向）随姿态怎么动——为什么"停住但已经歪了"时 gyro 全 0 而 gravity 不归零、原地转圈时刚好相反——动手玩 [IMU 演示网页](../../concepts/assets/imu/index.html) 最直观。
+
 ### 【决策卡片】关节角先减 home
 
 - **决策点**：位置块填绝对角，还是填「当前角 − home」。

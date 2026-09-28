@@ -1,9 +1,10 @@
-//! 舵机总线抽象：RobotIo trait + FakeIo。
+//! 舵机总线抽象：RobotIo trait + FakeIo + SimIo。
 //!
 //! trait 存在的理由（原版文档 §2.4）：真实总线和假总线共用一个接口，
-//! 测试和笔记本开发全程跑 FakeIo，`cargo test` 不需要硬件。M1 只定义
-//! read/write 两个方法——set_gain/set_torque/reboot/slow_sensors 是
-//! M5 的事，现在写上只是没人调用的死代码（本项目规则：当前里程碑够用即可）。
+//! 测试和笔记本开发全程跑 FakeIo，`cargo test` 不需要硬件。M5 收敛 D12
+//! 的安全层部分：补 set_gain/set_torque/imu_ready（跌倒卸力和"滤波未收敛
+//! 不许投票"都要用到）。reboot/slow_sensors/imu_stale 等仍是 M8 的事
+//! （偏差簿 D12 残余），现在写上只是没人调用的死代码。
 
 use crate::model::NUM_JOINTS;
 use std::fmt;
@@ -66,6 +67,15 @@ pub struct JointTargets {
 pub trait RobotIo: Send {
     fn read(&mut self) -> Result<Sensors>;
     fn write(&mut self, targets: &JointTargets) -> Result<()>;
+    /// 整组舵机的位置环 kp（0..=200，XL330 增益寄存器口径）。
+    fn set_gain(&mut self, kp: u16) -> Result<()>;
+    /// 舵机出力开关。torque off 时 goal 寄存器照写只是不出力。
+    fn set_torque(&mut self, on: bool) -> Result<()>;
+    /// 姿态滤波是否已收敛。默认 true：FakeIo/SimIo 的 IMU 没有滤波器，
+    /// 第一帧就是收敛值；真总线的 SFLP 滤波器需要几秒样本才有意义。
+    fn imu_ready(&self) -> bool {
+        true
+    }
 }
 
 /// Box 转发：main 按 --sim 在 FakeIo/SimIo 间二选一，需要 trait object。
@@ -75,6 +85,15 @@ impl RobotIo for Box<dyn RobotIo> {
     }
     fn write(&mut self, targets: &JointTargets) -> Result<()> {
         (**self).write(targets)
+    }
+    fn set_gain(&mut self, kp: u16) -> Result<()> {
+        (**self).set_gain(kp)
+    }
+    fn set_torque(&mut self, on: bool) -> Result<()> {
+        (**self).set_torque(on)
+    }
+    fn imu_ready(&self) -> bool {
+        (**self).imu_ready()
     }
 }
 
@@ -89,6 +108,14 @@ pub struct FakeIo {
     /// 计数器公开，测试直接断言；控制循环自己的计数在 Stats 里。
     pub reads: u64,
     pub writes: u64,
+    /// M5：记录最近一次 set_gain/set_torque 及 gain 写总线次数，
+    /// 测试据此断言 Safety 的增益缓存（值不变不重写）。
+    pub gain: Option<u16>,
+    pub torque: Option<bool>,
+    pub gain_writes: u64,
+    /// 假总线没有姿态滤波器，默认即收敛；测试可翻成 false 模拟
+    /// "SFLP 未收敛"（原版血泪回归的场景）。
+    pub imu_ready: bool,
 }
 
 impl FakeIo {
@@ -103,6 +130,10 @@ impl FakeIo {
             failing_reads_left: n,
             reads: 0,
             writes: 0,
+            gain: None,
+            torque: None,
+            gain_writes: 0,
+            imu_ready: true,
         }
     }
 }
@@ -233,6 +264,9 @@ impl RobotIo for SimIo {
         let imu = frame
             .get("imu")
             .ok_or_else(|| IoError("frame missing imu".into()))?;
+        // 定长数组一律严格校验长度：长度不符是协议漂移，必须报错而不是
+        // 静默补零/截断（D22 收敛：quat 此前 resize(4,0) 宽容解析，
+        // copy3 此前长度不符会 panic——两处都与 positions 的严格校验不一致）。
         let copy3 = |key: &str, dst: &mut [f64; 3]| -> Result<()> {
             let v: Vec<f64> = serde_json::from_value(
                 imu.get(key)
@@ -240,18 +274,26 @@ impl RobotIo for SimIo {
                     .ok_or_else(|| IoError(format!("frame imu missing {key}")))?,
             )
             .map_err(|e| IoError(format!("frame imu {key}: {e}")))?;
+            if v.len() != 3 {
+                return Err(IoError(format!("frame imu {key}: {} != 3 numbers", v.len())));
+            }
             dst.copy_from_slice(&v);
             Ok(())
         };
         copy3("gyro", &mut sensors.imu.gyro)?;
         copy3("gravity", &mut sensors.imu.gravity)?;
-        let mut quat: Vec<f64> = serde_json::from_value(
+        let quat: Vec<f64> = serde_json::from_value(
             imu.get("quat")
                 .cloned()
                 .ok_or_else(|| IoError("frame imu missing quat".into()))?,
         )
         .map_err(|e| IoError(format!("frame imu quat: {e}")))?;
-        quat.resize(4, 0.0);
+        if quat.len() != 4 {
+            return Err(IoError(format!(
+                "frame imu quat: {} != 4 numbers",
+                quat.len()
+            )));
+        }
         sensors.imu.quat.copy_from_slice(&quat);
         Ok(sensors)
     }
@@ -263,6 +305,23 @@ impl RobotIo for SimIo {
         }))?;
         Ok(())
     }
+
+    fn set_gain(&mut self, kp: u16) -> Result<()> {
+        self.call(&serde_json::json!({
+            "op": "set_gain",
+            "gain": kp,
+        }))?;
+        Ok(())
+    }
+
+    fn set_torque(&mut self, on: bool) -> Result<()> {
+        self.call(&serde_json::json!({
+            "op": "set_torque",
+            "on": on,
+        }))?;
+        Ok(())
+    }
+    // imu_ready 用默认 true：仿真 IMU 是直接解算的，没有滤波收敛过程。
 }
 
 impl RobotIo for FakeIo {
@@ -282,6 +341,21 @@ impl RobotIo for FakeIo {
         self.writes += 1;
         self.position = targets.positions;
         Ok(())
+    }
+
+    fn set_gain(&mut self, kp: u16) -> Result<()> {
+        self.gain_writes += 1;
+        self.gain = Some(kp);
+        Ok(())
+    }
+
+    fn set_torque(&mut self, on: bool) -> Result<()> {
+        self.torque = Some(on);
+        Ok(())
+    }
+
+    fn imu_ready(&self) -> bool {
+        self.imu_ready
     }
 }
 
@@ -350,7 +424,7 @@ mod tests {
 
     #[test]
     fn sim_io_read_carries_sensors() {
-        let (addr, sim) = scripted_sim(vec![vec![SIM_HELLO, SIM_SENSORS]]);
+        let (addr, _sim) = scripted_sim(vec![vec![SIM_HELLO, SIM_SENSORS]]);
         let mut io = SimIo::new(addr);
         let sensors = io.read().unwrap();
         assert_eq!(sensors.positions[0], 0.1);
@@ -383,5 +457,50 @@ mod tests {
             })
             .unwrap_err();
         assert!(err.to_string().contains("15 numbers"), "{err}");
+    }
+
+    #[test]
+    fn sim_io_quat_must_have_exactly_four_numbers() {
+        // D22：quat 与 positions/gyro 同一严格标准，长度≠4 即 Err。
+        let bad = concat!(
+            r#"{"positions":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"#,
+            r#""velocities":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"#,
+            r#""imu":{"gyro":[0,0,0],"gravity":[0,0,-1],"quat":[1,0,0]}}"#,
+        );
+        let (addr, _sim) = scripted_sim(vec![vec![SIM_HELLO, bad]]);
+        let mut io = SimIo::new(addr);
+        let err = io.read().unwrap_err();
+        assert!(err.to_string().contains("quat"), "{err}");
+
+        // 长度=4 正常通过（对照组，防止校验把合法帧也拒了）。
+        let (addr, _sim) = scripted_sim(vec![vec![SIM_HELLO, SIM_SENSORS]]);
+        let mut io = SimIo::new(addr);
+        assert_eq!(io.read().unwrap().imu.quat, [1.0, 0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn sim_io_set_gain_and_torque_frames() {
+        let (addr, sim) = scripted_sim(vec![vec![SIM_HELLO, "{}", "{}"]]);
+        let mut io = SimIo::new(addr);
+        io.set_gain(50).unwrap();
+        io.set_torque(false).unwrap();
+        let heard = sim.join().unwrap();
+        assert!(heard[1].contains(r#""op":"set_gain""#), "{}", heard[1]);
+        assert!(heard[1].contains(r#""gain":50"#), "{}", heard[1]);
+        assert!(heard[2].contains(r#""op":"set_torque""#), "{}", heard[2]);
+        assert!(heard[2].contains(r#""on":false"#), "{}", heard[2]);
+    }
+
+    #[test]
+    fn fake_io_remembers_gain_and_torque() {
+        let mut io = FakeIo::new();
+        assert_eq!(io.gain, None);
+        assert_eq!(io.torque, None);
+        io.set_gain(200).unwrap();
+        io.set_torque(true).unwrap();
+        assert_eq!(io.gain, Some(200));
+        assert_eq!(io.torque, Some(true));
+        assert_eq!(io.gain_writes, 1);
+        assert!(io.imu_ready());
     }
 }

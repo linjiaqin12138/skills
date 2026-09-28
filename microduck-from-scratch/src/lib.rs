@@ -13,6 +13,7 @@ pub mod io;
 pub mod model;
 pub mod obs;
 pub mod policy;
+pub mod safety;
 
 pub const JSONRPC: &str = "2.0";
 

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>舵机 gain 与 torque：弹簧硬度演示</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 980px; margin: 24px auto; padding: 0 16px; color: #222; }
+  canvas { width: 100%; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+  .row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+  label { font-size: 14px; }
+  input[type=range] { width: 220px; vertical-align: middle; }
+  button { padding: 6px 14px; border: 1px solid #888; background: #fff; border-radius: 6px; cursor: pointer; }
+  .note { font-size: 13px; color: #555; }
+</style>
+</head>
+<body>
+<h2>舵机 gain 与 torque：弹簧硬度演示</h2>
+<p class="note">
+  三只一样的机械臂（鸭子身体 + 一条腿），目标都是「腿放平」。唯一的差别是关节里那根弹簧的硬度：
+  左边硬弹簧扛在高位，中间软弹簧明显下垂，右边抽掉弹簧自由垂落。
+  物理模型和本目录的 <code>spring_demo.py</code> 一模一样（数字逐个对得上）。
+</p>
+<canvas id="cv" width="948" height="400"></canvas>
+<div class="row">
+  <label>弹簧硬度（gain）= 偏多少顶多狠：<input id="gain" type="range" min="0" max="200" step="1" value="50">
+    <b id="gainVal">50</b></label>
+  <label>刹车强度（kv）= 动多快拦多狠：<input id="kv" type="range" min="0" max="2.5" step="0.05" value="1.5">
+    <b id="kvVal">1.50</b></label>
+  <label><input id="torque" type="checkbox" checked> torque 开（关掉 = 抽掉弹簧，只剩关节摩擦）</label>
+</div>
+<div class="row">
+  预设：
+  <button data-preset="stand">站立 200</button>
+  <button data-preset="limp">软倒 50</button>
+  <button data-preset="off">卸力</button>
+  <button data-preset="nobrake">硬弹簧 + 无刹车</button>
+  <span class="note">← 破坏实验：没有刹车，弹簧再硬也停不稳</span>
+</div>
+<div class="row">
+  <button id="reset">重来（三只都放回水平）</button>
+  <span class="note" id="clock"></span>
+</div>
+<p class="note">两个滑块和 torque 开关只控制<b>中间那只实验臂</b>，gain 和 kv 各自独立、互不联动；左右两只固定是「站立 200」和「卸力」，留着作对照。</p>
+<p class="note">
+  读法：硬度（gain）越大，腿扛得越接近水平——但弹簧一直绷着，电机一直在使劲（发热、耗电、磨齿轮），「一直硬」不是免费的。<br>
+  刹车（kv）管的是「动多快拦多狠」：弹簧负责往回拽，刹车负责别冲过头——把刹车拖到 0（或点「硬弹簧 + 无刹车」），腿会冲过目标来回振荡，停不下来。<br>
+  软弹簧明显下垂，但不和地板较劲——鸭子倒地时就要这个。卸力 = 抽掉弹簧：只剩重力和一点摩擦，腿荡几下垂到底挂住。<br>
+  关节处画的弧线就是那根弹簧：圈数越多越硬；颜色越红 = 电机此刻使劲越狠。虚线是目标（放平）。
+</p>
+<script>
+// 物理参数与 spring_demo.py 逐点一致：重力强度 5.0，1ms 半步进，半隐式欧拉。
+const G = 5.0, DT = 0.001;
+
+// 一只机械臂：angle 是腿相对「放平」的角度（弧度，负值 = 下垂），vel 是摆动速度。
+// 屏幕上不出现这两个词——那里只说「离目标还差多少度」。
+function makeArm(kp, kd) { return { kp, kd, angle: 0, vel: 0 }; }
+
+// 舵机力矩 = 弹簧拉回（kp × 差距）− 阻尼（kd × 速度）− 重力下拽。和 spring_demo.py 同一行公式。
+function step(arm) {
+  const torque = arm.kp * (0 - arm.angle) - arm.kd * arm.vel - G * Math.cos(arm.angle);
+  arm.vel += torque * DT;      // 先更新速度
+  arm.angle += arm.vel * DT;   // 再用新速度更新角度（半隐式欧拉，更稳）
+}
+
+// 三个工况对应 spring_demo.py 的三次运行：站立 gain=200、软倒 gain=50、卸力。
+const left = makeArm(8, 2.5);
+const right = makeArm(0, 0.6);
+const mid = makeArm(2, 1.5);
+
+// 实验臂（中间）的「待命参数」：torque 开时用它，关时强制成只剩摩擦。
+let midBase = { kp: 2, kd: 1.5 };
+let torqueOn = true;
+let midMode = '软倒 gain=50 · 软弹簧';
+
+function applyMid() {
+  mid.kp = torqueOn ? midBase.kp : 0;
+  mid.kd = torqueOn ? midBase.kd : 0.6;
+}
+
+// gain(0..200) → 弹簧硬度：和仿真体 duck_body.py 同一条映射 kp = 8 × gain/200。
+// kv 由独立滑块直接给（0..2.5，0.6 是关节摩擦底、2.5 是满增益随车的刹车）——
+// 两个滑块各管各的，互不联动，方便单独玩「没有刹车会怎样」。
+function kpFromGain(g) {
+  return 8 * g / 200;
+}
+
+let simTime = 0;
+function resetArm(arm) { arm.angle = 0; arm.vel = 0; }
+
+const gainInput = document.getElementById('gain');
+const gainVal = document.getElementById('gainVal');
+const kvInput = document.getElementById('kv');
+const kvVal = document.getElementById('kvVal');
+const torqueBox = document.getElementById('torque');
+
+function freeLabel() {
+  return `自由实验 gain=${gainInput.value} · kv=${Number(kvInput.value).toFixed(2)}`;
+}
+
+gainInput.addEventListener('input', () => {
+  const g = Number(gainInput.value);
+  gainVal.textContent = g;
+  midBase.kp = kpFromGain(g);   // gain 只管弹簧硬度，不动 kv
+  midMode = freeLabel();
+  applyMid();   // 不重置腿：拖着滑块能直接看到它往下掉/往上扛
+});
+
+kvInput.addEventListener('input', () => {
+  const kv = Number(kvInput.value);
+  kvVal.textContent = kv.toFixed(2);
+  midBase.kd = kv;              // kv 只管刹车强度，不动 gain
+  midMode = freeLabel();
+  applyMid();
+});
+
+torqueBox.addEventListener('change', () => {
+  torqueOn = torqueBox.checked;
+  applyMid();
+});
+
+const PRESETS = {
+  stand:   { gain: 200, kv: 2.5, base: { kp: 8, kd: 2.5 }, torque: true,  label: '站立 gain=200 · 硬弹簧' },
+  limp:    { gain: 50,  kv: 1.5, base: { kp: 2, kd: 1.5 }, torque: true,  label: '软倒 gain=50 · 软弹簧' },
+  off:     { gain: 0,   kv: 0.6, base: { kp: 0, kd: 0.6 }, torque: false, label: '卸力 · 没有弹簧' },
+  // 破坏实验：硬弹簧但没有刹车——腿冲过目标来回振荡，停不下来
+  nobrake: { gain: 200, kv: 0,   base: { kp: 8, kd: 0 },   torque: true,  label: '破坏实验 · 硬弹簧无刹车' },
+};
+document.querySelectorAll('button[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = PRESETS[btn.dataset.preset];
+    gainInput.value = p.gain;
+    gainVal.textContent = p.gain;
+    kvInput.value = p.kv;
+    kvVal.textContent = p.kv.toFixed(2);
+    torqueBox.checked = p.torque;
+    torqueOn = p.torque;
+    midBase = { ...p.base };
+    midMode = p.label;
+    applyMid();
+    resetArm(mid);   // 预设 = 重新做一次对照实验，腿放回水平重荡
+  });
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  resetArm(left); resetArm(mid); resetArm(right);
+  simTime = 0;
+});
+
+// ---- 画面 ----
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+function drawArm(px, title, arm, highlight) {
+  const cx = px + 158, pivotY = 118, L = 150;
+
+  if (highlight) {
+    ctx.fillStyle = '#fdf6e3';
+    ctx.fillRect(px + 4, 4, 308, H - 8);
+  }
+  ctx.strokeStyle = '#ddd';
+  ctx.strokeRect(px + 4, 4, 308, H - 8);
+
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(title, cx, 28);
+
+  // 地面（腿垂到底时作参照）
+  ctx.strokeStyle = '#ccc';
+  ctx.beginPath(); ctx.moveTo(px + 16, 310); ctx.lineTo(px + 300, 310); ctx.stroke();
+
+  const a = arm.angle;
+  const ex = cx + Math.cos(a) * L, ey = pivotY - Math.sin(a) * L;
+
+  // 目标线：放平（0°），虚线
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = '#999';
+  ctx.beginPath(); ctx.moveTo(cx, pivotY); ctx.lineTo(cx + L, pivotY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#999';
+  ctx.font = '11px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillText('目标：放平', cx + L - 52, pivotY - 6);
+
+  // 差距弧线 + 「离目标还差 XX°」
+  const deg = -a * 180 / Math.PI;   // 下垂多少度（正数）
+  if (Math.abs(deg) > 1.5) {
+    ctx.strokeStyle = '#2060d0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, pivotY, 44, 0, a, a < 0);
+    ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+
+  // 关节处的「弹簧」：同心弧线，圈数 = 硬度；颜色 = 电机此刻的使劲程度
+  if (arm.kp > 0) {
+    const coils = 1 + Math.round(arm.kp / 8 * 4);
+    const effort = Math.min(arm.kp * Math.abs(a) / 5, 1);   // 0..1：差距越大弹簧越绷
+    const r = Math.round(60 + (200 - 60) * effort);
+    const g2 = Math.round(170 + (60 - 170) * effort);
+    ctx.strokeStyle = `rgb(${r},${g2},70)`;
+    ctx.lineWidth = 2 + arm.kp * 0.3;
+    for (let i = 0; i < coils; i++) {
+      ctx.beginPath();
+      ctx.arc(cx, pivotY, 10 + i * 4.5, 0, a === 0 ? -0.01 : a, a < 0);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+  } else {
+    // 没有弹簧：画一截断掉的虚线弧
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#bbb';
+    ctx.beginPath(); ctx.arc(cx, pivotY, 12, 0, -Math.PI / 2, true); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#999';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('弹簧已抽掉', cx, pivotY + 34);
+  }
+
+  // 腿（杆）
+  ctx.strokeStyle = '#1c1915';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, pivotY); ctx.lineTo(ex, ey); ctx.stroke();
+  ctx.lineWidth = 1;
+  // 脚掌
+  ctx.fillStyle = '#e07a3d';
+  ctx.beginPath(); ctx.arc(ex, ey, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#1c1915';
+  ctx.stroke();
+
+  // 鸭子身体：蹲在关节上方的黄盒子
+  ctx.fillStyle = '#f0c14a';
+  ctx.strokeStyle = '#1c1915';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(cx - 52, pivotY - 84, 104, 78, 14);
+  else ctx.rect(cx - 52, pivotY - 84, 104, 78);   // 老浏览器没有 roundRect，方盒子也一样看
+  ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+  // 眼睛和嘴（朝右，和目标方向一致）
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx + 24, pivotY - 62, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#1c1915';
+  ctx.beginPath(); ctx.arc(cx + 26, pivotY - 62, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e07a3d';
+  ctx.beginPath();
+  ctx.moveTo(cx + 50, pivotY - 56); ctx.lineTo(cx + 66, pivotY - 50); ctx.lineTo(cx + 50, pivotY - 44);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 关节轴
+  ctx.fillStyle = '#555';
+  ctx.beginPath(); ctx.arc(cx, pivotY, 5, 0, Math.PI * 2); ctx.fill();
+
+  // 大白话读数
+  ctx.fillStyle = '#2060d0';
+  ctx.font = 'bold 20px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(`离目标还差 ${Math.abs(deg).toFixed(0)}°`, cx, 356);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawArm(0, '站立 gain=200 · 硬弹簧（对照）', left, false);
+  const midTitle = torqueOn ? midMode : midMode + '（torque 关：只剩摩擦）';
+  drawArm(320, midTitle, mid, true);
+  drawArm(640, '卸力 · 没有弹簧（对照）', right, false);
+}
+
+// 实时积分：墙上过多少时间就补多少个 1ms 小步，三只臂同步走
+let acc = 0, last = performance.now();
+function frame(now) {
+  acc += Math.min(now - last, 100);   // 页面切走再回来不追账，防止一次性补几千步
+  last = now;
+  while (acc >= DT * 1000) {
+    step(left); step(mid); step(right);
+    simTime += DT;
+    acc -= DT * 1000;
+  }
+  document.getElementById('clock').textContent = `已摆 ${simTime.toFixed(1)} s`;
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

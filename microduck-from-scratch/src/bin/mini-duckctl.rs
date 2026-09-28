@@ -15,7 +15,9 @@ async fn main() -> std::io::Result<()> {
     // M0 用手写参数解析；clap 留给功能面膨胀到值得它的里程碑。
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().cloned().unwrap_or_else(|| {
-        eprintln!("usage: mini-duckctl <health|subscribe|drive <vx> <vyaw> [--secs N]>");
+        eprintln!(
+            "usage: mini-duckctl <health|state [--every N]|enable|disable|drive <vx> <vyaw> [--secs N]>"
+        );
         std::process::exit(2);
     });
 
@@ -31,12 +33,41 @@ async fn main() -> std::io::Result<()> {
         "health" => {
             call(&mut framed, 2, "robot.health", serde_json::Value::Null).await?;
         }
-        "subscribe" => {
+        "enable" | "disable" => {
+            call(
+                &mut framed,
+                2,
+                &format!("robot.{cmd}"),
+                serde_json::Value::Null,
+            )
+            .await?;
+        }
+        // state [--every N]：订阅 robot.state 通知流。50Hz 全打印会刷屏，
+        // 默认每 50 帧打一行；调试验收要逐帧时给 --every 1。
+        "state" | "subscribe" => {
+            let every: u64 = match args.get(1).map(String::as_str) {
+                Some("--every") => args.get(2).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
+                    eprintln!("--every wants a positive integer");
+                    std::process::exit(2);
+                }),
+                None if cmd == "subscribe" => 1, // 旧名保持旧行为：逐帧打印
+                None => 50,
+                Some(other) => {
+                    eprintln!("unknown state flag: {other}");
+                    std::process::exit(2);
+                }
+            };
             call(&mut framed, 2, "robot.state", serde_json::Value::Null).await?;
             // 之后这条连接上只剩通知流，打到对端断开或 Ctrl-C。
+            let mut n: u64 = 0;
             while let Some(frame) = framed.next().await {
                 match frame {
-                    Ok(line) => println!("{line}"),
+                    Ok(line) => {
+                        n += 1;
+                        if n % every == 0 {
+                            println!("{line}");
+                        }
+                    }
                     Err(e) => {
                         eprintln!("read: {e}");
                         std::process::exit(1);
@@ -46,8 +77,10 @@ async fn main() -> std::io::Result<()> {
             }
         }
         "drive" => {
-            // drive <vx> <vyaw> [--secs N]：发速度命令；带 --secs 时等 N 秒后
-            // 发零命令停车，不带则由调用方负责停车。
+            // drive <vx> <vyaw> [--secs N]：deadman 500ms 下单次意图只能
+            // 驱动半秒，所以带 --secs 时每 100ms 重发一次意图——CLI 扮演
+            // 手柄的角色，手柄就是持续发意图的。到时发零命令停车。
+            // 不带 --secs 保持单次发送（之后由调用方负责停车）。
             let vx: f64 = args.get(1).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
                 eprintln!("usage: mini-duckctl drive <vx> <vyaw> [--secs N]");
                 std::process::exit(2);
@@ -64,12 +97,36 @@ async fn main() -> std::io::Result<()> {
                     std::process::exit(2);
                 }
             };
-            call(&mut framed, 2, "robot.drive", serde_json::json!({"vx": vx, "vyaw": vyaw}))
+            let mut id = 2;
+            call(&mut framed, id, "robot.drive", serde_json::json!({"vx": vx, "vyaw": vyaw}))
                 .await?;
             if let Some(secs) = secs {
-                tokio::time::sleep(std::time::Duration::from_secs(secs)).await;
-                call(&mut framed, 3, "robot.drive", serde_json::json!({"vx": 0.0, "vyaw": 0.0}))
+                let deadline = tokio::time::Instant::now()
+                    + std::time::Duration::from_secs(secs);
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                    if tokio::time::Instant::now() >= deadline {
+                        break;
+                    }
+                    id += 1;
+                    // 重发是心跳不是新闻：静默收发，10 秒车程不该刷 100 行。
+                    send(
+                        &mut framed,
+                        id,
+                        "robot.drive",
+                        serde_json::json!({"vx": vx, "vyaw": vyaw}),
+                    )
                     .await?;
+                    framed.next().await;
+                }
+                id += 1;
+                call(
+                    &mut framed,
+                    id,
+                    "robot.drive",
+                    serde_json::json!({"vx": 0.0, "vyaw": 0.0}),
+                )
+                .await?;
             }
         }
         other => {

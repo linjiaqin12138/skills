@@ -3,7 +3,11 @@
 
 控制侧（miniduckd --sim host:port）每 20ms 一拍：
   read  → 仿真步进一个控制拍（20ms，内部按 timestep 细分），回传感数据
+          （响应带 gain/torque 回显，M5 起）
   write → 收 15 维总线序目标角（嘴在 index 9，仿真体没有嘴，丢弃）
+  set_gain/set_torque → 执行器增益缩放/卸力（M5：跌倒软倒验收用）
+  push  → 给躯干加水平速度扰动（M5：把鸭子推倒的验收用）
+  body  → 只查躯干位置不步进（验收测位移用）
 协议形状对齐原版 duck-control/src/sim.rs：op 标签帧、hello 握手带
 protocol 版本号和关节数校验。帧格式细节是教程自定（偏差 D4，M8 对齐）。
 
@@ -67,9 +71,33 @@ class DuckBody:
         self.data.ctrl[:] = self.data.qpos[self.joint_qadr]
         mujoco.mj_forward(self.model, self.data)
 
+        # M5：模拟真机舵机 RAM 里的 torque/gain 跨进程存活——仿真体启动
+        # 默认 torque on、gain=200（满增益），daemon 不碰它们也能站住。
+        self.gain = 200
+        self.torque = True
+
         # 物理与渲染共用 MjData：read 步进和画面采样必须互斥，否则画面撕在半拍上。
         self.lock = threading.Lock()
         self.renderer = None
+
+        self._apply_gains()
+
+    def _apply_gains(self):
+        """把 gain(0..200)/torque 落到执行器参数上。
+
+        位置执行器的力 = kp*(ctrl-qpos) - kv*qvel，存在 gainprm[0]=kp、
+        biasprm[1]=-kp、biasprm[2]=-kv（MuJoCo position actuator 约定）。
+        映射：kp_sim = 8.0 × gain/200，kv 同比例（0.25 × gain/200）——
+        8.0/0.25 是 M4 实测调出的站稳增益（偏差 D21），gain=200 对应它。
+        torque off 直接清零三处：舵机卸力，鸭子在重力下瘫软。
+        直接改 gainprm/biasprm 而不缩 ctrl：目标角保持不变，恢复时无跳变。
+        """
+        scale = (self.gain / 200.0) if self.torque else 0.0
+        kp, kv = 8.0 * scale, 0.25 * scale
+        with self.lock:
+            self.model.actuator_gainprm[:, 0] = kp
+            self.model.actuator_biasprm[:, 1] = -kp
+            self.model.actuator_biasprm[:, 2] = -kv
 
     def render_frame(self):
         """离屏渲染一帧 JPEG。跟踪相机锁定躯干，走远了镜头跟着走。"""
@@ -121,6 +149,9 @@ class DuckBody:
             },
             "body_pos": d.xpos[self.trunk_id].tolist(),
             "sim_time": d.time,
+            # M5：回显当前增益/出力状态，验收据此断言跌倒卸力（gain==50）。
+            "gain": self.gain,
+            "torque": self.torque,
         }
 
     def write_targets(self, targets):
@@ -147,6 +178,29 @@ class DuckBody:
         if op == "write":
             err = self.write_targets(req.get("targets", []))
             return {"error": err} if err else {}
+        if op == "set_gain":
+            gain = req.get("gain")
+            if not isinstance(gain, int) or not 0 <= gain <= 200:
+                return {"error": "gain must be an integer in 0..=200"}
+            self.gain = gain
+            self._apply_gains()
+            return {}
+        if op == "set_torque":
+            on = req.get("on")
+            if not isinstance(on, bool):
+                return {"error": "on must be a bool"}
+            self.torque = on
+            self._apply_gains()
+            return {}
+        if op == "push":
+            # 验收用扰动：给躯干水平速度加 vx/vy（m/s，世界系），把鸭子推倒。
+            # free joint 的 qvel[0:3] 即躯干世界系线速度。
+            vx = float(req.get("vx", 1.5))
+            vy = float(req.get("vy", 0.0))
+            with self.lock:
+                self.data.qvel[0] += vx
+                self.data.qvel[1] += vy
+            return {"ok": True}
         if op == "body":
             # 只查躯干世界系位置，不步进（验收脚本用）。
             return {"body_pos": self.data.xpos[self.trunk_id].tolist(),

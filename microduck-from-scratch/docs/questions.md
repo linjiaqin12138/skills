@@ -231,3 +231,56 @@
 - 方向相反：watch 是控制循环→RPC（单生产者帧流，多订阅者只看最新，覆盖是特性，读者零成本不卡控制循环）；command 是 RPC→控制循环（偶发写、每拍主动读，无订阅/通知需求）
 - 功能上 watch 也能做（命令同样是 latest-wins），选 Mutex 是直白度判断：borrow/has_changed 语义对"每拍无脑读"多绕一层；std Mutex 无竞争 lock 纳秒级、临界区 15 字节无 await，对 20ms 拍预算影响为零
 - 失效边界：命令变事件序列（动作脚本，不许覆盖）→ 换 mpsc 队列；读者变多且需变更通知 → watch 才赚回 API 成本
+
+## Q42（读架构图后）：control.enable / enabled 的含义？
+- 系统里没有 control.enable 方法；指的是 robot.enable（RPC，main.rs:211）和它写入的 ControlState.enabled（control.rs:90）
+- 含义：「人类明确授权机器人现在可以动」的标志位，五相位状态机的唯一输入。false（默认）→ Held 抱住启动姿态不调 set_torque；false→true 边沿 → torque on + 斜坡回 home → Driving；true→false → 斜坡回 home + torque off → Held
+- 语义来源（M5 收敛 D9）：「进程启动不是移动机器人的理由」——被 supervisor 重启的 daemon 必须让站着的机器人继续站着；舵机 RAM 的 torque 跨进程存活使「不动」成为可行默认
+- 与 deadman 分工：enabled 管授权（电平语义，防进程自作主张）；deadman 管司机在不在（保鲜期语义，防客户端失联）
+- 失效边界：M6 多技能后「谁来 enable」变成调度问题，需重审
+
+## Q43（读 servo-gain-torque 概念文档）：spring_demo 没看懂，gain=200 哪来的？theta/omega 太抽象
+- gain=200/50：原型 alpha 调好后写进舵机增益寄存器的两个数（src/safety.rs:50-55），固件自定义标度、无 SI 单位；只有相对关系 200:50=4:1 有物理意义。到物理世界的桥是仿真体映射 kp_sim = 8 × gain/200（sim/duck_body.py:85-100），所以演示里 200→kp=8、50→kp=2
+- 真机写入路径：write_position_p_gain + I/D 钉 0，RAM 寄存器上电恢复出厂（reference/duck-control/src/bus.rs:541-561）；寄存器量程 reference 未载，以 e-Manual 为准
+- theta/omega 只是角度/角速度代号
+- 处置：新增网页实体演示 docs/concepts/assets/servo-gain-torque/index.html（三臂同屏对照：站立-31°/软倒-63°/卸力-92°，滑块+torque 开关+预设），概念文档新增「gain=200 是哪来的？」一节，网页优先 python 降为数字对照；教程 m5 卡片已加链接
+
+## Q44：IMU 动起来时 gyro/gravity/quat 怎么变化？
+- 处置：新增动画演示 docs/concepts/assets/imu/index.html（三轴姿态动画+三组变量实时条形表+4 秒滚动波形+跌倒判定 200ms 去抖联动），四个预设：原地转圈（gyro.z 平台、gravity 全平）/前倾点头/侧翻 90°（gravity→[0,-1,0]，fallen 锁存全过程）/三轴乱晃；手动滑块模式
+- 数值锚点（python 交叉对表验证过）：直立 gravity=[0,0,-1]/quat=[1,0,0,0]；前倾 θ quat=[cos θ/2,0,sin θ/2,0]、gravity.x=sin θ；侧躺（向右 90°）gravity=[0,-1,0]
+- 核心直觉：gyro 只在"正在转"时非零（停住归零）；gravity 只在乎"歪不歪"（停着也在）；quat 是姿态打包（w≈1=没怎么转）
+- 副产品修正：safety.rs 注释与 m5 教程原写"去抖，双向"，实际代码起身方向是立即清零（直立样本即解除 fallen）——已改为如实描述（倒下方向去抖、起身立即，不对称是故意：误判倒的代价远高于多躺一拍）
+- 网页 gravity 公式曾取错矩阵行/列（前倾时 gravity.x 符号反），靠 python 对表抓出；教训：旋转公式必须数值验证，不能凭推
+
+## Q45（读 main.rs:254-281）：是不是每次 send 都会触发 changed()？
+- 是。watch 的 changed 是"版本号+1"不是"内容变了"——send 不做值比较，写入即给所有 receiver 打标记，值相同也触发
+- 合并语义：receiver 没 poll 时连发 3 次只醒一次，borrow_and_update 读最新帧（latest-wins，慢订阅者自动丢帧不积压，D25）
+- borrow_and_update vs borrow：前者读+清标记；用 borrow 不清标记会让 changed() 立刻再醒，忙等死循环（经典坑）
+- send 的 Err 只在所有 receiver 都 drop 时发生；control.rs:416 的 `let _ =` = 没订阅者帧直接丢弃，不阻塞控制循环
+- 推论：推送率=成功 read 的拍率，不是定时器——read 失败拍不发帧（杀 sim 时订阅端立刻断流）；`if subscribed` 守卫放开时攒着的标记让首帧即时送达
+
+## Q46（读 main.rs:123-130）：tick_age_ms 与 saturating_sub 是什么？
+- 语义：两个时间共用 started 起点（控制任务启动时刻），elapsed() 毫秒数 − 最后一拍的毫秒数 = "距上一拍过去多久"，喂给 stall 检测（>500ms 报病，25 拍阈值来自原版 robotd-params）
+- saturating_sub：无符号减法的"减到 0 为止"版本。普通 `a - b` 减出负数 debug 下 panic、release 下回绕成天文数字；saturating 钳 0
+- 这里是纯防御（不变量:last_tick ≤ elapsed 正常恒成立）：选饱和方向是因为回绕=误报"卡死"（健康机器人判病），钳 0=误报"健康"，两害相权取后者
+- 附带效果：last_tick_millis 初始 0（一拍未走）时，elapsed−0=全部启动时长——"循环从没跑起来"在 500ms 后自然报 stalled，无需特殊分支
+
+## Q47（读 duck_body.py:95-100）：actuator_gainprm/biasprm 是 MuJoCo 自带的吗？
+- 是。model 是 mujoco.MjModel（XML 编译产物），这两个是每个执行器固定的参数数组（nu×10），槽位含义由执行器类型规定（MuJoCo XML reference 的 actuator 约定）
+- <position> 执行器内置公式：力矩 = gainprm[0]×ctrl + biasprm[0] + biasprm[1]×qpos + biasprm[2]×qvel；填 kp/−kp/−kv 后化简为 kp×(目标−当前) − kv×角速度——与概念文档的舵机 P 环同一根弹簧
+- [:, n] 是 numpy 切片，一把改 14 个执行器；运行时改合法（每个 mj_step 重读，不用重编译）
+- 8.0/0.25 不是 MuJoCo 的，是 M4 实测调出的站稳增益（D21）；槽位结构才是 MuJoCo 的
+- 改参数不改 ctrl 的原因：目标角全程不动，增益切换无跳变；缩 ctrl 则恢复瞬间目标跳变
+
+## Q48：kp 和 kv 是什么？kp 是舵机扭力强度吗？
+- 都不是角度。kp（P 项/位置增益）= 扭力与角度偏差的兑换率："每偏 1 弧度输出多少力矩"，单位力矩/弧度——是强度系数不是力矩本身（偏差为零时 kp 再大输出也是零），类弹簧硬度。鸭子的 set_gain(200) → 仿真 kp=8 走的就是这一路
+- kv（D 项/速度增益）= 阻尼/刹车："转多快就反方向拦多狠"，单位力矩/(rad/s)。不看位置只看速度，防超调振荡
+- 合起来 = PD 控制：力矩 = kp×角度偏差 − kv×角速度（duck_body.py:88-89 注释的公式，D21 里"XML PD"的出处）
+- 实验锚点：网页演示卸力工况（kp=kv=0）杆子荡好几下才停 vs 站立臂几乎不超调——差的就是 kv
+- 真机 XL330 也是 P/D 一对寄存器，但 bus.rs 里 D 钉在 0，真机阻尼靠舵机自身特性
+
+## Q49：力矩 = kp×(目标−当前) − kv×角速度 是哪来的？
+- 仿真层：MuJoCo 对 <position> 执行器的内置力矩约定（gainprm[0]×ctrl + biasprm[1]×qpos + biasprm[2]×qvel 代入化简）；我们的执行器来自 microduck_rl 训练资产的 --no-bam 降级路径（scene.xml 头注释）
+- 真机层：XL330 固件的位置伺服控制环——编码器测偏差、按比例出电机电流，bus.rs:552 write_position_p_gain 写的就是这个环的 P 系数。真机上的公式不是物理定律，是固件代码：电机+编码器+算法假装自己是弹簧
+- 物理层：弹簧（F=k×形变，管"回目标"）+ 阻尼器（F=c×速度，管"别冲头"）——位置+速度恰好是二阶系统的全部状态（Q37），PD 是能稳住一个关节的最简结构
+- 这是简化模型：真舵机还有减速箱惯性/齿隙/电流饱和/温漂，训练侧的 BAM 模型（D21）才建这些；XML PD 是"够用"的降级，sim-to-real 差距靠域随机化补

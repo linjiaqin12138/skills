@@ -1,19 +1,21 @@
-//! miniduckd：M4 的守护进程。
+//! miniduckd：M5 的守护进程。
 //!
 //! M0 的 JSON-RPC 骨架（hello / robot.health / robot.state 订阅）之上，
-//! 50 Hz 控制任务：插值到 home，满 100 拍后用 velstand.onnx 闭环。
-//! M4 新增：`--sim host:port` 走 SimIo 驱动 MuJoCo 仿真体（否则 FakeIo）；
-//! `robot.drive {vx, vyaw}` 写共享速度命令，观测的 command 块随之取真值。
+//! 50 Hz 控制任务经 Safety（唯一写句柄）驱动身体。
+//! M5 新增：`robot.enable` / `robot.disable` 使能开关；`robot.health`
+//! 报真实判定（D11）；`robot.state` 改为 50 Hz 逐帧推送（D14）；
+//! 策略加载失败不再退出，抱持姿态报病（D19）；socket 文件 chmod 0660（D8）。
 
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use futures::{SinkExt, StreamExt};
-use miniduck::control::SharedCommand;
+use miniduck::control::{self, SharedControl};
 use miniduck::io::{FakeIo, RobotIo, SimIo};
 use miniduck::policy::Policy;
-use miniduck::{API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request, ServerMessage, control};
+use miniduck::safety::{Safety, SafetyConfig};
+use miniduck::{API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request, ServerMessage};
 use serde_json::json;
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::watch;
@@ -22,6 +24,12 @@ use tokio_util::codec::{Framed, LinesCodec};
 const SOCK_PATH: &str = "/tmp/miniduckd.sock";
 const DEFAULT_POLICY: &str = "policies/velstand.onnx";
 const INVALID_PARAMS: i32 = -32602;
+
+// health 阈值，全部来自原版 robotd-params：stall 25 拍 = 500ms、
+// 最低 45Hz = 50Hz 的 90%、连续读错误 10 次。
+const HEALTH_MAX_TICK_AGE_MS: u64 = 500;
+const HEALTH_MIN_MILLIHZ: u64 = 45_000;
+const HEALTH_MAX_CONSEC_READ_ERRORS: u64 = 10;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -45,11 +53,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // D19：策略加载失败不再退出——Restart=always 下退出等于 crashloop，
+    // 活着报病才能让 updater 回滚（原版 robotd 的理由）。policy=None 时
+    // 控制循环永远停在 Held 抱持姿态，health 报 unhealthy。
     let policy_path = std::env::var("MINIDUCK_POLICY").unwrap_or_else(|_| DEFAULT_POLICY.into());
-    let policy = Policy::load(&policy_path).map_err(|e| {
-        eprintln!("failed to load policy {policy_path}: {e}");
-        e
-    })?;
+    let (policy, policy_error) = match Policy::load(&policy_path) {
+        Ok(p) => (Some(p), None),
+        Err(e) => {
+            eprintln!("WARNING: failed to load policy {policy_path}: {e} — holding pose, reporting unhealthy");
+            (None, Some(format!("policy unavailable: {e}")))
+        }
+    };
+    let policy_error = Arc::new(policy_error);
 
     let io: Box<dyn RobotIo> = match &sim_addr {
         Some(addr) => {
@@ -67,36 +82,97 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let command = control::shared_command();
+    let control = control::shared_control();
 
-    // 50 Hz 控制任务。stats 由循环自己记账，frame_rx 是最新快照的订阅口。
-    let (stats, frame_rx) = control::spawn(io, policy, command.clone());
+    // 50 Hz 控制任务。Safety 拥有唯一写句柄：从这里把 io 交出去之后，
+    // 本进程再没有第二条碰电机的路径。stats 由循环自己记账。
+    let safety = Safety::new(io, SafetyConfig::default());
+    let (stats, frame_rx) = control::spawn(safety, policy, control.clone());
 
     // 上次异常退出残留的 socket 文件会让 bind 报 AddrInUse。先清再绑。
     let _ = std::fs::remove_file(SOCK_PATH);
     let listener = UnixListener::bind(SOCK_PATH)?;
+    // D8：socket 文件 0660 就是 robotd 的全部鉴权——能打开这个文件的
+    // 用户/组就能开车。对照结论：原版 robotd 没有 SO_PEERCRED，那是
+    // configd/updaterd 的模式（M7 的事），这里不超前实现。
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(SOCK_PATH, std::fs::Permissions::from_mode(0o660))?;
+    }
     eprintln!("miniduckd listening on {SOCK_PATH}");
 
     loop {
         let (stream, _) = listener.accept().await?;
-        tokio::spawn(serve(stream, stats.clone(), frame_rx.clone(), command.clone(), boot));
+        tokio::spawn(serve(
+            stream,
+            stats.clone(),
+            frame_rx.clone(),
+            control.clone(),
+            policy_error.clone(),
+            boot,
+        ));
     }
+}
+
+/// robot.health 的真实判定（D11 收敛）。暖机前（首个 5s 窗口未满，
+/// achieved_millihz 还是 0）不按频率判——刚启动的循环频率必然低。
+fn health(stats: &control::Stats, policy_error: &Option<String>, boot: Instant) -> serde_json::Value {
+    let tick = stats.tick.load(Ordering::Relaxed);
+    let consecutive_read_errors = stats.consecutive_read_errors.load(Ordering::Relaxed);
+    let achieved_millihz = stats.achieved_millihz.load(Ordering::Relaxed);
+    // saturating_sub：tick==0 时 last_tick_millis 为 0，启动 500ms 后
+    // 循环若一拍没走，年龄超标、报病——正是要的效果。
+    let tick_age_ms = stats
+        .started
+        .elapsed()
+        .as_millis()
+        .saturating_sub(stats.last_tick_millis.load(Ordering::Relaxed) as u128)
+        as u64;
+
+    let mut reasons: Vec<String> = Vec::new();
+    if !stats.policy_ok.load(Ordering::Relaxed) {
+        reasons.push(
+            policy_error
+                .clone()
+                .unwrap_or_else(|| "policy unavailable".into()),
+        );
+    }
+    if consecutive_read_errors >= HEALTH_MAX_CONSEC_READ_ERRORS {
+        reasons.push(format!("consecutive read errors: {consecutive_read_errors}"));
+    }
+    if tick_age_ms > HEALTH_MAX_TICK_AGE_MS {
+        reasons.push(format!("control loop stalled: last tick {tick_age_ms}ms ago"));
+    }
+    if achieved_millihz > 0 && achieved_millihz < HEALTH_MIN_MILLIHZ {
+        reasons.push(format!(
+            "tick rate too low: {:.1}Hz",
+            achieved_millihz as f64 / 1000.0
+        ));
+    }
+
+    json!({
+        "healthy": reasons.is_empty(),
+        "reason": reasons,
+        "tick": tick,
+        "uptime_s": boot.elapsed().as_secs(),
+        "reads": stats.reads.load(Ordering::Relaxed),
+        "writes": stats.writes.load(Ordering::Relaxed),
+        "skipped_reads": stats.skipped_reads.load(Ordering::Relaxed),
+        "consecutive_read_errors": consecutive_read_errors,
+        "achieved_hz": achieved_millihz as f64 / 1000.0,
+    })
 }
 
 async fn serve(
     stream: UnixStream,
     stats: Arc<control::Stats>,
-    frame_rx: watch::Receiver<control::FrameSnapshot>,
-    command: SharedCommand,
+    mut frame_rx: watch::Receiver<control::FrameSnapshot>,
+    control: SharedControl,
+    policy_error: Arc<Option<String>>,
     boot: Instant,
 ) {
     let mut framed = Framed::new(stream, LinesCodec::new());
     let mut subscribed = false;
-
-    // 订阅推送频率仍为 1 Hz；对齐原版 50 Hz 的 robot.state 流留给
-    // 客户端真的吃得下 50 Hz 的里程碑。
-    let mut push = tokio::time::interval(Duration::from_secs(1));
-    push.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
     loop {
         tokio::select! {
@@ -123,29 +199,32 @@ async fn serve(
                     ),
                     "robot.health" => ServerMessage::ok(
                         req.id,
-                        json!({
-                            "healthy": true,
-                            "tick": stats.tick.load(Ordering::Relaxed),
-                            "uptime_s": boot.elapsed().as_secs(),
-                            "reads": stats.reads.load(Ordering::Relaxed),
-                            "writes": stats.writes.load(Ordering::Relaxed),
-                            "skipped_reads": stats.skipped_reads.load(Ordering::Relaxed),
-                        }),
+                        health(&stats, &policy_error, boot),
                     ),
                     "robot.state" => {
                         subscribed = true;
                         ServerMessage::ok(req.id, json!({ "subscribed": true }))
                     }
-                    // 第一个 mutating 调用（收敛 D18）：速度命令进共享 Command，
-                    // 控制循环下一拍组装观测时取真值。vy 恒 0（侧向未开放）。
-                    // SO_PEERCRED 校验按偏差簿 D8 留给 M5/M7。
+                    // M5 使能开关（收敛 D11/D19 的配套）：无参数，写共享
+                    // ControlState.enabled，边沿检测与斜坡在控制循环里做。
+                    "robot.enable" => {
+                        control.lock().expect("control mutex poisoned").enabled = true;
+                        ServerMessage::ok(req.id, json!({ "enabled": true }))
+                    }
+                    "robot.disable" => {
+                        control.lock().expect("control mutex poisoned").enabled = false;
+                        ServerMessage::ok(req.id, json!({ "enabled": false }))
+                    }
+                    // 速度命令进共享 ControlState 并刷新意图时刻（deadman
+                    // 依据）。vy 恒 0（侧向未开放）。
                     "robot.drive" => {
                         let vx = req.params.get("vx").and_then(|v| v.as_f64());
                         let vyaw = req.params.get("vyaw").and_then(|v| v.as_f64());
                         match (vx, vyaw) {
                             (Some(vx), Some(vyaw)) if vx.is_finite() && vyaw.is_finite() => {
-                                let mut cmd = command.lock().expect("command mutex poisoned");
-                                cmd.twist = [vx, 0.0, vyaw];
+                                let mut ctl = control.lock().expect("control mutex poisoned");
+                                ctl.command.twist = [vx, 0.0, vyaw];
+                                ctl.last_intent_at = Some(Instant::now());
                                 ServerMessage::ok(
                                     req.id,
                                     json!({ "driving": true, "vx": vx, "vyaw": vyaw }),
@@ -168,8 +247,15 @@ async fn serve(
                     break;
                 }
             }
-            _ = push.tick(), if subscribed => {
-                let frame = frame_rx.borrow().clone();
+            // D14：robot.state 从 1Hz interval 改为帧驱动——控制循环每拍
+            // 发一帧快照，这里 changed() 一醒就推，50Hz 直通。latest-wins：
+            // 推送慢于 50Hz 时 watch 只保留最新帧，不积压（逐订阅者降频的
+            // hz 参数是禁止提前实现项 D25）。
+            changed = frame_rx.changed(), if subscribed => {
+                if changed.is_err() {
+                    break; // 控制任务没了，这条连接也没有存在意义
+                }
+                let frame = frame_rx.borrow_and_update().clone();
                 let imu = &frame.sensors.imu;
                 let note = ServerMessage::notify(
                     "robot.state",
@@ -183,6 +269,10 @@ async fn serve(
                         },
                         "obs": frame.obs.as_slice(),
                         "action": frame.action.as_slice(),
+                        "fallen": frame.fallen,
+                        "enabled": frame.enabled,
+                        "gain": frame.gain,
+                        "torque": frame.torque,
                     }),
                 );
                 if framed.send(serde_json::to_string(&note).unwrap()).await.is_err() {
