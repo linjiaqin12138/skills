@@ -32,6 +32,18 @@ pub const JOINT_NAMES: [&str; NUM_JOINTS] = [
 /// （"策略维数 14"vs"总线维数 15"）在原版文档里是专门解释过的坑。
 pub const MOUTH_INDEX: usize = 9;
 
+/// 嘴的行程端点（弧度）：闭 −5°、全开 +30°。数值来自原版
+/// reference/duck-control/src/model.rs:62-63（alpha 沿用 v1.6 的量程）。
+pub const MOUTH_CLOSED: f64 = -5.0 * std::f64::consts::PI / 180.0;
+pub const MOUTH_OPEN: f64 = 30.0 * std::f64::consts::PI / 180.0;
+
+/// robot.mouth 的 0..1 开度 → 绝对关节角。夹紧在行程内；NaN 当 0（闭嘴）——
+/// 与原版 mouth_target 逐行为一致（reference/duck-control/src/model.rs:67-74）。
+pub fn mouth_target(open: f64) -> f64 {
+    let open = if open.is_finite() { open.clamp(0.0, 1.0) } else { 0.0 };
+    MOUTH_CLOSED + open * (MOUTH_OPEN - MOUTH_CLOSED)
+}
+
 /// home 姿态（弧度）：直立待命位。左右腿镜像（roll/pitch/knee/ankle
 /// 等大反号），躯干前倾让质心落在踝关节轴正上方——双足静止站立的
 /// 稳定性就押在这几百度上，所以它是常量而不是配置。
@@ -51,9 +63,19 @@ mod tests {
         assert_eq!(DEFAULT_POSITION.len(), NUM_JOINTS);
     }
 
+    /// 嘴映射端点与夹紧：对照原版 mouth_target 的同款测试
+    /// （reference/duck-control/src/model.rs:250-256）。
     #[test]
-    fn home_pose_legs_are_mirrored() {
-        let p = &DEFAULT_POSITION;
+    fn mouth_target_spans_the_prototype_range() {
+        assert!((mouth_target(0.0) - (-5.0f64.to_radians())).abs() < 1e-12);
+        assert!((mouth_target(1.0) - 30.0f64.to_radians()).abs() < 1e-12);
+        assert_eq!(mouth_target(-3.0), mouth_target(0.0));
+        assert_eq!(mouth_target(7.0), mouth_target(1.0));
+        assert_eq!(mouth_target(f64::NAN), mouth_target(0.0));
+    }
+
+    #[test]
+    fn home_pose_legs_are_mirrored() {        let p = &DEFAULT_POSITION;
         // 左腿索引 0..5，右腿 10..15，镜像关节等大反号。
         for (l, r) in [(0, 10), (1, 11), (2, 12), (3, 13), (4, 14)] {
             assert!(

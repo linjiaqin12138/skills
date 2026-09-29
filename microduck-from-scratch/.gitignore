@@ -3,3 +3,4 @@
 /policies/*.onnx
 /third_party/
 /tests/fixtures/*.onnx
+__pycache__/

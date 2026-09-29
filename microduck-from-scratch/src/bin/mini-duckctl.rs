@@ -16,7 +16,7 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().cloned().unwrap_or_else(|| {
         eprintln!(
-            "usage: mini-duckctl <health|state [--every N]|enable|disable|drive <vx> <vyaw> [--secs N]>"
+            "usage: mini-duckctl <health|state [--every N]|enable|disable|drive <vx> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>>"
         );
         std::process::exit(2);
     });
@@ -128,6 +128,52 @@ async fn main() -> std::io::Result<()> {
                 )
                 .await?;
             }
+        }
+        // M6：技能请求。do <skill>（edge 语义，仲裁在控制循环）；skills 列名单。
+        "do" => {
+            let skill = args.get(1).cloned().unwrap_or_else(|| {
+                eprintln!("usage: mini-duckctl do <skill>");
+                std::process::exit(2);
+            });
+            call(&mut framed, 2, "robot.do", serde_json::json!({"skill": skill})).await?;
+        }
+        "skills" => {
+            call(&mut framed, 2, "robot.skills", serde_json::Value::Null).await?;
+        }
+        // M6：嘴开度 0..1。
+        "mouth" => {
+            let position: f64 = args.get(1).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
+                eprintln!("usage: mini-duckctl mouth <0..1>");
+                std::process::exit(2);
+            });
+            call(
+                &mut framed,
+                2,
+                "robot.mouth",
+                serde_json::json!({"position": position}),
+            )
+            .await?;
+        }
+        // M6：头姿，四个关节角（弧度）。
+        "head" => {
+            let parse = |i: usize| -> f64 {
+                args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
+                    eprintln!("usage: mini-duckctl head <neck_pitch> <head_pitch> <head_yaw> <head_roll>");
+                    std::process::exit(2);
+                })
+            };
+            call(
+                &mut framed,
+                2,
+                "robot.head",
+                serde_json::json!({
+                    "neck_pitch": parse(1),
+                    "head_pitch": parse(2),
+                    "head_yaw": parse(3),
+                    "head_roll": parse(4),
+                }),
+            )
+            .await?;
         }
         other => {
             eprintln!("unknown command: {other}");

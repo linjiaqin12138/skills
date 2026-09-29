@@ -234,7 +234,7 @@
 
 ## Q42（读架构图后）：control.enable / enabled 的含义？
 - 系统里没有 control.enable 方法；指的是 robot.enable（RPC，main.rs:211）和它写入的 ControlState.enabled（control.rs:90）
-- 含义：「人类明确授权机器人现在可以动」的标志位，五相位状态机的唯一输入。false（默认）→ Held 抱住启动姿态不调 set_torque；false→true 边沿 → torque on + 斜坡回 home → Driving；true→false → 斜坡回 home + torque off → Held
+- 含义：「人类明确授权机器人现在可以动」的标志位，五阶段状态机的唯一输入。false（默认）→ Held 抱住启动姿态不调 set_torque；false→true 边沿 → torque on + 斜坡回 home → Driving；true→false → 斜坡回 home + torque off → Held
 - 语义来源（M5 收敛 D9）：「进程启动不是移动机器人的理由」——被 supervisor 重启的 daemon 必须让站着的机器人继续站着；舵机 RAM 的 torque 跨进程存活使「不动」成为可行默认
 - 与 deadman 分工：enabled 管授权（电平语义，防进程自作主张）；deadman 管司机在不在（保鲜期语义，防客户端失联）
 - 失效边界：M6 多技能后「谁来 enable」变成调度问题，需重审
@@ -284,3 +284,55 @@
 - 真机层：XL330 固件的位置伺服控制环——编码器测偏差、按比例出电机电流，bus.rs:552 write_position_p_gain 写的就是这个环的 P 系数。真机上的公式不是物理定律，是固件代码：电机+编码器+算法假装自己是弹簧
 - 物理层：弹簧（F=k×形变，管"回目标"）+ 阻尼器（F=c×速度，管"别冲头"）——位置+速度恰好是二阶系统的全部状态（Q37），PD 是能稳住一个关节的最简结构
 - 这是简化模型：真舵机还有减速箱惯性/齿隙/电流饱和/温漂，训练侧的 BAM 模型（D21）才建这些；XML PD 是"够用"的降级，sim-to-real 差距靠域随机化补
+
+## Q50（M6 后）：之前没有 LSTM，这次 M6 有了吗？哪些策略用到了 LSTM？
+- 没有。M6 新下的 4 份 + velstand 共 5 份实测全部 feedforward（`obs[1,61] → actions[1,14]`，无 h_in/c_in）
+- 容易误会的点：M6 做实的是 LSTM **契约**（换网即 `reset()`，scheduler.rs:428-438），不是遇到了 LSTM 权重。因全是前馈、reset 是空操作，故加 `reset_calls` 计数让契约可断言（policy.rs:77-81）
+- D20 保持待收敛：官方哪天放出 recurrent 权重一丢就能跑；M8 仍没有则删分支
+
+## Q51（追问）：官方发布的策略没有 LSTM，但官方源码有 LSTM 吗？
+- 权重：v5 官方集**全部 10 份**都 probe 过（本次补测 alpha_stand/alpha_walking/ball_kick_right/roller/roller_crouch），清一色 feedforward，文件都 ~793KB 同构
+- 源码：有完整 LSTM 支持——reference/duck-control/src/policy.rs:459-522（LstmState、h_in/c_in 按名接线、load 按张量数判别 :601）+ 专门契约文档 reference/docs/recurrent-policies.md（张量契约、记忆生命周期：换网/disable/跌倒恢复/链式重开全清零，同网内换命令保留；热换按 SHA-256 摘要决定去留；recurrent 权重须标 model_api:2）
+- 定性：部署侧 LSTM 基建已通车、训练侧（mjlab/rsl_rl explicit-state 导出）也支持，但官方从未发布 recurrent 权重——是给未来留的接口，与观测里 4 个恒 0 的考古维度正好相反
+
+## Q52（读 scheduler.rs:203-222）：往下坐的过程是 Rising 吗？
+- 不是。`Sit` 三态：Up / Sitting / Rising{50拍}。**坐下没有过渡状态**——toggle 当拍直接锁存 Sitting，"往下坐"由 sitstand 网络在 vx=1 命令下自己完成，无窗口无倒计时
+- Rising 只是**起身**：Sitting toggle → Rising，1.0s 窗口 twist 全零，到期回 Up
+- 不对称的原因：起身是两网络间的脚本化交接（需要"何时交还 walk"）；坐下不交接给任何人（sit 网络原地驻留），没有交还时刻
+- 派生行为：① 坐下过程 busy=false（坐着是停驻不是行进，原版同 control.rs:318-322），跌倒反射不抑制 ② label 当拍即 "sit"，描述锁存的命令状态而非物理完成度——M6 验收 sit 的 38 帧断言靠的就是这个
+
+## Q53（读 scheduler.rs:559-567）：ground_pick 为什么 140 拍就交还 walk，不跑满 200 拍？
+- 原版注释直接写明（reference/robotd/src/control.rs:85-86）："Ending at 1.0 replays the reach on the way out"
+- 机制：拾取是**周期运动**（相位编码绕单位圆，φ=1.0≡0.0，轨迹可无限循环）。0→0.7 = 蹲下→伸手→抓→恢复直立（"捡一次"的全部有效动作）；0.7→1.0 是循环尾巴=在为下一次下蹲蓄力——跑满 200 拍会在收尾时又蹲一次
+- 140 = 0.7×200 是"动作完成点"不是"周期跑完点"；数值链 DEFAULT_GROUND_PICK_END_PHASE（robotd-params:872 "70% of the cycle, as the prototype does"）
+- 能硬切的前提：φ=0.7 时机器人已直立，velstand 接得住尾巴（与 sitstand_rise_s 同款逻辑 "velstand owns the tail of the rise fine"）
+
+## Q54（追问 Q52）：坐下后马上再 toggle（只坐下去一点），起身还要固定 50 拍吗？
+- 要。Rising 是**开环计时窗口**，不读身体实际姿态——scheduler 全链路没有"站直了没有"的判据
+- 两层分开看：物理层自适应（sitstand 网络看得到关节位置，坐得浅纠正动作就小，0.2s 可能就回正）；调度层死板（剩余拍里 sitstand 当权、twist 强制全零、busy=true，期间 robot.drive 被吃掉）
+- 原版同款：sitstand_rise_s=1.0s 固定窗口，按"足够"而非"精确"取（reference/robotd/src/control.rs:92-93）
+- 【合理推断】为什么不做"直立检测提前交还"：姿态阈值+滞回多一类"阈值永不满足→卡死 Rising"的失败模式；开环窗口最坏代价只是多等几百毫秒+期间不理行走命令，代价有界行为可预测。原版的应对是把 sitstand_rise_s 做成配置项，而不是做成自适应
+
+## Q55（追问 Q53）：ground_pick 为什么要用角度（相位）做输入，不能像 sit 一样一个 flag 吗？
+- 分界：sit 是"去一个状态并待在那"（静态目标，反馈闭环自己收敛，类似温控器只需设定值）；ground_pick 是"沿时间轨迹走一遍"（脚本化动作，必须知道走到哪了）
+- 核心论据（马尔可夫性，回指 Q34）：拾取轨迹在状态空间自相交——φ=0.25 下蹲中与 φ=0.6 起身中关节位置几乎相同，但正确动作相反；只给 flag 则前馈网络面对"同观测反动作"的死局。相位=给无记忆网络外接的时钟/剧本页码
+- 为什么 cos+sin 两个数：回绕连续（0.99≈0.0，线性标量每圈一次阶跃）；单 sin 分不出 φ 与 π−φ；幅值恒 1 不出训练分布
+- 编码分类（reference/robotd-params/src/lib.rs:1087-1094）：constant=kick/roulade 短促爆发；phase=ground_pick/roller_crouch 时间脚本；posture_flag=sit↔stand 双稳态驻留
+- 【合理推断】kick/roulade 不用相位：够短、从固定初始条件 rollout，时间角色被初始状态+动作惯性吸收；原版未逐字解释
+
+## Q56（追问 Q55）：观测里有关节角速度，为什么还区分不了"正在下蹲"和"正在起身"？
+- 速度只能区分运动**方向**，区分不了剧本**进度**。反例=拾取的底部驻留段：(位置=最低点, 速度≈0) 持续几十拍不变，无记忆策略对同一观测只能输出同一动作——输出"保持"则永远蹲着，输出"起身"则抓取永远没机会执行。"停0.5秒再起"对无记忆网络数学上不存在
+- 本质：位置/速度/加速度都是**身体的状态**，N 阶导数只能解身体的 N 个隐藏状态（回指 Q36/Q37）；相位不是身体的状态，是**剧本的状态**——活在控制者的表里，测量身体测不出"排练到第几小节"
+- 次要：速度是差分算的，零速附近符号噪声最大（Q36），拿它当方向开关会抖
+- 对照 sit 为什么无此问题：坐姿是驻留态，(坐姿,速度0)→"保持"是自洽不动点，不需要时钟；拾取底部驻留只是中途一站，同观测要在若干拍后换动作
+- 【合理推断】原版未逐字论证 phase vs flag，以上从马尔可夫判据（Q34）反推；底部平台期在 M6 验收的 140 帧实测里直接可见
+
+## Q57（读 m6 教程 robot.do 决策卡片）：「放弃的成本」写的不像成本，到底放弃了什么？
+- 原文写的是实现注意事项，不是成本。正解：选了备选1（RPC 侧尽力拒绝）= 放弃备选2（全收下、控制循环统一丢）的两个好处——① 拒绝逻辑单点化（现在理由分住两层，新增拒绝情形要同时改 RPC 和调度器，漏一处就复现"accepted 但什么都不发生"）② RPC 层解耦（本来只做协议翻译，现在要向控制循环打听阶段，Stats.driving 就是为此加的）
+- 原文后半句其实是备选1 自己没买全的短板：busy 只活在 Cascade，RPC 判不了，"accepted 然后什么都不发生"没被消灭，只是从 fallen 缩窄到 busy——这也该算成本
+- 副产品：抓到"fallen 时拒绝 vs 原版静默丢"这条可观察行为差异未登记偏差，已补 D36；卡片成本项已按"放弃了备选2 的什么好处"重写
+
+## Q58（读 control.rs:64）：Stats.driving 是什么？"相位/斜坡"这些词怎么理解？
+- driving = 机器人是否处于"正常驾驶模式"的公开布尔标志；用途：RPC 层据此拒绝渐变回 home 途中的 robot.do（"accepted 然后什么都不发生是最坏的回答"）
+- 五阶段（洗衣机类比：同一台电机，注水/洗涤/漂洗/脱水各阶段干的事完全不同）：Held 抱持（僵住）→ RampUp（2秒渐变到站立）→ Driving 驾驶中（神经网络开车，唯一响应技能请求的阶段）⇄ Limp 瘫软（摔倒卸力）→ RampDown（回站立后断电）
+- 用词教训（用户两次纠正后定性）：① phase 在状态机语境译"相位"是**误译**——"相位"专指波形相位角，状态机该写"阶段/模式"；同项目里 ground_pick 的相位编码才是真相位，两个概念曾被同一个错词混着用，已全部订正 ② "斜坡(ramp)"= 目标沿直线慢慢爬的渐变过程（词源：目标-时间曲线像斜坡），不是机器人爬坡；首次出现必须声明 ③ 用户已熟的英文原词（SKILL/tutorial/viewer 等）直接用英文，翻译反而多一道脑内转换——三层规则已落 user-prefs「语言与用词」

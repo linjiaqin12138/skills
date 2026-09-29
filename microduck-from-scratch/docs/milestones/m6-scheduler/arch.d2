@@ -1,0 +1,251 @@
+direction: down
+
+vars: {
+  d2-config: {
+    layout-engine: dagre
+    theme-id: 0
+  }
+}
+
+classes: {
+  cli: {
+    style: {
+      fill: "#2563EB"
+      font-color: "#FFFFFF"
+      stroke: "#1E40AF"
+      border-radius: 8
+      bold: true
+    }
+  }
+  rpc: {
+    style: {
+      fill: "#0D9488"
+      font-color: "#FFFFFF"
+      stroke: "#115E59"
+      border-radius: 8
+      bold: true
+    }
+  }
+  ctrl: {
+    style: {
+      fill: "#EA580C"
+      font-color: "#FFFFFF"
+      stroke: "#9A3412"
+      border-radius: 8
+      bold: true
+    }
+  }
+  sched: {
+    style: {
+      fill: "#DB2777"
+      font-color: "#FFFFFF"
+      stroke: "#9D174D"
+      border-radius: 8
+      bold: true
+    }
+  }
+  policy: {
+    style: {
+      fill: "#CA8A04"
+      font-color: "#FFFFFF"
+      stroke: "#854D0E"
+      border-radius: 8
+      bold: true
+    }
+  }
+  safety: {
+    style: {
+      fill: "#DC2626"
+      font-color: "#FFFFFF"
+      stroke: "#991B1B"
+      border-radius: 8
+      bold: true
+    }
+  }
+  io: {
+    style: {
+      fill: "#7C3AED"
+      font-color: "#FFFFFF"
+      stroke: "#5B21B6"
+      border-radius: 8
+      bold: true
+    }
+  }
+  sim: {
+    style: {
+      fill: "#16A34A"
+      font-color: "#FFFFFF"
+      stroke: "#166534"
+      border-radius: 8
+      bold: true
+    }
+  }
+  ext: {
+    style: {
+      fill: "#F1F5F9"
+      font-color: "#334155"
+      stroke: "#94A3B8"
+      stroke-dash: 3
+      border-radius: 8
+    }
+  }
+  chan: {
+    style: {
+      fill: "#475569"
+      font-color: "#FFFFFF"
+      stroke: "#1E293B"
+      border-radius: 8
+    }
+  }
+  procbox: {
+    style: {
+      fill: "#FFFFFF"
+      font-color: "#0F172A"
+      stroke: "#64748B"
+      stroke-width: 2
+      border-radius: 12
+    }
+  }
+}
+
+title: "microduck M6 系统架构 —— 调度器每拍仲裁「哪份权重开车」，写电机仍必须穿过 Safety" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+# ---------- 进程 1：CLI ----------
+p_cli: "进程 1：mini-duckctl（CLI 客户端）" {
+  class: procbox
+  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\n子命令：\nhello / health / state [--every N]\nenable / disable\ndrive vx vyaw [--secs N]\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr" {
+    class: cli
+  }
+}
+
+# ---------- 进程 2：守护进程 ----------
+p_daemon: "进程 2：miniduckd（守护进程）" {
+  class: procbox
+
+  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\n方法：hello / robot.health\nrobot.state(订阅) / robot.drive\nrobot.enable / robot.disable\nrobot.do / robot.skills\nrobot.mouth / robot.head" {
+    class: rpc
+  }
+
+  shared: "ControlState\n(control.rs, Mutex)\n{ command(twist/head/body)\n  last_intent_at, enabled\n  skill_edges 位掩码\n  mouth 0..1 }" {
+    class: ctrl
+  }
+
+  stats: "Stats\n(control.rs, 原子计数器)\ntick/reads/writes/skipped_reads\nconsecutive_read_errors\nachieved_millihz/policy_ok\nlast_tick_millis / driving" {
+    class: chan
+  }
+
+  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制) → RampDown\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）" {
+    class: ctrl
+  }
+
+  sched: "技能调度器（scheduler.rs）" {
+    style: {
+      fill: "#FCE7F3"
+      font-color: "#9D174D"
+      stroke: "#DB2777"
+      stroke-width: 2
+      border-radius: 10
+    }
+    cascade: "Cascade 纯状态机\n优先级链每拍仲裁：\n技能窗口 > ground_pick\n> sit/rise > walk\ncommand 块重编码：\n技能=全零 / gp=相位编码\nsit=vx载flag / rise=全零\n窗口计时（到期先交还）" {
+      class: sched
+    }
+    obs: "Obs 组装\n(obs.rs)\nobs[61] = gyro3 + gravity3\n+ pos14 + vel14\n+ last_action14 + command13\n（command 块=调度器重编码后，\n不一定是客户端原值）" {
+      class: policy
+    }
+    slots: "Policy 槽位（policy.rs）\nwalk=velstand.onnx（必须）\nsitstand / ground_pick\nskills[roulade, kick_left]\n换网即 reset() 新网络\n（reset_calls 可断言）" {
+      class: policy
+    }
+  }
+
+  watch: "watch 频道\nFrameSnapshot\nsensors + obs + action\n+ fallen/enabled/gain/torque\n+ skill（活跃技能名）" {
+    class: chan
+  }
+
+  safety: "Safety\n(safety.rs)\n拥有唯一 RobotIo 写句柄\n四条防线：\nNaN 整包拒绝→写 hold\n±π 执行器行程夹紧\ndeadman 500ms 只清 twist\n跌倒判定(gravity z > -0.5\n持续 200ms，报告不门控)\ngain 缓存去重(200运行/50卸力)" {
+    class: safety
+  }
+
+  p_io: "RobotIo（io.rs trait）\nread / write / set_gain / set_torque / imu_ready" {
+    style: {
+      fill: "#F5F3FF"
+      font-color: "#4C1D95"
+      stroke: "#7C3AED"
+      stroke-width: 2
+      border-radius: 10
+    }
+    fake: "FakeIo\n(io.rs)\n完美跟踪假总线\n进程内（默认）" {
+      class: io
+    }
+    sim: "SimIo\n(io.rs)\nTCP + NDJSON op 帧\n（--sim host:port 时启用）" {
+      class: io
+    }
+  }
+}
+
+# ---------- 进程 3：仿真体 ----------
+p_sim: "进程 3：duck_body.py（MuJoCo 仿真体）" {
+  class: procbox
+  body: "duck_body.py\n(sim/duck_body.py)\nTCP 服务器，NDJSON op 帧\nread = 步进 20ms 物理\n回 15 关节位置/速度 + IMU\n+ body_pos + gain/torque 回显\npush = 躯干 qvel 扰动\n模型资产：sim/assets/" {
+    class: sim
+  }
+}
+
+# ---------- 外部资源 ----------
+onnx: "policies/ 五份权重\nvelstand / alpha_sitstand\nalpha_ground_pick\nroulade / ball_kick_left" {
+  class: ext
+}
+ort: "ONNX Runtime\nlibonnxruntime.so\n（third_party/onnxruntime，\nORT_DYLIB_PATH 指向）" {
+  class: ext
+}
+
+# ---------- 数据流 ----------
+
+# 1. CLI ↔ RPC
+p_cli.ctl -> p_daemon.rpc: "JSON-RPC 请求/响应\nUnix socket /tmp/miniduckd.sock（0660=全部鉴权）"
+p_daemon.rpc -> p_cli.ctl: "robot.state 推送 @50Hz\n（载荷含 skill 字段）"
+
+# 2. RPC → ControlState
+p_daemon.rpc -> p_daemon.shared: "drive 写 twist + last_intent_at\nenable/disable 写 enabled\ndo 写 skill_edges 位（接受≠执行）\nmouth 写 mouth / head 写 command.head"
+
+# 3. ControlState → 控制循环
+p_daemon.shared -> p_daemon.loop: "每拍读 command/enabled/mouth\nskill_edges mem::take 清零\n意图年龄 → deadman"
+
+# 4. 控制循环 → 调度器 → Obs → 回控制循环
+p_daemon.loop -> p_daemon.sched.cascade: "edges + gated command\n→ step 选网 + 重编码"
+p_daemon.sched.cascade -> p_daemon.sched.obs: "decision.command\n（重编码后的 command 块）"
+p_daemon.sched.obs -> p_daemon.sched.slots: "obs[61]\n（switched 时先 reset）"
+p_daemon.sched.slots -> p_daemon.loop: "action[14]\n→ home + 槽位scale×scatter + 低通\n→ targets[15]；嘴被 mouth 意图覆写"
+
+# 5. busy 门控边
+p_daemon.sched.cascade -> p_daemon.loop: "busy()（技能/gp/起身中）\n抑制 Driving→Limp\n（fallen 报告不变）" {
+  style.stroke: "#DB2777"
+  style.stroke-width: 2
+  style.stroke-dash: 5
+}
+
+# 6. 控制循环 ↔ Safety（每拍出入口）
+p_daemon.loop -> p_daemon.safety: "每拍：read → observe → gate\n→ apply(targets[15], hold, gain)\n回 sensors(15关节+IMU) + fallen/gain"
+
+# 7. Safety → RobotIo（唯一电机出口）
+p_daemon.safety -> p_daemon.p_io.fake: "进程内内存读写"
+p_daemon.safety -> p_daemon.p_io.sim: "write targets[15] @50Hz\nset_gain / set_torque"
+
+# 8. SimIo → 仿真体
+p_daemon.p_io.sim -> p_sim.body: "TCP NDJSON op 帧：\nhello / read(步进20ms→pos/vel/IMU 应答)\nwrite / set_gain / set_torque"
+
+# 9. watch → RPC → CLI
+p_daemon.loop -> p_daemon.watch: "每拍发布 FrameSnapshot\n（skill=decision.label）"
+p_daemon.watch -> p_daemon.rpc: "changed() 唤醒\n（latest-wins 不积压）"
+
+# 10. Stats
+p_daemon.loop -> p_daemon.stats: "原子写（每拍记账）\ndriving=当前是否 Driving 阶段"
+p_daemon.stats -> p_daemon.rpc: "robot.health 原子读；\nStats.driving → robot.do\n拒绝判定（斜坡中/fallen 拒收）"
+
+# 11. 外部资源 → 策略槽
+onnx -> p_daemon.sched.slots: "加载五份权重\n（walk 必须，其余可选）"
+ort -> p_daemon.sched.slots: "动态库加载"

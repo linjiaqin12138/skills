@@ -14,6 +14,7 @@ pub mod model;
 pub mod obs;
 pub mod policy;
 pub mod safety;
+pub mod scheduler;
 
 pub const JSONRPC: &str = "2.0";
 

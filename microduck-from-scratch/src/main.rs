@@ -1,10 +1,13 @@
-//! miniduckd：M5 的守护进程。
+//! miniduckd：M6 的守护进程。
 //!
 //! M0 的 JSON-RPC 骨架（hello / robot.health / robot.state 订阅）之上，
 //! 50 Hz 控制任务经 Safety（唯一写句柄）驱动身体。
 //! M5 新增：`robot.enable` / `robot.disable` 使能开关；`robot.health`
 //! 报真实判定（D11）；`robot.state` 改为 50 Hz 逐帧推送（D14）；
 //! 策略加载失败不再退出，抱持姿态报病（D19）；socket 文件 chmod 0660（D8）。
+//! M6 新增：`robot.do`（技能请求边沿）/ `robot.skills` / `robot.mouth` /
+//! `robot.head`；调度器持有全部策略槽（walk 必须，其余可选）；state 载荷
+//! 增 `skill` 字段。
 
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
@@ -13,8 +16,8 @@ use std::time::Instant;
 use futures::{SinkExt, StreamExt};
 use miniduck::control::{self, SharedControl};
 use miniduck::io::{FakeIo, RobotIo, SimIo};
-use miniduck::policy::Policy;
 use miniduck::safety::{Safety, SafetyConfig};
+use miniduck::scheduler::Scheduler;
 use miniduck::{API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request, ServerMessage};
 use serde_json::json;
 use tokio::net::{UnixListener, UnixStream};
@@ -23,6 +26,7 @@ use tokio_util::codec::{Framed, LinesCodec};
 
 const SOCK_PATH: &str = "/tmp/miniduckd.sock";
 const DEFAULT_POLICY: &str = "policies/velstand.onnx";
+const DEFAULT_POLICY_DIR: &str = "policies";
 const INVALID_PARAMS: i32 = -32602;
 
 // health 阈值，全部来自原版 robotd-params：stall 25 拍 = 500ms、
@@ -53,18 +57,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // D19：策略加载失败不再退出——Restart=always 下退出等于 crashloop，
-    // 活着报病才能让 updater 回滚（原版 robotd 的理由）。policy=None 时
+    // D19：walk 策略加载失败不再退出——Restart=always 下退出等于 crashloop，
+    // 活着报病才能让 updater 回滚（原版 robotd 的理由）。scheduler=None 时
     // 控制循环永远停在 Held 抱持姿态，health 报 unhealthy。
+    // M6：walk 是必须槽；其余技能槽各自可选，加载失败只让该技能不可用。
     let policy_path = std::env::var("MINIDUCK_POLICY").unwrap_or_else(|_| DEFAULT_POLICY.into());
-    let (policy, policy_error) = match Policy::load(&policy_path) {
-        Ok(p) => (Some(p), None),
+    let policy_dir = std::env::var("MINIDUCK_POLICY_DIR").unwrap_or_else(|_| DEFAULT_POLICY_DIR.into());
+    let (scheduler, policy_error) = match Scheduler::load(
+        std::path::Path::new(&policy_path),
+        std::path::Path::new(&policy_dir),
+    ) {
+        Ok(s) => (Some(s), None),
         Err(e) => {
             eprintln!("WARNING: failed to load policy {policy_path}: {e} — holding pose, reporting unhealthy");
             (None, Some(format!("policy unavailable: {e}")))
         }
     };
     let policy_error = Arc::new(policy_error);
+    // robot.do/robot.skills 的名单在 spawn 前取出（调度器随后搬进控制任务）。
+    let skill_names: Arc<Vec<&'static str>> = Arc::new(
+        scheduler
+            .as_ref()
+            .map(|s| s.available_names())
+            .unwrap_or_default(),
+    );
+    eprintln!("miniduckd skills: {}", skill_names.join(", "));
 
     let io: Box<dyn RobotIo> = match &sim_addr {
         Some(addr) => {
@@ -87,7 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 50 Hz 控制任务。Safety 拥有唯一写句柄：从这里把 io 交出去之后，
     // 本进程再没有第二条碰电机的路径。stats 由循环自己记账。
     let safety = Safety::new(io, SafetyConfig::default());
-    let (stats, frame_rx) = control::spawn(safety, policy, control.clone());
+    let (stats, frame_rx) = control::spawn(safety, scheduler, control.clone());
 
     // 上次异常退出残留的 socket 文件会让 bind 报 AddrInUse。先清再绑。
     let _ = std::fs::remove_file(SOCK_PATH);
@@ -109,6 +126,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             frame_rx.clone(),
             control.clone(),
             policy_error.clone(),
+            skill_names.clone(),
             boot,
         ));
     }
@@ -169,6 +187,7 @@ async fn serve(
     mut frame_rx: watch::Receiver<control::FrameSnapshot>,
     control: SharedControl,
     policy_error: Arc<Option<String>>,
+    skill_names: Arc<Vec<&'static str>>,
     boot: Instant,
 ) {
     let mut framed = Framed::new(stream, LinesCodec::new());
@@ -237,6 +256,107 @@ async fn serve(
                             ),
                         }
                     }
+                    // M6：技能请求。原版语义（reference/robotd/src/main.rs:4342-4369）：
+                    // 未 enable 拒绝（"accepted 然后什么都不发生是最坏的回答"）；
+                    // 斜坡途中（还没 driving）拒绝；名字不在名单拒绝并附上名单。
+                    // 接受 = 写边沿位，仲裁（busy 拒绝等）在控制循环下一拍做。
+                    "robot.do" => {
+                        let skill = req.params.get("skill").and_then(|v| v.as_str());
+                        let Some(name) = skill else {
+                            let resp = ServerMessage::err(
+                                req.id,
+                                INVALID_PARAMS,
+                                "robot.do wants {skill: \"name\"}",
+                            );
+                            if framed.send(serde_json::to_string(&resp).unwrap()).await.is_err() {
+                                break;
+                            }
+                            continue;
+                        };
+                        let verdict = {
+                            let enabled = control.lock().expect("control mutex poisoned").enabled;
+                            if !stats.policy_ok.load(Ordering::Relaxed) {
+                                Err("the policy is not loaded".to_owned())
+                            } else if !enabled {
+                                // 原版文案指 pad 的 Start；我们的 enable 入口是 CLI。
+                                Err("the policy is not driving — run mini-duckctl enable"
+                                    .to_owned())
+                            } else if !stats.driving.load(Ordering::Relaxed) {
+                                Err("the robot is still going to its home pose; try again in a moment"
+                                    .to_owned())
+                            } else {
+                                match miniduck::scheduler::request_bit(name) {
+                                    Some(bit) if skill_names.contains(&name) => Ok(bit),
+                                    _ => Err(if skill_names.is_empty() {
+                                        "this robot has no skills configured".to_owned()
+                                    } else {
+                                        format!(
+                                            "no skill named {name:?}; this robot has {}",
+                                            skill_names.join(", ")
+                                        )
+                                    }),
+                                }
+                            }
+                        };
+                        match verdict {
+                            Ok(bit) => {
+                                control.lock().expect("control mutex poisoned").skill_edges |= bit;
+                                ServerMessage::ok(req.id, json!({ "accepted": true, "skill": name }))
+                            }
+                            Err(reason) => ServerMessage::ok(
+                                req.id,
+                                json!({ "accepted": false, "reason": reason }),
+                            ),
+                        }
+                    }
+                    // M6：可用技能名单。内置两个（ground_pick/sit_toggle）不是
+                    // 配置表条目但必须在名单里（原版踩过的坑，scheduler.rs 注释）。
+                    "robot.skills" => ServerMessage::ok(
+                        req.id,
+                        json!({ "skills": skill_names.as_slice() }),
+                    ),
+                    // M6：嘴开度 0..1，纯 level 无 deadman——客户端死掉嘴停在
+                    // 那（原版刻意行为）。只在 Driving 阶段生效（D31）。
+                    "robot.mouth" => {
+                        match req.params.get("position").and_then(|v| v.as_f64()) {
+                            Some(p) if p.is_finite() => {
+                                control.lock().expect("control mutex poisoned").mouth = p;
+                                ServerMessage::ok(req.id, json!({ "mouth": p }))
+                            }
+                            _ => ServerMessage::err(
+                                req.id,
+                                INVALID_PARAMS,
+                                "robot.mouth wants finite number {position} in 0..=1",
+                            ),
+                        }
+                    }
+                    // M6：头姿意图（弧度），写共享 command.head。无 deadman：
+                    // stale 头姿无害（原版 intents.rs 文档注释原话）。
+                    "robot.head" => {
+                        let get = |k: &str| req.params.get(k).and_then(|v| v.as_f64());
+                        match (
+                            get("neck_pitch"),
+                            get("head_pitch"),
+                            get("head_yaw"),
+                            get("head_roll"),
+                        ) {
+                            (Some(np), Some(hp), Some(hy), Some(hr))
+                                if [np, hp, hy, hr].iter().all(|v| v.is_finite()) =>
+                            {
+                                control.lock().expect("control mutex poisoned").command.head =
+                                    [np, hp, hy, hr];
+                                ServerMessage::ok(
+                                    req.id,
+                                    json!({ "head": [np, hp, hy, hr] }),
+                                )
+                            }
+                            _ => ServerMessage::err(
+                                req.id,
+                                INVALID_PARAMS,
+                                "robot.head wants finite numbers {neck_pitch, head_pitch, head_yaw, head_roll} (radians)",
+                            ),
+                        }
+                    }
                     other => ServerMessage::err(
                         req.id,
                         METHOD_NOT_FOUND,
@@ -273,6 +393,7 @@ async fn serve(
                         "enabled": frame.enabled,
                         "gain": frame.gain,
                         "torque": frame.torque,
+                        "skill": frame.skill,
                     }),
                 );
                 if framed.send(serde_json::to_string(&note).unwrap()).await.is_err() {

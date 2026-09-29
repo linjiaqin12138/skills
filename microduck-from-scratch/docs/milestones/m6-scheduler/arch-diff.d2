@@ -1,0 +1,199 @@
+direction: down
+
+vars: {
+  d2-config: {
+    layout-engine: dagre
+    theme-id: 0
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#DB2777"
+      font-color: "#FFFFFF"
+      stroke: "#9D174D"
+      stroke-width: 3
+      border-radius: 8
+      bold: true
+    }
+  }
+  changed: {
+    style: {
+      fill: "#F59E0B"
+      font-color: "#FFFFFF"
+      stroke: "#B45309"
+      stroke-width: 2
+      border-radius: 8
+      bold: true
+    }
+  }
+  unchanged: {
+    style: {
+      fill: "#E2E8F0"
+      font-color: "#64748B"
+      stroke: "#CBD5E1"
+      border-radius: 8
+    }
+  }
+  deleted: {
+    style: {
+      fill: "#FFFFFF"
+      font-color: "#94A3B8"
+      stroke: "#94A3B8"
+      stroke-dash: 5
+      border-radius: 8
+    }
+  }
+  procbox: {
+    style: {
+      fill: "#FFFFFF"
+      font-color: "#0F172A"
+      stroke: "#64748B"
+      stroke-width: 2
+      border-radius: 12
+    }
+  }
+}
+
+title: "M6 架构变动（相对 M5）—— 新增调度器；Policy 持有者改向；写电机路径不变" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+legend: "图例" {
+  class: procbox
+  l_new: "新增模块" { class: new }
+  l_changed: "改动模块" { class: changed }
+  l_unchanged: "未动（灰化）" { class: unchanged }
+  l_deleted: "删除/改向（虚线）" { class: deleted }
+}
+
+p_cli: "进程 1：mini-duckctl" {
+  class: procbox
+  ctl: "mini-duckctl\n【改】新增子命令：\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr" {
+    class: changed
+  }
+}
+
+p_daemon: "进程 2：miniduckd（守护进程）" {
+  class: procbox
+
+  rpc: "RPC 层（main.rs）\n【改】新增 robot.do / robot.skills\nrobot.mouth / robot.head\nrobot.do 按 Stats.driving 拒绝\n（斜坡中/fallen 拒收，刻意差异）\nstate 载荷 +skill 字段" {
+    class: changed
+  }
+
+  shared: "ControlState（control.rs）\n【改】+skill_edges 位掩码\n（每拍 mem::take 清零）\n+mouth（纯 level 无超时）" {
+    class: changed
+  }
+
+  stats: "Stats（control.rs）\n【改】+driving 原子量" {
+    class: changed
+  }
+
+  loop: "控制循环 50Hz（control.rs）\n【改】Driving 抽 driving_tick()\n【改】busy 抑制 Driving→Limp\n（fallen 报告不变）\n【改】FrameSnapshot +skill\n【改】spawn 签名 Option<Policy>\n→ Option<Scheduler>\n不变：仍持有 last_action/低通锚点" {
+    class: changed
+  }
+
+  sched: "技能调度器 scheduler.rs【新模块】" {
+    style: {
+      fill: "#FCE7F3"
+      font-color: "#9D174D"
+      stroke: "#DB2777"
+      stroke-width: 3
+      border-radius: 10
+    }
+    cascade: "Cascade 纯状态机【新】\n优先级链 + command 重编码\n+ 窗口计时 + busy()\n（脱离 ONNX 可单测）" {
+      class: new
+    }
+    slots: "Policy 四槽【新持有关系】\nwalk 必须 / sitstand / ground_pick\n/ skills 可选槽\n换网即 reset() 新网络" {
+      class: new
+    }
+  }
+
+  policy_note: "policy.rs【改】\nreset_state → pub reset()\n+reset_calls 计数\n（feedforward 下契约可断言）" {
+    class: changed
+  }
+
+  model_note: "model.rs【改】\n+mouth_target()\n0..1 → −5°/+30° 夹紧" {
+    class: changed
+  }
+
+  old_hold: "旧持有关系【删除】\n控制循环直接持有 Policy\n（M5：spawn(Option<Policy>)）" {
+    class: deleted
+  }
+
+  obs: "obs.rs【未动】\n61 维观测组装" {
+    class: unchanged
+  }
+
+  watch: "watch 频道【改】\nFrameSnapshot +skill" {
+    class: changed
+  }
+
+  safety: "Safety（safety.rs）【未动】\n唯一写句柄 + 四条防线" {
+    class: unchanged
+  }
+
+  io: "RobotIo / FakeIo / SimIo\n（io.rs）【未动】" {
+    class: unchanged
+  }
+}
+
+p_sim: "进程 3：duck_body.py【未动】" {
+  class: procbox
+  body: "MuJoCo 仿真体\n（本章无改动）" {
+    class: unchanged
+  }
+}
+
+onnx: "policies/【改】\n+4 份权重（fetch-m6.sh）\nalpha_sitstand / alpha_ground_pick\nroulade / ball_kick_left" {
+  class: changed
+}
+
+# ---------- 边 ----------
+
+p_cli.ctl -> p_daemon.rpc: "【改】+do/skills/mouth/head 请求"
+p_daemon.rpc -> p_daemon.shared: "【新】do 写 skill_edges 位掩码\n【新】mouth 写 mouth\n【新】head 写 command.head"
+p_daemon.shared -> p_daemon.loop: "【新】skill_edges 每拍 take 清零\n【新】mouth 每拍读"
+p_daemon.stats -> p_daemon.rpc: "【新】Stats.driving →\nrobot.do 拒绝判定"
+p_daemon.loop -> p_daemon.stats: "【改】每拍写 driving"
+
+p_daemon.loop -> p_daemon.sched.cascade: "【新】edges + gated command\n→ step 选网+重编码"
+p_daemon.sched.cascade -> p_daemon.obs: "【改向】重编码后 command 块\n（M5 是 gated command 直通）" {
+  style.stroke: "#F59E0B"
+  style.stroke-width: 2
+}
+p_daemon.obs -> p_daemon.sched.slots: "obs[61]（持有者改向）"
+p_daemon.sched.slots -> p_daemon.loop: "action[14] + label\n嘴由 mouth 意图覆写（绕过策略）"
+p_daemon.sched.cascade -> p_daemon.loop: "【新】busy() 抑制 Driving→Limp" {
+  style.stroke: "#DB2777"
+  style.stroke-width: 2
+  style.stroke-dash: 5
+}
+
+p_daemon.policy_note -> p_daemon.sched.slots: "reset()/reset_calls\n被槽位调用" {
+  style.stroke-dash: 3
+}
+p_daemon.model_note -> p_daemon.loop: "mouth_target() 被\ndriving_tick 覆写调用" {
+  style.stroke-dash: 3
+}
+
+p_daemon.old_hold -> p_daemon.loop: "M5 时 Policy 由控制循环持有\nM6 起移入 Scheduler" {
+  style.stroke-dash: 5
+  style.stroke: "#94A3B8"
+}
+
+p_daemon.loop -> p_daemon.watch: "【改】快照 +skill 字段"
+p_daemon.watch -> p_daemon.rpc: "changed() 唤醒（不变）"
+p_daemon.rpc -> p_cli.ctl: "【改】state 推送载荷 +skill"
+
+p_daemon.loop -> p_daemon.safety: "（不变）" {
+  style.stroke: "#94A3B8"
+}
+p_daemon.safety -> p_daemon.io: "唯一电机出口（不变）"
+p_daemon.io -> p_sim.body: "TCP NDJSON op 帧（不变）"
+
+onnx -> p_daemon.sched.slots: "【新】加载四份技能权重"

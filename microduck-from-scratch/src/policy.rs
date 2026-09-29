@@ -1,7 +1,8 @@
-//! 单策略 ONNX 推理（M3：只加载 velstand）。
+//! 单网络 ONNX 推理（M3 引入；M6 起由 scheduler 持有多个本类型实例）。
 //!
-//! load 时校验观测/动作维数；推理前拒绝非有限观测；失败不改 LSTM 状态
-//!（若本文件是 feed-forward 则根本没有状态）。多网络 / 热切换留给 M6。
+//! load 时校验观测/动作维数；推理前拒绝非有限观测；失败清零 LSTM 状态
+//!（若本文件是 feed-forward 则根本没有状态）。网络选择与切换复位在
+//! scheduler.rs；热切换（robot.set_policy）不实现（偏差 D30）。
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -73,6 +74,11 @@ pub struct Policy {
     state: Option<LstmState>,
     action_name: String,
     path: PathBuf,
+    /// reset() 被调次数。调度器每换一次网络必须 reset 一次
+    /// （reference/duck-control/src/policy.rs:350-360），这个计数让
+    /// "切换时 reset 真的发生了"可断言——对 feedforward 网络 reset 是
+    /// 空操作，没有它这条契约就测不到。
+    pub(crate) reset_calls: u64,
 }
 
 struct LstmState {
@@ -134,12 +140,13 @@ impl Policy {
             state,
             action_name,
             path: path.to_owned(),
+            reset_calls: 0,
         };
 
         // warmup：证明 runtime 真能跑，并把第一拍冷启动开销挡在控制循环外。
         let zero = zero_observation();
         let _ = policy.infer(&zero)?;
-        policy.reset_state();
+        policy.reset();
         Ok(policy)
     }
 
@@ -184,7 +191,7 @@ impl Policy {
             };
             drop(outputs);
             if let Err(e) = copy_result {
-                self.reset_state();
+                self.reset();
                 return Err(fail(e));
             }
         }
@@ -192,7 +199,11 @@ impl Policy {
         Ok(result)
     }
 
-    fn reset_state(&mut self) {
+    /// 清空 LSTM 状态（feedforward 网络无事发生，仅计数）。M6 起 pub：
+    /// 调度器换网络时调用——新网络的 episode 记忆必须从零开始
+    /// （reference/duck-control/src/policy.rs:350-360）。
+    pub fn reset(&mut self) {
+        self.reset_calls += 1;
         if let Some(state) = &mut self.state {
             if let Ok((_, h)) = state.h.try_extract_tensor_mut::<f32>() {
                 h.fill(0.0);

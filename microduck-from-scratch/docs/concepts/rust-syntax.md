@@ -256,7 +256,20 @@ fn require_named<'a>(
 
 `'_` 是匿名生命周期，用在「这里确实有个生命周期，但名字不重要」的地方：`fmt::Formatter<'_>`、`SessionOutputs<'_>`。
 
-`'static` 表示活得和整个进程一样久。字符串字面量 `&str` 的数据在二进制里，所以是 `'static`。`impl RobotIo + 'static` 表示传进来的 `io` 自己拥有全部数据，不借用函数外面的局部变量，因此可以被 `tokio::spawn` 拿到另一个任务里一直用。
+`'static` 表示活得和整个进程一样久。字符串字面量 `&str` 的数据在二进制里，所以是 `'static`。
+
+结构体字段里放引用时，生命周期不能省略，必须写出来：
+
+```rust
+// src/scheduler.rs
+pub struct SkillDef {
+    pub name: &'static str,
+    pub file: &'static str,
+    pub duration_ticks: u64,
+}
+```
+
+`name`、`file` 是借来的字符串，编译器要知道它们活得和 `SkillDef` 本身一样久才允许存进去。`'static` 满足这一点：赋的值是 `"roulade"` 这类字面量，所以整个结构体可以放进 `pub const SKILLS: [SkillDef; 2]` 当编译期静态表。如果写别的生命周期（如 `&'a str`），结构体本身就要带参数 `struct SkillDef<'a>`。`impl RobotIo + 'static` 表示传进来的 `io` 自己拥有全部数据，不借用函数外面的局部变量，因此可以被 `tokio::spawn` 拿到另一个任务里一直用。
 
 `Box<dyn std::error::Error>` 是 trait 对象：运行时才知道具体错误类型。`dyn Error + 'static` 表示这个错误值不包含短命引用。`main` 返回 `Result<(), Box<dyn std::error::Error>>`，这样 `?` 可以把各种错误收成同一种。
 
