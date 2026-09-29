@@ -130,7 +130,7 @@ p_daemon: "进程 2：miniduckd（守护进程）" {
     class: chan
   }
 
-  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五相位状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp → RampDown(100拍)\n每拍：read→observe→gate→推理→apply" {
+  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp → RampDown(100拍)\n每拍：read→observe→gate→推理→apply" {
     class: ctrl
   }
 
@@ -203,7 +203,7 @@ p_daemon.rpc -> p_daemon.shared: "drive 写 twist + last_intent_at\nenable/disab
 # 3. SharedControl → 控制循环
 p_daemon.shared -> p_daemon.loop: "每拍读 command / enabled\n意图年龄 → deadman"
 
-# 4. 控制循环 ↔ Safety（每拍五相位的出入口）
+# 4. 控制循环 ↔ Safety（每拍五阶段的出入口）
 p_daemon.loop -> p_daemon.safety: "每拍：read → observe → gate\n→ apply(targets[15], hold, gain)\n回 sensors(15关节+IMU) + fallen/gain"
 
 # 5. 控制循环 → Obs → Policy → 回控制循环

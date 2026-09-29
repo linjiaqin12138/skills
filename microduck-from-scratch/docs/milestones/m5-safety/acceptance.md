@@ -3,7 +3,7 @@
 ## 交付物
 
 - `src/safety.rs`（新建，555 行含 14 条单测）：`Safety<T: RobotIo>` 私有化拥有唯一 RobotIo 写句柄（借用检查器强制，读透传）。`SafetyConfig`（fall_gravity_z=-0.5 / fall_debounce=200ms / deadman=500ms / gain_running=200 / gain_limp=50，原型 alpha 默认）。`observe`（跌倒去抖双向判定；`imu_ready=false` 直接 return 不投票——原版血泪回归；判定翻转必报不限流）。`gate`（deadman 只清 twist 不动 head；deadman_armed：从没司机不是新闻，司机失联才是）。`apply`（set_gain 缓存去重 → 任一 NaN/Inf 整包拒绝写 hold（不是夹紧）→ ±π 执行器行程夹紧并上报 → 写总线；无跌倒门控，fallen 是报告）。`LimitRuns` 三条独立 run 计数，首拍+每 50 拍日志限流，NaN 拍不清 range run。
-- `src/control.rs`：主循环重写为五相位状态机 `Phase::Held/RampUp/Driving/Limp/RampDown`。每拍顺序 read→observe→gate→策略→apply。Held 抱启动姿态绝不调 set_torque；enable 边沿→set_torque(true)→100 拍斜坡回 home→Driving；Driving 中 fallen→Limp（目标跟随实测位置+gain 50，策略停摆）；直立后斜坡回 home 恢复；disable→斜坡回 home→set_torque(false)→Held。policy=None 永远 Held（D19）。边沿检测先于跌倒判定。Stats 记账供 health。FrameSnapshot 增 fallen/enabled/gain/torque。
+- `src/control.rs`：主循环重写为五阶段状态机 `Phase::Held/RampUp/Driving/Limp/RampDown`。每拍顺序 read→observe→gate→策略→apply。Held 抱启动姿态绝不调 set_torque；enable 边沿→set_torque(true)→100 拍斜坡回 home→Driving；Driving 中 fallen→Limp（目标跟随实测位置+gain 50，策略停摆）；直立后斜坡回 home 恢复；disable→斜坡回 home→set_torque(false)→Held。policy=None 永远 Held（D19）。边沿检测先于跌倒判定。Stats 记账供 health。FrameSnapshot 增 fallen/enabled/gain/torque。
 - `src/io.rs`：trait 补 `set_gain`/`set_torque`/`imu_ready`（默认 true）；quat 严格长度校验 ≠4 即 Err（D22），copy3 长度不符的 panic 隐患顺手改 Err。FakeIo 记录 gain/torque/gain_writes/imu_ready 供测试断言。
 - `src/main.rs`：Policy::load 失败不退出（policy=None，health 报 "policy unavailable"，D19——Restart=always 下退出=crashloop）；socket chmod 0660（D8——原版 robotd 无 SO_PEERCRED，文件权限即鉴权）；robot.enable/disable；robot.health 真实判定（stall 500ms=25 拍 / achieved_hz≥45 / 连续读错误≥10 / policy_ok，阈值来自原版 robotd-params；暖机豁免）；robot.state 改 frame_rx.changed() 驱动 50Hz（D14），载荷增 fallen/enabled/gain/torque。
 - `src/bin/mini-duckctl.rs`：enable/disable；`drive --secs N` 期间每 100ms 重发意图（deadman 500ms 下单次意图只能驱动半秒，CLI 扮演持续发意图的手柄）；`state --every N`（默认 50 帧打一行）。
@@ -86,7 +86,7 @@ PASS
 | 文件 | 变动 |
 |---|---|
 | `src/safety.rs` | 新建（555 行含测试） |
-| `src/control.rs` | 五相位状态机重写；Stats 扩账；FrameSnapshot 增安全字段 |
+| `src/control.rs` | 五阶段状态机重写；Stats 扩账；FrameSnapshot 增安全字段 |
 | `src/io.rs` | trait +3 方法；quat/copy3 严格校验（D22）；FakeIo 记账字段 |
 | `src/main.rs` | D19 不退出；0660（D8）；enable/disable；health 真实判定（D11）；state 50Hz（D14） |
 | `src/bin/mini-duckctl.rs` | enable/disable；drive --secs 重发；state --every |

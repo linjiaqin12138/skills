@@ -14,6 +14,11 @@ protocol 版本号和关节数校验。帧格式细节是教程自定（偏差 D
 单位即机器人自己的单位：弧度、rad/s；IMU 已解算到躯干系
 （gyro 取 MJCF gyro 传感器，gravity 由躯干四元数旋转世界重力得到，
 四元数 wxyz 序）。read 响应带 body_pos（躯干世界系 x/y/z），供验收测位移。
+
+可视化两路，互不冲突：
+  --view-port  MJPEG 离屏渲染网页画面（osmesa，只读，无 X 也能跑）
+  --viewer     MuJoCo 原生 viewer（glfw，需 DISPLAY；容器里配 duck-vnc.sh
+               的 Xvfb+noVNC，浏览器里用鼠标交互：Ctrl+拖拽直接推鸭子）
 """
 
 import argparse
@@ -27,7 +32,9 @@ import threading
 import time
 
 # 容器里没有显示器，离屏渲染走软件 GL。必须在 import mujoco 之前设好。
-os.environ.setdefault("MUJOCO_GL", "osmesa")
+# --viewer 模式例外：原生 viewer 走 GLFW/X11（Xvfb 虚拟屏由 duck-vnc.sh 提供），
+# 只能提前扫 argv 决定后端。setdefault 保证有显示器的机器仍可环境变量覆盖。
+os.environ.setdefault("MUJOCO_GL", "glfw" if "--viewer" in sys.argv else "osmesa")
 
 import mujoco
 import numpy as np
@@ -79,6 +86,9 @@ class DuckBody:
         # 物理与渲染共用 MjData：read 步进和画面采样必须互斥，否则画面撕在半拍上。
         self.lock = threading.Lock()
         self.renderer = None
+        # --viewer 模式由 run_viewer() 挂上的被动 viewer 扰动状态（mjvPerturb）。
+        # 用户 Ctrl+拖拽只写这个结构，不自动进物理；step_tick 每拍把它施加进去。
+        self.perturb = None
 
         self._apply_gains()
 
@@ -121,6 +131,22 @@ class DuckBody:
 
     def step_tick(self):
         with self.lock:
+            # 拖拽扰动 → 物理。MuJoCo 3.14.0 实测：viewer.sync() 自己就会清
+            # xfrc_applied 并施加 pert（simulate.cc Sync 的 is_passive 分支），
+            # 这里再施加一次是冗余但无害——applyPerturbForce 是覆写语义
+            # （mju_copy3，实测双路力幅值与解析弹簧力比值 0.993，无双倍）。
+            # 保留它是为了版本健壮性：旧版被动 viewer 的 sync 不施加扰动。
+            # 注意 mj_step 不清 xfrc_applied（已实测），所以松手必须靠清零，
+            # 否则上一次的拖拽力会永远挂着。
+            # applyPerturbPose 只对 mocap 刚体生效，鸭子是动态刚体，实际起作用
+            # 的是 applyPerturbForce（与原版 simulate 应用同一对调用）。
+            if self.perturb is not None:
+                self.data.xfrc_applied[:] = 0.0
+                if self.perturb.active:
+                    mujoco.mjv_applyPerturbPose(self.model, self.data,
+                                                self.perturb, 0)
+                    mujoco.mjv_applyPerturbForce(self.model, self.data,
+                                                 self.perturb)
             for _ in range(self.substeps):
                 mujoco.mj_step(self.model, self.data)
 
@@ -221,6 +247,26 @@ class Handler(socketserver.StreamRequestHandler):
             self.wfile.flush()
 
 
+def run_viewer(body: DuckBody):
+    """MuJoCo 原生 viewer（被动模式）。GLFW 窗口循环由 launch_passive 自带的
+    后台线程跑（Linux；macOS 才强制主线程，那是 mjpython 的事），这里主线程
+    只做 60Hz sync——但为保险仍把主线程留给 viewer、TCP server 放后台线程。
+
+    为什么被动模式：物理节拍由控制侧（daemon 每 20ms 的 read）驱动，不能让
+    viewer 自己的物理线程抢着 mj_step。被动 viewer 只负责显示和记录鼠标拖拽。
+    daemon 不连时物理冻结，但画面照常可以旋转、缩放、选中刚体。
+    """
+    import mujoco.viewer
+    with mujoco.viewer.launch_passive(body.model, body.data) as viewer:
+        # 挂上扰动结构，step_tick 每拍把它施加进物理（见 step_tick 注释）。
+        body.perturb = viewer.perturb
+        while viewer.is_running():
+            with body.lock:  # sync 读 MjData，与物理步进互斥，防画面撕在半拍上
+                viewer.sync()
+            time.sleep(1 / 60)  # 60Hz 刷新，肉眼流畅上限；物理不在这跑
+        body.perturb = None
+
+
 PAGE = b"""<!doctype html><meta charset="utf-8"><title>duck-body</title>
 <body style="margin:0;background:#111;display:flex;justify-content:center">
 <img src="/stream" style="max-width:100vw;max-height:100vh">"""
@@ -276,6 +322,9 @@ def main():
     ap.add_argument("--scene", default=None)
     ap.add_argument("--view-port", type=int, default=None,
                     help="开启 MJPEG 网页画面（浏览器看仿真），如 7802")
+    ap.add_argument("--viewer", action="store_true",
+                    help="开启 MuJoCo 原生 viewer（需要 DISPLAY，配 duck-vnc.sh 用；"
+                         "TCP server 转后台线程，主线程跑 viewer sync 循环）")
     args = ap.parse_args()
     scene = args.scene or (sys.path[0] + "/assets/scene.xml")
 
@@ -295,7 +344,14 @@ def main():
         print(f"duck-body listening on {args.host}:{args.port} "
               f"(timestep={body.model.opt.timestep}, substeps={body.substeps})",
               file=sys.stderr, flush=True)
-        server.serve_forever()
+        if args.viewer:
+            # TCP server 去后台线程，主线程留给 viewer sync 循环（launch_passive
+            # 的 GLFW 渲染跑在它自己的线程，主线程只需周期性 sync）。
+            # 窗口关闭后 run_viewer 返回，进程随之退出（后台线程是 daemon）。
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            run_viewer(body)
+        else:
+            server.serve_forever()
 
 
 if __name__ == "__main__":

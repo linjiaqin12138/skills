@@ -1,6 +1,6 @@
 # 第 6 章 · M5：安全层——四条防线与一台说真话的守护进程
 
-> 本章对应里程碑 M5（已验收）。交付物：`src/safety.rs`（Safety：唯一总线写句柄 + 四条防线）、`src/control.rs`（主循环重写为五相位状态机）、`src/io.rs`（trait 补 set_gain/set_torque/imu_ready，D22 严格校验）、`src/main.rs`（robot.enable/disable、health 真实判定、robot.state 50Hz、socket 0660）、`src/bin/mini-duckctl.rs`（enable/disable、drive 重发意图、state --every）、`sim/duck_body.py`（set_gain/set_torque/push）、一键验收 `scripts/accept-m5.sh`。
+> 本章对应里程碑 M5（已验收）。交付物：`src/safety.rs`（Safety：唯一总线写句柄 + 四条防线）、`src/control.rs`（主循环重写为五阶段状态机）、`src/io.rs`（trait 补 set_gain/set_torque/imu_ready，D22 严格校验）、`src/main.rs`（robot.enable/disable、health 真实判定、robot.state 50Hz、socket 0660）、`src/bin/mini-duckctl.rs`（enable/disable、drive 重发意图、state --every）、`sim/duck_body.py`（set_gain/set_torque/push）、一键验收 `scripts/accept-m5.sh`。
 
 ## 1. 动机
 
@@ -15,7 +15,7 @@ M4 的 `robot.drive` 是**第一个会动机器人的调用**。到此为止欠�
 原版把防线收在一个叫 `Safety` 的类型里（`reference/duck-control/src/safety.rs`，927 行；它的模块文档是整本参考里写得最好的段落之一，本章多处转述它的论点）。本章对齐它。在依赖树里：
 
 - **上游**：M4 的真物理。没有重力，「跌倒」这个词没有意义——FakeIo 的 IMU 永远是 `[0,0,-1]`。
-- **本章**：Safety 收走唯一写句柄；控制循环重写为五相位状态机；health 开始说真话。
+- **本章**：Safety 收走唯一写句柄；控制循环重写为五阶段状态机；health 开始说真话。
 - **下游**：M6 技能调度器会有多个技能想开车——写句柄必须先于多写者收拢，否则收拢永远做不成。M7 updaterd 的回滚决策吃 health 输出——它得是真话。
 
 ## 2. 概念铺垫
@@ -95,9 +95,11 @@ M4 的 `robot.drive` 是**第一个会动机器人的调用**。到此为止欠�
 
 **横切：日志限流与增益缓存。** 三条防线共用一套限流（`src/safety.rs:83-111`）：首次触发必报（只夹紧一次也是新闻），持续触发每 50 拍再报一行（50Hz 下每秒一行）。三条**独立** run 计数——共享计数会让触发最勤的那条饿死另外两条。一个故意的粗糙：NaN 拍在夹紧之前 return，**不清零 range run**（`src/safety.rs:94-97`）——否则 NaN 和越界交替时两条规则每隔一拍各自开启新 run，每拍刷一行，正是计数要防的。增益缓存（`src/safety.rs:293-300`）：gain 值不变不重写——50Hz 下每拍 15 次 gain 写会挤爆控制循环要用的总线。
 
-### 控制循环：五相位状态机
+### 控制循环：五阶段状态机
 
-主循环从「插值到 home 然后跑策略」重写为五相位（`src/control.rs:176-189`，模块文档有图）：
+先声明一个贯穿本章的词：**斜坡（ramp）= 让关节目标从当前值沿直线、用固定时长慢慢爬到目标值的渐变过程**——词源是"目标-时间"曲线画出来像一段斜坡，不是机器人真的在爬坡。M1 的插值（lerp）干的就是这件事，本章起它成了状态机里的两个正式阶段（RampUp/RampDown）。
+
+主循环从「插值到 home 然后跑策略」重写为五阶段（`src/control.rs:176-189`，模块文档有图）：
 
 ```
 Held ──enable──▶ RampUp(100拍) ──▶ Driving ◀──▶ Limp（跌倒⇄恢复）
@@ -182,10 +184,10 @@ M5 验收全部通过：启动不动/deadman/跌倒卸力/health 真话/50Hz sta
 
 **断言解释**（逐项：这个断言为什么证明了这个性质）
 
-- **A1 启动不动**：启动 1s 后 positions 全 0（FakeIo 的启动姿态）、`enabled=false`、`torque=false`（本进程没命令过 torque）。证明 Held 相位既不移动机器人也不碰 torque 开关——被 supervisor 重启的 daemon 不会把站着的机器人拽倒。
+- **A1 启动不动**：启动 1s 后 positions 全 0（FakeIo 的启动姿态）、`enabled=false`、`torque=false`（本进程没命令过 torque）。证明 Held 阶段既不移动机器人也不碰 torque 开关——被 supervisor 重启的 daemon 不会把站着的机器人拽倒。
 - **A1b/A1c 不对称断言是故意的**：enable 后断言「距 home 最大偏差 < 0.4」（实测 0.13~0.18，D27——FakeIo 速度恒 0 不在训练分布，Driving 闭环有漂移）；disable 后断言「逐位等于 home」（Held 写的是锁存的 DEFAULT_POSITION，无策略参与）。一个是闭环的诚实余量，一个是开环的精确值。
 - **A2 三连**：单次意图后 obs 里 twist=0.15（意图进了观测）；失联 1s 后 twist=[0,0,0]（deadman 清的是喂给策略的观测，不是共享状态里的命令本体——证据链完整）；`--secs 2` 期间 1.5s 处采样仍是 0.15（CLI 重发扮演手柄，覆盖 deadman）。
-- **B3**：push 1.5 m/s 后 76 帧（约 1.5s）内出现 fallen=true 且 gain=50——重力越线→去抖 200ms→判定翻转→Limp 相位低增益，全链路。z=-0.111 是穿透地板的失真（D26），所以阈值是 z<0.08 而非「躺平高度」。
+- **B3**：push 1.5 m/s 后 76 帧（约 1.5s）内出现 fallen=true 且 gain=50——重力越线→去抖 200ms→判定翻转→Limp 阶段低增益，全链路。z=-0.111 是穿透地板的失真（D26），所以阈值是 z<0.08 而非「躺平高度」。
 - **B4**：杀 sim 后 health 报 `consecutive read errors: 26`——读错误计数是循环自己记的账，超过阈值 10 即报病；重启 sim 后 SimIo 下一拍自动重连，healthy 恢复。证明 health 的输入是真实循环状态，不是静态字符串。
 - **B5**：2 秒 ≥90 帧（实测 101）证明推送跟着控制拍走（50Hz），不是定时器。
 - **B6**：安全层之上行走能力没退化（10s ≥0.5m，实测 0.775m）——防线没有破坏正常功能。
@@ -224,7 +226,7 @@ state 帧里 51 帧位置**逐位不变**（50/50 帧对相等，冻结在斜坡
 | 项 | 现在 | 收敛 |
 |---|---|---|
 | D8 | socket chmod 0660 即全部鉴权；侦察确认原版 robotd 无 SO_PEERCRED（那是 configd/updaterd 的模式） | **本章收敛**（按文件权限模型对齐；SO_PEERCRED 留给 M7） |
-| D9 | Held 相位抱住启动姿态，绝不调 set_torque；显式 robot.enable 才斜坡回 home | **本章收敛** |
+| D9 | Held 阶段抱住启动姿态，绝不调 set_torque；显式 robot.enable 才斜坡回 home | **本章收敛** |
 | D11 | health 真实判定：stall 500ms / 45Hz 地板 / 连续读错误 10 / 策略缺失（阈值来自原版 robotd-params） | **本章收敛** |
 | D14 | robot.state 改 frame_rx.changed() 驱动 50Hz，载荷增 fallen/enabled/gain/torque | **本章收敛**（残余 D25） |
 | D19 | 策略加载失败不退出：policy=None 永远 Held 抱持，health 报 policy unavailable | **本章收敛** |
@@ -240,7 +242,7 @@ state 帧里 51 帧位置**逐位不变**（50/50 帧对相等，冻结在斜坡
 ## 7. 常见坑
 
 1. **or-pattern 借用冲突（E0503）**。状态机里「`match &mut phase` 的分支内直接给 `phase` 赋值」会被借用检查器拒掉——match 还借用着它。把 Held/RampDown 合并进一个 or-pattern 守卫、同时在另一支改 phase，也会撞上同一个 E0503【合理推断：移交记录只记了错误号，当时的具体写法未留存】。现行解法两件事：边沿检测用 `matches!` 只做判断不做绑定（`src/control.rs:302-305`）；斜坡完成的转移延后到 match 之后，走 `next_phase`（`src/control.rs:345-346, 410-412`）。
-2. **边沿与跌倒转移同拍互覆**。初版转移逻辑里，「Driving 中跌倒」和「同拍 disable」同拍到达时互相覆盖，机器人卡在不该在的相位。改成边沿立即生效、先于跌倒判定（`src/control.rs:285-287`）。状态机 Bug 的典型形态：不是逻辑错，是两个对的规则同拍打架。
+2. **边沿与跌倒转移同拍互覆**。初版转移逻辑里，「Driving 中跌倒」和「同拍 disable」同拍到达时互相覆盖，机器人卡在不该在的阶段。改成边沿立即生效、先于跌倒判定（`src/control.rs:285-287`）。状态机 Bug 的典型形态：不是逻辑错，是两个对的规则同拍打架。
 3. **FakeIo 上 Driving 不会停在 home**（D27）。enable 后 3 秒，位置距 home 漂 0.13~0.18 rad 且停不下来——FakeIo 速度恒 0 的回声不在策略训练分布里，策略在自己没见过的状态里打转。验收阈值 0.4 是实测放宽（`scripts/accept-m5.sh:87-91`）。别试图在 FakeIo 上把漂移调到 0：那是在调假总线，不是在调鸭子。
 4. **推倒后穿地板**（D26）。push 1.5 m/s 后躯干 z=-0.111——站立高度是 0.117，负值意味着穿进了地板（大冲击下接触求解器失真），不是干净躺平。验收阈值因此是 z<0.08 而非躺平高度。想验「瘫软」看 gain=50 比看 z 更可靠。
 5. **deadman 只清观测里的 twist，不清共享命令本体**。失联 1s 后再发一条新意图，机器人立刻按新意图走——不需要「解锁」动作。这是设计：stale 的是证据，不是状态。

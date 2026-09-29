@@ -17,6 +17,9 @@ services:
     ports:
       # 7802：sim/duck_body.py --view-port 的 MJPEG 网页画面（浏览器看鸭子）
       - "127.0.0.1:7802:7802"
+      # 6080：scripts/duck-vnc.sh 的 noVNC 远程桌面（浏览器交互推鸭子）：
+      # 容器里跑 bash scripts/duck-vnc.sh，浏览器打开 http://localhost:6080/vnc.html
+      - "127.0.0.1:6080:6080"
     tty: true
     stdin_open: true
 
