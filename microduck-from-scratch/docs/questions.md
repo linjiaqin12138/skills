@@ -336,3 +336,82 @@
 - driving = 机器人是否处于"正常驾驶模式"的公开布尔标志；用途：RPC 层据此拒绝渐变回 home 途中的 robot.do（"accepted 然后什么都不发生是最坏的回答"）
 - 五阶段（洗衣机类比：同一台电机，注水/洗涤/漂洗/脱水各阶段干的事完全不同）：Held 抱持（僵住）→ RampUp（2秒渐变到站立）→ Driving 驾驶中（神经网络开车，唯一响应技能请求的阶段）⇄ Limp 瘫软（摔倒卸力）→ RampDown（回站立后断电）
 - 用词教训（用户两次纠正后定性）：① phase 在状态机语境译"相位"是**误译**——"相位"专指波形相位角，状态机该写"阶段/模式"；同项目里 ground_pick 的相位编码才是真相位，两个概念曾被同一个错词混着用，已全部订正 ② "斜坡(ramp)"= 目标沿直线慢慢爬的渐变过程（词源：目标-时间曲线像斜坡），不是机器人爬坡；首次出现必须声明 ③ 用户已熟的英文原词（SKILL/tutorial/viewer 等）直接用英文，翻译反而多一道脑内转换——三层规则已落 user-prefs「语言与用词」
+
+## Q59：仿真里机器人摔倒了怎么办？
+- 自动链路（M5）：fallen（躯干系 gravity.z>−0.5 持续 200ms）→ Limp（策略停摆、目标跟随实测位置、gain 200→50 卸力）→ 若自行直立则自动渐变回站立回 Driving。技能运行中被 busy 抑制（D32），窗口结束下一拍接管
+- 躺平起不来（大多数情况）：velstand 没有"从躺平起立"技能（原版有 Posing 段，我们 D23 简化未做，M8 裁决），会一直躺在 Limp
+- 恢复=重启 duck_body.py（物理重置到站立 keyframe）；daemon 不用动，SimIo 自动重连（accept-m5 B4b 验过），重连后自动回 Driving。noVNC 栈重跑 scripts/duck-vnc.sh
+- viewer 的 Reset 按钮无效【合理推断】：passive 模式 run_physics_thread=False，mujoco.viewer 源码全文无一处 mj_resetData，按钮请求没人服务
+- D26：推倒后可能穿透地板沉底，沉了只能重启 sim
+
+## Q60（读 m7 tutorial.md:38-56）：arm/swap/spawn 是什么含义？
+- 是 apply（把新版本装上并启用）拆成的四步里前三步的短名字，不是新概念。以 1.0.0→2.0.0 为例：
+  - **arm**（上弦）：把纸条 pending.json 写盘（"试用 2.0.0，上一版 1.0.0，第 N 次启动"）。纸条是给崩溃恢复机制上弦：在=试用期出问题该回滚，不在=天下太平
+  - **swap**（换指向）：rename 原子换 `install/current` 这个 symlink 指向新版。只改磁盘路牌，不影响在跑的进程
+  - **spawn**（起新进程）：从 `current/bin/miniduckd` 拉起新版 daemon（setsid 脱离会话）
+  - **confirm**（转正）：健康门通过→删纸条；不过→回滚
+- 本节论点一句话：swap 是"改变现实"的时刻，arm 是"给改变留证"的时刻，记录必须先于改变——否则崩溃落在两者之间，现实变了没记录，恢复机制失明
+
+## Q61（追问 Q60）：tutorial.md:44-54 那张表没看懂
+- 表是 `examples/boot_counter_order.py` 的沙盘推演（不跑真机器人）：模拟四步执行，每步后假设 updaterd 立刻被 kill -9，再看重启后 recover() 凭磁盘状态会做什么决定
+- 三个变量：current=symlink 指向谁（下次启动起谁）；live=此刻实际在跑谁；pending=纸条在不在。recover() 唯一依据是纸条：在→"有版本在试用期没结账"→重跑健康门裁决；不在→照常从 current 起
+- 关键组（kill -9 落在 swap 之后）：arm 在前→纸条已写→重启发现未结账的试用→回滚得救；arm 在后→current 已指 2.0.0 而纸条还没写→recover 认为一切正常→把坏版当正式版起起来，永远没人撤回=变砖
+- 图解不变量：纸条的在场时间必须完整罩住"现实被改变"的区间（swap→confirm），先留证、再改变、最后销证
+
+## Q62（追问 Q60）：kill -9 kill 的是谁？updaterd 还是什么？
+- 杀的是 updaterd 自己（mini-updaterd 进程），不是被更新的 miniduckd。设计前提：updaterd 必须假设自己会死在任何时候（断电/kill -9/OOM，tutorial.md:9），且死在 apply 任意一步都能收拾残局
+- 两个进程死活分开：miniduckd 由 updaterd 用 setsid() 拉起、脱离会话（engine.rs:116-123），kill -9 updaterd 不带走 daemon——验收 E0 专门验这条。所以 updaterd 死后 current 指向、纸条在不在、哪个版本还在跑是三件独立的事
+- 沙盘脚本里"kill -9 落在 X 之后"=循环 break 模拟（后面步骤永不执行）；真实验收靠场景 E 的故障注入（`MINIDUCK_UPDATER_EXIT_AFTER_SWAP=1` 让 updaterd 在最坏窗口 exit(1)，tutorial.md:92）和 accept-m7.sh 的真 kill -9
+
+## Q63（追问 Q60）：这段是想说明 arm/swap/spawn 顺序的不可调换性吗？
+- 大方向对，但要收紧：不是"四步全都不可调换"，真正要证的是唯一看起来能挪、实际挪不得的那一对——arm 必须先于 swap
+- 分两类：① 数据依赖决定的顺序（显而易见）：swap→spawn（spawn 从 current 起进程，不先换指向起出来的还是旧版）、健康门→confirm（先销账再验收等于没验收）② 崩溃安全决定的顺序（隐蔽）：arm→swap——arm 与其他步无数据依赖，放后面单测和正常运行全看不出来，唯一差别只在"死在 swap 之后、arm 之前的缝里"才暴露
+- 原版把这条列为三条根本规则之一（reference/updater/src/engine.rs:1-18 "The boot counter is armed before the swap"）：其他顺序错误要么立刻报错要么逻辑说不通，唯独这条是"不写错就不知道它存在"的纪律，只能靠规则立住
+
+## Q60–Q63 处置（2026-09-30）
+- 这四个疑问暴露了 m7 tutorial 原稿"arm、swap、spawn 新 daemon、confirm（删纸条）"一句信息密度过高（四个英文动词无就地展开、未说明 kill -9 的对象、未解释表头三个字段），已把解答吸收进章节：四步改为逐条展开的一句话列表；新增"kill -9 杀的是 updaterd 自己、daemon 因 setsid 存活"一段；表格前补三字段含义与 recover 只认纸条的规则；表后补"不是四步都不可调换，唯 arm→swap 是隐蔽纪律"的收紧段
+
+## Q64（读 m7 tutorial 孤儿收割段）：/proc/*/comm 是个什么文件？
+- /proc 是内核暴露进程信息的虚拟文件系统，不在磁盘上。每个在跑的进程一个目录 /proc/<pid>/，里面的 comm 文件只装进程名（上限 15 字符）
+- 用途：updaterd 启动时遍历 /proc/ 数字目录、读 comm、名字以 miniduckd 开头就杀——直接读 /proc 就是 ps/pgrep 内部的数据源，省掉 fork 外部命令和解析文本
+- 坑：僵尸进程的 comm 还在（容器 PID 1 是 sleep infinity 不收尸），不看 state 直接杀会对尸体反复发信号刷日志——所以代码再读 stat 跳过 Z（engine.rs:177-181）
+
+## Q65（读 m7 tutorial supervisor 决策卡）：golden / 兜底 是什么？
+- golden release = 原版 updater 的保底版本：一份已知好的旧版本，golden symlink 指向它，永不清理（updater-design.md:769 "never pruned"）；与回滚用的"上一版"是两份东西
+- 它在救谁：pending/回滚机制都假设 updaterd 自己还能启动；golden 由 updaterd 之外的救援脚本用（开机时先于 updaterd 跑，readlink 就拿到保底版本，"recovery outside this process needs no parser"，:574/:823），链条 current→previous→golden→recovery mode（:1478）。目的：机器人永远能自己联网求救，不返厂（RMA/truck roll，:773）
+- 我们砍掉了这层（D37）：updaterd 死一次能恢复（pending 管），程序本身坏了没有外援，"坏了就是坏了"，M8 裁决
+- 同句词：journald=systemd 的日志托管；unit 依赖编排=systemd 声明启动顺序关系
+
+## Q66（读 m7 tutorial）：解释性括号打断阅读主线
+- 处置：立"主干/细节"分层规则并落 user-prefs「流程偏好」+ SKILL.md writer 约定——正文只留主线；一句话解释→句尾脚注；一段展开→章末细节小节；跨里程碑概念→docs/concepts；`文件:行号` 证据定位例外、必须留正文原地
+- M7 章已按此改写：16 个解释性括号转脚注（章末统一定义），3 处重复展开改为指向"常见坑"的指针；旧章节不回改，M8 起生效
+
+## Q67（读 m7 tutorial §CLI 分流）：这种事情有必要提吗？
+- 没有。这段是"交付清单逻辑"不是"教学逻辑"：「update 子命令连 updaterd 的 socket」一句就够（模块分工和验收命令已能看出）；「解析完第一个参数就分流」是离题的 CLI 实现细节
+- 处置：整节删除，压缩成一句并入 §3 模块分工末尾
+
+## Q68（章节结构反馈）：教程应按"问题→背景概念→设计（图先行）→代码领读→坑与展望"写
+- 已落 SKILL.md Phase 3 writer 约定：「设计」为新增硬标准节，先于代码领读，必须有图（模块关系用 arch.d2/.svg，流程/时序用 mermaid 嵌文），标准=不看代码能复述设计
+- M7 章已由 writer subagent 按新结构重排：新增 §3 设计节（读图+模块划分总述+两张 mermaid：apply 七阶段/recover 决策树+五卡决策导览），原「实现走读」改名「代码领读」，常见坑末尾加展望段；事实与行号零改动
+
+## Q69（读 engine.rs:175-181）：/proc/<pid>/stat 文件内容长什么样？
+- 一行、五十多个空格分隔字段，例：`1 (systemd) S 0 1 1 0 -1 4194560 ...`。只需前三个字段：pid、(comm)（包在括号里的进程名）、state（单字母：R 跑/S 睡/D 不可中断睡/T 停/Z 僵尸）
+- 为什么代码用 rsplit(')') 而不是按空格切：comm 本身可含空格甚至括号（如浏览器 "(Web Content)"），从右边找最后一个 ) 之后恒为 " state ppid ..."，trim().starts_with('Z') 即判僵尸
+- 本场景：kill -9 updaterd 留下的 daemon 死后变僵尸，stat 里 state=Z，收割逻辑跳过它
+
+## Q70（读 engine.rs:116-123）：什么是 setsid？
+- setsid = 让子进程自立门户：成为全新会话的会长、全新进程组的组长，与父进程的信号广播绝缘（engine.rs:116-123）
+- 前置概念：进程组（信号可按组发，Ctrl+C 的 SIGINT 就是发给前台整组）；会话（进程组的上一层，绑控制终端，终端关了全组收 SIGHUP）。fork+exec 默认继承父进程的组和会话
+- 不设 setsid 的风险：supervisor/测试框架/容器清理习惯按组整杀，daemon 会被株连；kill 单个 PID 本身不株连子进程，真正的风险在"整组清扫"
+- 对本章的意义：「updaterd 死了、机器人还在跑」（场景 E0）靠这条成立——updater 死了被更新系统必须活着，否则更新半途 updaterd 崩了 = 机器人跟着瘫
+
+## Q71（读 engine.rs:137-149）：try_wait 是什么？
+- try_wait = 非阻塞版"收尸"（waitpid WNOHANG）：问一句"孩子死了没"立刻拿答案走人。三种返回：Ok(Some)=已退出且尸体已收、Ok(None)=还活着、Err=调用本身出错。对照 wait() 是阻塞版，挂起等到子进程退出
+- 为什么这里必须非阻塞：这段是"SIGTERM 宽限 2s 不走再 SIGKILL"（SIGTERM_GRACE）——阻塞 wait 会被无视 SIGTERM 的进程卡死，"给宽限期"语义本身要求带超时的等待 = 非阻塞轮询 + 自己掐表（每 100ms 问一次）
+- SIGKILL 后的 child.wait() 不能省：SIGKILL 保证必死，但死掉的子进程必须由父进程 wait 一次才从进程表消失，否则变僵尸（回指 Q64/Q69）
+- 100ms 轮询间隔是工程取值：太密费 CPU，太疏拖慢换版本
+
+## Q72（读 engine.rs:144-146）：发了 SIGKILL 就一定会退出，所以用 wait 阻塞吗？
+- 对。SIGKILL 不可捕获/忽略/阻塞，内核直接终止，此处的阻塞是有界的（最坏=内核进程清理那点时间），不像 SIGTERM 可能被装死挂住——这正是宽限期用 try_wait 轮询、此处可直接阻塞的分界
+- wait() 在此身兼两职：等它死 + 收尸。SIGKILL 保证"会死"但不负责收尸，不 wait 就留僵尸（Q69/Q71）
+- 严格边界：进程卡在不可中断睡眠（D 状态，如等 NFS I/O）时 SIGKILL 也不立刻生效，要等 I/O 返回——本地 eMMC 场景够不着，按"必死"处理合理

@@ -1,0 +1,221 @@
+direction: down
+
+vars: {
+  d2-config: {
+    layout-engine: dagre
+    theme-id: 0
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#DB2777"
+      font-color: "#FFFFFF"
+      stroke: "#9D174D"
+      stroke-width: 3
+      border-radius: 8
+      bold: true
+    }
+  }
+  changed: {
+    style: {
+      fill: "#F59E0B"
+      font-color: "#FFFFFF"
+      stroke: "#B45309"
+      stroke-width: 2
+      border-radius: 8
+      bold: true
+    }
+  }
+  unchanged: {
+    style: {
+      fill: "#E2E8F0"
+      font-color: "#64748B"
+      stroke: "#CBD5E1"
+      border-radius: 8
+    }
+  }
+  deleted: {
+    style: {
+      fill: "#FFFFFF"
+      font-color: "#94A3B8"
+      stroke: "#94A3B8"
+      stroke-dash: 5
+      border-radius: 8
+    }
+  }
+  fsnew: {
+    style: {
+      fill: "#F8FAFC"
+      font-color: "#9D174D"
+      stroke: "#DB2777"
+      stroke-width: 3
+      border-radius: 8
+      bold: true
+    }
+  }
+  procbox: {
+    style: {
+      fill: "#FFFFFF"
+      font-color: "#0F172A"
+      stroke: "#64748B"
+      stroke-width: 2
+      border-radius: 12
+    }
+  }
+}
+
+title: "M7 架构变动（相对 M6）—— 新增 mini-updaterd 进程与更新资产；miniduckd 与 robot.* 数据流零改动" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+legend: "图例" {
+  class: procbox
+  l_new: "新增模块/资产" { class: new }
+  l_changed: "改动模块" { class: changed }
+  l_unchanged: "未动（灰化）" { class: unchanged }
+  l_deleted: "删除/改向（虚线）" { class: deleted }
+}
+
+# ---------- 进程 1：CLI（改动） ----------
+p_cli: "进程 1：mini-duckctl" {
+  class: procbox
+  ctl: "mini-duckctl\n【改】新增 update 子命令组：\nupdate check/status/log [N]\nupdate apply <ver> / rollback\n解析第一个参数即分流：\nupdate.* 连 updaterd，\n其余连 miniduckd（不变）" {
+    class: changed
+  }
+}
+
+# ---------- 进程 2：mini-updaterd（新增） ----------
+p_updaterd: "进程 2：mini-updaterd【新进程】" {
+  class: procbox
+  ipc: "IPC 层 updater/ipc.rs【新】\nupdate.check/status/log\n/apply/rollback（+hello）\nSO_PEERCRED-lite 门控\n+ flock 单飞锁\n复用 M0 NDJSON JSON-RPC 帧" {
+    class: new
+  }
+  engine: "Engine updater/engine.rs【新】\napply 七阶段编排\n崩溃恢复（boot counter）\nrecover() 先于 bind" {
+    class: new
+  }
+  supervisor: "进程 supervisor【新】\n（engine.rs，D37 替代 systemd）\nspawn/kill miniduckd\nsetsid/SIGTERM→SIGKILL\n/proc 收割孤儿" {
+    class: new
+  }
+  store: "store updater/store.rs【新】\nstaging→releases/\ncurrent 原子 symlink swap\n（rename+fsync 目录）" {
+    class: new
+  }
+  others: "manifest / gate / journal\nlock / peer / paths【新】\nsha256 校验 / robot.health 轮询\n流水账+previous 推导\nflock / SO_PEERCRED-lite / 目录布局" {
+    class: new
+  }
+}
+
+# ---------- 进程 3：miniduckd（未动） ----------
+p_daemon: "进程 3：miniduckd【未动】" {
+  class: procbox
+  rpc: "RPC 层（main.rs）【未动】\nrobot.* 方法面不变\nrobot.health 被 updaterd\n健康门消费（只读，无改动）" {
+    class: unchanged
+  }
+  body: "控制循环 / 调度器 / Safety\nRobotIo / watch / Stats【未动】\n（M7 一行未改）" {
+    class: unchanged
+  }
+}
+
+# ---------- 进程 4：仿真体（未动） ----------
+p_sim: "进程 4：duck_body.py【未动】" {
+  class: procbox
+  body: "MuJoCo 仿真体\n（本章无改动）" {
+    class: unchanged
+  }
+}
+
+# ---------- 更新资产（文件系统，新增） ----------
+fs_root: "<root>/ 更新资产【新】" {
+  class: procbox
+  source: "source/\n<ver>.manifest.json\n+ <ver>.tar（LocalDir 源）" {
+    class: fsnew
+  }
+  install: "install/\nreleases/<ver>/\ncurrent -> releases/<ver>" {
+    class: fsnew
+  }
+  state: "state/\npending.json\nupdate-log.jsonl\nupdate.lock" {
+    class: fsnew
+  }
+}
+
+# ---------- 构建面改动 ----------
+build_note: "构建面【改】\nCargo.toml：+sha2/+libc\n+[[bin]] mini-updaterd\nlib.rs：+pub mod updater" {
+  class: changed
+}
+
+# ---------- 边 ----------
+
+# 新边 3：CLI → updaterd
+p_cli.ctl -> p_updaterd.ipc: "【新边 3】update.* RPC\n/tmp/mini-updaterd.sock（0660）" {
+  style.stroke: "#DB2777"
+  style.stroke-width: 3
+}
+
+# 不变边：CLI → miniduckd
+p_cli.ctl -> p_daemon.rpc: "robot.* 请求 + state 推送\n（不变，无改向）" {
+  style.stroke: "#94A3B8"
+}
+
+# updaterd 内部
+p_updaterd.ipc -> p_updaterd.engine: "【新】apply/rollback"
+p_updaterd.engine -> p_updaterd.supervisor: "【新】kill/spawn"
+p_updaterd.engine -> p_updaterd.store: "【新】解包/swap"
+p_updaterd.engine -> p_updaterd.others: "【新】verify/gate/log/lock"
+
+# 新边 1：updaterd → miniduckd 进程管理
+p_updaterd.supervisor -> p_daemon: "【新边 1】spawn/kill 进程\n（setsid：updaterd 死不杀 daemon）" {
+  style.stroke: "#DB2777"
+  style.stroke-width: 3
+  style.stroke-dash: 5
+}
+
+# 新边 2：updaterd → miniduckd 健康门
+# 布局专用：两个隐形中继点，把边标签放到中段的空白区，
+# 避免与 p_daemon 容器标题及相邻边标签重叠
+hg_wp1: "" {
+  shape: circle
+  width: 2
+  height: 2
+  style.opacity: 0
+}
+hg_wp2: "" {
+  shape: circle
+  width: 2
+  height: 2
+  style.opacity: 0
+}
+p_updaterd.others -> hg_wp1: "" {
+  style.stroke: "#DB2777"
+  style.stroke-width: 3
+}
+hg_wp1 -> hg_wp2: "【新边 2】robot.health 轮询 @500ms\n/tmp/miniduckd.sock（健康门）" {
+  style.stroke: "#DB2777"
+  style.stroke-width: 3
+}
+hg_wp2 -> p_daemon.rpc: "" {
+  style.stroke: "#DB2777"
+  style.stroke-width: 3
+}
+
+# updaterd ↔ 文件系统资产
+fs_root.source -> p_updaterd.others: "【新】读 manifest+tar\n（check/apply 输入）"
+p_updaterd.store -> fs_root.install: "【新】解包/换 current 指向"
+p_updaterd.others -> fs_root.state: "【新】log 追加/\npending arm/清/flock"
+fs_root.install -> p_daemon: "【新】daemon 二进制来自\ninstall/current/bin/miniduckd" {
+  style.stroke-dash: 3
+}
+
+# 不变边：miniduckd → 仿真体
+p_daemon.body -> p_sim.body: "TCP NDJSON op 帧（不变）" {
+  style.stroke: "#94A3B8"
+}
+
+# 构建面作用于新进程
+build_note -> p_updaterd: "编译进同一 crate，\n独立 bin" {
+  style.stroke-dash: 3
+  style.stroke: "#B45309"
+}

@@ -16,10 +16,16 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().cloned().unwrap_or_else(|| {
         eprintln!(
-            "usage: mini-duckctl <health|state [--every N]|enable|disable|drive <vx> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>>"
+            "usage: mini-duckctl <health|state [--every N]|enable|disable|drive <vx> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>|update <check|status|log [N]|apply <ver>|rollback>>"
         );
         std::process::exit(2);
     });
+
+    // M7：update 子命令组连的是 mini-updaterd 的 socket，不是 miniduckd
+    // 的——在建立 daemon 连接之前分流。
+    if cmd == "update" {
+        return update_cmd(&args[1..]).await;
+    }
 
     let stream = UnixStream::connect(SOCK_PATH).await.unwrap_or_else(|e| {
         eprintln!("connect {SOCK_PATH}: {e}（守护进程在跑吗？）");
@@ -184,6 +190,51 @@ async fn main() -> std::io::Result<()> {
 }
 
 type Conn = Framed<UnixStream, LinesCodec>;
+
+const UPDATER_SOCK: &str = "/tmp/mini-updaterd.sock";
+
+/// M7：update <check|status|log [N]|apply <ver>|rollback>，连 mini-updaterd。
+async fn update_cmd(args: &[String]) -> std::io::Result<()> {
+    let sub = args.first().map(String::as_str).unwrap_or_else(|| {
+        eprintln!("usage: mini-duckctl update <check|status|log [N]|apply <ver>|rollback>");
+        std::process::exit(2);
+    });
+    let sock = std::env::var("MINIDUCK_UPDATER_SOCK").unwrap_or_else(|_| UPDATER_SOCK.into());
+    let stream = UnixStream::connect(&sock).await.unwrap_or_else(|e| {
+        eprintln!("connect {sock}: {e}（mini-updaterd 在跑吗？）");
+        std::process::exit(1);
+    });
+    let mut framed = Framed::new(stream, LinesCodec::new());
+    hello(&mut framed).await?;
+
+    match sub {
+        "check" => call(&mut framed, 2, "update.check", serde_json::Value::Null).await?,
+        "status" => call(&mut framed, 2, "update.status", serde_json::Value::Null).await?,
+        "log" => {
+            let params = match args.get(1) {
+                Some(n) => serde_json::json!({"n": n.parse::<u64>().unwrap_or_else(|_| {
+                    eprintln!("usage: mini-duckctl update log [N]");
+                    std::process::exit(2);
+                })}),
+                None => serde_json::Value::Null,
+            };
+            call(&mut framed, 2, "update.log", params).await?;
+        }
+        "apply" => {
+            let version = args.get(1).cloned().unwrap_or_else(|| {
+                eprintln!("usage: mini-duckctl update apply <version>");
+                std::process::exit(2);
+            });
+            call(&mut framed, 2, "update.apply", serde_json::json!({"version": version})).await?;
+        }
+        "rollback" => call(&mut framed, 2, "update.rollback", serde_json::Value::Null).await?,
+        other => {
+            eprintln!("unknown update subcommand: {other}");
+            std::process::exit(2);
+        }
+    }
+    Ok(())
+}
 
 async fn hello(framed: &mut Conn) -> std::io::Result<()> {
     send(framed, 1, "hello", serde_json::Value::Null).await?;

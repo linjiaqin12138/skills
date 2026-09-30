@@ -9,7 +9,7 @@
 | D3 | ~~单策略、无调度器~~ M6 已收敛：scheduler.rs 优先级链（技能 > ground_pick > sit/rise > walk），command 重编码、拍数窗口、换网 LSTM reset 全部对齐原版 | M3 | M6 | 已收敛（M6） |
 | D4 | 自定义仿真 TCP/JSON 协议（op 标签帧形状对齐原版 sim.rs；帧细节自定，read 响应多带 body_pos/sim_time 供验收） | M4 | M8 对齐 PROTOCOL 握手+帧格式 | 待收敛（M4 已引入） |
 | D5 | 安全层核心规则已对齐（NaN 拒绝/±π 夹紧/deadman/跌倒判定/gain 缓存），残余：无温度监控、无配置文件面（SafetyConfig 硬编码 default） | M5 引入 | M8 对照 safety.rs 与 robotd.toml 补齐 | 部分收敛 |
-| D6 | 无 systemd 部署、updaterd 无 minisign 验签 | M7 计划 | M8 | 未引入 |
+| D6 | ~~无 systemd 部署、updaterd 无 minisign 验签~~ M7 落地后拆成两半移交：无 systemd 由 D37 承接、无 minisign 验签由 D38 承接 | M7 计划 | M8 随 D37/D38 裁决 | 已移交（M7，见 D37/D38） |
 | D7 | 单 crate 双 bin，非 workspace 多 crate | M0 | M8 拆协议 crate，对齐"协议 crate 只许 serde/serde_json/semver"依赖约束 | 待收敛 |
 | D8 | 无 SO_PEERCRED uid/gid 校验 | M0 | ~~第一个 mutating 调用出现时~~ M5：侦察发现原版 robotd 无 SO_PEERCRED，鉴权=socket 0660 文件权限（SO_PEERCRED 是 configd/updaterd 模式，M7 实现）。M5 已 chmod 0660 | 已收敛（M5，按文件权限模型对齐） |
 | D9 | ~~启动即插值到 home；原版"进程启动绝不移动机器人"（held_pose）~~ M5 已收敛：Held 阶段抱住启动姿态，绝不调 set_torque，显式 robot.enable 才斜坡回 home | M1 | M5 | 已收敛（M5） |
@@ -40,3 +40,8 @@
 | D34 | sit 物理失败：调度/重编码/锁存全部验证正确（skill=sit、twist=[1,0,0]、锁存保持），但下蹲到深位（膝 ~0.8rad、z~0.07）后向后翻倒（gz→+1，穿地板见 D26）。kp=40+forcerange±10 实验倒在同一时刻 → 非 torque 上限，指向 BAM 动力学缺失。sim 验收降级为调度断言 | M6（验收实测） | M8 随 D21 一起裁决 | 待收敛（M6 已引入） |
 | D35 | roulade 物理失败：窗口计时精确（50 拍）、busy 门控正确（窗口内全部 fallen 帧 gain=200，帧数随运行微动 32~33），但前滚翻在 PD 执行器下滚不过去（~0.7s 处摔倒，结束后 Limp 接管）。sim 验收降级为调度+busy 断言。kick_left 与 ground_pick 物理通过 | M6（验收实测） | M8 随 D21 一起裁决 | 待收敛（M6 已引入） |
 | D36 | robot.do 在 fallen/Limp 时 RPC 侧拒绝（accepted:false + 原因），原版此时照收、在控制循环里静默丢（"fallen 时是人类的选择"）。依据是原版自己的注释"accepted 然后什么都不发生是最坏的回答"——可观察行为差异，需裁决 | M6（决策卡片：robot.do 在哪一层拒绝） | M8 | 待收敛（M6 已引入） |
+| D37 | 无 systemd：mini-updaterd 直接 spawn/kill miniduckd 子进程替代 `systemctl restart`（setsid 脱离会话，updaterd 死不杀 daemon；启动时按 /proc comm 收割上次留下的孤儿）；无 golden/boot-check 外层兜底 | M7 | M8 | 待收敛（M7 已引入） |
+| D38 | 无 minisign 验签，release 完整性只有 sha256（manifest 登记 artifact 的哈希，apply 先验再解包）；D6 的上半句（无 systemd 部署）由 D37 承接 | M7 | M8 | 待收敛（M7 已引入） |
+| D39 | updater 只有 LocalDir 单一 source（`<root>/source/`），无 GitHub/HF/网络发现/channel 策略/自动检查定时器；artifact 是未压缩 .tar（调系统 `tar -xf`）而非原版的 .tar.zst | M7 | M8 | 待收敛（M7 已引入） |
+| D40 | SO_PEERCRED 缩为 uid==0 || socket owner 单点门控，无 allow_uids/allow_gids 配置（容器单用户，教学复刻里配置面没有教学价值） | M7 | M8 裁决或永久豁免 | 待收敛（M7 已引入） |
+| D41 | updater 无 hooks/orphan 检查/transcript/Degraded 裁决（mini 健康判定是布尔）/subscribe 推送/self-update；Phase 枚举只取 proto 子集（Idle/Verifying/Extracting/Swapping/Applying/HealthGate/Committing/RollingBack） | M7 | M8 裁决 | 待收敛（M7 已引入） |
