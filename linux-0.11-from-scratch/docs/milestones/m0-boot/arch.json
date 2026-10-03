@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "text_policy": "strict",
+  "quality_profile": "showcase",
+  "width": 1450,
+  "height": 560,
+  "title": "M0 最小内核架构（Bite1）",
+  "subtitle": "Limine 引导 → kernel 串口输出 → qemu 终端",
+  "containers": [
+    {
+      "id": "kernel-box",
+      "x": 540,
+      "y": 180,
+      "width": 380,
+      "height": 170,
+      "label": "kernel",
+      "fill": "#faf5ff",
+      "stroke": "#8b5cf6"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "limine",
+      "kind": "rect",
+      "x": 40,
+      "y": 230,
+      "width": 170,
+      "height": 70,
+      "label": "Limine 引导器",
+      "sublabel": "外部 · 现成引导器",
+      "fill": "#fff7ed",
+      "stroke": "#f97316",
+      "flat": true
+    },
+    {
+      "id": "start",
+      "kind": "rect",
+      "x": 580,
+      "y": 230,
+      "width": 120,
+      "height": 70,
+      "label": "_start 入口",
+      "sublabel": "main.rs",
+      "fill": "#ffffff",
+      "stroke": "#8b5cf6",
+      "flat": true
+    },
+    {
+      "id": "serial",
+      "kind": "rect",
+      "x": 740,
+      "y": 230,
+      "width": 140,
+      "height": 70,
+      "label": "serial 驱动",
+      "sublabel": "serial.rs · 16550",
+      "fill": "#ffffff",
+      "stroke": "#8b5cf6",
+      "flat": true
+    },
+    {
+      "id": "com1",
+      "kind": "rect",
+      "x": 1000,
+      "y": 230,
+      "width": 180,
+      "height": 70,
+      "label": "COM1 串口",
+      "sublabel": "16550 UART · I/O 0x3F8",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6",
+      "flat": true
+    },
+    {
+      "id": "qemu",
+      "kind": "rect",
+      "x": 1260,
+      "y": 230,
+      "width": 150,
+      "height": 70,
+      "label": "qemu 终端",
+      "sublabel": "外部 · 宿主终端",
+      "fill": "#fff7ed",
+      "stroke": "#f97316",
+      "flat": true
+    }
+  ],
+  "arrows": [
+    {
+      "id": "handoff",
+      "source": "limine",
+      "target": "start",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "交付 CPU：64 位长模式 + 高半区虚拟地址"
+    },
+    {
+      "id": "tx",
+      "source": "serial",
+      "target": "com1",
+      "source_port": "bottom",
+      "target_port": "bottom",
+      "flow": "write",
+      "label": "写 16550 寄存器发字节",
+      "corridor_y": [
+        380
+      ]
+    },
+    {
+      "id": "stdio",
+      "source": "com1",
+      "target": "qemu",
+      "source_port": "top",
+      "target_port": "top",
+      "flow": "data",
+      "label": "qemu -serial stdio 文本流",
+      "corridor_y": [
+        100
+      ]
+    }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 460,
+  "legend_locked": true,
+  "legend": [
+    {
+      "flow": "control",
+      "label": "引导交付"
+    },
+    {
+      "flow": "write",
+      "label": "寄存器写"
+    },
+    {
+      "flow": "data",
+      "label": "文本输出流"
+    }
+  ],
+  "footer": "Style 1 · Flat Icon · linux-0.11-from-scratch M0",
+  "footer_x": 48,
+  "footer_y": 520
+}

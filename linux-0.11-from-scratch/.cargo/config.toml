@@ -1,0 +1,14 @@
+# 编译目标：裸机 x86_64，无任何操作系统 ABI
+# 注意：本文件必须放在仓库根目录 —— cargo 从“当前工作目录”向上查找配置，
+# 而构建命令是在仓库根目录用 --manifest-path 调用 kernel/Cargo.toml 的
+[build]
+target = "x86_64-unknown-none"
+# 把链接脚本交给 rust-lld（该 target 的默认链接器）；
+# 相对路径基于 kernel crate 的根目录解析。
+# relocation-model=static：该 target 默认产出 PIE（Type: DYN），
+# 裸机内核没有动态加载器，必须生成固定地址的 EXEC
+rustflags = ["-C", "relocation-model=static", "-C", "link-arg=-Tlinker.ld"]
+
+# no_std 内核没有预编译的 core，需要从源码现编（nightly 专属功能，需 rust-src 组件）
+[unstable]
+build-std = ["core", "compiler_builtins"]

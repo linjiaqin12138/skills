@@ -1,0 +1,93 @@
+# Linux 0.11 原项目模块划分总图
+# 三个信任边界(容器): 用户态 ring 3 | 内核态 ring 0 | 硬件
+# 布局: direction right(用户态在左,硬件在右)——ELK 引擎下纵向堆叠会产生
+# 跨容器边大面积绕行,横向三列是同一信任边界关系的等价表达且路由最干净。
+# 注: style.opacity: 0 的边是纯布局约束(不可见),不表达架构事实。
+
+direction: right
+
+classes: {
+  gray: { style: { fill: "#B0BEC5"; font-color: "#1a1a1a"; bold: true; border-radius: 6 } }
+  core: { style: { fill: "#FF8A65"; font-color: "#1a1a1a"; bold: true; border-radius: 6 } }
+  mem: { style: { fill: "#64B5F6"; font-color: "#1a1a1a"; bold: true; border-radius: 6 } }
+  fsys: { style: { fill: "#81C784"; font-color: "#1a1a1a"; bold: true; border-radius: 6 } }
+  drv: { style: { fill: "#CE93D8"; font-color: "#1a1a1a"; bold: true; border-radius: 6 } }
+  util: { style: { fill: "#FFF59D"; font-color: "#1a1a1a"; bold: true; border-radius: 6 } }
+  dev: { style: { fill: "#ECEFF1"; font-color: "#37474F"; stroke: "#78909C"; border-radius: 6 } }
+  proc: { style: { fill: "#FFFFFF"; font-color: "#1a1a1a"; bold: true; stroke: "#455A64"; border-radius: 6 } }
+}
+
+usr: "用户态 ring 3" {
+  style.fill: "#FAFAFA"
+  style.stroke: "#455A64"
+  style.stroke-dash: 4
+  app: "用户程序" { class: proc }
+  initproc: "init 进程 (pid 1) / sh" { class: proc }
+}
+
+krnl: "内核态 ring 0(单内核,全模块共享地址空间)" {
+  style.fill: "#FFF8F0"
+  style.stroke: "#BF360C"
+  style.stroke-width: 2
+
+  boot: "boot\nbootsect.s → setup.s → head.s\n实模式→保护模式,建 GDT/IDT/页表" { class: gray }
+  main: "init/main.c 总编排" { class: gray }
+  syscall: "system_call.s\n系统调用入口" { class: core }
+  core: "内核核心\nsched.c 调度 / fork.c / exit.c\nsignal.c / traps.c 异常\nTSS 硬件任务切换 (ljmp)" { class: core }
+  mm: "mm 内存管理\nmemory.c 物理页分配\npage.s 缺页处理" { class: mem }
+  fs: "fs 文件系统 (MINIX)\nsuper/inode/namei/open\nread_write/exec + buffer.c 缓存" { class: fsys }
+  blk: "blk_drv 块设备驱动\nll_rw_blk.c 请求队列\nhd.c / floppy.c" { class: drv }
+  chr: "chr_drv 字符设备驱动\ntty_io.c / console.c\nkb.S 键盘 / serial.c" { class: drv }
+  lib: "lib 内核 C 库\n(被各模块调用)" { class: util }
+}
+
+hw: "硬件(QEMU 虚拟)" {
+  style.fill: "#F5F5F5"
+  style.stroke: "#616161"
+  style.stroke-dash: 4
+  kbd: "键盘" { class: dev }
+  timer: "定时器 8253" { class: dev }
+  bios: "BIOS ROM" { class: dev }
+  vga: "VGA 显示器" { class: dev }
+  ide: "IDE 硬盘" { class: dev }
+  fdc: "软驱" { class: dev }
+}
+
+# 不可见布局约束边(锁定三列相对位置 / 模块位置,不渲染)
+usr -> krnl: { style.opacity: 0 }
+krnl.blk -> hw.ide: { style.opacity: 0 }
+krnl.fs -> krnl.lib: { style.opacity: 0 }
+
+# 启动链
+hw.bios -> krnl.boot: "加载引导扇区\n到 0x7C00"
+krnl.boot -> krnl.main: "head.s 跳进 main()"
+krnl.main -> krnl.core: "启动时依次调用各 xxx_init()"
+
+# 系统调用通路(跨 ring3/ring0 边界)
+usr.app -> krnl.syscall: "int 0x80,eax=调用号(共74个)"
+krnl.syscall -> krnl.core: "sys_call_table 分发\nsys_fork/sys_exit…"
+krnl.syscall -> krnl.fs: "sys_read/sys_write/sys_open…"
+
+# 时钟与调度
+hw.timer -> krnl.core: "IRQ0 100Hz 时钟中断\n→ schedule()"
+
+# 终端通路
+hw.kbd -> krnl.chr: "IRQ1 键盘中断"
+usr.initproc -> krnl.chr: "write() 输出"
+krnl.chr -> usr.initproc: "tty 缓冲 → read()"
+krnl.chr -> hw.vga: "tty_io → console 写屏"
+
+# 块设备通路
+krnl.fs -> krnl.blk: "bread/bwrite 走 buffer 缓存\n→ ll_rw_blk 请求队列"
+krnl.blk <-> hw.ide: "hd 读扇区 / 完成中断唤醒"
+krnl.blk -> hw.fdc: "fd 读扇区"
+
+# 内存
+krnl.core -> krnl.mm: "fork: copy_page_tables,写时复制 COW"
+krnl.core -> krnl.mm: "#14 page fault → do_no_page/do_wp_page"
+
+title: "Linux 0.11 原项目模块划分总图\n色系: 灰=启动链 · 橙红=内核核心/系统调用入口 · 蓝=内存管理 · 绿=文件系统 · 紫=设备驱动 · 黄=内核库 · 白=用户进程 · 浅灰=硬件" {
+  near: bottom-left
+  shape: text
+  style.font-size: 18
+}

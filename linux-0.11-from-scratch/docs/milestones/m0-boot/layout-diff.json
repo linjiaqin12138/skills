@@ -1,0 +1,195 @@
+{
+  "canvas": {
+    "height": 560.0,
+    "width": 1450.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 2,
+      "max_bridged_crossings": 0,
+      "max_route_stretch": 1.35,
+      "max_total_bends": 8,
+      "min_container_gutter": 20.0,
+      "min_label_clearance": 4.0,
+      "min_node_gap": 40.0,
+      "min_segment_length": 16.0,
+      "profile": "showcase"
+    },
+    "metrics": {
+      "bridged_crossings": 0,
+      "max_route_stretch": 1.163,
+      "minimum_container_gutter": 40.0,
+      "minimum_node_gap": 40.0,
+      "shortest_segment": 20.0,
+      "total_bends": 4
+    },
+    "ok": true,
+    "profile": "showcase",
+    "score": 98,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "handoff",
+      "length": 370.0,
+      "route": [
+        [
+          210.0,
+          265.0
+        ],
+        [
+          580.0,
+          265.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "limine",
+      "source_port": [
+        210.0,
+        265.0
+      ],
+      "target": "start",
+      "target_port": [
+        580.0,
+        265.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "tx",
+      "length": 320.8,
+      "route": [
+        [
+          810.0,
+          300.0
+        ],
+        [
+          810.0,
+          320.4
+        ],
+        [
+          1090.0,
+          320.4
+        ],
+        [
+          1090.0,
+          300.0
+        ]
+      ],
+      "route_stretch": 1.146,
+      "source": "serial",
+      "source_port": [
+        810.0,
+        300.0
+      ],
+      "target": "com1",
+      "target_port": [
+        1090.0,
+        300.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "stdio",
+      "length": 285.0,
+      "route": [
+        [
+          1090.0,
+          230.0
+        ],
+        [
+          1090.0,
+          210.0
+        ],
+        [
+          1335.0,
+          210.0
+        ],
+        [
+          1335.0,
+          230.0
+        ]
+      ],
+      "route_stretch": 1.163,
+      "source": "com1",
+      "source_port": [
+        1090.0,
+        230.0
+      ],
+      "target": "qemu",
+      "target_port": [
+        1335.0,
+        230.0
+      ],
+      "waypoints": []
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [],
+  "mode": "architecture",
+  "ok": true,
+  "palette": {
+    "below_target": [],
+    "minimum_target": 4.5,
+    "ratios": {
+      "section_sub_fill": 4.76,
+      "text_muted": 4.76,
+      "text_primary": 17.74,
+      "text_secondary": 4.83
+    },
+    "scope": "default opaque canvas text tokens; not a full rendered accessibility audit",
+    "unsupported_tokens": []
+  },
+  "placements": {
+    "legend": {
+      "actual": [
+        48.0,
+        460.0
+      ],
+      "bounds": [
+        38.0,
+        446.0,
+        508.0,
+        492.0
+      ],
+      "moved": false,
+      "requested": [
+        48.0,
+        460.0
+      ]
+    }
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {},
+    "ok": true,
+    "profile": "generic",
+    "style": 1,
+    "visual_theme": "Flat Icon"
+  },
+  "style": {
+    "id": 1,
+    "name": "Flat Icon"
+  },
+  "summary": {
+    "bridged_crossings": 0,
+    "edges": 3,
+    "nodes": 6
+  },
+  "text_metrics": "heuristic-v1",
+  "typography": {
+    "complete_text": true,
+    "hint": null,
+    "metrics": "heuristic widths; inspect the actual rendered font",
+    "truncated": []
+  }
+}

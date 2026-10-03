@@ -1,0 +1,11 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2024"
+
+# 内核没有运行时环境可以 unwind，panic 只能直接中止
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
