@@ -40,6 +40,8 @@ description: &gt;
 - 交互式动画（首选）：用 `show_widget` 做可播放/可拖拽/可逐帧推进的动画，用户可反复操控
   （需先读 kimi-widget 技能的 SKILL.md；移动端体验一般，复杂动画改用下方方案）
 - GIF 动图：用 ipython 生成 matplotlib 动画导出 GIF，可下载
+- 数学概念的动画解释：可用 manim（https://github.com/3b1b/manim ，3Blue1Brown 的动画引擎）生成高质量数学讲解视频/GIF
+- HTML 图文卡片页：面向零基础用户时，做一个"大图 + 少字"的 HTML 页面（对应英文提示："Explain like I'm someone who knows nothing about this topic, using a HTML artifact with big pictures and few words"）
 - 分帧示意图：过程拆成 3-5 张静态图配顺序解说，低配视频
 - 录屏式步骤图：关键帧 + 标注箭头 + 解说文字
 - 类比到日常经验（"电流像水流"）——最低成本首选
