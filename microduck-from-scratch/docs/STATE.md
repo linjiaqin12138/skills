@@ -1,10 +1,10 @@
 # STATE — microduck 从零手搓教程断点
 
-> 新会话续传入口：读本文件 + deviations.md + questions.md + docs/milestones/ 最新一章，然后从"下一步"继续。
+> 新会话续传入口：读本文件 + user-prefs.md（项目级路线）+ deviations.md + questions.md + feature-inventory.md + docs/milestones/ 最新一章，然后从"下一步"继续。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `reference/`，只读）
-- **当前位置**：Phase 3 进行中，Bite 8（M7 支线：迷你 updaterd）已通过验收，教程章已落盘（milestones/m7-updaterd/）
-- **下一步**：用户说"继续"→ Phase 4 / M8 收敛验收 + 权衡复盘（全部里程碑已走完，M8 前可先问用户是否要补问/复习）
+- **当前位置**：M8 进行中。路线已裁决（2026-10-04，见决策记录 6）：M8 走 C 线——对齐非硬件依赖内容（robot.move+vy / enable{on,toggle} / robot.subscribe / safeToRestart）+ 移植 BAM 让 sit/roulade 物理通过；其余缺口分配到 M9/M10/M11 批次。全量功能清单已落盘 `feature-inventory.md`（183 项：已交付 39 / 偏差登记 33 / 缺口 62 归并 D42–D63 / 建议豁免 49）。回归基线：60 单测 + accept-m4/m5/m6/m7 全绿（2026-10-03）
+- **下一步**：用户说"继续"→ 执行 M8-C1 接口对齐（第一个 Bite：robot.drive→robot.move + vy 侧向，涉及 src/main.rs:239-258、src/lib.rs、src/bin/mini-duckctl.rs），随后 C2 BAM 移植（先做 kp=0.55 一行实验验证归因）
 
 ## 里程碑进度
 
@@ -18,7 +18,10 @@
 | M5 安全层（deadman/限位/跌倒） | ✅ 验收通过（milestones/m5-safety/，35 单测+accept-m5 六项+accept-m4 回归全绿） |
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（milestones/m6-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（milestones/m7-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept-m7.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
-| M8 收敛验收 | 未开始 |
+| M8 收敛验收 | 进行中（C 线，见决策记录 6）：C1 接口对齐 + C2 BAM 移植让 sit/roulade 站起来 + 其余缺口按批次分配 |
+| M9 仿真与训练（批次 2） | 未开始（规划：自建 MJCF 仿真模型、BAM 执行器建模深入、自己训练策略；对齐 microduck_rl 相关部分） |
+| M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
+| M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
 
 ## 关键路径与命令
 
@@ -57,3 +60,4 @@
 3. 教程规则已更新：终态对齐原版（注释/文档/死代码不复刻），中间里程碑允许偏离但须登记收敛点
 4. `examples/` 是教程配套资产（概念示例代码），不是里程碑交付物，M8 收敛验收对照原版结构时不计入偏差
 5. 教程硬标准：领域专有概念先大白话引入 + 1~2 段实测跑通的最小代码示例，再进项目实现
+6. **M8 范围与后续路线（2026-10-04 用户裁决）**：M8 走 C 线——只对齐非硬件依赖内容（robot.move+vy / robot.enable{on,toggle} / robot.subscribe 入口 / updater safeToRestart 预检）+ 移植 BAM（Rhoban/bam 解析式模型，官方蓝图 microduck_rl scripts/infer_policy.py；先跑 kp=0.55 一行实验验证归因）让 sit/roulade 物理通过，D21/D34/D35 在 M8 收敛。**其余功能缺口（D42–D63 及偏差簿残余项）不做豁免收尾**，分配到后续批次：M9 仿真与训练、M10 驱动与硬件（此批完成后代码完全对齐原项目，D52 crate 边界/配置面等在此批或 M9 收敛）、M11 结构与外壳（无代码）。总目标=整机工程闭环，详见 docs/user-prefs.md
