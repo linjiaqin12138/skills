@@ -36,7 +36,7 @@
 
 ## 用户背景与偏好
 
-见 `skills/clone-from-scrach-tutor/user-prefs.md`。要点：默认直讲概念、不主动做 TS 类比（2026-09-26 推翻旧约定）；语言三层规则；里程碑代码由 coder subagent 构建、主 agent 复核验收；终态必须与原项目一致（铁律 8/9）。
+见 `skills/clone-from-scrach-tutor/user-prefs.md`（用户级：背景/语言/通用流程）+ `docs/user-prefs.md`（项目级：整机闭环总目标、四条 track、硬件与 BAM 侦察结论）。要点：默认直讲概念、不主动做 TS 类比（2026-09-26 推翻旧约定）；语言三层规则；里程碑代码由 coder subagent 构建、主 agent 复核验收；终态必须与原项目一致（铁律 8/9）。
 
 偏差簿：41 条登记（D1–D41）。D2 已豁免。D16、D17 已在 M3 收敛，D18 已在 M4 收敛，D8/D9/D11/D14/D19/D22 已在 M5 收敛，D3 已在 M6 收敛，D5/D12 部分收敛（残余留 M8），D6 已移交 D37/D38。M5 新开 D23–D27。M6 新开 D28–D36（含 D36：robot.do 在 fallen 时 RPC 侧拒绝 vs 原版静默丢）。M7 新开 D37（无 systemd，updaterd 兼任 supervisor）、D38（无 minisign，只 sha256）、D39（LocalDir 单一 source/未压缩 tar）、D40（SO_PEERCRED-lite）、D41（无 hooks/transcript/subscribe/self-update 等）。
 
