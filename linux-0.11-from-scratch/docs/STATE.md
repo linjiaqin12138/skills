@@ -22,6 +22,7 @@
 
 ## 关键路径
 - reference（只读对照）: `linux-0.11-from-scratch/reference/`（浅克隆 https://github.com/yuan-xy/Linux-0.11，~13.4k 行 C/汇编/头文件）
+- Rust 语法书（检索用，只读）: `reference/book-cn/`（浅克隆 rust-lang-cn/book-cn；语法卡片出处链接写在线版 https://rustwiki.org/zh-CN/book/，`src/*.md` 文件名与 URL 一一对应；书上没讲的链官方英文文档并标注）
 - 原项目构建: `cd reference && make && make start`（需要 qemu + hdc-0.11.img，img 已在仓库根目录）
 - 最新架构图: `docs/arch/original.svg`（原项目总图，d2 画的，保留作历史）；**从 M0 起本工程架构图一律用 fireworks-tech-graph**
 - **画图工具链（2026-10-03 定稿，后续画图 subagent 必须沿用）**：按 `skills/draw-diagram` 路由——时序/流程嵌 mermaid；架构图默认 fireworks-tech-graph（`skills/fireworks-tech-graph`，声明式 JSON 手动坐标）。工作流：`python3 skills/fireworks-tech-graph/scripts/fireworks.py validate/render/check/export-html`；几何问题靠 `check` 文本报告修，**定稿时才渲染 PNG 目检一次**。模型目检：先 `sed` 把 SVG 的 font-family 改成 `'Noto Sans CJK SC', sans-serif`，再 `python3 -c "import cairosvg; cairosvg.svg2png(...)"`（cairosvg 已 pip --user 装好；firefox headless 本机不稳定，勿用）。风格用 Style 1 或 4（浅色）。arch-diff = 复制同一份 JSON 只改颜色，与全图天然像素对齐；删除模块没有虚线框字段，用灰填充+灰描边代替

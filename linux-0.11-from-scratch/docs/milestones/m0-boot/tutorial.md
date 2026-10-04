@@ -73,37 +73,47 @@ DLAB 值得单独说一句：偏移 +0/+1 是**一址两用**的。DLAB=0 时是
 
 ### Rust 语法卡片
 
-本 Bite 代码用到的每个 Rust 语法点，一张卡片一个。只放压缩版。
+本 Bite 代码用到的每个 Rust 语法点，一张卡片一个。只放压缩版。每张卡片末尾给出处：优先《Rust 程序设计语言》中文版（简称 TRPL，rust-lang-cn/book-cn 在线版），书上没单独讲的裸机语法链到官方英文文档并标注。
 
 **卡片 R1：`#![no_std]` / `#![no_main]`**（`kernel/src/main.rs:3-4`）
 `#!` 开头的属性作用于整个 crate。`no_std`：不链接标准库 std（std 依赖操作系统），只用最精简的 `core`——裸机唯一选择。`no_main`：没有 C 运行时来调用 `main`，入口我们自己定义（就是 `_start`），让编译器别找 `main`。
+出处：TRPL 没讲（裸机专属），见 [Embedded Rust Book · A `no_std` Rust Environment](https://doc.rust-lang.org/embedded-book/intro/no-std.html)（英文）。
 
 **卡片 R2：`mod` 与 `pub fn`**（`kernel/src/main.rs:6`，`kernel/src/serial.rs:41`）
 `mod serial;` 声明"同目录下的 `serial.rs` 是我的子模块"。模块里的函数默认私有，`pub` 才对外可见。Rust 的模块树就是文件树，这是本工程文件组织方式（偏差 D7）的语法基础。
+出处：[TRPL 第 7.2 章 · 定义模块来控制作用域与私有性](https://rustwiki.org/zh-CN/book/ch07-02-defining-modules-to-control-scope-and-privacy.html)。
 
 **卡片 R3：`const` 与 `static`**（`kernel/src/serial.rs:8`，`kernel/src/main.rs:16`）
 `const` 是编译期常量，用到的地方直接内联成数字，不占内存。`static` 是真占内存的全局变量，有固定地址——所以 `BASE_REVISION` 必须用 `static`：Limine 要在运行时找到它、批改它，内联掉的常量没法被批改。
+出处：`const` 见 [TRPL 第 3.1 章 · 变量与可变性（常量一节）](https://rustwiki.org/zh-CN/book/ch03-01-variables-and-mutability.html)；`static` 见 [TRPL 第 19.1 章 · 不安全的 Rust（静态变量一节）](https://rustwiki.org/zh-CN/book/ch19-01-unsafe-rust.html)。
 
 **卡片 R4：`#[used]`**（`kernel/src/main.rs:14`）
 `BASE_REVISION` 只被引导器读，Rust 代码里没人碰它，编译器会当死代码删掉。`#[used]` 就是告诉编译器：别删，有人在 ABI 层面用它。
+出处：TRPL 没讲，见 [Rust Reference · The `used` attribute](https://doc.rust-lang.org/reference/attributes/codegen.html#the-used-attribute)（英文）。
 
 **卡片 R5：`#[unsafe(link_section = "...")]`**（`kernel/src/main.rs:15`）
 把这个 `static` 放进指定的 ELF 段。Limine 约定在 `.limine_requests` 段里扫描请求，我们必须把这个数组精确投递到那个段——像寄信必须写对信箱编号。`#[unsafe(...)]` 的写法表示"这个属性用错了会制造未定义行为"，所以要用 unsafe 标记担责。
+出处：TRPL 没讲，见 [Rust Reference · The `link_section` attribute](https://doc.rust-lang.org/reference/abi.html#the-link_section-attribute)（英文）。
 
 **卡片 R6：`#[unsafe(no_mangle)]` 与 `extern "C"`**（`kernel/src/main.rs:19-20`）
 Rust 默认给函数名"改花名"（mangle），ELF 里的符号会变成乱码状的名字。`no_mangle` 保持符号原名 `_start`，链接脚本的 `ENTRY(_start)`（`kernel/linker.ld:5`）和 Limine 才能按名字找到它。`extern "C"` 表示用 C 的调用约定[^3]，与外部世界的约定对齐。
+出处：`extern` / `no_mangle` 都在 [TRPL 第 19.1 章 · 不安全的 Rust（调用其他语言函数一节）](https://rustwiki.org/zh-CN/book/ch19-01-unsafe-rust.html)。
 
 **卡片 R7：`-> !`（never type）**（`kernel/src/main.rs:20`）
 返回类型 `!` 读作 never：这个函数**永远不返回**。`_start` 要么死循环要么停机，没有"调用者"可以返回去——它是执行流的起点。调用一个返回 `!` 的函数之后，编译器知道后面的代码不可达。
+出处：[TRPL 第 19.4 章 · 高级类型（never type 一节）](https://rustwiki.org/zh-CN/book/ch19-04-advanced-types.html)。
 
 **卡片 R8：`#[panic_handler]`**（`kernel/src/main.rs:43-45`）
 std 环境 panic 时会打印信息、回溯栈；no_std 里这些都没有，panic 了怎么办必须我们自己交代。`#[panic_handler]` 标记的函数就是答案——全局只能有一个。我们的答案：直接停机。
+出处：TRPL 没讲，见 [Rustonomicon · Panic Handler](https://doc.rust-lang.org/nomicon/panic-handler.html)（英文）。
 
 **卡片 R9：`unsafe` 块**（`kernel/src/serial.rs:26-28`）
 Rust 默认全程安全检查；有些操作（内联汇编、读写裸指针、碰硬件）编译器无法证明安全，必须放进 `unsafe` 块，等于程序员签字画押"这段我人工负责"。注意 `unsafe` 不是"关掉检查"，只是"允许这几个额外操作"。`// SAFETY:` 注释是社区惯例，交代签字理由。
+出处：[TRPL 第 19.1 章 · 不安全的 Rust](https://rustwiki.org/zh-CN/book/ch19-01-unsafe-rust.html)。
 
 **卡片 R10：`asm!` 内联汇编**（`kernel/src/serial.rs:27`）
 `asm!("指令", 操作数...)` 把汇编指令嵌进 Rust。`in("dx") port` 表示"把 `port` 的值放进 dx 寄存器再执行指令"；`out("al") value` 表示"指令执行后从 al 读出结果"。`options(nomem, nostack, preserves_flags)` 是对编译器的承诺：不碰内存、不碰栈、不改标志位——承诺越准确，编译器越敢优化。
+出处：TRPL 没讲，见 [Rust Reference · Inline assembly](https://doc.rust-lang.org/reference/inline-assembly.html)（英文）。
 
 ---
 
