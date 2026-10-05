@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 0.11 from Scratch · M0 让最小内核活过来</title>
+<style>
+  :root {
+    --bg: #fafaf9; --ink: #1c1917; --ink2: #57534e; --line: #e7e5e4;
+    --accent: #7c3aed; --accent-soft: #ede9fe;
+    --panel-bg: #1e1e2e; --panel-ink: #cdd6f4; --panel-dim: #6c7086;
+    --panel-line: #313244; --panel-active: #282840;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+         background: var(--bg); color: var(--ink); overflow: hidden; }
+
+  /* ---- header ---- */
+  header { height: 52px; display: flex; align-items: center; gap: 20px; padding: 0 20px;
+           border-bottom: 1px solid var(--line); background: #fff; position: relative; z-index: 10; }
+  header .logo { font-weight: 800; font-size: 15px; white-space: nowrap; }
+  header .logo span { color: var(--accent); }
+  nav { display: flex; gap: 4px; }
+  nav button { border: none; background: none; padding: 6px 14px; border-radius: 8px; font-size: 13px;
+               color: var(--ink2); cursor: pointer; font-weight: 600; }
+  nav button.active { background: var(--accent-soft); color: var(--accent); }
+  #progress { position: absolute; left: 0; bottom: -1px; height: 2px; width: 0%;
+              background: var(--accent); transition: width .15s linear; }
+  header .meta { margin-left: auto; font-size: 12px; color: var(--ink2); white-space: nowrap; }
+
+  /* ---- layout ---- */
+  main { display: flex; height: calc(100% - 52px); }
+  #article { flex: 1 1 46%; overflow-y: auto; padding: 48px 56px 60vh; scroll-behavior: smooth; }
+  #panel { flex: 1 1 54%; background: var(--panel-bg); display: flex; flex-direction: column;
+           border-left: 1px solid var(--line); min-width: 0; }
+
+  /* ---- article typography ---- */
+  #article h1 { font-size: 30px; line-height: 1.3; margin-bottom: 10px; }
+  #article h2 { font-size: 22px; margin: 44px 0 14px; padding-top: 8px; }
+  #article h3 { font-size: 16px; margin: 28px 0 10px; }
+  #article p, #article li { font-size: 15px; line-height: 1.85; color: #292524; margin-bottom: 12px; }
+  #article ul, #article ol { padding-left: 22px; margin-bottom: 12px; }
+  #article code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px;
+                  background: #f5f5f4; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  #article pre { background: #1e1e2e; color: #cdd6f4; border-radius: 10px; padding: 14px 18px;
+                 font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7;
+                 overflow-x: auto; margin: 12px 0 16px; }
+  #article pre code { background: none; border: none; color: inherit; padding: 0; }
+  .lede { font-size: 16px; color: var(--ink2); border-left: 3px solid var(--accent);
+          padding-left: 14px; margin: 18px 0 24px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+          margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .card .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+               border-radius: 5px; padding: 2px 8px; margin-bottom: 8px; }
+  .tag.bg { background: #ecfdf5; color: #059669; }
+  .tag.dec { background: #fff7ed; color: #ea580c; }
+  .tag.rs { background: #eff6ff; color: #2563eb; }
+  .card h4 { font-size: 15px; margin-bottom: 8px; }
+  .card p, .card li { font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0 18px; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; }
+  th { background: #f5f5f4; font-weight: 700; }
+  td code { font-size: 12px; }
+  .fig { margin: 20px 0; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+         padding: 12px; overflow-x: auto; }
+  .fig svg, .fig img { width: 100%; height: auto; min-width: 640px; display: block; }
+  .fig .cap { font-size: 12px; color: var(--ink2); text-align: center; margin-top: 8px; }
+  blockquote { border-left: 3px solid var(--line); padding-left: 14px; color: var(--ink2);
+               font-size: 14px; margin: 14px 0; }
+  .checkpoint-anchor { height: 1px; }
+  .cp-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent);
+             background: var(--accent-soft); border-radius: 999px; padding: 3px 12px; margin: 4px 0 10px;
+             font-weight: 600; }
+  .divider { border: none; border-top: 1px dashed var(--line); margin: 40px 0; }
+
+  /* ---- code panel ---- */
+  #panel-head { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
+                border-bottom: 1px solid var(--panel-line); flex: none; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  #panel-head .t { margin-left: 8px; font-size: 12px; color: var(--panel-dim); font-weight: 600; }
+  #lock { margin-left: auto; background: none; border: 1px solid var(--panel-line); color: var(--panel-dim);
+          font-size: 11px; border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+  #lock.on { color: #f9e2af; border-color: #f9e2af; }
+  #panel-body { display: flex; flex: 1; min-height: 0; }
+  #tree { width: 168px; flex: none; border-right: 1px solid var(--panel-line); padding: 12px 8px;
+          font-size: 12.5px; overflow-y: auto; }
+  #tree .dir { color: var(--panel-dim); font-weight: 700; padding: 4px 8px; }
+  #tree .file { color: var(--panel-dim); padding: 4px 8px 4px 20px; border-radius: 6px; cursor: pointer;
+                display: flex; align-items: center; gap: 6px; opacity: .45; transition: all .3s; }
+  #tree .file.exists { opacity: 1; color: var(--panel-ink); }
+  #tree .file.new { color: #a6e3a1; font-weight: 700; }
+  #tree .file:hover { background: var(--panel-active); }
+  #tree .file .ck { margin-left: auto; color: #a6e3a1; font-size: 11px; }
+  #code-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #tabs { display: flex; flex: none; border-bottom: 1px solid var(--panel-line); overflow-x: auto; }
+  #tabs .tab { padding: 9px 16px; font-size: 12px; color: var(--panel-dim); cursor: pointer;
+               border-bottom: 2px solid transparent; white-space: nowrap; font-family: Menlo, monospace; }
+  #tabs .tab.active { color: var(--panel-ink); border-bottom-color: var(--accent); background: var(--panel-active); }
+  #code { flex: 1; overflow: auto; padding: 12px 0 40px; font-family: "SF Mono", Menlo, Consolas, monospace;
+          font-size: 12.5px; line-height: 1.65; color: var(--panel-ink); }
+  .cl { display: flex; white-space: pre; opacity: 0; transform: translateX(8px); }
+  .cl.show { opacity: 1; transform: none; transition: opacity .3s ease, transform .3s ease; }
+  .cl .ln { flex: none; width: 44px; text-align: right; padding-right: 12px; color: #585b70;
+            user-select: none; font-size: 11px; line-height: inherit; padding-top: 1px; }
+  .cl .lc { padding-right: 24px; }
+  /* syntax */
+  .tok-c { color: #6c7086; font-style: italic; } .tok-k { color: #cba6f7; }
+  .tok-s { color: #a6e3a1; } .tok-n { color: #fab387; } .tok-a { color: #89b4fa; }
+  .tok-f { color: #89dceb; }
+
+  #empty { height: 100%; min-height: 300px; display: flex; align-items: center; justify-content: center; flex-direction: column;
+           gap: 10px; color: var(--panel-dim); font-size: 13px; }
+  #empty .big { font-size: 34px; }
+
+  @media (max-width: 960px) {
+    main { flex-direction: column; }
+    #article { flex: 1 1 55%; padding: 32px 22px 40vh; }
+    #panel { flex: 1 1 45%; border-left: none; border-top: 1px solid var(--line); }
+    #tree { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Linux 0.11 <span>from scratch</span></div>
+  <nav>
+    <button data-target="ch1" class="active">先导</button>
+    <button data-target="ch2">M0 · 让最小内核活过来</button>
+  </nav>
+  <div class="meta">Rust 重写 · x86_64 · Limine 引导 · 阅读约 15 分钟</div>
+  <div id="progress"></div>
+</header>
+
+<main>
+  <!-- ================= 左栏：文章 ================= -->
+  <div id="article">
+
+    <section id="ch1">
+      <h1>从零手搓一个操作系统内核</h1>
+      <p class="lede">"What I cannot create, I do not understand." —— 费曼。本项目把 1991 年的 Linux 0.11
+        用 Rust 在 x86_64 上从零重写：不学它的历史包袱，学它的设计思想。这一站是 M0：让最小内核活过来。</p>
+
+      <h2>这个项目在做什么</h2>
+      <p>原项目 <code>Linux-0.11</code> 约 1.3 万行 C/汇编，是操作系统教学的圣地。但直接读它有三个障碍：
+        16 位实模式的历史包袱、30 年前的工具链、以及"读得懂 ≠ 写得出"。</p>
+      <p>所以我们的玩法是<strong>复刻，不是阅读</strong>：每个里程碑都从零写代码、有明确的验收命令，
+        最终功能与原项目逐项对齐，而架构允许按现代方式重来。</p>
+
+      <h3>模块关系：M0 的最小系统</h3>
+      <p>M0 的架构只有一条链——引导器把 CPU 交给内核，内核通过串口向世界喊话：</p>
+      <div class="fig"><img src="../../linux-0.11-from-scratch/docs/milestones/m0-boot/arch.svg" alt="M0 架构"><div class="cap">M0 最小内核架构：Limine 引导 → kernel 串口输出 → qemu 终端</div></div>
+      <p>三个模块、三条边：<strong>Limine 引导器</strong>（外部现成组件）把 CPU 收拾干净（64 位长模式 + 高半区虚拟地址）
+        交给 <code>_start</code>；内核里的 <strong>serial 驱动</strong>按 16550 寄存器约定写 I/O 端口发字节；
+        <strong>qemu</strong> 把串口字节流转成终端上的文本。</p>
+
+      <h3>用到哪些技术</h3>
+      <table>
+        <tr><th>技术</th><th>干什么</th><th>为什么选它</th></tr>
+        <tr><td><b>Rust</b>（no_std）</td><td>内核实现语言</td><td>用户明确要求；内存安全，裸机生态成熟</td></tr>
+        <tr><td><b>Limine</b></td><td>引导器（bootloader）</td><td>把 16 位实模式的脏活外包，落地即是 64 位长模式</td></tr>
+        <tr><td><b>x86_64</b></td><td>目标架构</td><td>抛弃 i386 历史包袱；现代 PC/虚拟机的事实标准</td></tr>
+        <tr><td><b>16550 UART</b></td><td>串口输出</td><td>两条汇编指令就能用的最原始输出设备</td></tr>
+        <tr><td><b>qemu</b></td><td>虚拟机</td><td><code>-serial stdio</code> 直接把内核输出接到终端</td></tr>
+        <tr><td><b>Docker</b></td><td>构建环境</td><td>工具链容器化，宿主机零安装</td></tr>
+      </table>
+
+      <div class="card">
+        <span class="tag dec">决策卡片</span>
+        <h4>为什么用 Limine 外包启动，而不是像原版一样手写 bootsect/setup/head？</h4>
+        <p><b>备选：</b>① 照原版写三段汇编穿越实模式→保护模式→长模式；② 用 Limine 直接落在 64 位。</p>
+        <p><b>选择理由：</b>16 位实模式 Rust 不支持，且它是历史包袱不是设计精华。</p>
+        <p><b>放弃的成本：</b>方案①能完整体验"CPU 加电后到底发生了什么"——这段知识我们只看文档，不动手了。</p>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section id="ch2">
+      <h1>M0：让最小内核活过来</h1>
+      <p class="lede">本里程碑目标只有一句话：<strong>编译出一个形状正确的 64 位高半区内核 ELF</strong>——
+        能被 Limine 加载，入口初始化串口、做一次协议握手检查、打印一行存活信息，然后停机。
+        右边是空的工程，跟着文章往下读，代码会一块一块长出来。</p>
+
+      <h2>问题</h2>
+      <p>我们手上什么都没有：没有操作系统，没有标准库，没有 <code>main</code>，没有 <code>printf</code>。
+        连"打印一行字"这种最朴素的需求，都得自己对着硬件寄存器一个字节一个字节地写。这个 Bite 要回答三个问题：</p>
+      <ol>
+        <li><strong>代码写成什么样</strong>，才能脱离操作系统编译？（答案：<code>no_std</code> + 专用 target）</li>
+        <li><strong>二进制长成什么样</strong>，引导器才肯加载？（答案：固定链接地址的 ELF64 EXEC + 协议握手结构）</li>
+        <li><strong>怎么确认它活了</strong>？（答案：最原始的输出设备——串口，直接写 I/O 端口）</li>
+      </ol>
+
+      <h2>背景概念铺垫</h2>
+      <div class="card">
+        <span class="tag bg">背景卡片</span>
+        <h4>引导器（bootloader）与 Limine 协议</h4>
+        <p>CPU 加电后自己不会找内核。从磁盘读内核、解析 ELF、开分页、切 64 位长模式——这一大段脏活外包给
+          <strong>Limine</strong>。外包不是免费的：内核要在 ELF 的约定段 <code>.limine_requests</code> 里放"请求"，
+          Limine 加载时<strong>现场批改</strong>——比如把协议版本号原地清零表示"这个版本我支持"。</p>
+      </div>
+      <div class="card">
+        <span class="tag bg">背景卡片</span>
+        <h4>ELF 可执行文件：EXEC 与 DYN 之分是内核的生死问题</h4>
+        <p><code>EXEC</code> 表示地址固定，<code>DYN</code>（PIE）表示地址可搬——后者指望运行时有个动态加载器，
+          而加载器是操作系统提供的服务。内核是操作系统的本体，它启动时没有人在它下面，
+          所以地址必须在编译期钉死：<strong>必须是 EXEC</strong>。</p>
+      </div>
+      <div class="card">
+        <span class="tag bg">背景卡片</span>
+        <h4>高半区内核</h4>
+        <p>我们的内核链接在 <code>0xFFFFFFFF80000000</code>——64 位虚拟地址空间最顶上 2GB 的起点。生活类比：
+          一栋楼，楼上固定是物业办公室（内核），楼下全部出租（用户程序）。租户随便换，物业永远在顶楼，门牌号不变。</p>
+      </div>
+
+      <h2>第一个文件：crate 定义</h2>
+      <div class="cp-hint">▸ 右侧面板：kernel/Cargo.toml</div>
+      <div class="checkpoint-anchor" data-cp="0"></div>
+      <p>整个 crate <strong>零依赖</strong>——裸机上也没有依赖可用。<code>panic = "abort"</code> 是因为通常
+        panic 会逐层"拆栈"清理现场（unwind），那套机制需要运行时支持；裸机没有，panic 只能当场中止。</p>
+
+      <h2>链接脚本：地址就是法律</h2>
+      <div class="cp-hint">▸ 右侧面板：kernel/linker.ld（基址与入口）</div>
+      <div class="checkpoint-anchor" data-cp="1"></div>
+      <p>链接脚本决定 ELF 里每个字节"住在哪个门牌号"。<code>. = 0xFFFFFFFF80000000;</code> 让所有段从高半区基址开始排，
+        与 Limine 的映射约定对齐；<code>ENTRY(_start)</code> 让 ELF 头的入口指向我们的 <code>_start</code> 符号。</p>
+      <div class="cp-hint">▸ 右侧面板：kernel/linker.ld（段布局）</div>
+      <div class="checkpoint-anchor" data-cp="2"></div>
+      <p><code>.limine_requests</code> 段用 <code>KEEP(...)</code> 包住——rustc 默认开 <code>--gc-sections</code>，
+        会把"没被代码引用"的段回收掉；这个段只给引导器看，不 KEEP 就会被收走。段间按页对齐，
+        让不同权限的段将来能被分页硬件分开保护——现在还没分页，先把姿势摆对。</p>
+
+      <h2>内核入口 main.rs</h2>
+      <div class="cp-hint">▸ 右侧面板：kernel/src/main.rs（协议请求）</div>
+      <div class="checkpoint-anchor" data-cp="3"></div>
+      <p><code>#![no_std]</code> 不链接标准库（std 依赖操作系统），只用最精简的 <code>core</code>；
+        <code>#![no_main]</code> 告诉编译器别找 <code>main</code>——入口我们自己定。</p>
+      <p><code>BASE_REVISION</code> 是发给 Limine 的协议请求：两个魔数 + 版本号 3。它必须用 <code>static</code>
+        （真占内存、有固定地址，Limine 才能找到并批改它），靠 <code>#[used]</code> 防止编译器当死代码删掉，
+        靠 <code>#[unsafe(link_section)]</code> 精确投递到约定段——像寄信必须写对信箱编号。</p>
+
+      <div class="cp-hint">▸ 右侧面板：kernel/src/main.rs（_start 入口）</div>
+      <div class="checkpoint-anchor" data-cp="4"></div>
+      <p><code>_start</code> 干四件事：初始化串口 → 检查握手（<code>BASE_REVISION[2]</code> 没被清零 = Limine
+        不支持版本 3，喊话停机）→ 打印 <code>M0: kernel alive</code> → 停机。</p>
+      <div class="card">
+        <span class="tag dec">决策卡片</span>
+        <h4>握手检查为什么放在 _start 第一件事之后？</h4>
+        <p>如果 Limine 不支持我们要的协议版本，内存布局、入口状态全都不可信，之后做的一切都白搭。
+          所以先 <code>serial::init()</code>（确认有地方喊话），立刻检查握手结果——<strong>先确认地基，再盖房子</strong>。</p>
+      </div>
+
+      <div class="cp-hint">▸ 右侧面板：kernel/src/main.rs（停机与 panic）</div>
+      <div class="checkpoint-anchor" data-cp="5"></div>
+      <p><code>halt()</code> 死循环执行 <code>hlt</code> 指令让 CPU 休眠——现在没有中断能唤醒它，等于永久停机。
+        <code>#[panic_handler]</code> 是 no_std 的必答题：panic 了怎么办必须自己交代，我们的答案是也走
+        <code>halt()</code>——内核里 panic 的唯一体面结局。返回类型 <code>-> !</code> 读作 never：
+        这些函数永远不返回，它们是执行流的终点。</p>
+
+      <h2>16550 串口驱动</h2>
+      <div class="card">
+        <span class="tag bg">背景卡片</span>
+        <h4>串口 UART 16550 与端口 IO</h4>
+        <p>串口（COM1）是 PC 上最原始的输出设备。x86 给这类设备留了一套<strong>独立于内存的 I/O 端口地址空间</strong>，
+          访问要用专门的 <code>in</code>/<code>out</code> 指令。COM1 端口基址 <code>0x3F8</code>，基址加偏移就是各寄存器。
+          注意 DLAB 位：偏移 +0/+1 是<strong>一址两用</strong>的——DLAB=0 收发数据，DLAB=1 变成波特率除数寄存器，
+          所以初始化要先"换挡"设波特率，再换挡回来。</p>
+      </div>
+      <div class="cp-hint">▸ 右侧面板：kernel/src/serial.rs（寄存器约定）</div>
+      <div class="checkpoint-anchor" data-cp="6"></div>
+      <p>寄存器偏移与位定义是 16550 datasheet 的行业约定。第一个驱动为什么是串口而不是屏幕？
+        屏幕要 framebuffer、字体、绘图，一串依赖；串口只要两条汇编指令。在没有内存管理、没有中断的当下，
+        串口是唯一够得着的输出通道，也是之后所有里程碑的"呼吸机"。</p>
+
+      <div class="cp-hint">▸ 右侧面板：kernel/src/serial.rs（inb/outb 包装）</div>
+      <div class="checkpoint-anchor" data-cp="7"></div>
+      <p><code>outb</code>/<code>inb</code> 用 <code>asm!</code> 把 <code>out dx, al</code> / <code>in al, dx</code>
+        包一层。<code>options(nomem, nostack, preserves_flags)</code> 是对编译器的承诺：不碰内存、不碰栈、不改标志位——
+        承诺越准确，编译器越敢优化。全部内核代码对硬件的访问就收敛在这两个函数里。
+        <code>unsafe</code> 块不是"关掉检查"，是程序员签字画押"这段我人工负责"。</p>
+
+      <div class="cp-hint">▸ 右侧面板：kernel/src/serial.rs（init 与 write）</div>
+      <div class="checkpoint-anchor" data-cp="8"></div>
+      <p><code>init()</code> 是 16550 标准初始化序列，七步：关中断 → 开 DLAB → 写波特率除数（除数 1 = 115200）
+        → 关 DLAB、定 8N1 → 开 FIFO 并清空 → 拉握手线。每步就是一次 <code>outb</code>。</p>
+      <p>发一个字节的流程是<strong>轮询</strong>：反复读 LINE_STATUS，直到"发送保持寄存器空"那一位亮起来，
+        再往 DATA 写字节。慢，但零依赖，够用。</p>
+
+      <h2>架构总览（本里程碑全部新增）</h2>
+      <div class="fig"><img src="../../linux-0.11-from-scratch/docs/milestones/m0-boot/arch-diff.svg" alt="M0 架构变动"><div class="cap">arch-diff：M0 是工程第一张架构图，绿色 = 全部新增</div></div>
+
+      <h2>验收</h2>
+      <p>本 Bite 验收 = 编出形状正确的 ELF。构建在 docker 容器里跑，<code>cargo build</code> 零警告通过后：</p>
+      <pre><code>$ readelf -h kernel/target/x86_64-unknown-none/debug/kernel
+Class:                             ELF64
+Type:                              EXEC (Executable file)
+Machine:                           Advanced Micro Devices X86-64
+Entry point address:               0xffffffff80000050
+
+$ nm kernel/target/x86_64-unknown-none/debug/kernel | grep _start
+ffffffff80000050 T _start</code></pre>
+      <table>
+        <tr><th>检查项</th><th>期望值</th><th>为什么</th></tr>
+        <tr><td>Type</td><td><b>EXEC</b></td><td>固定地址，非 PIE——裸机没有动态加载器</td></tr>
+        <tr><td>Entry</td><td><code>0xffffffff80000050</code></td><td>落在高半区基址上方，链接脚本生效</td></tr>
+        <tr><td><code>_start</code> 地址</td><td>与 Entry 一致</td><td>符号没被改花名，入口确实是我们的函数</td></tr>
+      </table>
+
+      <h2>常见坑（实踩）</h2>
+      <div class="card">
+        <h4>坑 1：.cargo/config.toml 放错位置，被静默忽略</h4>
+        <p>cargo 从<strong>当前工作目录</strong>（不是 manifest 所在目录）向上找配置。配置放 <code>kernel/.cargo/</code> 下
+          就不报任何错，默默按默认 target 编出一个主机用的 linux-gnu 二进制。<strong>工具静默降级比报错可怕。</strong></p>
+      </div>
+      <div class="card">
+        <h4>坑 2：x86_64-unknown-none 默认产 PIE</h4>
+        <p>不加 <code>relocation-model=static</code>，产物 Type 是 <code>DYN</code> 不是 <code>EXEC</code>——
+          这种文件在裸机上没法跑。判据就是 <code>readelf -h</code> 的 Type 一栏。</p>
+      </div>
+
+      <h2>与原版差异</h2>
+      <ul>
+        <li><strong>D1（boot 架构）</strong>：原版从 BIOS + 软盘开始，三段汇编自己穿越实模式→保护模式。
+          我们走 Limine，落地即是 64 位长模式。永久豁免：抛弃历史包袱。</li>
+        <li><strong>D8（实现语言）</strong>：C → Rust。<code>no_std</code> 生态、<code>asm!</code> 宏、panic handler 机制。</li>
+        <li><strong>D9（增量能力）</strong>：原版 0.11 没有串口日志通道，这是我们多加的"呼吸机"。</li>
+      </ul>
+
+      <h2>展望：Bite 2</h2>
+      <p>写 <code>limine.conf</code>，用 xorriso 把内核 + Limine 打成 ISO，<code>qemu -serial stdio</code> 启动，
+        终端上断言 <code>M0: kernel alive</code> 这行字出现。本 Bite 编出的 ELF 到那时才算真正"活了"。</p>
+
+      <hr class="divider">
+      <p style="color:var(--ink2);font-size:13px">Demo · 内容与代码来自 linux-0.11-from-scratch 项目真实产出
+        （docs/milestones/m0-boot/tutorial.md · kernel/src/）。交互形态参考 pi-from-scratch。</p>
+    </section>
+  </div>
+
+  <!-- ================= 右栏：代码面板 ================= -->
+  <div id="panel">
+    <div id="panel-head">
+      <div class="dot" style="background:#f38ba8"></div>
+      <div class="dot" style="background:#f9e2af"></div>
+      <div class="dot" style="background:#a6e3a1"></div>
+      <div class="t">linux-0.11-from-scratch — kernel</div>
+      <button id="lock" title="锁定后停止跟随阅读">🔓 跟随阅读</button>
+    </div>
+    <div id="panel-body">
+      <div id="tree"></div>
+      <div id="code-wrap">
+        <div id="tabs"></div>
+        <div id="code"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ================= 数据：真实源码 ================= */
+const FILES = {
+  "kernel/Cargo.toml": { lang: "toml", src: `[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2024"
+
+# 内核没有运行时环境可以 unwind，panic 只能直接中止
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"` },
+  "kernel/linker.ld": { lang: "ld", src: `/* Limine 会把内核映射到虚拟地址 0xFFFFFFFF80000000 起的高半区，
+ * 链接地址必须与之一致（见 PROTOCOL.md "Caching / Machine State at Entry"）。
+ */
+OUTPUT_FORMAT(elf64-x86-64)
+ENTRY(_start)
+
+SECTIONS
+{
+    . = 0xFFFFFFFF80000000;
+
+    .text : {
+        *(.text .text.*)
+    }
+
+    /* 段间按页对齐，让 lld 为不同权限的段生成独立的 PT_LOAD */
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+
+    .rodata : {
+        *(.rodata .rodata.*)
+    }
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+
+    /* Limine 约定：启动请求（base revision 等）放在这个段里供 bootloader 扫描；
+     * KEEP 防止 rustc 默认开启的 --gc-sections 把它回收掉 */
+    .limine_requests : {
+        KEEP(*(.limine_requests))
+    }
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+
+    .data : {
+        *(.data .data.*)
+    }
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+
+    .bss : {
+        *(COMMON)
+        *(.bss .bss.*)
+    }
+
+    /DISCARD/ : {
+        *(.eh_frame*)
+        *(.note .note.*)
+    }
+}` },
+  "kernel/src/main.rs": { lang: "rust", src: `//! M0 内核骨架：能被 Limine 加载，并向串口打印一行存活信息。
+
+#![no_std] // 裸机环境没有 std，只用 core
+#![no_main] // 没有 C 运行时，也就没有 main；入口由我们自己定义
+
+mod serial;
+
+use core::arch::asm;
+use core::panic::PanicInfo;
+
+/// Limine 基础协议版本（base revision）请求，布局见 PROTOCOL.md "Base Revisions"：
+/// 前两个 u64 是识别魔数，第三个是请求的协议版本。
+/// bootloader 若支持该版本，会在加载时把第三项原地清零；不支持则保持原样。
+#[used] // 这个 static 只被 bootloader 读，需要阻止编译器当死代码删掉
+#[unsafe(link_section = ".limine_requests")] // Limine 约定在此段扫描请求
+static BASE_REVISION: [u64; 3] = [0xf956_2b2d_5c95_a6c8, 0x6a7b_3849_4453_6bdc, 3];
+
+/// 内核入口，由 Limine 直接跳转过来（\`extern "C"\` 保持符号名与调用约定稳定）
+#[unsafe(no_mangle)] // 符号名必须原样出现在 ELF 里，与 linker.ld 的 ENTRY(_start) 对应
+extern "C" fn _start() -> ! {
+    serial::init();
+
+    // 协议握手检查：第三项没被清零，说明 bootloader 不支持我们要的协议版本
+    if BASE_REVISION[2] != 0 {
+        serial::write_str("M0: limine base revision 3 not supported\\n");
+        halt();
+    }
+
+    serial::write_str("M0: kernel alive\\n");
+    halt();
+}
+
+/// 停机：反复执行 hlt 让 CPU 休眠，直到有中断把它唤醒（目前没有中断，即永久停机）
+fn halt() -> ! {
+    loop {
+        // SAFETY: hlt 只让 CPU 暂停，不访问内存与栈
+        unsafe {
+            asm!("hlt", options(nomem, nostack));
+        }
+    }
+}
+
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    halt()
+}` },
+  "kernel/src/serial.rs": { lang: "rust", src: `//! 最小 COM1 串口驱动（UART 16550），只够往外写字节。
+//! 寄存器偏移与位定义是 16550 datasheet 的行业约定，
+//! 亦可见 OSDev wiki 的 "Serial Ports" 词条。
+
+use core::arch::asm;
+
+/// PC 惯例：COM1 的 I/O 端口基址（BIOS 数据区 0x400 处可查）
+const COM1: u16 = 0x3F8;
+
+// 以下都是相对端口基址的寄存器偏移（16550 datasheet 约定）
+const DATA: u16 = 0; // DLAB=0 时：写=发送保持寄存器，读=接收缓冲寄存器
+const INTERRUPT_ENABLE: u16 = 1; // DLAB=0 时：中断使能寄存器
+const FIFO_CONTROL: u16 = 2; // 只写：FIFO 控制寄存器
+const LINE_CONTROL: u16 = 3; // 线路控制寄存器（数据格式，最高位是 DLAB）
+const MODEM_CONTROL: u16 = 4; // Modem 控制寄存器
+const LINE_STATUS: u16 = 5; // 线路状态寄存器
+
+/// LINE_STATUS 第 5 位：发送保持寄存器为空，可以写入下一字节
+const TRANSMIT_HOLDING_EMPTY: u8 = 1 << 5;
+
+/// LINE_CONTROL 第 7 位：DLAB，置位后 DATA/INTERRUPT_ENABLE 变成波特率除数寄存器
+const DLAB: u8 = 1 << 7;
+
+fn outb(port: u16, value: u8) {
+    // SAFETY: 只读写固定 I/O 端口，不触碰内存与栈；in/out 均不影响 EFLAGS
+    unsafe {
+        asm!("out dx, al", in("dx") port, in("al") value, options(nomem, nostack, preserves_flags));
+    }
+}
+
+fn inb(port: u16) -> u8 {
+    let value: u8;
+    // SAFETY: 同上
+    unsafe {
+        asm!("in al, dx", in("dx") port, out("al") value, options(nomem, nostack, preserves_flags));
+    }
+    value
+}
+
+/// 16550 标准初始化序列：关中断 → 设波特率 → 定数据格式 → 开 FIFO → 拉握手线
+pub fn init() {
+    outb(COM1 + INTERRUPT_ENABLE, 0x00); // 关掉串口所有中断，本阶段纯轮询
+    outb(COM1 + LINE_CONTROL, DLAB); // 打开 DLAB 以访问除数寄存器
+    outb(COM1 + DATA, 0x01); // 除数低字节：除数 1 = 115200 baud（基准时钟 1.8432 MHz）
+    outb(COM1 + INTERRUPT_ENABLE, 0x00); // 除数高字节
+    outb(COM1 + LINE_CONTROL, 0x03); // 关 DLAB；0b011 = 8 数据位、无校验、1 停止位（8N1）
+    outb(COM1 + FIFO_CONTROL, 0xC7); // 使能 FIFO 并清空收发队列，触发深度 14 字节
+    outb(COM1 + MODEM_CONTROL, 0x0B); // DTR + RTS + OUT2：声明数据就绪、请求发送
+}
+
+pub fn write_byte(byte: u8) {
+    while inb(COM1 + LINE_STATUS) & TRANSMIT_HOLDING_EMPTY == 0 {}
+    outb(COM1 + DATA, byte);
+}
+
+pub fn write_str(s: &str) {
+    for byte in s.bytes() {
+        write_byte(byte);
+    }
+}` }
+};
+
+/* checkpoint = 给某文件追加 [from, to) 行（0-based，严格单调递增） */
+const CHECKPOINTS = [
+  { file: "kernel/Cargo.toml",    from: 0,  to: 11 },
+  { file: "kernel/linker.ld",     from: 0,  to: 16 },
+  { file: "kernel/linker.ld",     from: 16, to: 47 },
+  { file: "kernel/src/main.rs",   from: 0,  to: 16 },
+  { file: "kernel/src/main.rs",   from: 16, to: 31 },
+  { file: "kernel/src/main.rs",   from: 31, to: 46 },
+  { file: "kernel/src/serial.rs", from: 0,  to: 22 },
+  { file: "kernel/src/serial.rs", from: 22, to: 40 },
+  { file: "kernel/src/serial.rs", from: 40, to: 60 },
+];
+
+/* ================= 语法高亮 ================= */
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function highlight(line, lang){
+  let h = esc(line);
+  if (lang === "rust") {
+    if (/^\s*(\/\/|&lt;!)/.test(h) || /^\s*\/\//.test(line)) return `<span class="tok-c">${h}</span>`;
+    h = h.replace(/(\/\/.*)$/,'<span class="tok-c">$1</span>');
+    h = h.replace(/(#\!?\[[^\]]*\])/,'<span class="tok-a">$1</span>');
+    h = h.replace(/(&quot;.*?&quot;|"(?:[^"\\]|\\.)*")/g,'<span class="tok-s">$1</span>');
+    h = h.replace(/\b(mod|use|fn|let|const|static|pub|unsafe|extern|loop|if|while|for|in|return|mut|crate|asm|options|impl|match|where|struct|enum|type|ref)\b/g,'<span class="tok-k">$1</span>');
+    h = h.replace(/\b(0x[0-9a-fA-F_]+|\d[\d_]*)\b/g,'<span class="tok-n">$1</span>');
+  } else if (lang === "toml") {
+    if (/^\s*#/.test(line)) return `<span class="tok-c">${h}</span>`;
+    h = h.replace(/^\s*(\[[^\]]+\])/,'<span class="tok-a">$1</span>');
+    h = h.replace(/^(\w+)(\s*=)/,'<span class="tok-k">$1</span>$2');
+    h = h.replace(/("(?:[^"\\]|\\.)*")/g,'<span class="tok-s">$1</span>');
+  } else { /* ld */
+    if (/^\s*\/*/.test(line) && line.trimStart().startsWith("/*")) return `<span class="tok-c">${h}</span>`;
+    h = h.replace(/(\/\*.*?\*\/)/g,'<span class="tok-c">$1</span>');
+    h = h.replace(/(\*.*\*\/)\s*$/,'<span class="tok-c">$1</span>');
+    h = h.replace(/\b(OUTPUT_FORMAT|ENTRY|SECTIONS|KEEP|ALIGN|CONSTANT|MAXPAGESIZE)\b/g,'<span class="tok-k">$1</span>');
+    h = h.replace(/\b(0x[0-9a-fA-F]+)\b/g,'<span class="tok-n">$1</span>');
+    h = h.replace(/(\.[a-z_]+|\/DISCARD\/)(?=\s|:)/g,'<span class="tok-a">$1</span>');
+  }
+  return h;
+}
+
+/* ================= 面板状态 ================= */
+const fileState = {};           // path -> 已显示行数
+let activeTab = null, locked = false;
+const treeEl = document.getElementById("tree");
+const tabsEl = document.getElementById("tabs");
+const codeEl = document.getElementById("code");
+
+/* 文件树 */
+function renderTree(newFile) {
+  const dirs = {};
+  for (const p of Object.keys(FILES)) {
+    const parts = p.split("/");
+    const dir = parts.slice(0, -1).join("/");
+    (dirs[dir] = dirs[dir] || []).push({ path: p, name: parts.at(-1) });
+  }
+  treeEl.innerHTML = "";
+  for (const [dir, files] of Object.entries(dirs)) {
+    const d = document.createElement("div"); d.className = "dir"; d.textContent = "▾ " + dir + "/";
+    treeEl.appendChild(d);
+    for (const f of files) {
+      const el = document.createElement("div");
+      const exists = (fileState[f.path] || 0) > 0;
+      const done = fileState[f.path] >= FILES[f.path].src.split("\n").length;
+      el.className = "file" + (exists ? " exists" : "") + (f.path === newFile && !done ? " new" : "");
+      el.innerHTML = `<span>${f.name}</span>` + (done ? '<span class="ck">✓</span>' : "");
+      el.onclick = () => switchTab(f.path);
+      treeEl.appendChild(el);
+    }
+  }
+}
+
+/* tabs */
+function renderTabs() {
+  tabsEl.innerHTML = "";
+  for (const p of Object.keys(fileState)) {
+    if (fileState[p] <= 0) continue;
+    const t = document.createElement("div");
+    t.className = "tab" + (p === activeTab ? " active" : "");
+    t.textContent = p.split("/").at(-1);
+    t.onclick = () => switchTab(p);
+    tabsEl.appendChild(t);
+  }
+}
+
+function renderCode() {
+  codeEl.innerHTML = "";
+  if (!activeTab || !fileState[activeTab]) {
+    codeEl.innerHTML = `<div id="empty"><div class="big">🐧</div>
+      <div>工程还是空的。</div><div>往下读，内核会在这里长出来。</div></div>`;
+    return;
+  }
+  const f = FILES[activeTab];
+  const lines = f.src.split("\n");
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < fileState[activeTab]; i++) {
+    const row = document.createElement("div");
+    row.className = "cl show";
+    row.innerHTML = `<span class="ln">${i + 1}</span><span class="lc">${highlight(lines[i], f.lang) || " "}</span>`;
+    frag.appendChild(row);
+  }
+  codeEl.appendChild(frag);
+}
+
+function switchTab(p) { activeTab = p; renderTabs(); renderCode(); }
+
+/* checkpoint 触发：逐行浮现 */
+function activateCheckpoint(idx) {
+  const cp = CHECKPOINTS[idx];
+  const f = FILES[cp.file];
+  const lines = f.src.split("\n");
+  const isNewFile = !fileState[cp.file];
+  fileState[cp.file] = cp.to;
+  renderTree(isNewFile ? cp.file : null);
+  if (!locked) activeTab = cp.file;
+  renderTabs();
+
+  if (activeTab !== cp.file) { renderCode(); return; }  // 锁定时只看得到 tab 标记
+  /* 重绘已有行 + 动画追加新行 */
+  codeEl.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < cp.from; i++) {
+    const row = document.createElement("div");
+    row.className = "cl show";
+    row.innerHTML = `<span class="ln">${i + 1}</span><span class="lc">${highlight(lines[i], f.lang) || " "}</span>`;
+    frag.appendChild(row);
+  }
+  codeEl.appendChild(frag);
+  const newRows = [];
+  for (let i = cp.from; i < cp.to; i++) {
+    const row = document.createElement("div");
+    row.className = "cl";
+    row.innerHTML = `<span class="ln">${i + 1}</span><span class="lc">${highlight(lines[i], f.lang) || " "}</span>`;
+    codeEl.appendChild(row);
+    newRows.push(row);
+  }
+  newRows.forEach((r, k) => setTimeout(() => r.classList.add("show"), 40 + k * 45));
+  const first = newRows[0];
+  if (first) setTimeout(() => first.scrollIntoView({ block: "center", behavior: "smooth" }), 60);
+}
+
+/* ================= 滚动监听 ================= */
+const article = document.getElementById("article");
+const anchors = [...document.querySelectorAll(".checkpoint-anchor")];
+const fired = new Set();
+let ticking = false;
+
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    ticking = false;
+    const readingLine = article.getBoundingClientRect().top + article.clientHeight * 0.42;
+    for (const a of anchors) {
+      const idx = +a.dataset.cp;
+      if (!fired.has(idx) && a.getBoundingClientRect().top < readingLine) {
+        fired.add(idx);
+        activateCheckpoint(idx);
+      }
+    }
+    /* 进度条 + 章节导航高亮 */
+    const max = article.scrollHeight - article.clientHeight;
+    document.getElementById("progress").style.width = (article.scrollTop / max * 100) + "%";
+    const ch2Rect = document.getElementById("ch2").getBoundingClientRect();
+    const inCh2 = ch2Rect.top < article.getBoundingClientRect().top + 120;
+    document.querySelectorAll("nav button").forEach(b =>
+      b.classList.toggle("active", (b.dataset.target === "ch2") === inCh2));
+  });
+}
+article.addEventListener("scroll", onScroll);
+
+document.querySelectorAll("nav button").forEach(b => {
+  b.onclick = () => document.getElementById(b.dataset.target).scrollIntoView({ behavior: "smooth" });
+});
+document.getElementById("lock").onclick = function () {
+  locked = !locked;
+  this.classList.toggle("on", locked);
+  this.textContent = locked ? "🔒 已锁定" : "🔓 跟随阅读";
+};
+
+/* 初始化：空文件树 + 空编辑器占位 */
+renderTree(null);
+renderCode();
+
+</script>
+</body>
+</html>
