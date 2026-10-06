@@ -66,7 +66,7 @@ classes: {
   }
 }
 
-title: "M8 架构变动（相对 M7）—— robot.drive → robot.move（通知/请求双形态 + vy 侧向）：改动全在 miniduckd IPC 表面与 CLI 子命令，无新增/删除模块" {
+title: "M8 Bite 2 架构变动（相对 Bite 1）—— robot.enable{on,toggle} + notification 统一入口 + disable 语义对齐（Stopped 取代 RampDown）：改动全在模块内部（main.rs 分发结构 / control.rs 状态机 / CLI 子命令），无新增/删除模块、无改向边" {
   near: top-center
   shape: text
   style.font-size: 22
@@ -76,15 +76,15 @@ title: "M8 架构变动（相对 M7）—— robot.drive → robot.move（通知
 legend: "图例" {
   class: procbox
   l_new: "新增模块/资产（本 Bite 无）" { class: new }
-  l_changed: "改动模块" { class: changed }
+  l_changed: "改动模块（本 Bite 全在模块内部）" { class: changed }
   l_unchanged: "未动（灰化）" { class: unchanged }
-  l_deleted: "删除/改向（本 Bite 无）" { class: deleted }
+  l_deleted: "删除/改向（模块级无；方法级 robot.disable 已删）" { class: deleted }
 }
 
-# ---------- 进程 1：CLI（改动：drive → move 子命令） ----------
+# ---------- 进程 1：CLI（改动：enable [on|off]，disable 子命令删除） ----------
 p_cli: "进程 1：mini-duckctl（CLI 客户端）" {
   class: procbox
-  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\nrobot.* 子命令：\nhello / health / state [--every N]\nenable / disable\nmove vx vy vyaw [--secs N]【M8 改】\n（原 drive vx vyaw，+vy 侧向）\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr\n\nupdate 子命令组（M7）：\nupdate check / status / log [N]\nupdate apply <ver> / rollback\n（连 mini-updaterd，不连 miniduckd）" {
+  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\nrobot.* 子命令：\nhello / health / state [--every N]\nenable [on|off]【B2 改】\n（disable 子命令已删——关就是 enable off；\nCLI 只发表决结果，toggle 是手柄 Start 的事）\nmove vx vy vyaw [--secs N]\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr\n\nupdate 子命令组（M7）：\nupdate check / status / log [N]\nupdate apply <ver> / rollback\n（连 mini-updaterd，不连 miniduckd）" {
     class: changed
   }
 }
@@ -122,11 +122,11 @@ p_updaterd: "进程 2：mini-updaterd（更新守护进程，M7）" {
   }
 }
 
-# ---------- 进程 3：守护进程（改动：RPC 层 robot.drive → robot.move） ----------
-p_daemon: "进程 3：miniduckd（守护进程，M8 改动全在 RPC 层）" {
+# ---------- 进程 3：守护进程（改动：RPC 分发结构 + 控制循环状态机，均在模块内部） ----------
+p_daemon: "进程 3：miniduckd（守护进程，B2 改动在 RPC 分发与状态机内部）" {
   class: procbox
 
-  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\n支持 notification（无 id 不回复）\n方法：hello / robot.health\nrobot.state(订阅) / robot.move【M8】\n（通知/请求双形态，vy 侧向补齐）\nrobot.enable / robot.disable\nrobot.do / robot.skills\nrobot.mouth / robot.head" {
+  rpc: "RPC 层\n(main.rs serve 循环)【B2 改】\nJSON-RPC 2.0 NDJSON\nnotification 统一入口提前拦截：\n无 id 帧一律不应答——\nmove/head/mouth 静默应用，\n非意图方法静默丢弃\n（B1 只给 robot.move 开通知，\n其他方法回 id:null——已收敛）\nrobot.enable {on, toggle}【B2】\n（toggle daemon 侧翻转、永不拒绝、\nreason 逐字对齐；robot.disable 已删）\nhello / robot.health / robot.state(订阅)\nrobot.move / robot.do / robot.skills\nrobot.mouth / robot.head" {
     class: changed
   }
 
@@ -138,8 +138,8 @@ p_daemon: "进程 3：miniduckd（守护进程，M8 改动全在 RPC 层）" {
     class: unchanged
   }
 
-  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制) → RampDown\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）" {
-    class: unchanged
+  loop: "控制循环 50Hz\n(control.rs)【B2 改：模块内部状态机】\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制)\ndisable → Stopped（当拍直接命令\n回 home 无斜坡、不卸 torque，\nScheduler::reset() 清 LSTM 槽）\n→ 再 enable 直接回 Driving（无斜坡）\n（B1 的 RampDown=2s 斜坡+卸 torque 已退役）\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）" {
+    class: changed
   }
 
   sched: "技能调度器（scheduler.rs）【未动】" {
@@ -270,8 +270,8 @@ fs_root.install -> p_daemon: "daemon 二进制来自\ninstall/current/bin/minidu
   style.stroke-dash: 3
 }
 
-# 7. RPC → ControlState【改：原 drive 写 twist + last_intent_at】
-p_daemon.rpc -> p_daemon.shared: "【改】move 写 twist[3]（含 vy）+ last_intent_at\n（原 drive 只有 vx/vyaw，vy 恒 0）\nenable/disable / do / mouth / head 不变" {
+# 7. RPC → ControlState【改：enable{on,toggle} 写 enabled（toggle RPC 层翻转）；disable 写入路径消失】
+p_daemon.rpc -> p_daemon.shared: "【改】move 写 twist[3]（含 vy）+ last_intent_at\nenable{on,toggle} 写 enabled\n（toggle 在 RPC 层翻成最终值；disable 方法已删）\ndo / mouth / head 不变" {
   style.stroke: "#F59E0B"
   style.stroke-width: 3
 }

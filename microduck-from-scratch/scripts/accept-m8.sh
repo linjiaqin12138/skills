@@ -14,6 +14,17 @@
 #   f. 非有限值 1e999 → serde_json 解析阶段拒（PARSE_ERROR，id null）
 #   g. deadman 回归：停发 ≥600ms 后 obs twist 归零
 #   h. robot.drive → METHOD_NOT_FOUND
+# Bite 2 断言（robot.enable {on, toggle} + notification 统一入口）：
+#   i. robot.enable {on:true} 带 id → accepted + reason 文案，推送 enabled=true
+#   j. 无 id robot.head → 静默生效（obs[51:55] 变为目标值）
+#   k. 无 id robot.mouth → 静默生效（positions[9] 朝 +30° 移动，需 Driving）
+#   l. 无 id 非意图方法（robot.health）→ 静默丢弃
+#   m. 带 id robot.head/robot.mouth → 请求式回显不变
+#   n. robot.enable toggle:true → 翻转（开→关），推送 enabled=false；
+#      且不卸 torque、当拍直接回 home（无斜坡，Stopped 上电抱持）
+#   o. {on:true, toggle:true} → toggle 优先（忽略 on），关→开；
+#      且 Stopped→Driving 无斜坡（1s 内 skill=walk）
+#   p. enable 未知字段 → INVALID_PARAMS；robot.disable → METHOD_NOT_FOUND
 set -u
 cd /work
 
@@ -186,14 +197,150 @@ err = r.get("error") or {}
 assert err.get("code") == -32601, f"robot.drive 应回 METHOD_NOT_FOUND，实际 {r}"
 print(f"h. robot.drive → METHOD_NOT_FOUND: {err['message']}  OK")
 
+def wait_push(pred, what, budget=2.0):
+    # 读推送直到 pred(params) 为真；途中只许是 robot.state 推送。
+    deadline = time.time() + budget
+    while time.time() < deadline:
+        msg = readline()
+        assert msg.get("method") == "robot.state", f"等推送时混进意外帧: {msg}"
+        if pred(msg["params"]):
+            return msg["params"]
+    raise AssertionError(f"{budget}s 内未等到：{what}")
+
+# ── 断言 i：robot.enable {on:true} → accepted + reason，推送 enabled=true ──
+send({"jsonrpc": "2.0", "id": 8, "method": "robot.enable", "params": {"on": True}})
+r = read_until_response(8)
+res = r.get("result", {})
+assert res.get("accepted") is True, r
+assert res.get("reason") == "enabled — driving", f"reason 应逐字对齐原版，实际 {res}"
+wait_push(lambda p: p["enabled"] is True, "推送 enabled=true")
+print(f"i. enable on → {res['reason']!r}，推送 enabled=true  OK")
+
+# mouth 只在 Driving 阶段生效（D31），先等斜坡走完。可观测量选 skill 字段：
+# driving_tick 跑起来推送里才有 "walk"（Held/RampUp/Stopped 都是 null）——
+# gain 判不出（RampUp/Stopped 也用 running 增益 200）。RampUp 100 拍 = 2s。
+wait_push(lambda p: p.get("skill") == "walk", "进入 Driving（skill=walk）", budget=8.0)
+print("  已进入 Driving（skill=walk）")
+
+# ── 断言 j：无 id robot.head → 静默生效（obs[51:55] 变为目标值）──
+HEAD_TARGET = [0.1, -0.1, 0.2, 0.05]
+send({"jsonrpc": "2.0", "method": "robot.head",
+      "params": {"neck_pitch": 0.1, "head_pitch": -0.1,
+                 "head_yaw": 0.2, "head_roll": 0.05}})
+# obs head 块偏移 OFF_HEAD=51（src/obs.rs），直通 command.head 无低通。
+deadline = time.time() + 1.0
+hit = None
+while time.time() < deadline and hit is None:
+    msg = readline()
+    assert msg.get("method") == "robot.state", f"通知产生了响应行: {msg}"
+    h = msg["params"]["obs"][51:55]
+    if close(h, HEAD_TARGET):
+        hit = h
+assert hit, f"1s 内 obs head 未变成 {HEAD_TARGET}"
+print(f"j. 无 id robot.head 静默生效 obs[51:55]={hit}，全程无响应行  OK")
+
+# ── 断言 k：无 id robot.mouth {position:1.0} → 静默生效 ──
+# MOUTH_INDEX=9（src/model.rs）；0..1 → −5°..+30°，position=1 目标 ≈0.524rad。
+# FakeIo.write 是精确回写（io.rs:340-344，自述故意不做一阶惯性模型），
+# 2s 预算和 0.2rad 阈值因此很富余（实测精确到 0.524）。
+send({"jsonrpc": "2.0", "method": "robot.mouth", "params": {"position": 1.0}})
+deadline = time.time() + 2.0
+peak = None
+while time.time() < deadline:
+    msg = readline()
+    assert msg.get("method") == "robot.state", f"通知产生了响应行: {msg}"
+    mouth = msg["params"]["positions"][9]
+    peak = mouth if peak is None else max(peak, mouth)
+    if mouth > 0.2:
+        break
+assert peak is not None and peak > 0.2, f"2s 内嘴关节未到 0.2rad（峰值 {peak}）"
+print(f"k. 无 id robot.mouth 静默生效 positions[9]={peak:.3f}rad（目标 0.524）  OK")
+
+# ── 断言 l：无 id 非意图方法（robot.health）→ 静默丢弃 ──
+send({"jsonrpc": "2.0", "method": "robot.health"})
+frames = read_pushes(0.5)
+assert frames, "没收到推送"
+print(f"l. 无 id robot.health 静默，{len(frames)} 帧内只有 robot.state 推送  OK")
+
+# ── 断言 m：带 id robot.head / robot.mouth → 请求式回显不变 ──
+send({"jsonrpc": "2.0", "id": 9, "method": "robot.head",
+      "params": {"neck_pitch": 0.0, "head_pitch": 0.0,
+                 "head_yaw": 0.0, "head_roll": 0.0}})
+r = read_until_response(9)
+res = r.get("result", {})
+assert close(res.get("head", []), [0.0, 0.0, 0.0, 0.0]), f"head 应回显，实际 {r}"
+send({"jsonrpc": "2.0", "id": 10, "method": "robot.mouth", "params": {"position": 0.5}})
+r = read_until_response(10)
+res = r.get("result", {})
+assert abs(res.get("mouth", -1) - 0.5) < 1e-12, f"mouth 应回显，实际 {r}"
+print(f"m. 带 id head/mouth 请求式回显不变（mouth 回显 {res['mouth']}）  OK")
+
+# ── 断言 n：robot.enable toggle:true → 翻转（当前开→关）──
+# on 是必填字段（toggle 不免除 on，对照原版 EnableParams），带上 on 但被忽略。
+send({"jsonrpc": "2.0", "id": 11, "method": "robot.enable",
+      "params": {"on": False, "toggle": True}})
+r = read_until_response(11)
+res = r.get("result", {})
+assert res.get("accepted") is True, r
+assert res.get("reason") == "disabled — returning to the home pose", \
+    f"toggle 关 reason 应逐字对齐原版，实际 {res}"
+wait_push(lambda p: p["enabled"] is False, "推送 enabled=false")
+print(f"n. toggle 翻转 开→关 → {res['reason']!r}，推送 enabled=false  OK")
+
+# ── 断言 n2：disable 的原版语义——不卸 torque、当拍直接回 home（无斜坡）──
+# 原版 was_driving && !driving && !enabled 边沿只做 policy reset + 直接命令
+# home（"Commanded directly, no ramp"）；卸 torque 是 robot.relax 的活
+# （enable 管策略、init/relax 管电源）。FakeIo 精确回写：Stopped 当拍写
+# home，下一拍读到的 positions 就逐位等于 home。
+HOME = [0.0, -0.0873, -0.4579, -0.0049, 0.4530, 0.3491, 0.3491, 0.0, 0.0, 0.0,
+        0.0, 0.0873, 0.4579, 0.0049, -0.4530]
+wait_push(
+    lambda p: max(abs(a - b) for a, b in zip(p["positions"], HOME)) < 1e-9,
+    "positions 逐位等于 home（Stopped 抱持）",
+    budget=1.0,
+)
+frames = read_pushes(0.5)
+off = [p for p in frames if p["torque"] is not True]
+assert not off, f"disable 后 torque 应保持 on，出现 torque=false 帧: {off[:1]}"
+print(f"n2. disable 后 positions 逐位等于 home，{len(frames)} 帧 torque 全为 true  OK")
+
+# ── 断言 o：{on:true, toggle:true} → toggle 优先（忽略 on），当前关→开 ──
+send({"jsonrpc": "2.0", "id": 12, "method": "robot.enable",
+      "params": {"on": True, "toggle": True}})
+r = read_until_response(12)
+res = r.get("result", {})
+assert res.get("accepted") is True, r
+assert res.get("reason") == "enabled — driving", f"toggle 开 reason 不对: {res}"
+wait_push(lambda p: p["enabled"] is True, "推送 enabled=true")
+print(f"o. on+toggle 同帧 toggle 优先 关→开 → {res['reason']!r}  OK")
+
+# ── 断言 o2：Stopped→Driving 无斜坡——1s 预算（< 旧斜坡 2s）内 skill=walk ──
+wait_push(lambda p: p.get("skill") == "walk", "1s 内恢复 Driving（skill=walk）", budget=1.0)
+print("o2. 1s 内 skill=walk——从 Stopped 直接回 Driving，无 2 秒斜坡  OK")
+
+# ── 断言 p1：robot.enable {on:true, foo:1} → INVALID_PARAMS ──
+send({"jsonrpc": "2.0", "id": 13, "method": "robot.enable",
+      "params": {"on": True, "foo": 1}})
+r = read_until_response(13)
+err = r.get("error") or {}
+assert err.get("code") == -32602, f"未知字段应回 INVALID_PARAMS，实际 {r}"
+print(f"p1. enable 未知字段 INVALID_PARAMS: {err['message'][:60]}  OK")
+
+# ── 断言 p2：robot.disable 已死 → METHOD_NOT_FOUND ──
+send({"jsonrpc": "2.0", "id": 14, "method": "robot.disable"})
+r = read_until_response(14)
+err = r.get("error") or {}
+assert err.get("code") == -32601, f"robot.disable 应回 METHOD_NOT_FOUND，实际 {r}"
+print(f"p2. robot.disable → METHOD_NOT_FOUND: {err['message']}  OK")
+
 print()
-print("M8（本 Bite）断言 a–h 全部通过")
+print("M8 断言 a–p 全部通过")
 PY
 RC=$?
 
 echo
 if [ "$RC" = 0 ]; then
-    echo "M8 验收（robot.move 对齐）全部通过"
+    echo "M8 验收（robot.move + robot.enable 对齐，notification 统一入口）全部通过"
 else
     echo "FAIL: 断言脚本退出码 $RC"
 fi

@@ -16,7 +16,7 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().cloned().unwrap_or_else(|| {
         eprintln!(
-            "usage: mini-duckctl <health|state [--every N]|enable|disable|move <vx> <vy> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>|update <check|status|log [N]|apply <ver>|rollback>>"
+            "usage: mini-duckctl <health|state [--every N]|enable [on|off]|move <vx> <vy> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>|update <check|status|log [N]|apply <ver>|rollback>>"
         );
         std::process::exit(2);
     });
@@ -39,14 +39,19 @@ async fn main() -> std::io::Result<()> {
         "health" => {
             call(&mut framed, 2, "robot.health", serde_json::Value::Null).await?;
         }
-        "enable" | "disable" => {
-            call(
-                &mut framed,
-                2,
-                &format!("robot.{cmd}"),
-                serde_json::Value::Null,
-            )
-            .await?;
+        // M8：enable [on|off]（缺省 on）→ robot.enable {on}。开关信念归
+        // daemon 持有（toggle 翻转是手柄 Start 的事），CLI 每次只发表决
+        // 结果。disable 子命令已删——关就是 enable off。
+        "enable" => {
+            let on = match args.get(1).map(String::as_str) {
+                None | Some("on") => true,
+                Some("off") => false,
+                Some(_) => {
+                    eprintln!("usage: mini-duckctl enable [on|off]");
+                    std::process::exit(2);
+                }
+            };
+            call(&mut framed, 2, "robot.enable", serde_json::json!({"on": on})).await?;
         }
         // state [--every N]：订阅 robot.state 通知流。50Hz 全打印会刷屏，
         // 默认每 50 帧打一行；调试验收要逐帧时给 --every 1。

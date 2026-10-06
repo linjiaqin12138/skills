@@ -395,6 +395,23 @@ impl Scheduler {
         self.cascade.busy()
     }
 
+    /// 清空所有已加载槽的 LSTM 状态：disable 结束 recurrent episode
+    ///（原版 was_driving && !driving && !enabled 边沿的 controller.reset()，
+    /// reference/robotd/src/main.rs:2791-2793）。Cascade 的窗口/坐姿锁存
+    /// 不动——它们不是 episode 记忆，且非 Driving 阶段不推进。
+    pub fn reset(&mut self) {
+        self.walk.reset();
+        if let Some(p) = &mut self.sitstand {
+            p.reset();
+        }
+        if let Some(p) = &mut self.ground_pick {
+            p.reset();
+        }
+        for p in self.skills.iter_mut().flatten() {
+            p.reset();
+        }
+    }
+
     pub fn handle_requests(&mut self, edges: u32) {
         self.cascade.handle_requests(edges);
     }
@@ -466,6 +483,47 @@ mod tests {
             d = c.step(client);
         }
         d
+    }
+
+    /// disable 的 policy reset 覆盖所有已加载槽（原版 controller.reset()
+    /// 结束整个 recurrent episode，不只是当前活跃网，
+    /// reference/robotd/src/main.rs:2791-2793）。
+    #[test]
+    fn reset_clears_every_loaded_slot() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("policies");
+        let ort = dir.join("../third_party/onnxruntime/lib/libonnxruntime.so");
+        if !ort.exists() || SKILLS.iter().any(|s| !dir.join(s.file).exists()) {
+            eprintln!("skip reset_clears_every_loaded_slot: policies or ORT missing");
+            return;
+        }
+        if std::env::var_os("ORT_DYLIB_PATH").is_none() {
+            // SAFETY: 测试进程内设置一次查找路径；ort 首次 API 调用前必须就绪。
+            unsafe {
+                std::env::set_var("ORT_DYLIB_PATH", &ort);
+            }
+        }
+        let mut scheduler =
+            Scheduler::load(&dir.join("velstand.onnx"), &dir).expect("load scheduler");
+        if scheduler.available_names().len() != 2 + SKILLS.len() {
+            eprintln!("skip: not all M6 policies loaded");
+            return;
+        }
+        // load 自己会调一次 reset 初始化 LSTM（policy.rs:149），所以比增量。
+        let before: Vec<u64> = std::iter::once(&scheduler.walk)
+            .chain([&scheduler.sitstand, &scheduler.ground_pick].into_iter().flatten())
+            .chain(scheduler.skills.iter().flatten())
+            .map(|p| p.reset_calls)
+            .collect();
+        scheduler.reset();
+        let after: Vec<u64> = std::iter::once(&scheduler.walk)
+            .chain([&scheduler.sitstand, &scheduler.ground_pick].into_iter().flatten())
+            .chain(scheduler.skills.iter().flatten())
+            .map(|p| p.reset_calls)
+            .collect();
+        assert_eq!(before.len(), 3 + SKILLS.len(), "有槽没加载到？");
+        for (b, a) in before.iter().zip(after.iter()) {
+            assert_eq!(*a, b + 1, "有槽没被 reset");
+        }
     }
 
     #[test]

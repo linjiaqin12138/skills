@@ -7,6 +7,11 @@ services:
         GID: "1000"
     image: miniduck-rust:dev
     container_name: miniduck-rust
+    # 宿主机是 rootless docker：容器 uid 0 映射到宿主机当前用户，
+    # bind mount 的 /work 里宿主文件在容器内显示为 root——以 root 跑
+    # 才能写 target/，且产物落回宿主机仍属当前用户。传统（rootful）
+    # docker 下应删掉这行并改用 build args UID/GID=宿主机 uid/gid。
+    user: "0:0"
     working_dir: /work
     environment:
       # ort load-dynamic；与 scripts/fetch-m3.sh 摊平后的路径一致。

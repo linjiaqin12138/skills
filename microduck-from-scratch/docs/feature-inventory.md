@@ -19,15 +19,16 @@
 
 | 处置 | 行数 |
 |---|---|
-| 已交付 | 39 |
+| 已交付 | 40 |
 | 偏差登记（沿用 D1–D41） | 33 |
-| 未登记缺口（预留新 D 号 D42–D63，共 22 条） | 62 |
+| 未登记缺口（预留新 D 号 D42–D63，共 22 条；D43/D44 已于 M8 Bite 1/2 收敛） | 61 |
 | 建议豁免 | 49 |
 | **合计** | **183** |
 
 口径说明：按表行计数；一行覆盖一个 RPC 方法 / 一个 CLI 命令组 / 一个配置段（键组）/
-一个 crate。混合处置的行按处置列首个类目计数，次要类目在括号内注记。62 个缺口行
-归并为 22 条新 D（D42–D63），逐条见文末「未登记缺口汇总」。
+一个 crate。混合处置的行按处置列首个类目计数，次要类目在括号内注记。缺口行
+归并为 22 条新 D（D42–D63），逐条见文末「未登记缺口汇总」；D43（M8 Bite 1/2）、
+D44（M8 Bite 2）已收敛，其余 20 条挂账待批次收敛。
 
 既有决策的影响（STATE.md 决策记录）：`examples/` 是教程配套资产，不计入本清单；
 D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体按同原则处理。
@@ -88,7 +89,7 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 | robot.head（通知式） | :599 / :992；HeadParams :2126 | main.rs:335（请求式，参数名一致） | 已交付（M6）；连续意图通知语义差异入 D43 |
 | robot.look（凝视 IK） | :602 / :994；LookParams :2140 | 无 | 未登记缺口（D55） |
 | robot.stop | :604 / :995 | 无（deadman 500ms 兜底不等价） | 未登记缺口（D54） |
-| robot.enable {on, toggle} | :606 / :996；EnableParams :2792-2808 | robot.enable/disable 无参二分（main.rs:229-236） | 已交付（M5）；形状差异（无 toggle、多出 disable）D44 |
+| robot.enable {on, toggle} | :606 / :996；EnableParams :2792-2808 | robot.enable {on, toggle}（main.rs:319-340，toggle daemon 侧翻转、永不拒绝、reason 逐字对齐；robot.disable 已删） | ~~已交付（M5）；形状差异（无 toggle、多出 disable）D44~~ M8 Bite 2 已对齐 |
 | robot.init（无策略上电站立） | :624 / :998 | 无 | 未登记缺口（D53） |
 | robot.relax（卸力） | :630 / :1000 | 无（disable 的斜坡+卸 torque 相近而非同一物） | 未登记缺口（D53） |
 | robot.rebootMotors | :636 / :1002 | 无 | 偏差登记（D12 残余：RobotIo::reboot 未实现） |
@@ -152,7 +153,7 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 | robotctl net status/scan/connect/forget | :132、:369-402 | 无 | 未登记缺口（D42） |
 | robotctl system info/set-name/pin/set-pin/reboot | :139、:404-439 | 无 | 未登记缺口（D42；pin 两条随 BLE 豁免） |
 | robotctl robot init | :450 | 无 | 未登记缺口（D53） |
-| robotctl robot enable [--off/--toggle] | :465 | mini-duckctl enable/disable | 已交付（M5）；toggle 缺失入 D44 |
+| robotctl robot enable [--off/--toggle] | :465 | mini-duckctl enable [on\|off]（disable 子命令已删；CLI 只发表决结果，toggle 是手柄 Start 的事） | ~~已交付（M5）；toggle 缺失入 D44~~ M8 Bite 2 已对齐 |
 | robotctl robot relax | :484 | 无 | 未登记缺口（D53） |
 | robotctl robot reboot-motors | :498 | 无 | 偏差登记（D12） |
 | robotctl robot do | :514 | mini-duckctl do | 已交付（M6） |
@@ -254,8 +255,8 @@ updater.toml（reference/deploy/updater.toml，179 行）：
 以下 22 条为本次清单新发现的偏差簿外缺口，D 号预留待登记入 deviations.md：
 
 - **D42** configd 缺席，net.*（4 条）与 system.* 前 5 条方法面连带缺席（btd/mediad/padd/tofd 四进程建议豁免单列）。
-- **D43** ~~robot.drive {vx,vyaw} 请求式 vs 原版 robot.move {vx,vy,vyaw} 通知式：vy 侧向未开放，且连续意图（move/head/mouth）的通知语义（无应答、last-writer-wins）未实现~~ M8 Bite 1 已收敛 robot.move 本体（通知/请求双形态 + vy + robot.drive 删除）。残余：head/mouth 通知语义未开；原版对任何方法的 notification 走 apply_intent 统一入口静默处理，我们只给 robot.move 开了通知语义（预定随 enable/subscribe Bite 收敛）。
-- **D44** robot.enable {on, toggle} vs 手搓 enable/disable 无参二分：缺 toggle（手柄 Start 语义），多出原版没有的 robot.disable。
+- **D43** ~~robot.drive {vx,vyaw} 请求式 vs 原版 robot.move {vx,vy,vyaw} 通知式：vy 侧向未开放，且连续意图（move/head/mouth）的通知语义（无应答、last-writer-wins）未实现~~ M8 Bite 1 已收敛 robot.move 本体（通知/请求双形态 + vy + robot.drive 删除）；M8 Bite 2 已收敛 notification 统一入口与 head/mouth 通知语义。仅剩残余：mini-duckctl move 仍请求式逐条调用（教学工具定位保留）。
+- **D44** ~~robot.enable {on, toggle} vs 手搓 enable/disable 无参二分：缺 toggle（手柄 Start 语义），多出原版没有的 robot.disable~~ M8 Bite 2 已收敛：robot.enable {on, toggle} 全对齐（toggle daemon 侧翻转、永不拒绝、reason 逐字对齐），robot.disable 方法与 CLI 子命令一并删除（用户裁决）。另：disable 语义（斜坡+卸 torque vs 直接回 home 上电抱持）复核中新发现，登记 D64 并随 Bite 2 收敛（见 docs/deviations.md）。
 - **D45** robot.subscribe {hz} + SubscribeResult ack（walk/stand/unavailable/skills 名单）缺席，robot.state 方法名兼作订阅入口（hz 降频语义已登记 D25）。
 - **D46** 命令 EMA 平滑缺席（[control] cmd_alpha/head_alpha；手搓意图直通，只有动作侧训练低通）。
 - **D47** updaterd 预检面 robot.safeToRestart / robot.modelApi 缺席（apply 前「现在重启安全吗」无从问起）。

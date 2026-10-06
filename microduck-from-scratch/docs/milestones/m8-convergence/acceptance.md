@@ -1,6 +1,6 @@
 # M8 收敛验收 — 验收档案
 
-> M8 按 Bite 推进，本档案逐 Bite 追加。当前收录：Bite 1（robot.drive → robot.move）。
+> M8 按 Bite 推进，本档案逐 Bite 追加。当前收录：Bite 1（robot.drive → robot.move）、Bite 2（robot.enable {on, toggle} + notification 统一入口 + disable 语义对齐）。
 
 ## Bite 1：robot.drive → robot.move（通知式连续意图 + vy 侧向）
 
@@ -71,3 +71,79 @@ M8（本 Bite）断言 a–h 全部通过
 ### 偏差变动
 
 - **D43 部分收敛**（已更新 `docs/deviations.md`）：robot.drive {vx,vyaw} 请求式 → 原版 robot.move {vx,vy,vyaw} 通知/请求双形态，vy 侧向补齐。残余：① robot.head / robot.mouth 的通知语义未开（M8 后续 Bite）；② 原版对任何方法的 notification 都走 apply_intent 统一入口静默处理，我们只给 robot.move 开了通知语义（后续 Bite 随 enable/subscribe 收敛）；③ mini-duckctl 仍请求式逐条调用（教学工具，daemon 两种形态都收）。
+
+---
+
+## Bite 2：robot.enable {on, toggle} + notification 统一入口 + disable 语义对齐（Stopped 取代 RampDown）
+
+### 交付物
+
+- `src/lib.rs`：新增 `EnableParams`（`{on: bool}` 必填无 default、`toggle` 缺省 false、`deny_unknown_fields`，doc 注释承重：toggle=手柄 Start 语义、daemon 侧翻转、客户端信念会漂移）+ `parse_enable`（仿 `parse_move`，Err 文案即 INVALID_PARAMS message）；6 条新单测（on=true / toggle 缺省 / on+toggle 同帧 / 单发 toggle 拒 / 未知字段拒 / 缺 on 与 Null 拒）。
+- `src/main.rs`：notification 统一入口（`src/main.rs:282-302`）——任何方法的无 id 帧都不应答：move/head/mouth 解析合法静默应用、非法静默丢弃，非意图方法静默丢弃；整帧解析失败仍在 parse 分支回 PARSE_ERROR + `"id":null`。`robot.enable` 带 id 分支重写（`src/main.rs:319-340`）：toggle 优先（daemon 侧翻转，忽略 on）、永不拒绝、reason 文案逐字对齐原版；`robot.disable` 分支删除（→ METHOD_NOT_FOUND）。抽取 `parse_mouth`/`apply_mouth_intent`/`parse_head`/`apply_head_intent`（`src/main.rs:213-243`），通知/请求两路共用。
+- `src/control.rs`：状态机改造——`Phase::Stopped`（上电抱持 home）取代 `RampDown`；模块头 ASCII 状态图重写（`src/control.rs:1-29`）；转移规则抽纯函数 `edge_transition()`（`src/control.rs:307-319`，`EdgeAction` doc 注释逐条引原版证据）与 `ramp_done_phase()`（`src/control.rs:322-328`）；`StopToHome` 边沿处理（`src/control.rs:447-457`：scheduler.reset + 锚点/last_action 清零 + 切 Stopped）；Stopped 臂当拍写 `DEFAULT_POSITION`、gain 维持 200、torque 保持 on（`src/control.rs:530-537`）；全文件无 `set_torque(false)` 路径。顺带修掉"RampDown 途中再 enable 卡死 Held"的自家 bug。6 条新单测（`src/control.rs:723-776`）。
+- `src/scheduler.rs`：`Scheduler::reset()`（`src/scheduler.rs:398-413`）清全部已加载槽 LSTM；Cascade 窗口/坐姿锁存不动【残余存疑，见偏差变动】；单测 `reset_clears_every_loaded_slot`（`src/scheduler.rs:488-523`，增量断言）。
+- `src/bin/mini-duckctl.rs`：`enable [on|off]`（缺省 on）发 `robot.enable {on}`；`disable` 子命令删除（用户裁决，不留别名）。
+- `scripts/accept-m5.sh`：A1c 重写（`scripts/accept-m5.sh:99-116`）——`enable off` 后断言 positions 精确等于 home（阈值 1e-6）、enabled=false、**torque=true**（原版语义：卸 torque 是 relax 的活）。
+- `scripts/accept-m8.sh`：追加断言 i–p + n2 + o2（`scripts/accept-m8.sh:210-333`）；等 Driving 改用推送 `skill` 字段而非 gain（gain=200 在 RampUp/Stopped 同样成立）。
+- **进程边界与模块零增删**；变化全在模块内部（main.rs 分发结构、control.rs 状态机、CLI 子命令）。
+
+### 验收实测
+
+`docker compose exec rust cargo test`（2026-10-06 主 agent 复跑）：
+
+```text
+test result: ok. 81 passed; 0 failed
+```
+
+构成：Bite 1 的 68 条 + 本 Bite 新增 13 条（lib 6 + control 6 + scheduler 1）。
+
+`docker compose exec rust bash scripts/accept-m8.sh`（2026-10-06 主 agent 复跑）——断言 a–p + n2 + o2 全过，Bite 2 新增部分关键实测行：
+
+```text
+i. enable on → 'enabled — driving'，推送 enabled=true  OK
+j. 无 id robot.head 静默生效 obs[51:55]=[0.1, -0.1, 0.2, 0.05]，全程无响应行  OK
+k. 无 id robot.mouth 静默生效 positions[9]=0.524rad（目标 0.524）  OK
+l. 无 id robot.health 静默，25 帧内只有 robot.state 推送  OK
+m. 带 id head/mouth 请求式回显不变（mouth 回显 0.5）  OK
+n. toggle 翻转 开→关 → 'disabled — returning to the home pose'，推送 enabled=false  OK
+n2. disable 后 positions 逐位等于 home，26 帧 torque 全为 true  OK
+o. on+toggle 同帧 toggle 优先 关→开 → 'enabled — driving'  OK
+o2. 1s 内 skill=walk——从 Stopped 直接回 Driving，无 2 秒斜坡  OK
+p1. enable 未知字段 INVALID_PARAMS: robot.enable wants {on: bool} (optional toggle: bool): unknown field…  OK
+p2. robot.disable → METHOD_NOT_FOUND  OK
+
+M8 断言 a–p 全部通过
+```
+
+断言要点：j 的 obs head 块偏移 `OFF_HEAD=51`（直通 command.head 无低通）；k 的 `MOUTH_INDEX=9`，0..1 → −5°..+30°，position=1 目标 0.524rad；n2 的 home 逐位相等阈值 1e-9 依赖 FakeIo 精确回写（`src/io.rs:100-102`、`src/io.rs:340-344`）；o2 的 1s 预算 < 旧斜坡 2s，只可能是 Stopped→Driving 直回；i/n/o 的 reason 文案逐字对齐原版（`reference/robotd/src/main.rs:4500-4510`）。
+
+**回归**（2026-10-06 复跑）：
+
+- `accept-m5.sh` 全过：A1c 实测 `|positions-home|max=0.00e+00`，enabled=false，torque=true——Stopped 上电抱持 home 的端到端证据。
+- `accept-m4.sh` PASS（10 秒行走位移 0.764m，过 0.5m 门槛）、`accept-m6.sh` 全过——控制链路行为不变。
+- `accept-m7.sh` 本机 D1/E1 两处时序断言 flake（**预先存在**：新机器更快，Busy 窗口抓空），与本 Bite 无关——教训已记入 tutorial「常见坑」4。
+
+**实现期坑位记录**：① gain==200 判不出 Driving（RampUp/Stopped 同样 200），改用推送 skill 字段（`scripts/accept-m8.sh:219-223`）；② `Policy::load` 自带一次 reset，reset_calls 断言用增量（`src/scheduler.rs:511-523`）；③ FakeIo 是精确回写不是一阶滞后，收敛断言可用严阈值（`scripts/accept-m8.sh:244` 注释写"一阶滞后"与 io.rs 自述矛盾，以 io.rs 为准，疑似历史遗留待清理）。
+
+### 涉及代码文件清单
+
+| 文件 | 变动 |
+|---|---|
+| `src/lib.rs` | +`EnableParams`/`parse_enable`；+6 单测 |
+| `src/main.rs` | notification 统一入口（无 id 帧提前拦截）；robot.enable 重写（toggle daemon 翻转/永不拒绝/reason 对齐）；删 robot.disable；+`parse_mouth`/`apply_mouth_intent`/`parse_head`/`apply_head_intent` 抽取 |
+| `src/control.rs` | `Phase::Stopped` 取代 `RampDown`；`edge_transition()`/`ramp_done_phase()` 纯函数；模块头 ASCII 图重写；+6 单测 |
+| `src/scheduler.rs` | +`Scheduler::reset()`；+1 单测 |
+| `src/bin/mini-duckctl.rs` | `enable [on|off]`；删 `disable` 子命令 |
+| `scripts/accept-m8.sh` | 追加断言 i–p + n2 + o2 |
+| `scripts/accept-m5.sh` | A1c 重写（torque=true + positions 精确等于 home） |
+| `docs/deviations.md` | D43 更新（残余①②收敛）、+D64（新登记即收敛） |
+| `docs/feature-inventory.md` | D44 标注 M8 Bite 2 收敛 |
+| `docs/milestones/m8-convergence/{tutorial,acceptance}.md` | 本档案与教程章节追加 |
+| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 更新到 Bite 2 状态（阶段机 Stopped、enable{on,toggle}、disable 消失） |
+
+### 偏差变动
+
+- **D44 收敛**：`robot.enable {on, toggle}` 全对齐（参数形状 / toggle daemon 侧翻转 / 永不拒绝 / reason 文案）；`robot.disable` 方法与 CLI 子命令一并删除（用户裁决，不留别名）。
+- **D64 新登记并即收敛**：disable 语义（旧 RampDown=2s 斜坡+卸 torque vs 原版直接命令回 home+上电抱持）。复核中发现、用户裁决立即对齐不挂账。残余存疑：`Scheduler::reset()` 是否应连带清 Cascade 坐姿锁存，无原版逐行确证【合理推断：按"锁存不是 episode 记忆"判断不动】。连带代价：`robot.relax` 未实现前卸 torque 无出口（已登记）。
+- **D43 残余①②收敛**：head/mouth 通知语义已开、非意图方法通知统一静默。D43 仅剩残余③：mini-duckctl move 仍请求式逐条调用（教学工具定位保留）。
+- **联动记录**：请求式 move 应答是 `{accepted}` 超集（多回显 vx/vy/vyaw）；head/mouth 回显参数值、缺 `accepted` 字段（原版三者统一回 `IntentResult::accepted()`）——待后续 Bite 裁决。

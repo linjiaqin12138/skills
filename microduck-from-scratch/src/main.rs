@@ -2,14 +2,17 @@
 //!
 //! M0 的 JSON-RPC 骨架（hello / robot.health / robot.state 订阅）之上，
 //! 50 Hz 控制任务经 Safety（唯一写句柄）驱动身体。
-//! M5 新增：`robot.enable` / `robot.disable` 使能开关；`robot.health`
-//! 报真实判定（D11）；`robot.state` 改为 50 Hz 逐帧推送（D14）；
+//! M5 新增：使能开关（M8 收敛为原版语义的 `robot.enable {on, toggle}`）；
+//! `robot.health` 报真实判定（D11）；`robot.state` 改为 50 Hz 逐帧推送（D14）；
 //! 策略加载失败不再退出，抱持姿态报病（D19）；socket 文件 chmod 0660（D8）。
 //! M6 新增：`robot.do`（技能请求边沿）/ `robot.skills` / `robot.mouth` /
 //! `robot.head`；调度器持有全部策略槽（walk 必须，其余可选）；state 载荷
 //! 增 `skill` 字段。
 //! M8 起：`robot.drive` 收敛为原版语义的 `robot.move {vx, vy, vyaw}`——
-//! 通知式连续意图（无 id 不回复），带 id 时回 accepted。
+//! 通知式连续意图（无 id 不回复），带 id 时回 accepted；`robot.enable`
+//! 收敛为 `{on, toggle}`（toggle 由 daemon 侧翻转，永不拒绝），
+//! `robot.disable` 方法删除；notification（无 id 帧）统一入口：意图类
+//! （move/head/mouth）静默应用，其余方法静默丢弃。
 
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
@@ -20,7 +23,9 @@ use miniduck::control::{self, SharedControl};
 use miniduck::io::{FakeIo, RobotIo, SimIo};
 use miniduck::safety::{Safety, SafetyConfig};
 use miniduck::scheduler::Scheduler;
-use miniduck::{API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, MoveParams, Request, ServerMessage};
+use miniduck::{
+    API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, MoveParams, Request, ServerMessage, parse_enable,
+};
 use serde_json::{Value, json};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::watch;
@@ -203,6 +208,40 @@ fn apply_move_intent(control: &SharedControl, twist: [f64; 3]) {
     ctl.last_intent_at = Some(Instant::now());
 }
 
+/// 解析 robot.mouth 参数：0..1 开度的有限值。Err 文案即 INVALID_PARAMS
+/// 响应的 message；通知路径只取 Ok，Err 静默丢弃。
+fn parse_mouth(params: &Value) -> Result<f64, String> {
+    params
+        .get("position")
+        .and_then(|v| v.as_f64())
+        .filter(|p| p.is_finite())
+        .ok_or_else(|| "robot.mouth wants finite number {position} in 0..=1".to_owned())
+}
+
+/// 应用嘴开度意图：纯 level 无 deadman——客户端死掉嘴停在那（原版刻意行为）。
+fn apply_mouth_intent(control: &SharedControl, position: f64) {
+    control.lock().expect("control mutex poisoned").mouth = position;
+}
+
+/// 解析 robot.head 参数：四个关节角（弧度）的有限值。
+fn parse_head(params: &Value) -> Result<[f64; 4], String> {
+    let get = |k: &str| params.get(k).and_then(|v| v.as_f64());
+    match (get("neck_pitch"), get("head_pitch"), get("head_yaw"), get("head_roll")) {
+        (Some(np), Some(hp), Some(hy), Some(hr)) if [np, hp, hy, hr].iter().all(|v| v.is_finite()) => {
+            Ok([np, hp, hy, hr])
+        }
+        _ => Err(
+            "robot.head wants finite numbers {neck_pitch, head_pitch, head_yaw, head_roll} (radians)"
+                .to_owned(),
+        ),
+    }
+}
+
+/// 应用头姿意图：无 deadman，stale 头姿无害（原版 intents.rs 文档注释原话）。
+fn apply_head_intent(control: &SharedControl, head: [f64; 4]) {
+    control.lock().expect("control mutex poisoned").command.head = head;
+}
+
 async fn serve(
     stream: UnixStream,
     stats: Arc<control::Stats>,
@@ -234,53 +273,88 @@ async fn serve(
                     }
                 };
 
-                // 分支返回 None = 本帧无回复（notification：JSON-RPC 规定
-                // 无 id 不应答）。robot.do 分支内有直接 send+continue 的先例。
-                let resp: Option<ServerMessage> = match req.method.as_str() {
-                    "hello" => Some(ServerMessage::ok(
+                // M8：notification（无 id 帧）统一入口。JSON-RPC 规定无 id
+                // 不应答，原版对任何方法都不回（reference/robotd/src/main.rs:
+                // 3554-3562）：连续意图静默应用（解析失败也静默——50Hz 意图流
+                // 里报错没有意义，下一帧 20ms 后就到），其他方法静默丢弃。
+                // 整帧 JSON 解析失败仍在上面的 parse 分支回 PARSE_ERROR——
+                // 那时还不知道它是不是 notification。
+                if req.id.is_none() {
+                    match req.method.as_str() {
+                        "robot.move" => {
+                            if let Ok(twist) = parse_move(&req.params) {
+                                apply_move_intent(&control, twist);
+                            }
+                        }
+                        "robot.mouth" => {
+                            if let Ok(position) = parse_mouth(&req.params) {
+                                apply_mouth_intent(&control, position);
+                            }
+                        }
+                        "robot.head" => {
+                            if let Ok(head) = parse_head(&req.params) {
+                                apply_head_intent(&control, head);
+                            }
+                        }
+                        _ => {} // 非意图方法的 notification：静默丢弃
+                    }
+                    continue;
+                }
+
+                // 走到这里的都是带 id 的请求，每个分支都必须给出应答。
+                // robot.do 分支内有直接 send+continue 的先例。
+                let resp: ServerMessage = match req.method.as_str() {
+                    "hello" => ServerMessage::ok(
                         req.id,
                         json!({ "service": "miniduckd", "api_version": API_VERSION }),
-                    )),
-                    "robot.health" => Some(ServerMessage::ok(
+                    ),
+                    "robot.health" => ServerMessage::ok(
                         req.id,
                         health(&stats, &policy_error, boot),
-                    )),
+                    ),
                     "robot.state" => {
                         subscribed = true;
-                        Some(ServerMessage::ok(req.id, json!({ "subscribed": true })))
+                        ServerMessage::ok(req.id, json!({ "subscribed": true }))
                     }
-                    // M5 使能开关（收敛 D11/D19 的配套）：无参数，写共享
-                    // ControlState.enabled，边沿检测与斜坡在控制循环里做。
-                    "robot.enable" => {
-                        control.lock().expect("control mutex poisoned").enabled = true;
-                        Some(ServerMessage::ok(req.id, json!({ "enabled": true })))
-                    }
-                    "robot.disable" => {
-                        control.lock().expect("control mutex poisoned").enabled = false;
-                        Some(ServerMessage::ok(req.id, json!({ "enabled": false })))
-                    }
+                    // 使能开关（M8 收敛为原版语义，reference/robotd/src/main.rs:
+                    // 4486-4512）：toggle 在 daemon 侧翻转——客户端不持有开关
+                    // 信念（信念随对端重启/relax 漂移，漂移的信念让手柄 Start
+                    // 隔次失灵）；toggle:true 时 on 被忽略。永不拒绝：躺在地上
+                    // 按 Start 正是叫人站起来。边沿检测与斜坡在控制循环里做。
+                    // reason 文案逐字对齐原版。
+                    "robot.enable" => match parse_enable(&req.params) {
+                        Ok(p) => {
+                            let on = {
+                                let mut ctl = control.lock().expect("control mutex poisoned");
+                                ctl.enabled = if p.toggle { !ctl.enabled } else { p.on };
+                                ctl.enabled
+                            };
+                            let reason = if on {
+                                "enabled — driving"
+                            } else {
+                                "disabled — returning to the home pose"
+                            };
+                            ServerMessage::ok(req.id, json!({ "accepted": true, "reason": reason }))
+                        }
+                        Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
+                    },
                     // M8：连续速度意图（原版 robot.move，D43 收敛的另一半）。
-                    // 无 id（notification）：合法则静默应用，非法静默丢弃——
-                    // 50Hz 意图流里报错没有意义，下一帧 20ms 后就到。
-                    // 有 id（request）：应用并回 accepted，非法回 INVALID_PARAMS。
+                    // 带 id（request）：应用并回 accepted，非法回 INVALID_PARAMS；
+                    // 无 id 的通知路径已在上面统一入口处理。
                     "robot.move" => match parse_move(&req.params) {
                         Ok(twist) => {
                             apply_move_intent(&control, twist);
-                            req.id.map(|id| {
-                                ServerMessage::ok(
-                                    Some(id),
-                                    json!({
-                                        "accepted": true,
-                                        "vx": twist[0],
-                                        "vy": twist[1],
-                                        "vyaw": twist[2],
-                                    }),
-                                )
-                            })
+                            ServerMessage::ok(
+                                req.id,
+                                json!({
+                                    "accepted": true,
+                                    "vx": twist[0],
+                                    "vy": twist[1],
+                                    "vyaw": twist[2],
+                                }),
+                            )
                         }
-                        Err(reason) => req
-                            .id
-                            .map(|id| ServerMessage::err(Some(id), INVALID_PARAMS, reason)),
+                        Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
                     },
                     // M6：技能请求。原版语义（reference/robotd/src/main.rs:4342-4369）：
                     // 未 enable 拒绝（"accepted 然后什么都不发生是最坏的回答"）；
@@ -327,73 +401,47 @@ async fn serve(
                         match verdict {
                             Ok(bit) => {
                                 control.lock().expect("control mutex poisoned").skill_edges |= bit;
-                                Some(ServerMessage::ok(req.id, json!({ "accepted": true, "skill": name })))
+                                ServerMessage::ok(req.id, json!({ "accepted": true, "skill": name }))
                             }
-                            Err(reason) => Some(ServerMessage::ok(
+                            Err(reason) => ServerMessage::ok(
                                 req.id,
                                 json!({ "accepted": false, "reason": reason }),
-                            )),
+                            ),
                         }
                     }
                     // M6：可用技能名单。内置两个（ground_pick/sit_toggle）不是
                     // 配置表条目但必须在名单里（原版踩过的坑，scheduler.rs 注释）。
-                    "robot.skills" => Some(ServerMessage::ok(
+                    "robot.skills" => ServerMessage::ok(
                         req.id,
                         json!({ "skills": skill_names.as_slice() }),
-                    )),
+                    ),
                     // M6：嘴开度 0..1，纯 level 无 deadman——客户端死掉嘴停在
                     // 那（原版刻意行为）。只在 Driving 阶段生效（D31）。
-                    "robot.mouth" => {
-                        Some(match req.params.get("position").and_then(|v| v.as_f64()) {
-                            Some(p) if p.is_finite() => {
-                                control.lock().expect("control mutex poisoned").mouth = p;
-                                ServerMessage::ok(req.id, json!({ "mouth": p }))
-                            }
-                            _ => ServerMessage::err(
-                                req.id,
-                                INVALID_PARAMS,
-                                "robot.mouth wants finite number {position} in 0..=1",
-                            ),
-                        })
-                    }
-                    // M6：头姿意图（弧度），写共享 command.head。无 deadman：
-                    // stale 头姿无害（原版 intents.rs 文档注释原话）。
-                    "robot.head" => {
-                        let get = |k: &str| req.params.get(k).and_then(|v| v.as_f64());
-                        Some(match (
-                            get("neck_pitch"),
-                            get("head_pitch"),
-                            get("head_yaw"),
-                            get("head_roll"),
-                        ) {
-                            (Some(np), Some(hp), Some(hy), Some(hr))
-                                if [np, hp, hy, hr].iter().all(|v| v.is_finite()) =>
-                            {
-                                control.lock().expect("control mutex poisoned").command.head =
-                                    [np, hp, hy, hr];
-                                ServerMessage::ok(
-                                    req.id,
-                                    json!({ "head": [np, hp, hy, hr] }),
-                                )
-                            }
-                            _ => ServerMessage::err(
-                                req.id,
-                                INVALID_PARAMS,
-                                "robot.head wants finite numbers {neck_pitch, head_pitch, head_yaw, head_roll} (radians)",
-                            ),
-                        })
-                    }
-                    other => Some(ServerMessage::err(
+                    // 带 id 请求回显 {mouth: p}；无 id 通知走上面统一入口。
+                    "robot.mouth" => match parse_mouth(&req.params) {
+                        Ok(p) => {
+                            apply_mouth_intent(&control, p);
+                            ServerMessage::ok(req.id, json!({ "mouth": p }))
+                        }
+                        Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
+                    },
+                    // M6：头姿意图（弧度），写共享 command.head。带 id 请求
+                    // 回显 {head: [...]}；无 id 通知走上面统一入口。
+                    "robot.head" => match parse_head(&req.params) {
+                        Ok(head) => {
+                            apply_head_intent(&control, head);
+                            ServerMessage::ok(req.id, json!({ "head": head }))
+                        }
+                        Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
+                    },
+                    other => ServerMessage::err(
                         req.id,
                         METHOD_NOT_FOUND,
                         format!("method not found: {other}"),
-                    )),
+                    ),
                 };
-                // None = notification，本帧无回复，跳过 send。
-                if let Some(resp) = resp {
-                    if framed.send(serde_json::to_string(&resp).unwrap()).await.is_err() {
-                        break;
-                    }
+                if framed.send(serde_json::to_string(&resp).unwrap()).await.is_err() {
+                    break;
                 }
             }
             // D14：robot.state 从 1Hz interval 改为帧驱动——控制循环每拍

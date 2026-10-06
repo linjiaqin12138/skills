@@ -200,3 +200,257 @@ h. robot.drive → METHOD_NOT_FOUND  OK
 
 [^1]: deadman：客户端失联保险——最近一次驾驶意图超过 500ms 没刷新，Safety 自动把 twist 清零（M5 交付）。机器人没人"握杆"就停车。
 [^2]: robot.drive 时代同样不判——旧代码也是直接写 twist；门控一直在控制循环侧。
+
+---
+
+# 第 10 章 · M8 Bite 2：robot.enable {on, toggle}、通知统一入口与 disable 语义对齐
+
+> 本章是 M8 的第二个 Bite（已验收），同一目录增量追加，Bite 1 的部分原样保留。交付物：`src/lib.rs`（`EnableParams` + `parse_enable` + 6 条单测）、`src/main.rs`（notification 统一入口提前拦截无 id 帧、`robot.enable` 带 id 分支按原版重写、`robot.disable` 分支删除、`parse_mouth`/`parse_head` 与 `apply_mouth_intent`/`apply_head_intent` 抽取共用）、`src/control.rs`（状态机改造：`Phase::Stopped` 取代 `RampDown`，`edge_transition()`/`ramp_done_phase()` 纯函数 + 6 条单测，模块头 ASCII 状态图重写）、`src/scheduler.rs`（`Scheduler::reset()` 清全部 LSTM 槽 + 单测）、`src/bin/mini-duckctl.rs`（`enable [on|off]`，`disable` 子命令删除）、`scripts/accept-m5.sh`（A1c 重写）、`scripts/accept-m8.sh`（追加断言 i–p + n2 + o2）。进程边界与模块零增删。
+
+## 1. 问题
+
+本 Bite 一次收敛三条，前两条是登记在册的，第三条是复核时新发现的：
+
+1. **D44：开关形状不对。** 我们的使能面是 `robot.enable` / `robot.disable` 两个无参方法；原版只有一个 `robot.enable {on, toggle}`（`reference/duck-ipc-proto/src/lib.rs:2685-2704`）。缺的不是一个参数而是一种语义：`toggle` 是手柄 Start 键——按一下翻到"另一个状态"，客户端不需要知道当前是哪边。多出来的 `robot.disable` 则是协议面上一个原版不存在的方法，"照原版文档写的客户端能跑"的及格线它帮不上忙，反而把开关拆成了两个入口。
+2. **D43 残余：通知语义只开了一半。** Bite 1 只给 `robot.move` 开了通知语义；其他方法的无 id 帧会收到一条 `"id":null` 的响应——这既违反 JSON-RPC 规范（notification 不应答没有例外），也和原版不符：原版对**任何**方法的 notification 都走统一入口，意图方法静默应用、其余静默丢弃（`reference/robotd/src/main.rs:3554-3562`）。head/mouth 同属连续意图（`reference/duck-ipc-proto/src/lib.rs:520-548`），它们的通知语义被这个半拉子入口挡着。
+3. **D64（新登记）：disable 的行为不对，而且错得有点根本。** 复核 enable 语义时发现：我们的 disable 走 `RampDown` 阶段——2 秒斜坡[^3]回 home，然后**卸 torque**。原版的 disable 三件事都不这么做：不卸 torque、无斜坡、不当拍移动机器人以外的任何动作——策略停开，**当拍直接把 home 写进目标寄存器，舵机按自己的速度走过去，然后保持上电抱持 home**（`reference/robotd/src/main.rs:2786-2798`，注释原文 "Commanded directly, no ramp: the servos do the travel at their own speed"）。卸 torque 是 `robot.relax` 的活：enable 管策略、init/relax 管电源，两对开关各管各的（`reference/duck-ipc-proto/src/lib.rs:542-551`）。用户裁决：这条差异不挂账，本 Bite 立即对齐。
+
+三条指向同一个设计动作：开关的语义归位——**daemon 持有开关信念、framing 不改变语义、enable 只管策略**。
+
+## 2. 背景概念
+
+notification 与 request 的区分（带不带 id 决定回不回程流量）在 Bite 1 已讲过，深读见 [docs/concepts/jsonrpc-notification.md](../../concepts/jsonrpc-notification.md)，本章不重复。新增两张小卡片：
+
+### 【背景卡片】Stopped 阶段：停着，但醒着
+
+Stopped 是本 Bite 新加的控制循环阶段，大白话讲就是"**机器人站在标准站姿上，电机通着电，但策略不跑**"。它和已有的 Held 阶段是两种"抱持"：
+
+- **Held**：进程刚启动的样子。舵机**没上电**，循环抱着"启动那一刻读到的姿态"不放——机器人是什么姿势被捡起来的，就软软地保持什么姿势。它是上电前的等待室，也是未来 `robot.relax`（松手断电）的落点。
+- **Stopped**：disable 之后的样子。舵机**保持上电**，目标钉死在 home（标准站姿），机器人直挺挺站着，只是"脑子"（策略）不在转。因为已经站在 home 上且通着电，再 enable 时**不需要斜坡、直接回 Driving**——原版一行写死这个性质：driving = enabled 且 bring-up 状态为 Ready（`reference/robotd/src/main.rs:2124`）。
+
+一句话区分：Held 是"没通电的抱持"，Stopped 是"上了电的抱持"。
+
+### 【背景卡片】两对开关，别拧在一起
+
+机器人上有两组语义完全不同的"开/关"，原版的协议设计把它们分得很干净：
+
+- **策略开关**：`robot.enable`——策略这个"脑子"转不转。关（disable）的意思是"别自己动了，回 home 站好"，**不是断电**。
+- **电源开关**：`robot.init` / `robot.relax`——电机通不通电。relax 才是"松手"：卸 torque，舵机不再出力，人可以上手掰。
+
+原版协议注释把分工写明了："stand up" 和 "let go" 是各自的决策，值得各自的名字（`reference/duck-ipc-proto/src/lib.rs:542-551`）。我们此前的 RampDown 把两对开关拧在了一起——disable 顺手把电也卸了——这正是 D64 登记的那条偏差。注意 `robot.relax` 我们**还没实现**（缺口，不在本 Bite 范围），这个现状会影响决策卡片③的成本账。
+
+## 3. 设计
+
+![M8 架构](arch.svg)
+
+![M8 相对 Bite 1 的变动](arch-diff.svg)
+
+两张图已更新到 Bite 2 之后的当前状态。先读第二张：依然无新增、无删除模块，未动模块全部灰化——但这次的改动有两个钻进了**模块内部**：`main.rs` 的 RPC 分发结构（notification 统一入口提前拦截无 id 帧；对外方法面 `robot.enable` 参数形状变、`robot.disable` 消失）和 `control.rs` 的状态机（五阶段里 `RampDown` 退役、`Stopped` 上岗）。arch 图里控制循环节点画的阶段机因此必须改：旧图上的 `→ RampDown` 换成了 `→ Stopped（上电抱持 home）→ enable 直接回 Driving`。
+
+设计按五层展开，代码领读也按这个顺序走：
+
+1. **协议层收 `EnableParams`**（`src/lib.rs`）。`{on: bool, toggle: 缺省 false}`，`deny_unknown_fields`；`on` **没有** serde default——`toggle` 不免除 `on`，手柄 Start 就是两个字段一起发的（原版同，`reference/duck-ipc-proto/src/lib.rs:2685-2704`）。
+2. **notification 统一入口提前拦截**（`src/main.rs` serve 循环）。帧解析出来、确认无 id，就进统一入口：三个连续意图（move/head/mouth）解析合法就静默应用，非法静默丢弃；其他任何方法的无 id 帧静默丢弃。带 id 的帧才进分发 match——**每个分支都必须给出应答**这件事重新变得可枚举。head/mouth 由此获得通知语义。
+3. **robot.enable 带 id 分支按原版重写**（`src/main.rs`）。toggle 为真时 daemon 侧翻转（`on` 被忽略）；永不拒绝；应答 `{accepted: true, reason}`，reason 文案逐字对齐原版。`robot.disable` 分支删除——原版没有这个方法（用户裁决：CLI 的 `disable` 子命令也一并删除，不留别名），老调用拿 METHOD_NOT_FOUND。
+4. **状态机：Stopped 取代 RampDown**（`src/control.rs`）。转移规则抽成两个纯函数：`edge_transition()`（enabled 边沿只在 Held/Stopped/Driving 三个相位上立即动作）和 `ramp_done_phase()`（斜坡完成按 enabled 现值落 Driving 或 Stopped）。Driving 中 disable：当拍 policy reset + 切 Stopped，Stopped 臂当拍把 home 写出去，torque 保持 on。Stopped 中再 enable：直接回 Driving，无斜坡。
+5. **disable 结束 recurrent episode**（`src/scheduler.rs` + `src/control.rs` 边沿处理）。`Scheduler::reset()` 清全部已加载槽的 LSTM 状态，低通锚点与 `last_action` 一并丢弃——Stopped→Driving 无斜坡，带着旧锚点回来就是一次踉跄。原版同一边沿调 `controller.reset()`（`reference/robotd/src/main.rs:2791-2793`）。
+
+### 决策导览
+
+本章三张决策卡片（完整论证在代码领读原位）：
+
+- **toggle 由 daemon 侧翻转**——开关信念归谁持有（见「robot.enable 分支」）。
+- **notification 统一静默入口，framing 不改变语义**——无 id 帧要不要按方法一一刀割（见「notification 统一入口」）。
+- **disable 不卸 torque、直接回 home**——RampDown 斜坡 + 卸 torque 留不留（见「状态机改造」）。
+
+读完本节，不看代码应能复述：`robot.enable {on, toggle}` 是唯一开关入口，toggle 由 daemon 翻转、永不拒绝；任何方法的无 id 帧都不应答，意图静默应用、其余静默丢弃；disable 不卸 torque 不斜坡，当拍写 home、上电抱持，再 enable 直接回 Driving；`robot.disable` 方法与 CLI 子命令一起消失。
+
+## 4. 代码领读
+
+### 协议层：EnableParams
+
+`EnableParams`（`src/lib.rs:140-146`）照原版形状写（`reference/duck-ipc-proto/src/lib.rs:2685-2704`）：`#[serde(deny_unknown_fields)]`，`on: bool` 必填，`toggle` 带 `#[serde(default)]` 缺省 false。doc 注释承重：toggle 是手柄 Start 语义、daemon 侧翻转、客户端信念会漂移——理由不写下来，下个读者看到"toggle 时 on 被忽略"会以为是 bug。`parse_enable`（`src/lib.rs:150-153`）仿 `parse_move` 风格，Err 文案即 INVALID_PARAMS 响应的 message；bool 没有有限值问题，比 move 少一道兜底门。
+
+6 条新单测在 `src/lib.rs:226-259`：on=true / toggle 缺省 false / on+toggle 同帧合法 / 单发 toggle 被拒（on 无 default）/ 未知字段被拒 / 缺 on 与 Null 被拒。
+
+### notification 统一入口
+
+serve 循环里，帧解析成功后、分发 match 之前，先查 id（`src/main.rs:282-302`）：
+
+```rust
+if req.id.is_none() {
+    match req.method.as_str() {
+        "robot.move" => { if let Ok(twist) = parse_move(&req.params) { ... } }
+        "robot.mouth" => { ... }
+        "robot.head" => { ... }
+        _ => {} // 非意图方法的 notification：静默丢弃
+    }
+    continue;
+}
+```
+
+三个细节：
+
+- **整帧 JSON 解析失败仍回 PARSE_ERROR**（`src/main.rs:264-273`）——那一刻还不知道它是不是 notification，按规范回 `"id":null` 的错误帧。统一入口只拦"解析成功的无 id 帧"。
+- **framing 不改变语义**：head/mouth 的 parse 与 apply 抽成了和 move 同款的两对小函数（`parse_mouth` `src/main.rs:213-219`、`apply_mouth_intent` `:222-224`、`parse_head` `:227-238`、`apply_head_intent` `:241-243`），通知路径与带 id 请求路径（`src/main.rs:421-436`）共用——带不带 id 只决定回不回包，应用的是同一个函数。
+- 带 id 分支里 move/head/mouth 的注释都补了"无 id 通知走上面统一入口"的指路牌，防止下个读者以为漏了通知路径。
+
+原版同款结构在 `reference/robotd/src/main.rs:3554-3562`：无 id 帧 `apply_intent(...)` 后 `continue`，`apply_intent` 对非意图方法返回 false，什么都不发生。我们把它翻译成了一张字面分发表——三种意图列出来，其余 `_ => {}`，行为等价且更一目了然（我们的方法面小，列得起）。
+
+**【决策卡片】notification 统一静默入口，framing 不改变语义**
+
+- **决策点**：无 id 帧的处理，是按方法逐个开通知语义，还是一刀切"无 id 即不应答"。
+- **备选**：1. 只给 `robot.move` 开通知语义，其他方法的无 id 帧回一条 `"id":null` 响应（Bite 1 的落点）；2. 任何方法的无 id 帧都不应答——意图方法静默应用、非意图静默丢弃（原版形态）。
+- **选择**：备选 2，对齐原版。规范原话是 notification 不应答，没有例外；原版实现是无 id 帧统一走 `apply_intent` 入口（`reference/robotd/src/main.rs:3554-3562`）。更实质的推动力是 head/mouth：它们同属连续意图（`reference/duck-ipc-proto/src/lib.rs:520-548`），手柄以 20–50Hz 发头姿，备选 1 下这个形态永远开不了。
+- **放弃的成本**（备选 1 的好处我们没要到）：**调用方能立刻察觉"这个方法不吃通知"**——一条 `"id":null` 响应是即时的负反馈，调试时比"机器人不理我"好定位；而且备选 1 已经在 Bite 1 落地，选它本 Bite 这节代码一行都不用改。要不到它的理由：这条负反馈本身是违规帧，且机器人上没有任何客户端靠它做决策——它只是一条没人等的噪音；为这点调试便利长期背着规范偏差和 D43 残余，不划算。诊断能力没有丢：同样的参数带 id 发一帧，该拿的错误原文一条不少（Bite 1 决策卡片「非法通知静默丢弃 vs 回错误」的补偿机制，对 head/mouth 同样成立）。
+- **失效边界**：统一入口假设"连续意图就这三种"——未来新增连续意图方法（比如原版的 `robot.pose`），要在这里加一行；漏加的症状是静默丢弃，和"方法不存在"无法区分。这是字面分发表换一目了然付的税。
+
+### robot.enable 分支：toggle daemon 侧翻转，永不拒绝
+
+带 id 的 `robot.enable` 分支（`src/main.rs:319-340`）全部逻辑：
+
+- `parse_enable` 失败 → INVALID_PARAMS（这是唯一会"拒"的情形——参数形状错，不是状态错）。
+- 解析成功 → 加锁写 `ctl.enabled`：`p.toggle` 为真就翻转现值（`on` 被忽略），否则写 `p.on`。
+- 应答 `{accepted: true, reason}`，reason 按写完后的现值二选一，文案逐字对齐原版：`"enabled — driving"` / `"disabled — returning to the home pose"`（`reference/robotd/src/main.rs:4500-4510`）。
+
+**永不拒绝**是刻意的：躺在地上的机器人按 Start，正是人在叫它站起来——原版注释原话（`reference/robotd/src/main.rs:4491-4493`）。注意这个分支**只写开关位**：边沿检测、斜坡、policy reset 全在控制循环里做（见「状态机改造」），RPC 层不替控制循环做决定——和 Bite 1 应用层"只记值和时间戳"是同一条分工。enable 也不管电源：原版注释写明这里没有 init，从 Limp 起来的 bring-up 自然会上电（`reference/robotd/src/main.rs:4496-4499`）。
+
+**【决策卡片】toggle 由 daemon 侧翻转**
+
+- **决策点**：手柄 Start 的"翻到另一个状态"，谁来翻。
+- **备选**：1. 客户端持有开关信念（客户端记"我认为现在是开"，Start 时计算反值发 `on`）；2. daemon 侧翻转——`toggle: true` 时 daemon 读自己的现值取反（原版）。
+- **选择**：备选 2，对齐原版（`reference/robotd/src/main.rs:4490` 注释把理由写死了）：客户端的信念会漂移——对端重启、`robot.relax`、关机序列，任何一条都会让"我以为"和"实际是"脱节；信念一旧，Start 就变成隔次失灵的按钮。开关归属 robot，按一下永远是"另一个状态"。
+- **放弃的成本**（备选 1 的好处我们没要到）：**客户端自治**——客户端不看任何状态就能决定发什么，协议面也少了 `toggle` 一个字段（只有 `on`，daemon 实现更薄）。要不到它的理由：这份自治是假象——客户端信念的正确性依赖它对 daemon 全生命周期的跟踪，而它恰恰跟踪不了（重启和 relax 都发生在它视野外）；省下的一个协议字段，换来的是"按钮隔次失灵"这种最难向用户解释的故障形态。
+- **用户裁决**：`robot.disable` 方法删除的同时，**CLI 的 `disable` 子命令一并删除，不留别名**——关就是 `mini-duckctl enable off`（`src/bin/mini-duckctl.rs:42-55` 注释）。验收断言 p2 钉住：`robot.disable` 得到 METHOD_NOT_FOUND。
+- **失效边界**：toggle 语义成立的前提是"开关只有两态"。如果未来 enable 面长出第三态（比如半使能/演示模式），"翻到另一个状态"不再有定义，toggle 要重新设计——原版协议里 enable 就是布尔，边界一致。
+
+### 状态机改造：Stopped 取代 RampDown
+
+模块头文档的 ASCII 状态图整段重写（`src/control.rs:1-29`），新图长这样：
+
+```text
+Held ──enable {on:true}──▶ RampUp(100拍) ──▶ Driving ◀──▶ Limp（跌倒⇄恢复）
+（启动抱持，torque off）          │              │
+                                  ▼              ▼ enable {on:false}
+                                Stopped ◀────────┘ 当拍直接命令回 home（无斜坡），
+                             （上电抱持 home）       policy reset，torque 保持 on
+                                  │
+                                  └──enable {on:true}──▶ 直接回 Driving（无斜坡）
+```
+
+`Phase` 枚举（`src/control.rs:265-281`）五个变体：`Held` / `RampUp` / `Driving` / `Limp` / `Stopped`，`Stopped` 的 doc 注释写明它的全部性质——上电抱持 home、嘴跟随 home、head/body 命令无效、再 enable 直接回 Driving。转移规则抽成两个纯函数：
+
+- `edge_transition()`（`src/control.rs:307-319`）：enabled 边沿 → 相位动作。只有三条规则立即动作——`Held + enable（有策略）` → `PowerOnAndRamp`；`Stopped + enable` → `ResumeDriving`；`Driving + disable` → `StopToHome`。其余（非边沿、RampUp/Limp 中的边沿）返回 `None`。每条规则的依据逐条引原版证据写在 `EdgeAction` 的 doc 注释里（`src/control.rs:283-303`）：bring-up 只从 torque-off 态触发（`reference/robotd/src/main.rs:2560-2566`）、Stopped 再 enable 无斜坡无死窗（`:2124`）、Driving 中 disable 当拍直接命令回 home 不卸 torque（`:2786-2798`）。
+- `ramp_done_phase()`（`src/control.rs:322-328`）：斜坡完成的落点看 enabled **现值**——enable 着进 Driving，否则进 Stopped。这一条让"RampUp/Limp 途中的 enable 边沿"自然汇入：边沿在途中不立即动作，但斜坡终点就是 home，完成时按现值落点，边沿因此不会丢。
+
+主循环里 `StopToHome` 的处理（`src/control.rs:447-457`）：`scheduler.reset()`（清 LSTM 槽）+ 低通锚点与 `last_action` 清零 + 切 `Phase::Stopped`；`Stopped` 臂每拍把 `DEFAULT_POSITION` 原样写出，gain 维持 running 档 200（`src/control.rs:530-537`）。整个文件没有任何 `set_torque(false)` 路径——卸 torque 是 relax 的活，Held 是它未来的落点（`src/control.rs:19-21`）。
+
+顺带修掉一个自家 bug：旧机的 `RampDown` 途中再 enable，边沿不被任何规则接住，斜坡走完落进 `Held`（torque 已卸），机器人从此抱着启动姿态不动——**卡死，只能重启**。新机下边沿只动 Held/Stopped/Driving，途中边沿由斜坡完成规则按现值汇入，这个卡死路径在结构上不存在了。
+
+6 条新单测全打在这两个纯函数上（`src/control.rs:723-776`）：Driving 中 disable → StopToHome；Stopped 中 enable → ResumeDriving；Held 中 enable 有策略才 PowerOnAndRamp（D19：没策略留在 Held）；RampUp/Limp 中的边沿返回 None（延后而非丢弃）；非边沿与其他相位组合什么都不做；斜坡完成按 enabled 现值落点。
+
+**【决策卡片】disable 不卸 torque、直接回 home**
+
+- **决策点**：disable 时机器人怎么回到 home，以及回完之后电机什么状态。
+- **备选**：1. 保留 `RampDown`——2 秒斜坡插值回 home，然后 `set_torque(false)` 卸力（M5–M7 的形态）；2. 当拍直接把 home 写进目标寄存器，舵机按自己的速度走过去，保持上电抱持（原版 Stopped 形态）。
+- **选择**：备选 2，对齐原版（`reference/robotd/src/main.rs:2786-2798`）。依据是两对开关的分工：enable 管策略、init/relax 管电源（`reference/duck-ipc-proto/src/lib.rs:542-551`）——disable 顺手卸 torque 是把电源开关偷渡进了策略开关。无斜坡的理由原版注释也写了：舵机自己走得很好，而且下次 Start 把机器人交给策略时它已经站在 home（`reference/duck-ipc-proto/src/lib.rs:2698-2701`）。
+- **放弃的成本**（备选 1 的好处我们没要到）：两条。(a) **卸 torque 的即时收益**——省电、舵机不持续发热、人可以随时上手把机器人掰成任意姿势（"松手"的安全感）；选备选 2 后机器人 disable 了也一直硬挺挺站着，而 `robot.relax` 我们还没实现——**卸 torque 在 relax 落地前失去了出口**，用户当前没有任何方法让机器人松手，这是本次对齐真实付出去的代价，已随 D64 登记在案。(b) **回 home 过程的柔和可控**——斜坡是目标沿直线逐拍爬过去，速度由我们掌控；直接命令则是舵机按自己的速度走，动作更"楞"，从深坐姿之类的大偏差姿态回 home 时不如斜坡温柔。要不到它们的理由：(a) 的好处本来就是 relax 的语义，寄生在 disable 上正是要收敛的偏差本身；(b) 在 FakeIo/sim 上差异不可观测，真机上原版的实践就是直接命令。
+- **用户裁决**：这条 disable 语义差异是复核中新发现的（此前未登记），裁决为**本 Bite 立即对齐，不挂账**——登记为 D64，随本 Bite 收敛。
+- **失效边界**：如果真机上出现"舵机直接回 home 会磕碰"的姿态（比如趴地时手臂折叠），直接命令可能不如斜坡安全——原版的答案是 bring-up 路径（从 Limp 起来仍走斜坡，`reference/robotd/src/main.rs:4496-4499`），而不是给 disable 加回斜坡；我们的 RampUp 同理保留。
+
+### Scheduler::reset：disable 结束 recurrent episode
+
+`Scheduler::reset()`（`src/scheduler.rs:398-413`）清空**所有已加载槽**的 LSTM 状态——walk、sitstand、ground_pick、每个技能槽，不只是当前活跃网：disable 结束的是整个 recurrent episode（原版同一边沿的 `controller.reset()`，`reference/robotd/src/main.rs:2791-2793`）。Cascade 的窗口计时与坐姿锁存**不动**——doc 注释写明它们不是 episode 记忆，且非 Driving 阶段不推进（`src/scheduler.rs:400-401`）【合理推断：原版 `controller.reset()` 是否连带清坐姿锁存，我们没有逐行确证，这条是按"锁存不属于 episode 记忆"的语义判断落的，已在 D64 残余存疑里登记】。
+
+单测 `reset_clears_every_loaded_slot`（`src/scheduler.rs:488-523`）用 `reset_calls` 计数器断言每个槽都多了一次 reset——注意断言用的是**增量**而不是绝对值，原因见「常见坑」2。
+
+### CLI 与验收脚本
+
+`mini-duckctl` 的子命令 `enable` / `disable` 合并为 `enable [on|off]`（缺省 on，`src/bin/mini-duckctl.rs:42-55`）：CLI 每次只发**表决结果**（`robot.enable {on}`），不发 toggle——开关信念归 daemon 持有，toggle 是手柄 Start 的事，CLI 没有"翻一下"的需求。
+
+`scripts/accept-m5.sh` 的 A1c 整段重写（`scripts/accept-m5.sh:99-116`）：旧版断言"disable 后 2 秒斜坡 + torque=false"，新版断言原版语义——`enable off` 后 positions **精确等于** home（|positions−home|max，阈值 1e-6）、enabled=false、**torque=true**（注释写明：那是 relax 的活）。`scripts/accept-m8.sh` 追加断言 i–p + n2 + o2（逐项见验收节）。
+
+## 5. 验收
+
+```bash
+# 容器内（miniduck-rust，工作目录 /work）
+docker compose exec rust cargo test
+```
+
+实测：`test result: ok. 81 passed; 0 failed`——Bite 1 的 68 条 + 本 Bite 新增 13 条（`src/lib.rs` 6 条 enable 参数形状、`src/control.rs` 6 条状态机转移规则、`src/scheduler.rs` 1 条 reset 覆盖全槽）。
+
+```bash
+docker compose exec rust bash scripts/accept-m8.sh
+```
+
+实测断言 a–p + n2 + o2 全过（2026-10-06 主 agent 复跑；完整输出与命令见 [acceptance.md](acceptance.md)）。Bite 2 新增部分的关键实测行：
+
+```text
+i. enable on → 'enabled — driving'，推送 enabled=true  OK
+j. 无 id robot.head 静默生效 obs[51:55]=[0.1, -0.1, 0.2, 0.05]，全程无响应行  OK
+k. 无 id robot.mouth 静默生效 positions[9]=0.524rad（目标 0.524）  OK
+l. 无 id robot.health 静默，25 帧内只有 robot.state 推送  OK
+m. 带 id head/mouth 请求式回显不变（mouth 回显 0.5）  OK
+n. toggle 翻转 开→关 → 'disabled — returning to the home pose'，推送 enabled=false  OK
+n2. disable 后 positions 逐位等于 home，26 帧 torque 全为 true  OK
+o. on+toggle 同帧 toggle 优先 关→开 → 'enabled — driving'  OK
+o2. 1s 内 skill=walk——从 Stopped 直接回 Driving，无 2 秒斜坡  OK
+p1. enable 未知字段 INVALID_PARAMS  OK
+p2. robot.disable → METHOD_NOT_FOUND  OK
+```
+
+**断言解释**（逐项：这个断言为什么证明了这个性质）
+
+- **i 证明 enable 的请求语义**：accepted + reason 文案逐字对齐 + 推送 `enabled=true`——RPC 层只写开关位，推送里的 enabled 是控制循环快照透传（`src/control.rs:587-596`）。
+- **j / k 证明 head/mouth 获得通知语义**：j 发无 id `robot.head` 后从推送的 obs 里读到 head 块（偏移 `OFF_HEAD=51`）变成目标值，全程零响应行；k 发无 id `robot.mouth {position:1.0}` 后 positions[9]（`MOUTH_INDEX=9`）走到 0.524rad（0..1 → −5°..+30° 的上限）——"没回复 ≠ 没执行"在两个新方法上复现。
+- **l 证明非意图方法的通知被静默丢弃**：无 id `robot.health` 发出后 0.5s 内 25 帧全部是 `robot.state` 推送，没有任何响应行——统一入口的 `_ => {}` 臂。
+- **m 证明请求式路径不变**：带 id 的 head/mouth 照旧回显——framing 不改变语义，两条路径共享同一对 parse/apply。
+- **n / n2 是一对，钉住 D64 的对齐**：n 发 `{on:false, toggle:true}`（当前为开）→ 翻转为关，reason 逐字 `"disabled — returning to the home pose"`；n2 随后断言 positions 逐位等于 home（阈值 1e-9——FakeIo 是精确回写，见「常见坑」3）且 26 帧 torque **全为 true**——不卸 torque、上电抱持，一次断言同时证伪旧 RampDown 的两个特征（斜坡期 positions 不可能逐位等于 home；旧机此时 torque 已 false）。
+- **o / o2 是一对，钉住 toggle 优先与 Stopped 直回**：o 发 `{on:true, toggle:true}`（当前为关）→ toggle 优先忽略 on，翻回开；o2 给 1 秒预算等到推送 `skill=walk`——旧斜坡要 2 秒，1 秒内进 Driving 只可能是 Stopped 直回（`edge_transition` 的 ResumeDriving 臂）。
+- **p1 / p2 是协议面的两道门**：p1 未知字段 INVALID_PARAMS（`deny_unknown_fields`）；p2 是旧方法的死亡证明——`robot.disable` 得到 METHOD_NOT_FOUND，不是静默别名。
+
+**可观测量选择的一处讲究**：等"进入 Driving"不能用 `gain==200` 判——RampUp 和 Stopped 同样用 running 档增益 200（`src/control.rs:518-537`），判了会假阳性；脚本改用推送的 `skill` 字段（只有 `driving_tick` 跑起来推送里才有 `"walk"`，`scripts/accept-m8.sh:219-223` 注释）。
+
+**回归**（全部 2026-10-06 复跑）：
+
+- `accept-m5.sh` 全过：A1c 实测 `|positions-home|max=0.00e+00`，enabled=false，torque=true——Stopped 上电抱持 home 的端到端证据。
+- `accept-m4.sh` PASS（10 秒行走位移 0.764m，过 0.5m 门槛）、`accept-m6.sh` 全过——控制链路行为不变。
+- `accept-m7.sh` 本机 D1/E1 两处时序断言 flake（预先存在，新机器更快、Busy 窗口抓空），与本 Bite 无关——见「常见坑」4。
+
+## 6. 与原版对照与差异
+
+**本 Bite 已对齐**（每条附原版证据）：
+
+| 对齐项 | 原版证据 | 我们 |
+|---|---|---|
+| `robot.enable {on, toggle}` 参数形状（deny_unknown_fields、toggle 缺省 false、on 无 default） | `reference/duck-ipc-proto/src/lib.rs:2685-2704` | `src/lib.rs:133-153` |
+| toggle 由 daemon 侧翻转（on 被忽略）；客户端不持有开关信念 | `reference/robotd/src/main.rs:4490` | `src/main.rs:325-331` |
+| enable 永不拒绝；reason 文案逐字对齐 | `reference/robotd/src/main.rs:4491-4493`、`:4500-4510` | `src/main.rs:332-337` |
+| 任何方法的无 id 帧都不应答：意图静默应用、非意图静默丢弃 | `reference/robotd/src/main.rs:3554-3562` | `src/main.rs:282-302` |
+| 带 id 的意图方法也应答（framing 不改变语义） | `reference/robotd/src/main.rs:4151-4157` | parse/apply 双路共用（`src/main.rs:344-358`、`:421-436`） |
+| disable：policy reset + 当拍直接命令回 home，无斜坡、不卸 torque | `reference/robotd/src/main.rs:2786-2798` | `src/control.rs:447-457`、`:530-537` |
+| disable 结束 recurrent episode（controller.reset） | `reference/robotd/src/main.rs:2791-2793` | `Scheduler::reset()`（`src/scheduler.rs:398-413`） |
+| enable 不管电源（bring-up 只从 torque-off 态触发）；两对开关分工 | `reference/robotd/src/main.rs:4496-4499`、`:2560-2566`；`reference/duck-ipc-proto/src/lib.rs:542-551` | 无 `set_torque(false)` 路径（`src/control.rs:19-21`）；`edge_transition`（`src/control.rs:307-319`） |
+| Stopped 再 enable 直接回 Driving，无斜坡（driving = enabled && Ready） | `reference/robotd/src/main.rs:2124` | `EdgeAction::ResumeDriving`（`src/control.rs:315`） |
+
+**偏差簿变动**（已更新 `docs/deviations.md` 与 `docs/feature-inventory.md`）：
+
+- **D44 收敛**：`robot.enable {on, toggle}` 全对齐；`robot.disable` 方法与 CLI 子命令一并删除（用户裁决，不留别名）。
+- **D64 新登记并即收敛**：disable 语义（旧 RampDown = 2s 斜坡 + 卸 torque vs 原版直接命令回 home + 上电抱持）。复核中发现、用户裁决本 Bite 立即对齐不挂账。**残余存疑**：`Scheduler::reset()` 是否应连带清 Cascade 的坐姿锁存——我们按"锁存不是 episode 记忆"判断不动它，但无原版逐行确证【合理推断】，已随 D64 登记。
+- **D43 残余①②收敛**：head/mouth 通知语义已开、非意图方法的通知统一静默。D43 仅剩**残余③**：`mini-duckctl move` 仍是请求式逐条调用——教学工具定位保留（要打印 accepted 回显；daemon 侧两种形态都收，原版由手柄 padd 以通知式 20–50Hz 发送）。
+
+**残余差异**（新明确的一条，随 D43/D64 联动记录）：
+
+- **请求式意图方法的应答载荷是 `{accepted}` 的超集/变形**：原版带 id 的 move/head/mouth 统一回 `IntentResult::accepted()`（`reference/robotd/src/main.rs:4151-4157`）；我们的 move 回 `{accepted, vx, vy, vyaw}`（超集，多回显），head/mouth 回显参数值（`{head: [...]}` / `{mouth: p}`，无 `accepted` 字段）。回显对教学更友好，且超集不破"照原版文档写的客户端"（它们只读 `accepted`）——head/mouth 缺 `accepted` 字段这条待后续 Bite 裁决是否补齐。
+- **robot.relax 未实现**（缺口）：disable 对齐原版语义后，卸 torque 在 relax 落地前没有出口——这是决策卡片③明账付出去的代价，随 D64 登记。
+
+## 7. 常见坑与展望
+
+1. **`gain==200` 判不出 Driving**（本 Bite 验收真实绕过的坑）。RampUp 和 Stopped 阶段同样用 running 档增益 200 写总线（`src/control.rs:518-537`）——用 gain 判断"策略在跑"会在斜坡和抱持期间双双假阳性。可区分的是推送的 `skill` 字段：只有 `driving_tick` 成功推理才填 `"walk"` 等技能名，其余阶段恒 null（`scripts/accept-m8.sh:219-223`）。教训：**状态判断要找只在目标状态下才成立的观测量**，顺手抓的现成字段往往是更大的集合。
+2. **`Policy::load` 自带一次 reset，断言要用增量**。`Scheduler::load` 加载每个槽时会调一次 `reset()` 初始化 LSTM（`src/scheduler.rs:511` 注释指向 policy.rs），所以 `reset_calls` 的断言写成"调用前后各取一次、比较差值"（`src/scheduler.rs:512-523`）——断言绝对值会把 load 的那一次算进去，换一个加载顺序就碎。教训：断言计数器时先想清楚计数器的全部写入者。
+3. **FakeIo.write 是精确回写，不是一阶滞后**。`src/io.rs:100-102` 自述"故意不做一阶惯性模型"：write 之后 read 原样返回（`src/io.rs:340-344`）。所以收敛类断言可以用严阈值——n2 的 positions 对 home 阈值 1e-9、A1c 实测 0.00e+00 都靠这个性质；反之，如果哪天给 FakeIo 加上惯性模型，这批严阈值断言会集体变 flake【存疑：`scripts/accept-m8.sh:244` 的注释写着"FakeIo 一阶滞后"，与 io.rs 自述矛盾——以 io.rs 为准，该注释疑似历史遗留，待清理】。
+4. **时序断言对机器速度敏感**（accept-m7 的 D1/E1 教训）。那两条断言靠"在 Busy 窗口内抓到某帧"判定，换台更快的机器窗口就抓空——预先存在的 flake，在本 Bite 复跑时暴露。教训：窗口探测类断言要么带重试、要么改断言更本质的状态（比如本 Bite 的 skill 字段），别把验收硬度建立在"机器够慢"上。
+
+**展望**：M8 剩余路线不变。C1 接口对齐的后续 Bite：`robot.subscribe` 入口（D45，含 hz 降频与 ack）、updater 的 `robot.safeToRestart` 预检（D47）；`robot.relax`（卸 torque 的出口，D64 残余）与 head/mouth 应答补 `accepted` 字段待裁决排期。C2 移植 BAM 执行器模型进 `sim/duck_body.py`（D21），让 sit / roulade 在仿真里物理通过——先做 kp=0.55 一行实验验证归因，再动手移植。
+
+[^3]: 斜坡（ramp）：目标位置不一步到位，而是沿直线从当前姿态一点点爬向目标的渐变过程——我们的 RampUp 是 2 秒 × 50 拍从实测姿态爬到 home（`src/control.rs:47-48`）。

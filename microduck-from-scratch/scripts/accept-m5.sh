@@ -85,7 +85,7 @@ diff = max(abs(a - b) for a, b in zip(p['positions'], home))
 assert p['enabled'] is True, 'enable 后 enabled 应为 true'
 assert p['gain'] == 200, f'Driving 增益应为 200，实际 {p[\"gain\"]}'
 # Driving 阶段目标 = home + 0.9×策略动作，不会逐位等于 home；
-# 这里断言「已到达 home 附近被策略闭环」，精确相等留给 disable 后的 Held。
+# 这里断言「已到达 home 附近被策略闭环」，精确相等留给 enable off 后的 Stopped。
 # 阈值 0.4：FakeIo 上实测漂移 0.13~0.18 rad（速度恒 0 的假总线本来
 # 就不是策略的训练分布），留一倍余量。
 assert diff < 0.4, f'enable 3s 后应贴近 home，最大偏差 {diff}'
@@ -96,9 +96,10 @@ r = json.loads(sys.stdin.read())['result']
 assert r['healthy'] is True, f'应为 healthy，实际 {r}'
 print('health healthy=true  OK')" || fail "health"
 
-echo "== A1c. disable → 斜坡回 home → 卸 torque，位置精确等于 home =="
-./target/debug/mini-duckctl disable >/dev/null || fail "disable"
-sleep 3
+echo "== A1c. enable off → 直接命令回 home（无斜坡）、不卸 torque，位置精确等于 home =="
+./target/debug/mini-duckctl enable off >/dev/null || fail "enable off"
+# 无 2 秒斜坡：Stopped 当拍写 home，FakeIo 是精确回写，1 秒足够 settle。
+sleep 1
 F=$(state_frame)
 echo "$F" | python3 -c "
 import json, sys
@@ -106,10 +107,13 @@ p = json.loads(sys.stdin.read())['params']
 home = [0.0, -0.0873, -0.4579, -0.0049, 0.4530, 0.3491, 0.3491, 0.0, 0.0, 0.0,
         0.0, 0.0873, 0.4579, 0.0049, -0.4530]
 diff = max(abs(a - b) for a, b in zip(p['positions'], home))
-assert diff < 1e-6, f'disable 后 Held(home) 应逐位等于 home，最大偏差 {diff}'
-assert p['enabled'] is False and p['torque'] is False, \
-    f'disable 后 enabled/torque 应为 false，实际 {p[\"enabled\"]}/{p[\"torque\"]}'
-print(f'disable 后回到 Held：|positions-home|max={diff:.2e}，enabled=false，torque=false  OK')"
+assert diff < 1e-6, f'enable off 后 Stopped 抱持 home 应逐位等于 home，最大偏差 {diff}'
+assert p['enabled'] is False, f'enable off 后 enabled 应为 false，实际 {p[\"enabled\"]}'
+# 原版语义：enable 管策略、init/relax 管电源——enable off 不卸 torque，
+# 机器人上电抱持 home，下次 enable 直接回 Driving（无斜坡无死窗）。
+assert p['torque'] is True, f'enable off 不应卸 torque（那是 robot.relax 的活），实际 {p[\"torque\"]}'
+assert p['gain'] == 200, f'Stopped 维持 running 增益，实际 {p[\"gain\"]}'
+print(f'enable off 后 Stopped：|positions-home|max={diff:.2e}，enabled=false，torque=true  OK')"
 
 echo "== A2. deadman =="
 ./target/debug/mini-duckctl enable >/dev/null || fail "enable"

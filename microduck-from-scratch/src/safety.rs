@@ -149,7 +149,8 @@ impl<T: RobotIo> Safety<T> {
     }
 
     /// 舵机出力开关。经由此处是因为 Safety 拥有唯一写句柄。
-    /// 控制循环只在 enable/disable 边沿调它，绝不每拍调，也绝不在
+    /// 控制循环只在 enabled 开关边沿（robot.enable 写入了新值）调它，
+    /// 绝不每拍调，也绝不在
     /// 进程启动时调——舵机 RAM 里的 torque 跨进程存活，被 supervisor
     /// 重启的 daemon 必须让站着的机器人继续站着。
     pub fn set_torque(&mut self, on: bool) -> Result<(), IoError> {

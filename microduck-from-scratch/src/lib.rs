@@ -130,6 +130,28 @@ impl MoveParams {
     }
 }
 
+/// robot.enable 参数（原版 EnableParams 形状：deny_unknown_fields，
+/// toggle 缺省 false——reference/duck-ipc-proto/src/lib.rs:2685-2704）。
+///
+/// toggle 是手柄 Start 语义：daemon 侧翻转当前 enabled（此时 on 被忽略），
+/// 因为客户端自己持有的开关信念会随对端重启、robot.relax 等漂移——信念
+/// 一旧，Start 就变成隔次失灵的按钮。开关归属 robot，按一下永远是
+/// "另一个状态"。on 没有 serde default：toggle 不免除 on（原版同）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EnableParams {
+    pub on: bool,
+    #[serde(default)]
+    pub toggle: bool,
+}
+
+/// 解析 robot.enable 参数；Err 的文案即 INVALID_PARAMS 响应的 message。
+/// 仿 parse_move 风格，但 bool 没有有限值问题，少一道兜底门。
+pub fn parse_enable(params: &Value) -> Result<EnableParams, String> {
+    serde_json::from_value(params.clone())
+        .map_err(|e| format!("robot.enable wants {{on: bool}} (optional toggle: bool): {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -198,5 +220,41 @@ mod tests {
         let msg = ServerMessage::err(None, PARSE_ERROR, "boom");
         let line = serde_json::to_string(&msg).unwrap();
         assert!(line.contains("\"id\":null"), "{line}");
+    }
+
+    #[test]
+    fn enable_params_on_true() {
+        let p = parse_enable(&serde_json::json!({"on": true})).unwrap();
+        assert!(p.on && !p.toggle);
+    }
+
+    #[test]
+    fn enable_params_toggle_defaults_false() {
+        let p = parse_enable(&serde_json::json!({"on": false})).unwrap();
+        assert!(!p.on && !p.toggle);
+    }
+
+    #[test]
+    fn enable_params_toggle_true_alongside_on() {
+        // toggle 与 on 同帧是合法形状（daemon 侧忽略 on）——手柄 Start 就是这么发的。
+        let p = parse_enable(&serde_json::json!({"on": true, "toggle": true})).unwrap();
+        assert!(p.on && p.toggle);
+    }
+
+    #[test]
+    fn enable_params_toggle_alone_rejected() {
+        // on 没有 serde default（对照 duck-ipc-proto EnableParams）：toggle 不免除 on。
+        assert!(parse_enable(&serde_json::json!({"toggle": true})).is_err());
+    }
+
+    #[test]
+    fn enable_params_unknown_field_rejected() {
+        assert!(parse_enable(&serde_json::json!({"on": true, "foo": 1})).is_err());
+    }
+
+    #[test]
+    fn enable_params_missing_on_rejected() {
+        assert!(parse_enable(&serde_json::json!({})).is_err());
+        assert!(parse_enable(&Value::Null).is_err());
     }
 }

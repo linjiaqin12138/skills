@@ -59,3 +59,26 @@ docker compose exec rust bash scripts/duck-vnc.sh --port 7801
 注意：物理节拍仍由 daemon 驱动（`miniduckd --sim 127.0.0.1:7801` 每 20ms 一个 `read`）。daemon 不连时画面能转、能选刚体，但物理冻结，推了也不动——先 `mini-duckctl enable` 让鸭子站起来再推。
 
 渲染走 Mesa llvmpipe 软件 GL（`LIBGL_ALWAYS_SOFTWARE=1`），帧率一般但够用。MJPEG 模式（`--view-port 7802`，osmesa）不受影响，两条路可以同时开。
+
+## Rootful vs Rootless Docker
+
+本仓库默认用 rootful Docker（daemon 以 root 跑），容器内 uid/gid 1000 是为了让 `target/` 产物属主是宿主机普通用户，而不是走 rootless 模式。两种模式的区别：
+
+- **Rootful（默认）**：`dockerd` 以 root 运行。风险在于能访问 `/var/run/docker.sock` 的用户等同于宿主机 root，容器逃逸即拿到宿主机 root。可绑定 <1024 端口、支持 `--network host`。
+- **Rootless**：`dockerd` 以普通用户运行，靠 user namespace 把容器内 root 映射为宿主机普通用户，逃逸也只是一般用户权限。每个用户有独立 daemon、数据目录（`~/.local/share/docker`）和 socket（`$XDG_RUNTIME_DIR/docker.sock`）。
+
+Rootless 的限制：默认不能绑 <1024 端口（可 `sudo sysctl net.ipv4.ip_unprivileged_port_start=0` 放开）；网络走 slirp4netns，性能略低，容器看到的源 IP 是 `10.0.2.100`；不支持 `--network host`；cgroup 资源限制需要 systemd + cgroup v2 并为用户开 delegate。
+
+如需在本项目用 rootless 模式（Ubuntu/Debian）：
+
+```bash
+sudo apt install uidmap dbus-user-session fuse-overlayfs slirp4netns
+dockerd-rootless-setuptool.sh install
+sudo loginctl enable-linger $USER            # 可选：未登录也跑 daemon
+systemctl --user enable --now docker
+export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock   # 写入 ~/.bashrc
+```
+
+之后 `docker compose` 命令照常使用。注意 rootless 下容器 uid 1000 实际映射到宿主机你的用户，`target/` 属主关系不变；但 `/etc/subuid` 映射区间内属主会显示为你的用户，属正常现象。
+
+怎么选：本机开发、多人共用机器优先 rootless（更安全）；需要 host 网络、GPU 直通、绑 80/443 时用 rootful。参考：<https://docs.docker.com/engine/security/rootless/>

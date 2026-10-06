@@ -6,9 +6,19 @@
 //! 文档），本循环只通过 Safety 的方法碰总线。状态机是原版
 //! Bringup/LimpFall 三态机的简化版（简化已登记偏差簿 D23）：
 //!
-//!   Held ──enable──▶ RampUp(100拍) ──▶ Driving ◀──▶ Limp（跌倒⇄恢复）
-//!     ▲                                    │
-//!     └──── RampDown(100拍)+卸torque ◀──disable┘
+//!   Held ──enable {on:true}──▶ RampUp(100拍) ──▶ Driving ◀──▶ Limp（跌倒⇄恢复）
+//!  （启动抱持，torque off）          │              │
+//!                                    ▼              ▼ enable {on:false}
+//!                                  Stopped ◀────────┘ 当拍直接命令回 home（无斜坡），
+//!                               （上电抱持 home）       policy reset，torque 保持 on
+//!                                    │
+//!                                    └──enable {on:true}──▶ 直接回 Driving（无斜坡）
+//!
+//! 斜坡完成后按 enabled 现值落 Driving 或 Stopped，所以 RampUp/Limp 途中的
+//! enable 边沿不会丢（边沿只动 Held/Stopped/Driving，其余阶段自然汇入）。
+//! 卸 torque 是 robot.relax 的活（enable 管策略、init/relax 管电源，两对
+//! 开关——reference/robotd/src/main.rs:4496-4499）；本循环没有任何
+//! set_torque(false) 路径，Held 是进程启动态，也是未来 relax 的落点。
 //!
 //! Held 绝不调 set_torque：进程启动不是移动机器人的理由——舵机 RAM 里的
 //! torque 跨进程存活，被重启的 daemon 必须让站着的机器人继续站着（D9 收敛）。
@@ -95,7 +105,8 @@ pub struct ControlState {
     /// 最近一次 robot.move 的时刻；deadman 据此算意图年龄。
     /// None = 从没被驾驶过。
     pub last_intent_at: Option<std::time::Instant>,
-    /// robot.enable/robot.disable 写入；边沿检测在控制循环里做。
+    /// robot.enable {on, toggle} 写入（toggle 已在 RPC 层翻成最终值）；
+    /// 边沿检测在控制循环里做。
     pub enabled: bool,
     /// M6：技能请求边沿位掩码（位分配见 scheduler.rs）。控制循环每拍
     /// 取一次清零——位掩码而非队列：同拍两个不同请求都该被看到，优先级
@@ -254,20 +265,70 @@ pub fn driving_tick(
 enum Phase {
     /// 抱持：写启动时读到的姿态，绝不动 torque。hold 为 None 表示
     /// 还没读到过一帧（第一次 read 成功时锁存启动姿态）。
+    /// 进程启动态，也是未来 robot.relax 的落点。
     Held { hold: Option<[f64; NUM_JOINTS]> },
-    /// 从实测姿态线性斜坡到 home，完成后进 Driving。
+    /// 从实测姿态线性斜坡到 home，完成后按 enabled 现值进 Driving 或 Stopped。
     RampUp { start: [f64; NUM_JOINTS], tick: u64 },
     /// 策略闭环。
     Driving,
     /// 跌倒软倒：目标跟随实测位置（倒地过程中固定目标会累积误差=
     /// 电机顶着地板较劲；"软"的关键就是目标跟着身体走），低增益。
     Limp,
-    /// 从实测姿态斜坡回 home，完成后卸 torque 回 Held。
-    RampDown { start: [f64; NUM_JOINTS], tick: u64 },
+    /// 上电抱持 home（原版 Ready + hold=DEFAULT_POSITION）：disable 后舵机
+    /// 自己走回 home 并保持上电，再 enable 直接回 Driving。嘴跟随 home
+    /// （非 Driving 阶段嘴跟随本阶段目标，D31）；head/body 命令无效。
+    Stopped,
+}
+
+/// enabled 边沿上要做的动作（纯数据，转移规则单测覆盖）。
+/// 规则依据（reference/robotd/src/main.rs）：
+/// - enable 的 bring-up（torque on + 斜坡回 home）只从 torque off 的 Held
+///   触发（:2560-2566）；没策略的机器人 enable 无意义，留在 Held（D19）。
+/// - Stopped（上电抱持 home）再 enable：直接回 Driving，无斜坡无死窗
+///   （:2124 driving = enabled && bringup == Ready）。
+/// - Driving 中 disable：当拍直接命令回 home——舵机按自己的速度走过去，
+///   无斜坡、不卸 torque（:2786-2798，注释原文 "Commanded directly, no
+///   ramp: the servos do the travel at their own speed"）；同边沿 policy
+///   reset，disable 结束 recurrent episode（:2791-2793）。
+/// - RampUp/Limp 中的边沿不立即动作：斜坡终点就是 home，完成时按 enabled
+///   现值落 Driving/Stopped（`ramp_done_phase`）；Limp 的跌倒响应走完，
+///   恢复进 RampUp 后自然汇入同一条规则——边沿因此不会丢。
+enum EdgeAction {
+    /// Held + enable：torque on，然后从实测姿态斜坡回 home。
+    PowerOnAndRamp,
+    /// Stopped + enable：直接回 Driving。
+    ResumeDriving,
+    /// Driving + disable：policy reset，相位切 Stopped（当拍写 home）。
+    StopToHome,
+}
+
+/// enabled 边沿 → 相位动作。非边沿（level 不变）或"边沿由斜坡完成规则
+/// 代为处理"的阶段返回 None。
+fn edge_transition(
+    phase: &Phase,
+    enabled: bool,
+    was_enabled: bool,
+    has_policy: bool,
+) -> Option<EdgeAction> {
+    match (enabled, was_enabled, phase) {
+        (true, false, Phase::Held { .. }) if has_policy => Some(EdgeAction::PowerOnAndRamp),
+        (true, false, Phase::Stopped) => Some(EdgeAction::ResumeDriving),
+        (false, true, Phase::Driving) => Some(EdgeAction::StopToHome),
+        _ => None,
+    }
+}
+
+/// 斜坡完成的落点：enable 着进 Driving，否则停在 home 上电抱持。
+fn ramp_done_phase(enabled: bool) -> Phase {
+    if enabled {
+        Phase::Driving
+    } else {
+        Phase::Stopped
+    }
 }
 
 /// 启动控制任务，返回计数器和最新快照的接收端。
-/// `control` 由 RPC 层写（robot.move/enable/disable/do/mouth/head）、循环每拍读。
+/// `control` 由 RPC 层写（robot.move/enable/do/mouth/head）、循环每拍读。
 /// `scheduler` 为 None 时（D19：walk 策略加载失败不退出）永远停在 Held 抱持。
 pub fn spawn(
     mut safety: Safety<Box<dyn RobotIo>>,
@@ -365,31 +426,36 @@ pub fn spawn(
                 // gate 每拍都调（armed 语义防日志噪音）；Driving 用 gated 命令组 obs。
                 let (gated, _limit) = safety.gate(command, intent_age);
 
-                // enable/disable 边沿检测。只在边沿动作，绝不在 Held 里
-                // 每拍碰 torque。边沿立即生效（先于跌倒判定），否则
-                // "Driving 中跌倒"与"同拍 disable"会互相覆盖。
-                if enabled && !was_enabled {
-                    // 没策略的机器人 enable 无意义：留在 Held 抱持（D19）。
-                    if scheduler.is_some() && matches!(phase, Phase::Held { .. }) {
-                        match safety.set_torque(true) {
-                            Ok(()) => {
-                                torque_on = true;
-                                phase = Phase::RampUp {
-                                    start: sensors.positions,
-                                    tick: 0,
-                                };
-                            }
-                            Err(e) => eprintln!("set_torque(true) failed: {e}"),
+                // enabled 边沿检测（robot.enable 写入的开关在这里变成相位
+                // 转移）。只在边沿动作，绝不在 Held 里每拍碰 torque。边沿立即
+                // 生效（先于跌倒判定），否则 "Driving 中跌倒"与"同拍 enable
+                // off"会互相覆盖。转移规则抽在 edge_transition 里（单测覆盖）。
+                match edge_transition(&phase, enabled, was_enabled, scheduler.is_some()) {
+                    Some(EdgeAction::PowerOnAndRamp) => match safety.set_torque(true) {
+                        Ok(()) => {
+                            torque_on = true;
+                            phase = Phase::RampUp {
+                                start: sensors.positions,
+                                tick: 0,
+                            };
                         }
+                        Err(e) => eprintln!("set_torque(true) failed: {e}"),
+                    },
+                    Some(EdgeAction::ResumeDriving) => {
+                        phase = Phase::Driving;
                     }
-                } else if !enabled
-                    && was_enabled
-                    && !matches!(phase, Phase::Held { .. } | Phase::RampDown { .. })
-                {
-                    phase = Phase::RampDown {
-                        start: sensors.positions,
-                        tick: 0,
-                    };
+                    Some(EdgeAction::StopToHome) => {
+                        // disable 结束 recurrent episode：策略 LSTM 清零，
+                        // 低通锚点与 last_action 一并丢弃（Stopped→Driving
+                        // 无斜坡，带着旧锚点回来就是一次踉跄）。
+                        if let Some(s) = scheduler.as_mut() {
+                            s.reset();
+                        }
+                        previous_targets = None;
+                        last_action = [0.0; ACTION_LEN];
+                        phase = Phase::Stopped;
+                    }
+                    None => {}
                 }
                 was_enabled = enabled;
 
@@ -456,22 +522,18 @@ pub fn spawn(
                         if *t > RAMP_TICKS {
                             // 注意 t==RAMP_TICKS 那一拍已把 home 原样写出，
                             // 再转移，避免末端少一拍造成"差一步没到"。
-                            next_phase = Some(Phase::Driving);
+                            // 落点看 enabled 现值：斜坡途中的 enable 边沿
+                            // 在这里汇入，不会丢（edge_transition 注释）。
+                            next_phase = Some(ramp_done_phase(enabled));
                         }
                     }
-                    Phase::RampDown { start, tick: t } => {
-                        let target = ramp_target(start, *t);
-                        wrote = safety.apply(target, hold, config.gain_running).is_ok();
-                        *t += 1;
-                        if *t > RAMP_TICKS {
-                            match safety.set_torque(false) {
-                                Ok(()) => torque_on = false,
-                                Err(e) => eprintln!("set_torque(false) failed: {e}"),
-                            }
-                            next_phase = Some(Phase::Held {
-                                hold: Some(DEFAULT_POSITION),
-                            });
-                        }
+                    Phase::Stopped => {
+                        // 上电抱持 home：disable 不当拍斜坡，直接命令 home，
+                        // 舵机按自己的速度走过去（原版 "Commanded directly,
+                        // no ramp"）；torque 保持 on，gain 维持 running。
+                        wrote = safety
+                            .apply(DEFAULT_POSITION, hold, config.gain_running)
+                            .is_ok();
                     }
                     Phase::Driving => {
                         match scheduler.as_mut() {
@@ -645,6 +707,72 @@ mod tests {
         let second = std::mem::take(&mut ctl.lock().unwrap().skill_edges);
         assert_eq!(first, crate::scheduler::EDGE_SIT_TOGGLE);
         assert_eq!(second, 0, "边沿取过一次就没了");
+    }
+
+    fn held() -> Phase {
+        Phase::Held { hold: None }
+    }
+
+    fn ramp_up() -> Phase {
+        Phase::RampUp {
+            start: [0.0; NUM_JOINTS],
+            tick: 0,
+        }
+    }
+
+    #[test]
+    fn driving_goes_straight_to_stopped_on_disable() {
+        // 无斜坡、不卸 torque：StopToHome 的全部动作是 policy reset +
+        // 切 Stopped（Stopped 臂当拍写 DEFAULT_POSITION）。
+        assert!(matches!(
+            edge_transition(&Phase::Driving, false, true, true),
+            Some(EdgeAction::StopToHome)
+        ));
+    }
+
+    #[test]
+    fn stopped_resumes_driving_immediately_on_enable() {
+        // 机器人已在 home 且上电：无斜坡无死窗（原版 driving = enabled && Ready）。
+        assert!(matches!(
+            edge_transition(&Phase::Stopped, true, false, true),
+            Some(EdgeAction::ResumeDriving)
+        ));
+    }
+
+    #[test]
+    fn held_ramps_up_on_enable_only_with_policy() {
+        assert!(matches!(
+            edge_transition(&held(), true, false, true),
+            Some(EdgeAction::PowerOnAndRamp)
+        ));
+        // 没策略的机器人 enable 无意义：留在 Held（D19），torque 保持 off。
+        assert!(edge_transition(&held(), true, false, false).is_none());
+    }
+
+    #[test]
+    fn edges_during_rampup_and_limp_are_deferred_not_dropped() {
+        // RampUp/Limp 中的边沿返回 None——不是丢弃，是交给斜坡完成规则
+        // （ramp_done_phase 按 enabled 现值落点）：斜坡终点就是 home，
+        // Limp 恢复也经 RampUp 汇入同一条规则。
+        assert!(edge_transition(&ramp_up(), false, true, true).is_none());
+        assert!(edge_transition(&ramp_up(), true, false, true).is_none());
+        assert!(edge_transition(&Phase::Limp, false, true, true).is_none());
+        assert!(edge_transition(&Phase::Limp, true, false, true).is_none());
+    }
+
+    #[test]
+    fn level_changes_nowhere_else_do_nothing() {
+        // 非边沿（level 不变）与其他阶段的边沿都不动相位。
+        assert!(edge_transition(&Phase::Driving, true, true, true).is_none());
+        assert!(edge_transition(&Phase::Stopped, false, false, true).is_none());
+        assert!(edge_transition(&Phase::Stopped, false, true, true).is_none());
+        assert!(edge_transition(&held(), false, true, true).is_none());
+    }
+
+    #[test]
+    fn ramp_completion_lands_by_current_enabled() {
+        assert!(matches!(ramp_done_phase(true), Phase::Driving));
+        assert!(matches!(ramp_done_phase(false), Phase::Stopped));
     }
 
     /// M6 切换连续性端到端断言（FakeIo 语义：sensors.positions = 上拍写出的
