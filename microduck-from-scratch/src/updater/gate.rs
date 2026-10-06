@@ -54,7 +54,7 @@ async fn ask_once(sock_path: &str) -> Result<GateReport, String> {
     let mut framed = Framed::new(stream, LinesCodec::new());
 
     for (id, method) in [(1u64, "hello"), (2, "robot.health")] {
-        let req = Request { jsonrpc: JSONRPC.into(), id, method: method.into(), params: Value::Null };
+        let req = Request { jsonrpc: JSONRPC.into(), id: Some(id), method: method.into(), params: Value::Null };
         framed
             .send(serde_json::to_string(&req).expect("Request is serializable"))
             .await

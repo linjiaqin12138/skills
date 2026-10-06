@@ -16,7 +16,7 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().cloned().unwrap_or_else(|| {
         eprintln!(
-            "usage: mini-duckctl <health|state [--every N]|enable|disable|drive <vx> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>|update <check|status|log [N]|apply <ver>|rollback>>"
+            "usage: mini-duckctl <health|state [--every N]|enable|disable|move <vx> <vy> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>|update <check|status|log [N]|apply <ver>|rollback>>"
         );
         std::process::exit(2);
     });
@@ -82,30 +82,40 @@ async fn main() -> std::io::Result<()> {
                 let _ = std::io::stdout().flush();
             }
         }
-        "drive" => {
-            // drive <vx> <vyaw> [--secs N]：deadman 500ms 下单次意图只能
+        "move" => {
+            // move <vx> <vy> <vyaw> [--secs N]：deadman 500ms 下单次意图只能
             // 驱动半秒，所以带 --secs 时每 100ms 重发一次意图——CLI 扮演
             // 手柄的角色，手柄就是持续发意图的。到时发零命令停车。
             // 不带 --secs 保持单次发送（之后由调用方负责停车）。
+            // M8 起发 robot.move（原版语义）；仍走请求式调用拿 accepted 回显。
             let vx: f64 = args.get(1).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
-                eprintln!("usage: mini-duckctl drive <vx> <vyaw> [--secs N]");
+                eprintln!("usage: mini-duckctl move <vx> <vy> <vyaw> [--secs N]");
                 std::process::exit(2);
             });
-            let vyaw: f64 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
-                eprintln!("usage: mini-duckctl drive <vx> <vyaw> [--secs N]");
+            let vy: f64 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
+                eprintln!("usage: mini-duckctl move <vx> <vy> <vyaw> [--secs N]");
                 std::process::exit(2);
             });
-            let secs: Option<u64> = match args.get(3).map(String::as_str) {
-                Some("--secs") => args.get(4).and_then(|s| s.parse().ok()),
+            let vyaw: f64 = args.get(3).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
+                eprintln!("usage: mini-duckctl move <vx> <vy> <vyaw> [--secs N]");
+                std::process::exit(2);
+            });
+            let secs: Option<u64> = match args.get(4).map(String::as_str) {
+                Some("--secs") => args.get(5).and_then(|s| s.parse().ok()),
                 None => None,
                 Some(other) => {
-                    eprintln!("unknown drive flag: {other}");
+                    eprintln!("unknown move flag: {other}");
                     std::process::exit(2);
                 }
             };
             let mut id = 2;
-            call(&mut framed, id, "robot.drive", serde_json::json!({"vx": vx, "vyaw": vyaw}))
-                .await?;
+            call(
+                &mut framed,
+                id,
+                "robot.move",
+                serde_json::json!({"vx": vx, "vy": vy, "vyaw": vyaw}),
+            )
+            .await?;
             if let Some(secs) = secs {
                 let deadline = tokio::time::Instant::now()
                     + std::time::Duration::from_secs(secs);
@@ -119,8 +129,8 @@ async fn main() -> std::io::Result<()> {
                     send(
                         &mut framed,
                         id,
-                        "robot.drive",
-                        serde_json::json!({"vx": vx, "vyaw": vyaw}),
+                        "robot.move",
+                        serde_json::json!({"vx": vx, "vy": vy, "vyaw": vyaw}),
                     )
                     .await?;
                     framed.next().await;
@@ -129,8 +139,8 @@ async fn main() -> std::io::Result<()> {
                 call(
                     &mut framed,
                     id,
-                    "robot.drive",
-                    serde_json::json!({"vx": 0.0, "vyaw": 0.0}),
+                    "robot.move",
+                    serde_json::json!({"vx": 0.0, "vy": 0.0, "vyaw": 0.0}),
                 )
                 .await?;
             }
@@ -275,7 +285,7 @@ async fn send(
 ) -> std::io::Result<()> {
     let req = Request {
         jsonrpc: miniduck::JSONRPC.into(),
-        id,
+        id: Some(id),
         method: method.into(),
         params,
     };

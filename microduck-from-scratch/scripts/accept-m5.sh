@@ -11,7 +11,7 @@
 #   3. sim 跌倒卸力：push → fallen=true + gain=50 + 瘫在地上
 #   4. health 真话：杀 sim → unhealthy；重启 → 恢复
 #   5. robot.state 50Hz：2 秒 ≥90 帧通知
-#   6. 行走回归：drive 10s 位移 ≥0.5m
+#   6. 行走回归：move 10s 位移 ≥0.5m
 set -u
 cd /work
 
@@ -114,7 +114,7 @@ print(f'disable 后回到 Held：|positions-home|max={diff:.2e}，enabled=false�
 echo "== A2. deadman =="
 ./target/debug/mini-duckctl enable >/dev/null || fail "enable"
 sleep 3
-./target/debug/mini-duckctl drive 0.15 0 >/dev/null || fail "drive"
+./target/debug/mini-duckctl move 0.15 0 0 >/dev/null || fail "move"
 state_frames 1 | python3 -c "
 import json, sys
 seen = [json.loads(l)['params'] for l in sys.stdin if l.strip()]
@@ -130,7 +130,7 @@ p = json.loads(sys.stdin.read())['params']
 twist = p['obs'][48:51]
 assert all(abs(v) < 1e-12 for v in twist), f'失联 1s 后 twist 应清零，实际 {twist}'
 print('失联 1s 后 obs twist=[0,0,0]（deadman 生效）  OK')"
-./target/debug/mini-duckctl drive 0.15 0 --secs 2 >/dev/null &
+./target/debug/mini-duckctl move 0.15 0 0 --secs 2 >/dev/null &
 DRIVE_PID=$!
 sleep 1.5
 F=$(state_frame)
@@ -237,7 +237,7 @@ done
 BODY0=$(body)
 X0=$(echo "$BODY0" | awk '{print $1}')
 echo "起步 body: $BODY0"
-./target/debug/mini-duckctl drive 0.15 0 --secs 10 >/dev/null || fail "drive"
+./target/debug/mini-duckctl move 0.15 0 0 --secs 10 >/dev/null || fail "move"
 BODY1=$(body)
 X1=$(echo "$BODY1" | awk '{print $1}')
 DIST=$(awk -v a="$X0" -v b="$X1" 'BEGIN { printf "%.3f", b - a }')

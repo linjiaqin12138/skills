@@ -48,7 +48,7 @@ async fn serve_conn(stream: UnixStream, server: Arc<Server>) {
         let req: Request = match serde_json::from_str(&line) {
             Ok(req) => req,
             Err(e) => {
-                let msg = ServerMessage::err(0, PARSE_ERROR, e.to_string());
+                let msg = ServerMessage::err(None, PARSE_ERROR, e.to_string());
                 if framed.send(serde_json::to_string(&msg).unwrap()).await.is_err() {
                     return;
                 }
@@ -149,7 +149,7 @@ async fn dispatch(server: &Arc<Server>, framed: &Framed<UnixStream, LinesCodec>,
     }
 }
 
-fn pack(id: u64, result: super::engine::OpResult) -> ServerMessage {
+fn pack(id: Option<u64>, result: super::engine::OpResult) -> ServerMessage {
     match result {
         Ok(result) => ServerMessage::ok(id, result),
         Err((code, message)) => ServerMessage::err(id, code, message),
@@ -179,14 +179,14 @@ fn gate_peer(
 struct DeniedResponse(String);
 
 impl DeniedResponse {
-    fn with_id(self, id: u64) -> ServerMessage {
+    fn with_id(self, id: Option<u64>) -> ServerMessage {
         ServerMessage::err(id, super::ERR_PERMISSION, self.0)
     }
 }
 
 /// 单飞锁：Busy / 锁 IO 错误直接变成 RPC 错误；拿到锁后由调用方持有
 /// 到操作结束（updaterd 被杀时内核代放，见 lock.rs 的取舍注释）。
-fn try_lock(paths: &UpdaterPaths, id: u64) -> Result<lock::UpdateLock, ServerMessage> {
+fn try_lock(paths: &UpdaterPaths, id: Option<u64>) -> Result<lock::UpdateLock, ServerMessage> {
     match lock::try_acquire(&paths.lock()) {
         Ok(l) => Ok(l),
         Err(AcquireError::Busy) => Err(ServerMessage::err(

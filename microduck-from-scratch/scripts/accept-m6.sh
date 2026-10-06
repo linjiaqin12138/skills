@@ -212,7 +212,7 @@ echo "== B1. 行走回归 =="
 BODY0=$(body)
 X0=$(echo "$BODY0" | awk '{print $1}')
 echo "起步 body: $BODY0"
-./target/debug/mini-duckctl drive 0.15 0 --secs 10 >/dev/null || fail "drive"
+./target/debug/mini-duckctl move 0.15 0 0 --secs 10 >/dev/null || fail "move"
 BODY1=$(body)
 X1=$(echo "$BODY1" | awk '{print $1}')
 DIST=$(awk -v a="$X0" -v b="$X1" 'BEGIN { printf "%.3f", b - a }')

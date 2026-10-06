@@ -57,9 +57,9 @@ echo "站稳后 body(x y z t): $BODY0"
 Z0=$(echo "$BODY0" | awk '{print $3}')
 awk -v z="$Z0" 'BEGIN { if (z < 0.08) { print "FAIL: 鸭子倒了（躯干 z=" z "）"; exit 1 } }' || exit 1
 
-echo "== 5. drive vx=0.15 持续 10 秒 =="
+echo "== 5. move vx=0.15 持续 10 秒 =="
 X0=$(echo "$BODY0" | awk '{print $1}')
-./target/debug/mini-duckctl drive 0.15 0 --secs 10 || { echo "FAIL: drive"; exit 1; }
+./target/debug/mini-duckctl move 0.15 0 0 --secs 10 || { echo "FAIL: move"; exit 1; }
 
 BODY1=$(python3 -c "
 import json, socket
@@ -68,7 +68,7 @@ f = s.makefile('rw')
 f.write(json.dumps({'op': 'body'}) + '\n'); f.flush()
 r = json.loads(f.readline())
 print(r['body_pos'][0], r['body_pos'][1], r['body_pos'][2])")
-echo "drive 后 body(x y z): $BODY1"
+echo "move 后 body(x y z): $BODY1"
 X1=$(echo "$BODY1" | awk '{print $1}')
 DIST=$(awk -v a="$X0" -v b="$X1" 'BEGIN { printf "%.3f", b - a }')
 echo "== 结果：10 秒前进位移 = ${DIST} m（门槛 0.5m）=="

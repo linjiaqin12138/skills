@@ -84,7 +84,7 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 | robot.health | :574 / :984 | main.rs:219（真实判定，M5） | 已交付（M5）；载荷字段缺口 D49 |
 | robot.modelApi | :576 / :985 | 无 | 未登记缺口（D47） |
 | robot.remoteSessionActive | :578 / :986 | 无 | 建议豁免（WebRTC 会话存在性，mediad 家族；拿不准，见文末） |
-| robot.move {vx,vy,vyaw}（通知式） | :597 / :990；MoveParams :2110 | 无；robot.drive {vx,vyaw} 请求式替代（main.rs:239） | 未登记缺口（D43） |
+| robot.move {vx,vy,vyaw}（通知式） | :597 / :990；MoveParams :2110 | lib.rs:114 MoveParams + main.rs:266 robot.move 双路径（M8 Bite 1；robot.drive 已删） | 已交付（M8 Bite 1）；head/mouth 通知语义与统一 apply_intent 入口残余入 D43 |
 | robot.head（通知式） | :599 / :992；HeadParams :2126 | main.rs:335（请求式，参数名一致） | 已交付（M6）；连续意图通知语义差异入 D43 |
 | robot.look（凝视 IK） | :602 / :994；LookParams :2140 | 无 | 未登记缺口（D55） |
 | robot.stop | :604 / :995 | 无（deadman 500ms 兜底不等价） | 未登记缺口（D54） |
@@ -254,7 +254,7 @@ updater.toml（reference/deploy/updater.toml，179 行）：
 以下 22 条为本次清单新发现的偏差簿外缺口，D 号预留待登记入 deviations.md：
 
 - **D42** configd 缺席，net.*（4 条）与 system.* 前 5 条方法面连带缺席（btd/mediad/padd/tofd 四进程建议豁免单列）。
-- **D43** robot.drive {vx,vyaw} 请求式 vs 原版 robot.move {vx,vy,vyaw} 通知式：vy 侧向未开放，且连续意图（move/head/mouth）的通知语义（无应答、last-writer-wins）未实现。
+- **D43** ~~robot.drive {vx,vyaw} 请求式 vs 原版 robot.move {vx,vy,vyaw} 通知式：vy 侧向未开放，且连续意图（move/head/mouth）的通知语义（无应答、last-writer-wins）未实现~~ M8 Bite 1 已收敛 robot.move 本体（通知/请求双形态 + vy + robot.drive 删除）。残余：head/mouth 通知语义未开；原版对任何方法的 notification 走 apply_intent 统一入口静默处理，我们只给 robot.move 开了通知语义（预定随 enable/subscribe Bite 收敛）。
 - **D44** robot.enable {on, toggle} vs 手搓 enable/disable 无参二分：缺 toggle（手柄 Start 语义），多出原版没有的 robot.disable。
 - **D45** robot.subscribe {hz} + SubscribeResult ack（walk/stand/unavailable/skills 名单）缺席，robot.state 方法名兼作订阅入口（hz 降频语义已登记 D25）。
 - **D46** 命令 EMA 平滑缺席（[control] cmd_alpha/head_alpha；手搓意图直通，只有动作侧训练低通）。

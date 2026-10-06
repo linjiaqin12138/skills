@@ -92,7 +92,7 @@ impl Stats {
 #[derive(Default)]
 pub struct ControlState {
     pub command: Command,
-    /// 最近一次 robot.drive 的时刻；deadman 据此算意图年龄。
+    /// 最近一次 robot.move 的时刻；deadman 据此算意图年龄。
     /// None = 从没被驾驶过。
     pub last_intent_at: Option<std::time::Instant>,
     /// robot.enable/robot.disable 写入；边沿检测在控制循环里做。
@@ -267,7 +267,7 @@ enum Phase {
 }
 
 /// 启动控制任务，返回计数器和最新快照的接收端。
-/// `control` 由 RPC 层写（robot.drive/enable/disable/do/mouth/head）、循环每拍读。
+/// `control` 由 RPC 层写（robot.move/enable/disable/do/mouth/head）、循环每拍读。
 /// `scheduler` 为 None 时（D19：walk 策略加载失败不退出）永远停在 Held 抱持。
 pub fn spawn(
     mut safety: Safety<Box<dyn RobotIo>>,
