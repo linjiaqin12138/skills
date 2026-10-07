@@ -1,0 +1,260 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1120" width="1200" height="1120">
+<defs>
+<marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#9333ea"/></marker>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+</defs>
+<rect width="1200" height="1120" fill="#ffffff"/>
+<text x="40" y="46" font-family="'Noto Sans CJK SC', sans-serif" font-size="22" fill="#111827" font-weight="600" text-anchor="start">COM1 16550 UART 寄存器地图</text>
+<text x="40" y="72" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#6b7280" font-weight="400" text-anchor="start">serial.rs 实际用到的寄存器与状态位 · 端口基址 0x3F8（COM1） · 访问方式：in / out 端口 IO</text>
+<rect x="40" y="120" width="560" height="66" rx="8" ry="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="52" y="134" width="52" height="38" rx="6" ry="6" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="78" y="159" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#2563eb" font-weight="600" text-anchor="middle">+0</text>
+<text x="120" y="145" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#111827" font-weight="600" text-anchor="start">DATA（收发数据）</text>
+<rect x="492" y="132" width="88" height="22" rx="11" ry="11" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="536" y="148" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#2563eb" font-weight="600" text-anchor="middle">读+写</text>
+<text x="120" y="165" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#4b5563" font-weight="400" text-anchor="start">DLAB=0：写 = 发送一字节 · 读 = 接收一字节</text>
+<text x="120" y="180" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#9333ea" font-weight="400" text-anchor="start">DLAB=1：波特率除数低字节（init 写 0x01）</text>
+<rect x="40" y="196" width="560" height="66" rx="8" ry="8" fill="#f0fdfa" stroke="#0d9488" stroke-width="1.5"/>
+<rect x="52" y="210" width="52" height="38" rx="6" ry="6" fill="#ffffff" stroke="#0d9488" stroke-width="1.5"/>
+<text x="78" y="235" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#0d9488" font-weight="600" text-anchor="middle">+1</text>
+<text x="120" y="221" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#111827" font-weight="600" text-anchor="start">INTERRUPT_ENABLE（中断使能）</text>
+<rect x="492" y="208" width="88" height="22" rx="11" ry="11" fill="#ffffff" stroke="#0d9488" stroke-width="1.5"/>
+<text x="536" y="224" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#0d9488" font-weight="600" text-anchor="middle">读+写</text>
+<text x="120" y="241" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#4b5563" font-weight="400" text-anchor="start">DLAB=0：中断开关（init 写 0x00，纯轮询）</text>
+<text x="120" y="256" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#9333ea" font-weight="400" text-anchor="start">DLAB=1：波特率除数高字节（init 写 0x00）</text>
+<rect x="40" y="272" width="560" height="66" rx="8" ry="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<rect x="52" y="286" width="52" height="38" rx="6" ry="6" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+<text x="78" y="311" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#ea580c" font-weight="600" text-anchor="middle">+2</text>
+<text x="120" y="297" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#111827" font-weight="600" text-anchor="start">FIFO_CONTROL（FIFO 控制）</text>
+<rect x="492" y="284" width="88" height="22" rx="11" ry="11" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+<text x="536" y="300" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">只写</text>
+<text x="120" y="317" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#4b5563" font-weight="400" text-anchor="start">init 写 0xC7：使能 + 清空芯片内 16 字节收发缓冲（位图见右）</text>
+<rect x="40" y="348" width="560" height="66" rx="8" ry="8" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<rect x="52" y="362" width="52" height="38" rx="6" ry="6" fill="#ffffff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="78" y="387" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#9333ea" font-weight="600" text-anchor="middle">+3</text>
+<text x="120" y="373" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#111827" font-weight="600" text-anchor="start">LINE_CONTROL（线路控制）</text>
+<rect x="492" y="360" width="88" height="22" rx="11" ry="11" fill="#ffffff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="536" y="376" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#9333ea" font-weight="600" text-anchor="middle">读+写</text>
+<text x="120" y="393" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#4b5563" font-weight="400" text-anchor="start">数据格式 + DLAB 换挡开关（位图见右）</text>
+<rect x="40" y="424" width="560" height="66" rx="8" ry="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<rect x="52" y="438" width="52" height="38" rx="6" ry="6" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+<text x="78" y="463" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#ea580c" font-weight="600" text-anchor="middle">+4</text>
+<text x="120" y="449" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#111827" font-weight="600" text-anchor="start">MODEM_CONTROL（Modem 控制）</text>
+<rect x="492" y="436" width="88" height="22" rx="11" ry="11" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+<text x="536" y="452" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">读+写</text>
+<text x="120" y="469" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#4b5563" font-weight="400" text-anchor="start">init 写 0x0B：DTR + RTS + OUT2（位图见右）</text>
+<rect x="40" y="500" width="560" height="66" rx="8" ry="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<rect x="52" y="514" width="52" height="38" rx="6" ry="6" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+<text x="78" y="539" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#16a34a" font-weight="600" text-anchor="middle">+5</text>
+<text x="120" y="525" font-family="'Noto Sans CJK SC', sans-serif" font-size="15" fill="#111827" font-weight="600" text-anchor="start">LINE_STATUS（线路状态）</text>
+<rect x="492" y="512" width="88" height="22" rx="11" ry="11" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+<text x="536" y="528" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#16a34a" font-weight="600" text-anchor="middle">只读</text>
+<text x="120" y="545" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#4b5563" font-weight="400" text-anchor="start">bit5 = 发送保持寄存器空（位图与轮询见右下）</text>
+<path d="M 40 386 L 22 386 L 22 163 L 36 163" fill="none" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-purple)"/>
+<text x="40" y="592" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#9333ea" font-weight="400" text-anchor="start">◆ 一址两用：LINE_CONTROL 的 bit7（DLAB）= 1 时，+0 / +1 变脸为波特率除数寄存器</text>
+<text x="40" y="610" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#9333ea" font-weight="400" text-anchor="start">—— init 先「换挡」设除数，再「换挡」回来收发数据（serial.rs:43-46）</text>
+<rect x="40" y="640" width="560" height="180" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="56" y="664" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#111827" font-weight="600" text-anchor="start">write_byte：发一个字节的轮询循环（serial.rs:51-54）</text>
+<rect x="64" y="712" width="170" height="48" rx="8" ry="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="149" y="732" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#2563eb" font-weight="600" text-anchor="middle">inb(0x3F8 + 5)</text>
+<text x="149" y="748" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle">读 LINE_STATUS</text>
+<path d="M 234 736 L 256 736" fill="none" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+<polygon points="340,698 400,736 340,774 280,736" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="340" y="741" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="middle">bit5 == 1 ?</text>
+<path d="M 400 736 L 412 736" fill="none" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<rect x="398" y="712" width="20" height="15" fill="#ffffff" opacity="0.95"/>
+<text x="408" y="724" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#16a34a" font-weight="600" text-anchor="middle">是</text>
+<rect x="416" y="712" width="150" height="48" rx="8" ry="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="491" y="732" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#16a34a" font-weight="600" text-anchor="middle">outb(0x3F8 + 0)</text>
+<text x="491" y="748" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle">发出一字节</text>
+<path d="M 340 698 L 340 690 L 149 690 L 149 708" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow-gray)"/>
+<rect x="206" y="680" width="76" height="15" fill="#ffffff" opacity="0.95"/>
+<text x="244" y="692" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle">否：继续等</text>
+<text x="56" y="806" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="400" text-anchor="start">空循环等硬件，慢但零依赖 —— 中断驱动是后续里程碑的事</text>
+<rect x="680" y="120" width="480" height="250" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="696" y="144" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#111827" font-weight="600" text-anchor="start">LINE_CONTROL（+3）位图 · init 写它两次</text>
+<text x="726.0" y="164" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b7</text>
+<rect x="694" y="172" width="64" height="48" rx="6" ry="6" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="726.0" y="192" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#9333ea" font-weight="600" text-anchor="middle">DLAB</text>
+<text x="726.0" y="208" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=换挡</text>
+<text x="784.0" y="164" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b6</text>
+<rect x="762" y="172" width="44" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="784.0" y="192" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">BRK</text>
+<text x="784.0" y="208" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0</text>
+<text x="832.0" y="164" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b5</text>
+<rect x="810" y="172" width="44" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="832.0" y="192" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">SP</text>
+<text x="832.0" y="208" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0</text>
+<text x="880.0" y="164" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b4</text>
+<rect x="858" y="172" width="44" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="880.0" y="192" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">EPS</text>
+<text x="880.0" y="208" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0</text>
+<text x="934.0" y="164" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b3</text>
+<rect x="906" y="172" width="56" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="934.0" y="192" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">PEN</text>
+<text x="934.0" y="208" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0=无</text>
+<text x="994.0" y="164" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b2</text>
+<rect x="966" y="172" width="56" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="994.0" y="192" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">STB</text>
+<text x="994.0" y="208" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0=1位</text>
+<text x="1086.0" y="164" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b1:0</text>
+<rect x="1026" y="172" width="120" height="48" rx="6" ry="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="1086.0" y="192" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#2563eb" font-weight="600" text-anchor="middle">WLS</text>
+<text x="1086.0" y="208" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">11=8位</text>
+<rect x="694" y="238" width="452" height="30" rx="6" ry="6" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="710" y="258" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#9333ea" font-weight="600" text-anchor="start">第一次写 0x80：DLAB=1 → 换挡，+0/+1 变波特率除数寄存器</text>
+<rect x="694" y="276" width="452" height="30" rx="6" ry="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="710" y="296" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#111827" font-weight="600" text-anchor="start">第二次写 0x03：DLAB=0，8 数据位 · 无校验 · 1 停止位（8N1）</text>
+<text x="696" y="330" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#111827" font-weight="600" text-anchor="start">8N1 一帧的形状（线上先起始位，数据位低位先行）：</text>
+<rect x="694" y="338" width="41" height="26" rx="4" ry="4" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="714.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="600" text-anchor="middle">ST</text>
+<rect x="739" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="759.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D0</text>
+<rect x="784" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="804.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D1</text>
+<rect x="829" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="849.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D2</text>
+<rect x="874" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="894.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D3</text>
+<rect x="919" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="939.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D4</text>
+<rect x="964" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="984.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D5</text>
+<rect x="1009" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="1029.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D6</text>
+<rect x="1054" y="338" width="41" height="26" rx="4" ry="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="1074.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#2563eb" font-weight="600" text-anchor="middle">D7</text>
+<rect x="1099" y="338" width="41" height="26" rx="4" ry="4" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="1119.5" y="355" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="600" text-anchor="middle">SP</text>
+<rect x="680" y="386" width="480" height="170" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="696" y="410" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#111827" font-weight="600" text-anchor="start">FIFO_CONTROL（+2）位图 · init 写 0xC7</text>
+<text x="754.0" y="428" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b7:6</text>
+<rect x="694" y="436" width="120" height="48" rx="6" ry="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<text x="754.0" y="456" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">TRIG</text>
+<text x="754.0" y="472" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">11=14B</text>
+<text x="840.0" y="428" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b5</text>
+<rect x="818" y="436" width="44" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="840.0" y="456" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">—</text>
+<text x="840.0" y="472" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0</text>
+<text x="888.0" y="428" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b4</text>
+<rect x="866" y="436" width="44" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="888.0" y="456" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">—</text>
+<text x="888.0" y="472" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0</text>
+<text x="942.0" y="428" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b3</text>
+<rect x="914" y="436" width="56" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="942.0" y="456" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">DMA</text>
+<text x="942.0" y="472" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0</text>
+<text x="1006.0" y="428" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b2</text>
+<rect x="974" y="436" width="64" height="48" rx="6" ry="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<text x="1006.0" y="456" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">TXCL</text>
+<text x="1006.0" y="472" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=清</text>
+<text x="1074.0" y="428" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b1</text>
+<rect x="1042" y="436" width="64" height="48" rx="6" ry="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<text x="1074.0" y="456" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">RXCL</text>
+<text x="1074.0" y="472" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=清</text>
+<text x="1142.0" y="428" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b0</text>
+<rect x="1110" y="436" width="64" height="48" rx="6" ry="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<text x="1142.0" y="456" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">EN</text>
+<text x="1142.0" y="472" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=使能</text>
+<text x="696" y="508" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#111827" font-weight="600" text-anchor="start">FIFO = 16550 芯片内部的 16 字节收发缓冲（前身 8250 没有，每字节打断 CPU）</text>
+<text x="696" y="526" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="400" text-anchor="start">触发深度：接收攒到 14 字节才申请中断；纯轮询模式用不上，主要为使能+清垃圾</text>
+<rect x="680" y="572" width="480" height="170" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="696" y="596" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#111827" font-weight="600" text-anchor="start">MODEM_CONTROL（+4）位图 · init 写 0x0B</text>
+<text x="729.0" y="614" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b7:5</text>
+<rect x="694" y="622" width="70" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="729.0" y="642" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">—</text>
+<text x="729.0" y="658" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">000</text>
+<text x="806.0" y="614" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b4</text>
+<rect x="768" y="622" width="76" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="806.0" y="642" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">LOOP</text>
+<text x="806.0" y="658" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0=关</text>
+<text x="893.0" y="614" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b3</text>
+<rect x="848" y="622" width="90" height="48" rx="6" ry="6" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="893.0" y="642" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#9333ea" font-weight="600" text-anchor="middle">OUT2</text>
+<text x="893.0" y="658" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=中断总闸</text>
+<text x="970.0" y="614" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b2</text>
+<rect x="942" y="622" width="56" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="970.0" y="642" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">OUT1</text>
+<text x="970.0" y="658" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">0</text>
+<text x="1037.0" y="614" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b1</text>
+<rect x="1002" y="622" width="70" height="48" rx="6" ry="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<text x="1037.0" y="642" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">RTS</text>
+<text x="1037.0" y="658" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=请求发</text>
+<text x="1111.0" y="614" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b0</text>
+<rect x="1076" y="622" width="70" height="48" rx="6" ry="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<text x="1111.0" y="642" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#ea580c" font-weight="600" text-anchor="middle">DTR</text>
+<text x="1111.0" y="658" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=我就绪</text>
+<text x="696" y="694" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#111827" font-weight="600" text-anchor="start">DTR / RTS：Modem 时代的握手线——qemu 不看，真硬件与终端程序会看</text>
+<text x="696" y="712" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="400" text-anchor="start">OUT2：串口中断出芯片的总闸门（将来中断模式必开）· LOOP：回环自测</text>
+<rect x="680" y="758" width="480" height="190" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="696" y="782" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#111827" font-weight="600" text-anchor="start">LINE_STATUS（+5）位图 · write_byte 只认 bit5</text>
+<text x="717.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b7</text>
+<rect x="691" y="812" width="52" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="717.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">ERR</text>
+<text x="717.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">未用</text>
+<text x="773.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b6</text>
+<rect x="747" y="812" width="52" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="773.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">TEMT</text>
+<text x="773.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">未用</text>
+<text x="829.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b5</text>
+<rect x="803" y="812" width="52" height="48" rx="6" ry="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="829.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#16a34a" font-weight="600" text-anchor="middle">THRE</text>
+<text x="829.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">1=可发</text>
+<text x="885.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b4</text>
+<rect x="859" y="812" width="52" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="885.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">BI</text>
+<text x="885.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">未用</text>
+<text x="941.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b3</text>
+<rect x="915" y="812" width="52" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="941.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">FE</text>
+<text x="941.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">未用</text>
+<text x="997.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b2</text>
+<rect x="971" y="812" width="52" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="997.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">PE</text>
+<text x="997.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">未用</text>
+<text x="1053.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b1</text>
+<rect x="1027" y="812" width="52" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="1053.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">OE</text>
+<text x="1053.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">未用</text>
+<text x="1109.0" y="804" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle">b0</text>
+<rect x="1083" y="812" width="52" height="48" rx="6" ry="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="1109.0" y="832" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="600" text-anchor="middle">DR</text>
+<text x="1109.0" y="848" font-family="'Noto Sans CJK SC', sans-serif" font-size="9" fill="#9ca3af" font-weight="400" text-anchor="middle">未用</text>
+<text x="696" y="884" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="start">bit5 THRE（Transmit Holding Register Empty）：发送保持寄存器空</text>
+<text x="696" y="902" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6b7280" font-weight="400" text-anchor="start">= 1 时才允许向 DATA 写下一字节，否则硬件会丢字节</text>
+<text x="40" y="996" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#111827" font-weight="600" text-anchor="start">init() 初始化序列 —— 每步就是一次 outb（serial.rs:42-48）</text>
+<rect x="40" y="1010" width="176" height="58" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="54" y="1032" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="start">① 关中断</text>
+<text x="54" y="1052" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">IER ← 0x00</text>
+<text x="222" y="1050" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#9ca3af" font-weight="400" text-anchor="middle">→</text>
+<rect x="228" y="1010" width="176" height="58" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="242" y="1032" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="start">② 开 DLAB</text>
+<text x="242" y="1052" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">LCR ← 0x80</text>
+<text x="410" y="1050" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#9ca3af" font-weight="400" text-anchor="middle">→</text>
+<rect x="416" y="1010" width="176" height="58" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="430" y="1032" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="start">③ 设波特率</text>
+<text x="430" y="1052" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">除数 0x0001 → 115200</text>
+<text x="598" y="1050" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#9ca3af" font-weight="400" text-anchor="middle">→</text>
+<rect x="604" y="1010" width="176" height="58" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="618" y="1032" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="start">④ 定格式 8N1</text>
+<text x="618" y="1052" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">LCR ← 0x03（关 DLAB）</text>
+<text x="786" y="1050" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#9ca3af" font-weight="400" text-anchor="middle">→</text>
+<rect x="792" y="1010" width="176" height="58" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="806" y="1032" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="start">⑤ 开 FIFO</text>
+<text x="806" y="1052" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">FCR ← 0xC7 清队列</text>
+<text x="974" y="1050" font-family="'Noto Sans CJK SC', sans-serif" font-size="14" fill="#9ca3af" font-weight="400" text-anchor="middle">→</text>
+<rect x="980" y="1010" width="176" height="58" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="994" y="1032" font-family="'Noto Sans CJK SC', sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="start">⑥ 握手就绪</text>
+<text x="994" y="1052" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">MCR ← 0x0B（DTR+RTS）</text>
+<line x1="40" y1="1094" x2="70" y2="1094" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+<text x="76" y="1098" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">读寄存器</text>
+<line x1="150" y1="1094" x2="180" y2="1094" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<text x="186" y="1098" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">是 / 可发</text>
+<line x1="250" y1="1094" x2="280" y2="1094" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow-gray)"/>
+<text x="286" y="1098" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">否 / 回等</text>
+<line x1="350" y1="1094" x2="380" y2="1094" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-purple)"/>
+<text x="386" y="1098" font-family="'Noto Sans CJK SC', sans-serif" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start">DLAB 换挡</text>
+<text x="1160" y="1098" font-family="'Noto Sans CJK SC', sans-serif" font-size="11" fill="#9ca3af" font-weight="400" text-anchor="end">Style 1 · COM1 16550 · linux-0.11-from-scratch M0</text>
+</svg>
