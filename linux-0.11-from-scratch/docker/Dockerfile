@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN rustup component add rust-src \
     && rustup target add x86_64-unknown-none
 
-# Limine 引导器：用工作区已克隆的 binary 分支，只编译它的部署工具 limine
+# Limine 引导器：用工作区已克隆的 v10.8.5-binary tag，只编译它的部署工具 limine
 COPY reference/limine /opt/limine
 RUN make -C /opt/limine && ln -s /opt/limine/limine /usr/local/bin/limine
 

@@ -36,15 +36,15 @@
 
 ## 本机环境侦察（2026-10-03 补，Phase 0 原本漏了这层）
 
-**工具链架构（2026-10-03 用户定）：编译全部在 docker 容器（`linux011-rust-toolchain`，见 docker/Dockerfile），qemu 在宿主机跑**（显示/键盘不便容器化）。宿主机唯一要装的是 `sudo apt install qemu-system-x86`（xorriso/gcc/make 都在容器里了）。工作区根 Makefile 已备好：`make toolchain / build / run / debug`。宿主机早前装的 rustup 保留给编辑器/rust-analyzer 用，不再是权威构建环境。
+**工具链架构（2026-10-03 用户定）：编译全部在 docker 容器（`linux011-rust-toolchain`，见 docker/Dockerfile），qemu 在宿主机跑**（显示/键盘不便容器化）。宿主机唯一要装的是 `sudo apt install qemu-system-x86`（xorriso/gcc/make 都在容器里了）。工作区根 Makefile 已备好：`make toolchain / kernel / build / run / debug`。**构建容器常驻复用（2026-10-07 改）**：`kernel`/`build` 依赖 `ctr` 目标自动完成"镜像不存在→build、容器 `linux011-rust-build` 不存在→create、没在跑→start"，之后一律 `docker exec` 进同一容器编译，不再每次新建。宿主机早前装的 rustup 保留给编辑器/rust-analyzer 用，不再是权威构建环境。**rootless docker 两个坑（2026-10-07 踩实）**：①`--network host` 不生效，容器不共享宿主机网络，代理穿透无从谈起——默认无代理；②`docker run` 不要加 `-u $(id -u)`，容器内非 root uid 经 subuid 映射后在宿主机不是本用户，写挂载卷 Permission denied——容器内 root 恰好映射回宿主机当前用户，产物归属正确。
 
 | 依赖 | 状态 | 解决方式 |
 |---|---|---|
-| Rust 工具链 | **容器镜像 `linux011-rust-toolchain` 已构建并冒烟验证**（rustc 1.100.0-nightly / x86_64-unknown-none / limine 10.8.5 / xorriso 1.5.6 / make 4.4.1） | `make toolchain` 可重建（走代理 --network host） |
-| Limine 引导器 | 已克隆 reference/limine（v10 binary），容器内编译其部署工具 | Dockerfile 里 COPY + make |
+| Rust 工具链 | **容器镜像 `linux011-rust-toolchain` 已构建并冒烟验证**（rustc 1.100.0-nightly / x86_64-unknown-none / limine 10.8.5 / xorriso 1.5.6 / make 4.4.1） | `make toolchain` 可重建 |
+| Limine 引导器 | 已克隆 reference/limine（v10.8.5），容器内编译其部署工具 | 下载：`git clone --depth 1 -b v10.8.5-binary https://github.com/limine-bootloader/limine.git reference/limine`。**注意：官方已废弃 `binary` 分支，改用 `vX.Y.Z-binary` tag 发布**；Dockerfile 里 COPY + make |
 | qemu-system-x86_64 | **缺，需 sudo apt** | `sudo apt install qemu-system-x86`——用户亲手跑；兜底 bochs（慢） |
 | xorriso / gcc / make | 容器内 | 无需宿主机安装 |
-| 网络 | 代理 127.0.0.1:7890（docker build 用 --network host 穿透） | **docker 守护进程拉取走不了代理**（需 sudo 改 systemd，不做）；基础镜像用 daocloud 镜像站拉取后 retag：`docker pull docker.m.daocloud.io/rustlang/rust:nightly-slim && docker tag … rustlang/rust:nightly-slim` |
+| 网络 | **默认无代理**（2026-10-07 起；Makefile/Dockerfile 均不带 proxy 配置）。docker 为 **rootless 模式**：`--network host` 不生效，容器不共享宿主机网络，容器内 `127.0.0.1` 指向容器自己 | **docker 守护进程拉取镜像可能受限**；基础镜像可用 daocloud 镜像站拉取后 retag：`docker pull docker.m.daocloud.io/rustlang/rust:nightly-slim && docker tag … rustlang/rust:nightly-slim` |
 | 硬件资源 | 8 核 / 414G 可用 | 充足 |
 
 **结论：唯一阻塞项是宿主机的 qemu；编译环境docker化后其余零安装。**

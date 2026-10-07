@@ -57,7 +57,7 @@
 
 ### 直接下载/使用、不手搓的部分
 - `hdc-0.11.img` 根文件系统（挂载读数据，证明 MINIX 兼容；不执行其中二进制）
-- Limine 引导器二进制（已克隆 `reference/limine` v10 binary 分支）
+- Limine 引导器二进制（已克隆 `reference/limine` v10.8.5；获取方式见 STATE.md 依赖表）
 - Rust core 库（rust-src）；用户态二进制格式用编译器自带的 ELF64（不自造格式）
 
 ### 简化项与预定收敛点（见 deviations.md 台账）

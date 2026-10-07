@@ -228,14 +228,16 @@ Finished `dev` profile [unoptimized + debuginfo] target(s)
 Class:                             ELF64
 Type:                              EXEC (Executable file)
 Machine:                           Advanced Micro Devices X86-64
-Entry point address:               0xffffffff80000050
+Entry point address:               0xffffffff80000030
 ```
 
-`nm` 查符号：
+`nm kernel/target/x86_64-unknown-none/debug/kernel | grep ' _start'`（nm 列出 ELF 符号表，grep 过滤出入口那一行）：
 
 ```
-ffffffff80000050 T _start
+ffffffff80000030 T _start
 ```
+
+三列含义：**符号地址 | 符号类型 | 符号名**。`T` = Text（代码段），大写表示全局可见——`_start` 是给引导器看的入口，必须是全局符号。
 
 逐条对账：
 
@@ -244,8 +246,8 @@ ffffffff80000050 T _start
 | Class | ELF64 | 64 位内核 |
 | Type | **EXEC** | 固定地址，非 PIE（背景卡片 2；坑 2 的判据） |
 | Machine | X86-64 | target 没配错 |
-| Entry | `0xffffffff80000050` | 落在高半区基址（`0xFFFFFFFF80000000`）上方，说明链接脚本生效 |
-| `_start` 符号地址 | 与 Entry 一致 | 入口确实指向我们的 `_start`，符号没被改花名（卡片 R6） |
+| Entry | `0xffffffff80000030` 之类 | 落在高半区基址（`0xFFFFFFFF80000000`）上方即说明链接脚本生效；**具体地址随代码改动漂移，别当定值** |
+| `_start` 符号地址 | 与 Entry 一致 | 入口确实指向我们的 `_start`，符号没被改花名（卡片 R6）；判据是"两者相等"，不是某个固定值 |
 
 ---
 
@@ -274,7 +276,7 @@ cargo 从**当前工作目录**（不是 manifest 所在目录）向上找配置
 不加 `relocation-model=static`，产物 Type 是 `DYN` 不是 `EXEC`——裸机没有动态加载器，这种文件没法跑。判据就是 `readelf -h` 的 Type 一栏，验收表里钉死了这项。
 
 **坑 3：容器内 root 跑构建，产物归 root。**
-docker 容器里默认 root，`target/` 目录属主变成 root，宿主机上删都删不掉。约定：容器命令一律带 `-u $(id -u):$(id -g)`（根 Makefile 的 `DOCKER_RUN` 已内置），`.gitignore` 里也忽略了这个可能归 root 的目录。
+docker 容器里默认 root，`target/` 目录属主变成 root，宿主机上删都删不掉。当时的约定是容器命令一律带 `-u $(id -u):$(id -g)`。后注（2026-10-07）：本机 docker 实为 rootless 模式，该约定反而踩雷——容器内非 root uid 经 subuid 映射后在宿主机不是本用户，写挂载卷直接 Permission denied；rootless 下容器内 root 恰好映射回宿主机当前用户，所以 Makefile 现已去掉 `-u`，产物归属自然正确。
 
 **坑 4：Limine base revision 选几？**
 选 3：0–5 已被官方弃用，6 太新（【合理推断】当前 pinned 的 Limine v10 二进制未必支持）。并且不能"请求了就当支持"——`_start` 里必须做握手检查（`kernel/src/main.rs:24`），不支持就明确报错停机，而不是带着错误的内存布局假设硬跑。
