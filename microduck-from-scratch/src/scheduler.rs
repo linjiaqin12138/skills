@@ -335,6 +335,19 @@ pub struct Scheduler {
     skills: Vec<Option<Policy>>,
 }
 
+/// subscribe ack 报文件名不是路径，和 load 用同一字面量，避免两处漂移。
+const SITSTAND_FILE: &str = "alpha_sitstand.onnx";
+const GROUND_PICK_FILE: &str = "alpha_ground_pick.onnx";
+
+/// 已加载槽的对外名单。skills 是配置技能的 robot.do 名字（优先级序），
+/// 不含 ground_pick / sit_toggle——那两个是内置名，只出现在 robot.skills。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoadedSlots {
+    pub sitstand: Option<&'static str>,
+    pub ground_pick: Option<&'static str>,
+    pub skills: Vec<&'static str>,
+}
+
 fn load_optional(path: PathBuf) -> Option<Policy> {
     match Policy::load(&path) {
         Ok(p) => Some(p),
@@ -349,8 +362,8 @@ impl Scheduler {
     /// walk 从 `walk_path` 加载（必须），其余槽从 `dir` 按固定文件名加载。
     pub fn load(walk_path: &Path, dir: &Path) -> Result<Self, PolicyError> {
         let walk = Policy::load(walk_path)?;
-        let sitstand = load_optional(dir.join("alpha_sitstand.onnx"));
-        let ground_pick = load_optional(dir.join("alpha_ground_pick.onnx"));
+        let sitstand = load_optional(dir.join(SITSTAND_FILE));
+        let ground_pick = load_optional(dir.join(GROUND_PICK_FILE));
         let skills: Vec<Option<Policy>> = SKILLS
             .iter()
             .map(|s| load_optional(dir.join(s.file)))
@@ -388,6 +401,23 @@ impl Scheduler {
             }
         }
         names
+    }
+
+    /// 已加载槽的文件名 / 配置技能名。给 subscribe ack 用：调用方在 spawn
+    /// 前取一次，订阅时不再碰磁盘。walk 不在这里——加载失败时没有 Scheduler，
+    /// 文件名仍要从调用方已知的路径取。
+    pub fn loaded_slots(&self) -> LoadedSlots {
+        let mut skills = Vec::new();
+        for (i, slot) in self.skills.iter().enumerate() {
+            if slot.is_some() {
+                skills.push(SKILLS[i].name);
+            }
+        }
+        LoadedSlots {
+            sitstand: self.sitstand.is_some().then_some(SITSTAND_FILE),
+            ground_pick: self.ground_pick.is_some().then_some(GROUND_PICK_FILE),
+            skills,
+        }
     }
 
     /// busy 门控：Driving→Limp 转移的抑制条件（D32）。
@@ -508,6 +538,7 @@ mod tests {
             eprintln!("skip: not all M6 policies loaded");
             return;
         }
+        assert_loaded_slots(&scheduler);
         // load 自己会调一次 reset 初始化 LSTM（policy.rs:149），所以比增量。
         let before: Vec<u64> = std::iter::once(&scheduler.walk)
             .chain([&scheduler.sitstand, &scheduler.ground_pick].into_iter().flatten())
@@ -769,7 +800,15 @@ mod tests {
             eprintln!("skip: not all M6 policies present");
             return None;
         }
+        assert_loaded_slots(&sched);
         Some(sched)
+    }
+
+    fn assert_loaded_slots(scheduler: &Scheduler) {
+        let slots = scheduler.loaded_slots();
+        assert_eq!(slots.sitstand, Some(SITSTAND_FILE));
+        assert_eq!(slots.ground_pick, Some(GROUND_PICK_FILE));
+        assert_eq!(slots.skills, vec!["roulade", "kick_left"]);
     }
 
     /// 换网络必须 reset 新网络（LSTM 契约；feedforward 下以 reset_calls 计数断言）。

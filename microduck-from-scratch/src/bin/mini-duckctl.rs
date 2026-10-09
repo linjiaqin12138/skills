@@ -16,7 +16,7 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().cloned().unwrap_or_else(|| {
         eprintln!(
-            "usage: mini-duckctl <health|state [--every N]|enable [on|off]|move <vx> <vy> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>|update <check|status|log [N]|apply <ver>|rollback>>"
+            "usage: mini-duckctl <health|state|subscribe [--every N]|enable [on|off]|move <vx> <vy> <vyaw> [--secs N]|do <skill>|skills|mouth <0..1>|head <np> <hp> <hy> <hr>|update <check|status|log [N]|apply <ver>|rollback>>"
         );
         std::process::exit(2);
     });
@@ -53,8 +53,10 @@ async fn main() -> std::io::Result<()> {
             };
             call(&mut framed, 2, "robot.enable", serde_json::json!({"on": on})).await?;
         }
-        // state [--every N]：订阅 robot.state 通知流。50Hz 全打印会刷屏，
-        // 默认每 50 帧打一行；调试验收要逐帧时给 --every 1。
+        // state / subscribe [--every N]：订阅入口是 robot.subscribe {}。
+        // 之后这条连接上是 robot.state 通知流。50Hz 全打印会刷屏，
+        // state 默认每 50 帧打一行；subscribe 旧名保持逐帧。
+        // 不提供 hz 旗标：服务端不按订阅者降频（D25）。
         "state" | "subscribe" => {
             let every: u64 = match args.get(1).map(String::as_str) {
                 Some("--every") => args.get(2).and_then(|s| s.parse().ok()).unwrap_or_else(|| {
@@ -64,11 +66,11 @@ async fn main() -> std::io::Result<()> {
                 None if cmd == "subscribe" => 1, // 旧名保持旧行为：逐帧打印
                 None => 50,
                 Some(other) => {
-                    eprintln!("unknown state flag: {other}");
+                    eprintln!("unknown flag: {other}");
                     std::process::exit(2);
                 }
             };
-            call(&mut framed, 2, "robot.state", serde_json::Value::Null).await?;
+            call(&mut framed, 2, "robot.subscribe", serde_json::json!({})).await?;
             // 之后这条连接上只剩通知流，打到对端断开或 Ctrl-C。
             let mut n: u64 = 0;
             while let Some(frame) = framed.next().await {

@@ -66,7 +66,7 @@ classes: {
   }
 }
 
-title: "M8 Bite 2 架构变动（相对 Bite 1）—— robot.enable{on,toggle} + notification 统一入口 + disable 语义对齐（Stopped 取代 RampDown）：改动全在模块内部（main.rs 分发结构 / control.rs 状态机 / CLI 子命令），无新增/删除模块、无改向边" {
+title: "M8 Bite 3 架构变动（相对 Bite 2）—— 订阅入口与 ack 契约改变，推送边仍 50Hz，无新增/删除模块" {
   near: top-center
   shape: text
   style.font-size: 22
@@ -76,15 +76,15 @@ title: "M8 Bite 2 架构变动（相对 Bite 1）—— robot.enable{on,toggle} 
 legend: "图例" {
   class: procbox
   l_new: "新增模块/资产（本 Bite 无）" { class: new }
-  l_changed: "改动模块（本 Bite 全在模块内部）" { class: changed }
+  l_changed: "改动模块（RPC 订阅入口与 CLI 发法）" { class: changed }
   l_unchanged: "未动（灰化）" { class: unchanged }
-  l_deleted: "删除/改向（模块级无；方法级 robot.disable 已删）" { class: deleted }
+  l_deleted: "删除/改向（本 Bite 模块级无）" { class: deleted }
 }
 
-# ---------- 进程 1：CLI（改动：enable [on|off]，disable 子命令删除） ----------
+# ---------- 进程 1：CLI（改动：state / subscribe 内部改发 robot.subscribe {}） ----------
 p_cli: "进程 1：mini-duckctl（CLI 客户端）" {
   class: procbox
-  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\nrobot.* 子命令：\nhello / health / state [--every N]\nenable [on|off]【B2 改】\n（disable 子命令已删——关就是 enable off；\nCLI 只发表决结果，toggle 是手柄 Start 的事）\nmove vx vy vyaw [--secs N]\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr\n\nupdate 子命令组（M7）：\nupdate check / status / log [N]\nupdate apply <ver> / rollback\n（连 mini-updaterd，不连 miniduckd）" {
+  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\nrobot.* 子命令：\nhello / health\nstate / subscribe [--every N]【B3 改】\n（子命令名不变；内部发\nrobot.subscribe {}，无 hz 旗标）\nenable [on|off]\nmove vx vy vyaw [--secs N]\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr\n\nupdate 子命令组（M7）：\nupdate check / status / log [N]\nupdate apply <ver> / rollback\n（连 mini-updaterd，不连 miniduckd）" {
     class: changed
   }
 }
@@ -123,10 +123,10 @@ p_updaterd: "进程 2：mini-updaterd（更新守护进程，M7）" {
 }
 
 # ---------- 进程 3：守护进程（改动：RPC 分发结构 + 控制循环状态机，均在模块内部） ----------
-p_daemon: "进程 3：miniduckd（守护进程，B2 改动在 RPC 分发与状态机内部）" {
+p_daemon: "进程 3：miniduckd（守护进程，B3 只改 RPC 层的订阅入口与 ack）" {
   class: procbox
 
-  rpc: "RPC 层\n(main.rs serve 循环)【B2 改】\nJSON-RPC 2.0 NDJSON\nnotification 统一入口提前拦截：\n无 id 帧一律不应答——\nmove/head/mouth 静默应用，\n非意图方法静默丢弃\n（B1 只给 robot.move 开通知，\n其他方法回 id:null——已收敛）\nrobot.enable {on, toggle}【B2】\n（toggle daemon 侧翻转、永不拒绝、\nreason 逐字对齐；robot.disable 已删）\nhello / robot.health / robot.state(订阅)\nrobot.move / robot.do / robot.skills\nrobot.mouth / robot.head" {
+  rpc: "RPC 层\n(main.rs serve 循环)【B3 改】\nJSON-RPC 2.0 NDJSON\n订阅 robot.subscribe {hz}\nack=SubscribeResult（启动时组好）\nwalk/sitstand/ground_pick 文件名\n+ skills 名；hz 解析后丢弃\nrobot.state 只作推送 method\n带 id 的 robot.state\n= METHOD_NOT_FOUND\n（已删「robot.state(订阅)」）\nnotification 统一入口仍在：\n无 id 的 robot.subscribe 静默丢弃\nhello / robot.health\nrobot.enable / robot.move\nrobot.do / robot.skills\nrobot.mouth / robot.head" {
     class: changed
   }
 
@@ -138,8 +138,8 @@ p_daemon: "进程 3：miniduckd（守护进程，B2 改动在 RPC 分发与状�
     class: unchanged
   }
 
-  loop: "控制循环 50Hz\n(control.rs)【B2 改：模块内部状态机】\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制)\ndisable → Stopped（当拍直接命令\n回 home 无斜坡、不卸 torque，\nScheduler::reset() 清 LSTM 槽）\n→ 再 enable 直接回 Driving（无斜坡）\n（B1 的 RampDown=2s 斜坡+卸 torque 已退役）\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）" {
-    class: changed
+  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制)\ndisable → Stopped（当拍直接命令\n回 home 无斜坡、不卸 torque）\n→ 再 enable 直接回 Driving（无斜坡）\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）" {
+    class: unchanged
   }
 
   sched: "技能调度器（scheduler.rs）【未动】" {
@@ -206,13 +206,14 @@ ort: "ONNX Runtime\nlibonnxruntime.so\n（third_party/onnxruntime，\nORT_DYLIB_
 
 # ---------- 数据流 ----------
 
-# 1. CLI ↔ miniduckd RPC（线上协议不变：仍是请求/响应；robot.move 由
-#    外部客户端（验收脚本/padd）以 notification 形态发，CLI 仍是请求式）
-p_cli.ctl -> p_daemon.rpc: "JSON-RPC 请求/响应（线不变）\nrobot.move 的通知形态由外部客户端发\n（CLI 发不了无 id 帧）" {
-  style.stroke: "#94A3B8"
+# 1. CLI ↔ miniduckd RPC（契约变了、方向没变）
+p_cli.ctl -> p_daemon.rpc: "【改】订阅帧 robot.subscribe\n应答=策略名单 ack\n（不再是 {subscribed:true}）" {
+  style.stroke: "#F59E0B"
+  style.stroke-width: 3
 }
-p_daemon.rpc -> p_cli.ctl: "robot.state 推送 @50Hz\n（载荷含 skill 字段）" {
-  style.stroke: "#94A3B8"
+p_daemon.rpc -> p_cli.ctl: "【改标注】robot.state 推送仍 @50Hz\n（hz 不降频；速率未因 hz 改变）" {
+  style.stroke: "#F59E0B"
+  style.stroke-width: 3
 }
 
 # 2. CLI → mini-updaterd RPC（不变）
@@ -270,10 +271,9 @@ fs_root.install -> p_daemon: "daemon 二进制来自\ninstall/current/bin/minidu
   style.stroke-dash: 3
 }
 
-# 7. RPC → ControlState【改：enable{on,toggle} 写 enabled（toggle RPC 层翻转）；disable 写入路径消失】
-p_daemon.rpc -> p_daemon.shared: "【改】move 写 twist[3]（含 vy）+ last_intent_at\nenable{on,toggle} 写 enabled\n（toggle 在 RPC 层翻成最终值；disable 方法已删）\ndo / mouth / head 不变" {
-  style.stroke: "#F59E0B"
-  style.stroke-width: 3
+# 7. RPC → ControlState（本 Bite 不改这条边）
+p_daemon.rpc -> p_daemon.shared: "move 写 twist[3]（含 vy）+ last_intent_at\nenable{on,toggle} 写 enabled\ndo / mouth / head 不变" {
+  style.stroke: "#94A3B8"
 }
 
 # 8. ControlState → 控制循环（不变）

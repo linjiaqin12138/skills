@@ -25,6 +25,18 @@
 #   o. {on:true, toggle:true} → toggle 优先（忽略 on），关→开；
 #      且 Stopped→Driving 无斜坡（1s 内 skill=walk）
 #   p. enable 未知字段 → INVALID_PARAMS；robot.disable → METHOD_NOT_FOUND
+# Bite 3 断言（订阅入口改为 robot.subscribe {hz} + SubscribeResult ack；
+# 推送 method 仍是 robot.state。hz 收下即丢，推送仍全速率）：
+#   入场：robot.subscribe params {} → accepted、walk=velstand.onnx、
+#   sitstand=alpha_sitstand.onnx、ground_pick=alpha_ground_pick.onnx、
+#   skills=["roulade","kick_left"]，结果里没有 stand / unavailable
+#   q. 带 id 的 robot.state → METHOD_NOT_FOUND（-32601），随后推送仍在
+#      （订阅没被拆掉，也不因这次请求才开始推送）
+#   r. 再发 robot.subscribe {hz:10} → accepted、walk 仍是 velstand.onnx；
+#      随后 0.5 秒内推送帧数 ≥ 18（10Hz 在 0.5s 只有约 5 帧，证明没降频）
+#   s. robot.subscribe {hz:10, foo:1} → INVALID_PARAMS（-32602），之后推送仍在
+#      （解析失败不退订）
+#   t. 无 id 的 robot.subscribe {hz:10} → 0.3s 内只有 robot.state 推送，无响应行
 set -u
 cd /work
 
@@ -91,14 +103,22 @@ def close(a, b, tol=1e-6):
     # obs 里是 f32 落盘的值，和 f64 字面量有 ~1e-8 差，容差 1e-6。
     return all(abs(x - y) < tol for x, y in zip(a, b))
 
-# 入场第一件事：hello + 订阅 robot.state（协议规定，lib.rs 注释）。
+# 入场第一件事：hello + robot.subscribe（协议规定，lib.rs 注释）。
+# 推送帧的 method 仍是 robot.state；ack 是 SubscribeResult，不回显 hz。
 send({"jsonrpc": "2.0", "id": 1, "method": "hello"})
 r = read_until_response(1)
 assert r["result"]["service"] == "miniduckd", r
-send({"jsonrpc": "2.0", "id": 2, "method": "robot.state"})
+send({"jsonrpc": "2.0", "id": 2, "method": "robot.subscribe", "params": {}})
 r = read_until_response(2)
-assert r["result"]["subscribed"] is True, r
-print("握手 + 订阅  OK")
+res = r.get("result") or {}
+assert res.get("accepted") is True, r
+assert res.get("walk") == "velstand.onnx", r
+assert res.get("sitstand") == "alpha_sitstand.onnx", r
+assert res.get("ground_pick") == "alpha_ground_pick.onnx", r
+assert res.get("skills") == ["roulade", "kick_left"], r
+assert "stand" not in res, r
+assert "unavailable" not in res, r
+print(f"握手 + robot.subscribe ack walk={res['walk']} skills={res['skills']}  OK")
 
 # ── 断言 a + b：无 id 通知静默生效 ──
 send({"jsonrpc": "2.0", "method": "robot.move",
@@ -333,14 +353,50 @@ err = r.get("error") or {}
 assert err.get("code") == -32601, f"robot.disable 应回 METHOD_NOT_FOUND，实际 {r}"
 print(f"p2. robot.disable → METHOD_NOT_FOUND: {err['message']}  OK")
 
+# ── 断言 q：带 id 的 robot.state 不是请求方法，订阅也不被拆掉 ──
+send({"jsonrpc": "2.0", "id": 15, "method": "robot.state"})
+r = read_until_response(15)
+err = r.get("error") or {}
+assert err.get("code") == -32601, f"robot.state 应回 METHOD_NOT_FOUND，实际 {r}"
+frames = read_pushes(0.2)
+assert frames, "robot.state 请求之后收不到推送，订阅被拆掉了"
+print(f"q. robot.state 带 id → -32601，随后仍有 {len(frames)} 帧推送  OK")
+
+# ── 断言 r：hz=10 收下但不降频 ──
+send({"jsonrpc": "2.0", "id": 16, "method": "robot.subscribe", "params": {"hz": 10}})
+r = read_until_response(16)
+res = r.get("result") or {}
+assert res.get("accepted") is True, r
+assert res.get("walk") == "velstand.onnx", r
+assert "hz" not in res, r
+frames = read_pushes(0.5)
+assert len(frames) >= 18, f"0.5s 只有 {len(frames)} 帧，像是降到了 10Hz"
+print(f"r. 再订阅 hz=10，walk={res['walk']}，0.5s 内 {len(frames)} 帧（≥18，全速率）  OK")
+
+# ── 断言 s：未知字段 INVALID_PARAMS，且不退订 ──
+send({"jsonrpc": "2.0", "id": 17, "method": "robot.subscribe",
+      "params": {"hz": 10, "foo": 1}})
+r = read_until_response(17)
+err = r.get("error") or {}
+assert err.get("code") == -32602, f"未知字段应回 INVALID_PARAMS，实际 {r}"
+frames = read_pushes(0.2)
+assert frames, "解析失败之后收不到推送，订阅被退掉了"
+print(f"s. subscribe 未知字段 -32602，随后仍有 {len(frames)} 帧推送  OK")
+
+# ── 断言 t：无 id 的 robot.subscribe 静默丢弃，不产生响应行 ──
+send({"jsonrpc": "2.0", "method": "robot.subscribe", "params": {"hz": 10}})
+frames = read_pushes(0.3)
+assert frames, "没收到推送"
+print(f"t. 无 id robot.subscribe 静默，{len(frames)} 帧内只有 robot.state 推送  OK")
+
 print()
-print("M8 断言 a–p 全部通过")
+print("M8 断言 a–t 全部通过")
 PY
 RC=$?
 
 echo
 if [ "$RC" = 0 ]; then
-    echo "M8 验收（robot.move + robot.enable 对齐，notification 统一入口）全部通过"
+    echo "M8 验收（robot.move + robot.enable + robot.subscribe 对齐，notification 统一入口）全部通过"
 else
     echo "FAIL: 断言脚本退出码 $RC"
 fi

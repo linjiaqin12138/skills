@@ -125,7 +125,7 @@ classes: {
   }
 }
 
-title: "microduck M8 系统架构 —— IPC 表面对齐原版：robot.move（通知/请求双形态 + vy）+ robot.enable{on,toggle}（notification 统一入口；disable 直接回 home，Stopped 上电抱持取代 RampDown）；进程与模块零增删" {
+title: "microduck M8 系统架构 —— 订阅入口对齐 robot.subscribe + SubscribeResult；进程与模块零增删" {
   near: top-center
   shape: text
   style.font-size: 22
@@ -135,7 +135,7 @@ title: "microduck M8 系统架构 —— IPC 表面对齐原版：robot.move（�
 # ---------- 进程 1：CLI ----------
 p_cli: "进程 1：mini-duckctl（CLI 客户端）" {
   class: procbox
-  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\nrobot.* 子命令：\nhello / health / state [--every N]\nenable [on|off]【M8 B2 改】\n（disable 子命令已删——关就是 enable off）\nmove vx vy vyaw [--secs N]【M8 B1 改】\n（原 drive vx vyaw，+vy 侧向）\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr\n\nupdate 子命令组（M7）：\nupdate check / status / log [N]\nupdate apply <ver> / rollback\n（连 mini-updaterd，不连 miniduckd）" {
+  ctl: "mini-duckctl\n(bin/mini-duckctl.rs)\n\nrobot.* 子命令：\nhello / health\nstate / subscribe [--every N]【M8 B3】\n（子命令名不变；内部发\nrobot.subscribe {}，无 hz 旗标）\nenable [on|off]\n（disable 子命令已删——关就是 enable off）\nmove vx vy vyaw [--secs N]\n（原 drive vx vyaw，+vy 侧向）\ndo <skill> / skills\nmouth <0..1> / head np hp hy hr\n\nupdate 子命令组（M7）：\nupdate check / status / log [N]\nupdate apply <ver> / rollback\n（连 mini-updaterd，不连 miniduckd）" {
     class: cli
   }
 }
@@ -177,7 +177,7 @@ p_updaterd: "进程 2：mini-updaterd（更新守护进程，M7）" {
 p_daemon: "进程 3：miniduckd（守护进程，M8 改动在 RPC 层与状态机）" {
   class: procbox
 
-  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\nnotification 统一入口【M8 B2】：\n无 id 帧一律不应答——\nmove/head/mouth 静默应用，\n非意图方法静默丢弃\n方法：hello / robot.health\nrobot.state(订阅)\nrobot.enable {on, toggle}【M8 B2】\n（toggle daemon 侧翻转；robot.disable 已删）\nrobot.move【M8 B1】（vy 侧向补齐）\nrobot.do / robot.skills\nrobot.mouth / robot.head" {
+  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\nnotification 统一入口：\n无 id 帧一律不应答——\nmove/head/mouth 静默应用，\n非意图方法静默丢弃\n订阅 robot.subscribe {hz}【M8 B3】\nack=SubscribeResult（ack 在启动时组好）\nwalk/sitstand/ground_pick 文件名\n+ skills 名；hz 解析后丢弃\nrobot.state 只作推送 method\n带 id 的 robot.state\n= METHOD_NOT_FOUND\n其余：hello / robot.health\nrobot.enable {on, toggle}\nrobot.move / robot.do / robot.skills\nrobot.mouth / robot.head" {
     class: rpc
   }
 
@@ -269,9 +269,9 @@ ort: "ONNX Runtime\nlibonnxruntime.so\n（third_party/onnxruntime，\nORT_DYLIB_
 
 # ---------- 数据流 ----------
 
-# 1. CLI ↔ miniduckd RPC（robot.* 面；M8：drive→move）
-p_cli.ctl -> p_daemon.rpc: "JSON-RPC 请求/响应\nUnix socket /tmp/miniduckd.sock（0660=全部鉴权）"
-p_daemon.rpc -> p_cli.ctl: "robot.state 推送 @50Hz\n（载荷含 skill 字段）"
+# 1. CLI ↔ miniduckd RPC（M8 B3：订阅请求方法名与 ack 载荷变了，推送方向与速率不变）
+p_cli.ctl -> p_daemon.rpc: "订阅帧 robot.subscribe\n应答=策略名单 ack\n（不再是 {subscribed:true}）\nUnix socket /tmp/miniduckd.sock（0660）"
+p_daemon.rpc -> p_cli.ctl: "robot.state 推送 @50Hz\n（hz 不降频；载荷含 skill）"
 
 # 2. CLI → mini-updaterd RPC（M7）
 p_cli.ctl -> p_updaterd.ipc: "update.* 请求/响应\nUnix socket /tmp/mini-updaterd.sock\n（0660 + SO_PEERCRED-lite）" {

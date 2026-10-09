@@ -19,16 +19,16 @@
 
 | 处置 | 行数 |
 |---|---|
-| 已交付 | 40 |
+| 已交付 | 42 |
 | 偏差登记（沿用 D1–D41） | 33 |
-| 未登记缺口（预留新 D 号 D42–D63，共 22 条；D43/D44 已于 M8 Bite 1/2 收敛） | 61 |
+| 未登记缺口（预留新 D 号 D42–D63，共 22 条；D43/D44/D45 已于 M8 Bite 1/2/3 收敛） | 59 |
 | 建议豁免 | 49 |
 | **合计** | **183** |
 
 口径说明：按表行计数；一行覆盖一个 RPC 方法 / 一个 CLI 命令组 / 一个配置段（键组）/
 一个 crate。混合处置的行按处置列首个类目计数，次要类目在括号内注记。缺口行
 归并为 22 条新 D（D42–D63），逐条见文末「未登记缺口汇总」；D43（M8 Bite 1/2）、
-D44（M8 Bite 2）已收敛，其余 20 条挂账待批次收敛。
+D44（M8 Bite 2）、D45（M8 Bite 3，hz 降频残余仍归 D25）已收敛，其余 19 条挂账待批次收敛。
 
 既有决策的影响（STATE.md 决策记录）：`examples/` 是教程配套资产，不计入本清单；
 D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体按同原则处理。
@@ -118,7 +118,7 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 | account.login | :775 / :1056 | 无 | 建议豁免（HF OAuth 远程访问栈；拿不准，见文末） |
 | account.status | :777 / :1058 | 无 | 建议豁免（同上） |
 | account.logout | :779 / :1060 | 无 | 建议豁免（同上） |
-| robot.subscribe {hz} + SubscribeResult ack | :782 / :1061；SubscribeParams :2742、SubscribeResult :2759 | 无；robot.state 兼作订阅入口（main.rs:223） | 未登记缺口（D45；hz 逐订阅者降频已登记 D25） |
+| robot.subscribe {hz} + SubscribeResult ack | :782 / :1061；SubscribeParams :2742、SubscribeResult :2759 | robot.subscribe（main.rs serve；hz 解析后丢弃） | 已交付（M8 Bite 3，milestones/m8-convergence/acceptance.md）；hz 逐订阅者降频仍归 D25 |
 | robot.state 通知 | :791；RobotState :3708 | main.rs:380-397 推送（50Hz，M5） | 已交付（M5）；载荷字段缺口 D50、latest-wins 语义 D25 |
 | net.status | :801 / :1063 | 无 | 未登记缺口（D42） |
 | net.scan | :803 / :1064 | 无 | 未登记缺口（D42） |
@@ -237,7 +237,7 @@ updater.toml（reference/deploy/updater.toml，179 行）：
 |---|---|---|---|
 | RobotState 帧字段全集（t / move{requested,applied,limited_by} / head[4] / policy / safety{fallen,limp,gravity,gain} / loop{hz,missed} / joints / targets / velocities / currents_ma / odom / t_ns / imu{gyro,quat} / frames / skeleton / theremin / chorale） | duck-ipc-proto/src/lib.rs:3708-3798 | {tick, positions, imu{gyro,gravity,quat}, obs, action, fallen, enabled, gain, torque, skill}（src/main.rs:380-397） | 未登记缺口（D50） |
 | HealthResult 字段全集（healthy / degraded / reason 单值 / battery / motors / cpu_temp_c / cpu_throttle / control_loop / bus / imu） | lib.rs:3432-3501 | {healthy, reason[], tick, uptime_s, reads, writes, skipped_reads, consecutive_read_errors, achieved_hz}（main.rs:171-181） | 未登记缺口（D49） |
-| SubscribeResult ack（accepted / walk / stand / unavailable / sitstand / ground_pick / skills） | lib.rs:2759-2787 | state 入口只回 {subscribed: true}（main.rs:223-226） | 未登记缺口（D45） |
+| SubscribeResult ack（accepted / walk / stand / unavailable / sitstand / ground_pick / skills） | lib.rs:2759-2787 | src/lib.rs SubscribeResult；stand 恒省略（D33）；无 "no policy configured" | 已交付（M8 Bite 3，milestones/m8-convergence/acceptance.md）；stand 省略入 D33 |
 | Progress 通知载荷（component/phase/percent/detail） | lib.rs:3105 | 无 | 偏差登记（D41） |
 | 应用错误码表（BUSY=1、UNKNOWN_COMPONENT=2、PREFLIGHT_FAILED=4 … PERMISSION_DENIED=14） | lib.rs:909-945 | -32001..-32004（src/updater/mod.rs） | 未登记缺口（D61） |
 | API_VERSION = 37 | lib.rs:426 | = 1（src/lib.rs:27） | 偏差登记（D15） |
@@ -257,7 +257,7 @@ updater.toml（reference/deploy/updater.toml，179 行）：
 - **D42** configd 缺席，net.*（4 条）与 system.* 前 5 条方法面连带缺席（btd/mediad/padd/tofd 四进程建议豁免单列）。
 - **D43** ~~robot.drive {vx,vyaw} 请求式 vs 原版 robot.move {vx,vy,vyaw} 通知式：vy 侧向未开放，且连续意图（move/head/mouth）的通知语义（无应答、last-writer-wins）未实现~~ M8 Bite 1 已收敛 robot.move 本体（通知/请求双形态 + vy + robot.drive 删除）；M8 Bite 2 已收敛 notification 统一入口与 head/mouth 通知语义。仅剩残余：mini-duckctl move 仍请求式逐条调用（教学工具定位保留）。
 - **D44** ~~robot.enable {on, toggle} vs 手搓 enable/disable 无参二分：缺 toggle（手柄 Start 语义），多出原版没有的 robot.disable~~ M8 Bite 2 已收敛：robot.enable {on, toggle} 全对齐（toggle daemon 侧翻转、永不拒绝、reason 逐字对齐），robot.disable 方法与 CLI 子命令一并删除（用户裁决）。另：disable 语义（斜坡+卸 torque vs 直接回 home 上电抱持）复核中新发现，登记 D64 并随 Bite 2 收敛（见 docs/deviations.md）。
-- **D45** robot.subscribe {hz} + SubscribeResult ack（walk/stand/unavailable/skills 名单）缺席，robot.state 方法名兼作订阅入口（hz 降频语义已登记 D25）。
+- **D45** ~~robot.subscribe {hz} + SubscribeResult ack 缺席，robot.state 兼作订阅入口~~ M8 Bite 3 已收敛入口与名单（walk/sitstand/ground_pick 文件名、skills 配置名、accepted 恒 true）。带 id 的 robot.state 改为 METHOD_NOT_FOUND。残余：hz 收下但不降频，仍归 D25；stand 省略归 D33；无 "no policy configured" 文案（没有策略开关配置）。
 - **D46** 命令 EMA 平滑缺席（[control] cmd_alpha/head_alpha；手搓意图直通，只有动作侧训练低通）。
 - **D47** updaterd 预检面 robot.safeToRestart / robot.modelApi 缺席（apply 前「现在重启安全吗」无从问起）。
 - **D48** update.* 缺五条方法：resetToGolden（D37 关联）/ select / pin / listInstalled / show（D41 transcript 关联）。

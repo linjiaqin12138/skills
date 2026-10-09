@@ -454,3 +454,215 @@ p2. robot.disable → METHOD_NOT_FOUND  OK
 **展望**：M8 剩余路线不变。C1 接口对齐的后续 Bite：`robot.subscribe` 入口（D45，含 hz 降频与 ack）、updater 的 `robot.safeToRestart` 预检（D47）；`robot.relax`（卸 torque 的出口，D64 残余）与 head/mouth 应答补 `accepted` 字段待裁决排期。C2 移植 BAM 执行器模型进 `sim/duck_body.py`（D21），让 sit / roulade 在仿真里物理通过——先做 kp=0.55 一行实验验证归因，再动手移植。
 
 [^3]: 斜坡（ramp）：目标位置不一步到位，而是沿直线从当前姿态一点点爬向目标的渐变过程——我们的 RampUp 是 2 秒 × 50 拍从实测姿态爬到 home（`src/control.rs:47-48`）。
+
+---
+
+# 第 11 章 · M8 Bite 3：订阅入口对齐 robot.subscribe + SubscribeResult
+
+> 本章是 M8 C 线接口对齐的第三个 Bite（已验收）。Bite 1 做了 `robot.move` 与 vy，Bite 2 做了 `robot.enable {on, toggle}` 与 notification 统一入口。本 Bite 收 D45 的入口与 ack 名单。交付物：`src/lib.rs`（`SubscribeParams`、`SubscribeResult`、`parse_subscribe`、`assemble_subscribe_ack`，5 个测试函数）、`src/scheduler.rs`（`SITSTAND_FILE` / `GROUND_PICK_FILE`、`LoadedSlots`、`loaded_slots`）、`src/main.rs`（`load_failure` 与 `policy_error` 分开、`make_subscribe_ack`、`robot.subscribe` 分支）、`src/bin/mini-duckctl.rs`（`state` / `subscribe` 内部改发 `robot.subscribe {}`）、`scripts/accept-m8.sh`（入场握手改为订阅 ack，追加断言 q–t）。进程与模块零增删。下一个 Bite 是 updater 的 `robot.safeToRestart` / `robot.modelApi`（D47）。
+
+## 1. 问题
+
+到 Bite 2 为止，客户端要状态流，靠的是带 id 去调 `robot.state`，应答是 `{subscribed: true}`。原版的入口是另一个方法：`robot.subscribe`，参数是 `SubscribeParams`（订阅参数），里面可以带 `hz`（次/秒）[^4]；应答是 `SubscribeResult`（订阅应答），报这份进程加载了哪些 policy。推送帧的 method 仍叫 `robot.state`，方向是 daemon 到客户端，并且这帧永不带 id（`reference/duck-ipc-proto/src/lib.rs:781-791`）。
+
+D45 要交的就是这个入口和这份 ack 名单。逐订阅者降频、broadcast、Lagged 计数仍是 D25，本 Bite 禁止提前做。`stand` 槽仍是 D33，本 Bite 不收。
+
+## 2. 背景概念
+
+notification 与 request 的区分已经在第 9 章的卡片里讲过，深读是 [docs/concepts/jsonrpc-notification.md](../../concepts/jsonrpc-notification.md)。本章用到的只有一条：无 id 的帧不应答。ack 每个字段是什么意思，放在下一节。
+
+## 3. 设计
+
+![M8 架构](arch.svg)
+
+![M8 相对 Bite 2 的变动](arch-diff.svg)
+
+先看第二张。相对 Bite 2：没有新增模块，没有删除模块，边的方向也没改。琥珀色只有两块——`p_daemon.rpc` 和 `p_cli.ctl`。变了内容的是它们之间的两条边：
+
+- CLI → RPC：订阅帧的方法名改成 `robot.subscribe`，应答从 `{subscribed: true}` 改成策略名单 ack。
+- RPC → CLI：仍是 `robot.state` 推送，速率仍是控制循环的全速率（`TICK_PERIOD` = 20ms，`src/control.rs:45`）。客户端写来的 hz 不改变这条边。
+
+第一张是 Bite 3 之后的全图。进程和模块与 Bite 2 相同。RPC 框里多了一句：ack 在启动时组好。那是 `serve` 拿到的一份已经算完的 `SubscribeResult`，不另开模块。
+
+一次订阅、一次走错方法、一次无 id 订阅，三条时间线是：
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant D as daemon
+
+    Note over C,D: 带 id 的 robot.subscribe：订上，然后才有推送
+    C->>D: robot.subscribe {hz}（带 id）
+    D-->>C: ack = SubscribeResult（accepted，名单；不回显 hz）
+    loop 控制循环全速率，约 50Hz
+        D--)C: robot.state（notification，无 id）
+    end
+
+    Note over C,D: 带 id 的 robot.state：方法不存在，不开始推送
+    C->>D: robot.state（带 id）
+    D-->>C: METHOD_NOT_FOUND（-32601）
+
+    Note over C,D: 无 id 的 robot.subscribe：静默丢弃，不开始推送
+    C-)D: robot.subscribe {hz}（无 id）
+    Note right of D: 无应答，subscribed 保持原值
+```
+
+`SubscribeResult` 的字段（形状对照 `reference/duck-ipc-proto/src/lib.rs:2759-2787`，我们的定义在 `src/lib.rs:171-189`）：
+
+- `accepted` 恒为 true。订阅不拒绝。policy 没加载上，也让这条连接订上推送（`src/lib.rs:172-173`、`:215`）。
+- `walk` 是文件名，不是路径。加载失败也报这次尝试的文件名，客户端才能看见是哪个文件没起来（`src/lib.rs:174-176`）。
+- `stand` 恒省略。本工程没有 stand 槽，这是 D33，本 Bite 不收（`src/lib.rs:166`、`:217`）。
+- `unavailable` 只在 walk 加载失败时出现，文案是 `policy would not load: {PolicyError}`。`robot.health` 仍用 `policy unavailable: …`。两句不混（`src/main.rs:77-89`、`src/lib.rs:179-180`）。原版在「配置里没有 walk」时还会写 `no policy configured; holding the startup pose`（`reference/robotd/src/main.rs:4620-4626`）。我们没有「把策略关掉」的配置项，所以不编这句。
+- `sitstand` / `ground_pick`：对应槽加载成功才出现，值是文件名 `alpha_sitstand.onnx` / `alpha_ground_pick.onnx`。
+- `skills`：配置技能的**名字**（`roulade`、`kick_left`），不是文件名。不含 `ground_pick` / `sit_toggle`——那两个只出现在 `robot.skills`。空则省略（`src/lib.rs:167-168`、`:187`）。
+- ack 里没有 hz。解析可以收下 hz，应答不把它说回去（`src/lib.rs:376-377`）。
+
+hz 的线上规则：缺省、`0`、正整数都合法；未知字段、负数、字符串是 `INVALID_PARAMS`（参数非法，-32602）。解析成功之后这个数字被丢掉，推送仍是控制循环全速率。同一条连接再订阅，只再回一份同样的 ack：每条连接一个 watch（观察通道）[^5]。解析失败不改 `subscribed`，已经订上的推送继续，还没订上的也不会因此开始。
+
+### 决策导览
+
+两张卡片的全文在代码领读里，紧挨着对应的分支：
+
+- **hz 收下但不降频**——客户端写了 hz，daemon 怎么对待（见「serve：谁能订上」）。
+- **请求式 robot.state 改成 METHOD_NOT_FOUND，不留别名**——旧的「调 robot.state 即订阅」留不留（见同一节）。
+
+读完本节，不看代码应能复述：订阅只走带 id 的 `robot.subscribe`；ack 是一份启动时冻住的策略名单，`accepted` 恒真，不回显 hz；推送 method 仍是 `robot.state`，速率仍是约 50Hz；带 id 的 `robot.state` 得到 -32601；无 id 的 `robot.subscribe` 没有应答，也不把这条连接标成已订阅。
+
+## 4. 代码领读
+
+### 协议层：参数收下，ack 不含 hz
+
+`SubscribeParams`（`src/lib.rs:155-161`）只有一个字段 `hz: Option<u32>`，`#[serde(default, deny_unknown_fields)]`。缺省是 `None`。`0` 和 `10` 都是 `Some(n)`，解析层不把 `0` 折成「每拍」——原版「hz 缺省或 0 表示每拍」写在结构体注释里（`src/lib.rs:155-156`），我们的推送路径根本不读这个值。
+
+`parse_subscribe`（`src/lib.rs:195-203`）先看 params 是不是 JSON null。`Request` 缺省 params 就是 null（`src/lib.rs:42-43`）。null 先换成 `{}` 再反序列化，于是手写的 `{"method":"robot.subscribe"}`（没有 params 字段）和显式 `{}` 都得到 `hz: None`。未知字段、负数、字符串的错误文案是 `robot.subscribe wants {hz?: u32}: …`，这句原样成为 `INVALID_PARAMS` 的 message。
+
+`assemble_subscribe_ack`（`src/lib.rs:207-223`）把名单收成一份只往外写的结构：`accepted` 写死 true，`stand` 写死 `None`，`unavailable` 仅在有加载错误时拼上 `policy would not load:` 前缀。`SubscribeResult` 上没有 hz 字段，序列化自然不会回显。
+
+5 个测试函数都在 `src/lib.rs:332-401`：
+
+- `subscribe_params_empty_and_absent_mean_every_tick`（`:332-341`）：`{}` 与缺省 params（null）都是 `hz: None`。
+- `subscribe_params_hz_zero_and_ten_accepted`（`:344-348`）：`0` 与 `10` 都是 `Some(n)`。
+- `subscribe_params_bad_shapes_rejected`（`:351-360`）：未知字段、`-1`、字符串被拒。
+- `subscribe_result_omits_stand_unavailable_and_empty_skills`（`:363-384`）：成功时省略 `stand` / `unavailable` / 空 `skills`，也没有 `hz`。
+- `subscribe_result_names_the_walk_file_that_failed`（`:387-401`）：失败仍报 `walk` 文件名，`unavailable` 含 `policy would not load`。
+
+Bite 2 结束时 `cargo test` 是 81 条。这 5 个函数是本 Bite 在 `lib.rs` 里新增的全部测试函数，合计 86。
+
+### 名单从已加载的槽来
+
+`SITSTAND_FILE` 与 `GROUND_PICK_FILE`（`src/scheduler.rs:339-340`）是 `alpha_sitstand.onnx` 和 `alpha_ground_pick.onnx`。`Scheduler::load` 用这两个常量去加载可选槽（`:365-366`），`loaded_slots` 用同一对常量往外报文件名（`:417-418`）。ack 和加载路径共用字面量，避免两处各写一遍然后漂移。
+
+`LoadedSlots`（已加载槽名单，`src/scheduler.rs:345-349`）的 `skills` 是配置技能的 `robot.do` 名字，按 `SKILLS` 表的顺序。表里 `roulade` 的文件是 `roulade.onnx`，`kick_left` 的文件是 `ball_kick_left.onnx`（`src/scheduler.rs:60-70`）。`loaded_slots` 推进去的是 `SKILLS[i].name`，所以 ack 里是 `roulade` / `kick_left`，不是文件名（`:409-420`）。槽是 `None` 的不进名单。`load_scheduler` 的辅助断言把这三个字段钉住（`:807-812`）。
+
+walk 不在 `LoadedSlots` 里。walk 加载失败时没有 `Scheduler`，文件名仍要从调用方已知的路径取（`:406-408`）。
+
+### 启动时把 ack 冻住
+
+`Scheduler::load` 失败时，同一条 `PolicyError` 的 Display 存两份：`policy_error` 带前缀 `policy unavailable:`，交给 health；`load_failure` 是不带这前缀的原文，只交给订阅 ack（`src/main.rs:77-90`）。health 读的是前者（`:172-177`）。
+
+`make_subscribe_ack`（`src/main.rs:261-278`）用 `Path::file_name` 取 walk 的文件名，加载失败也拿得到。其余三个字段来自 `loaded_slots`；没有调度器时这三个是空。`assemble_subscribe_ack` 在 `control::spawn` 之前调一次（`:101-104`，spawn 在 `:127`）。每条连接 `clone` 这份结果（`:150`）。订阅路径不再打开磁盘。
+
+进程活着的时候这份名单不变，和原版把 ack 定义成「进程生命周期内不变」是同一件事（`reference/duck-ipc-proto/src/lib.rs:2749-2750`）。我们现在没有策略热换（D30）。热换落地之后，启动时冻住的这份 ack 要重新看：换过的网不会自动写进已经发出去的应答。
+
+### serve：谁能订上
+
+每条连接自己有一个 `subscribed`（`src/main.rs:291`）和一个 `watch::Receiver`（接入时 `frame_rx.clone()`，`:146`）。推送臂是 `frame_rx.changed(), if subscribed`（`:500`）。`subscribed` 为 false 时这条臂不参与 select，连接上没有 `robot.state`。
+
+无 id 的帧仍走 Bite 2 的统一入口（`:312-341`）。`robot.subscribe` 不在 move/head/mouth 那三支里，落到 `_ => {}` 然后 `continue`。注释写明：原版只在带 id 的请求路径上设订阅，无 id 的订阅帧不开始推送（`:335-337`）。这条路径不写 `subscribed`。
+
+带 id 的 `robot.subscribe`（`:354-367`）：`parse_subscribe` 成功就把 `subscribed` 设为 true，把启动时那份 ack 序列化回去。`Ok(_)` 不绑定解析出来的 `SubscribeParams`，hz 在这里丢掉。再订一次只是再走一遍这个分支：同一个 `subscribed`，同一份 ack，没有第二个 watch。解析失败走 `Err`，回 `INVALID_PARAMS`，不给 `subscribed` 赋值（`:366`）。
+
+带 id 的 `robot.state` 没有自己的分支。它落到 `other`（`:486-490`），回 `METHOD_NOT_FOUND`（方法不存在，-32601，`src/lib.rs:29`），message 是 `method not found: robot.state`。这个臂不写 `subscribed`。推送帧由 `ServerMessage::notify` 组出来（`src/lib.rs:96-102`），变体里没有 id 字段；method 写死 `"robot.state"`（`src/main.rs:506-507`）。
+
+**【决策卡片】hz 收下但不降频**
+
+- **决策点**：客户端在订阅里写了 hz，daemon 怎么对待这个数字。
+- **备选**：A. 本 Bite 就按每个订阅者，把推送降到它要的次数。B. 凡是带 hz 的请求直接判参数非法，等到做降频再收这个字段。C. 检查合法之后丢掉，推送仍按控制循环的全速率走（所选）。
+- **选择**：C。降频不是多写一个判断。原版给每个订阅者一条自己的广播接收端，再按时间间隔丢帧：设间隔在 `reference/robotd/src/main.rs:3724-3732`，按间隔丢帧在 `:3656-3665`。我们每条连接一个 watch，慢的时候只留最新一帧。降频、广播、以及「丢了多少帧」的计数都是 D25，本 Bite 不许提前做。同时原版客户端会带着 hz 来订。`robotctl monitor` 的默认值是 10（`reference/robotctl/src/main.rs:307-311`），发出去在 `reference/robotctl/src/monitor.rs:328-329`。同仓库的 theremin 路径发 `hz: Some(15)`（`reference/robotctl/src/main.rs:628-631`）。订阅入口本身是 D45 要交的。因为还没做降频就拒绝带 hz 的请求，这些客户端就订不上。
+- **放弃的成本**：
+  - 没选 A：只要 10Hz 的客户端，本可以少收大约 4/5 的帧，序列化也少做那么多。这个省没有给到。
+  - 没选 B：拒绝 hz 的好处是，`accepted: true` 不会被读成「你要的速率已经生效」。我们没有要这个诚实。客户端发 `hz: 10`，仍拿到 `accepted: true`，速率仍是约 50Hz。验收断言 r 把这件事测死了：0.5 秒内 26 帧，门槛是不少于 18。所以它是登记在案的偏差，是公开的行为。
+- **失效边界**：一旦有订阅者真跟不上约 50Hz（同时订的人变多，或 D50 把帧里的字段补全、每一帧变重），watch 的 latest-wins 会静默丢掉中间帧，而且没有 Lagged 计数告诉客户端丢了多少。那时该做的是 D25，而不是继续让 hz 字段待在协议里、却不起作用。
+
+**【决策卡片】请求式 robot.state 改成 METHOD_NOT_FOUND，不留别名**
+
+- **决策点**：旧的「调用 `robot.state` 就开始订阅」要不要留。
+- **备选**：A. 留别名。调用 `robot.state` 仍开始订阅，应答仍是 `{subscribed: true}`。B. 留别名，但应答改成 `SubscribeResult`。C. 带 id 的 `robot.state` 直接回方法不存在（-32601）。只有 `robot.subscribe` 能订上（所选）。
+- **选择**：C。原版把 `robot.state` 定义成服务端发给客户端的 notification，这帧永不带 id（`reference/duck-ipc-proto/src/lib.rs:781-791`）。再留着「客户端来调 `robot.state`」这条路，双方对「这个方法是请求还是通知」的看法就不一致。Bite 1 删掉 `robot.drive`、不留别名，是同一条理由。
+- **放弃的成本**：
+  - 没选 A：旧脚本、旧教程里把 `robot.state` 当订阅来调的写法，不用改就能跑。我们没有要这个。accept-m8 的握手和 CLI 都改了。accept-m5 和 accept-m6 走的是 CLI 子命令名，表面上没碎。直接按协议发 `robot.state` 的客户端会拿到 -32601。
+  - 没选 B：方法名写错也能订上。我们没有要这个容错。
+- **失效边界**：外面已经写死「请求式 `robot.state`」的客户端，包括本教程旧章节里的裸协议例子，会以为订阅坏了。CLI 的 `state` 和 `subscribe` 子命令名没变，变的是它内部发出的方法。这只覆盖走 CLI 的人。
+
+### CLI：子命令名不动，内部改方法
+
+`state` 和 `subscribe` 是同一个分支（`src/bin/mini-duckctl.rs:60-73`）。它调用 `robot.subscribe`，params 是 `{}`。没有 hz 旗标；注释写明服务端不按订阅者降频（`:56-59`）。`subscribe` 这个旧名仍逐帧打印（`every = 1`），`state` 默认每 50 帧打一行。
+
+`hello` 的应答打到 stderr（`:266`）。`call` 把订阅 ack 打到 stdout（`:283`）。所以这条命令的第一行 stdout 仍是 ack，后面才是 `robot.state` 推送。accept-m5 和 accept-m6 用 `tail -n +2` 丢掉第一行（`scripts/accept-m5.sh:37`、`scripts/accept-m6.sh:45`）。子命令名没变，这个「丢掉第一行」的契约还在。
+
+## 5. 验收
+
+先编译二进制，再跑测试和验收脚本。`cargo test` 不会更新 `target/debug/miniduckd`，而脚本启动的是这个文件（`scripts/accept-m8.sh:54`）。见「常见坑」1。
+
+```bash
+# 容器内（miniduck-rust，工作目录 /work）
+docker compose exec rust cargo build --bins
+docker compose exec rust cargo test
+docker compose exec rust bash scripts/accept-m8.sh
+```
+
+`cargo test`（2026-10-09 主 agent 复跑）：86 passed，0 failed。构成是 Bite 2 的 81 条，加上上一节列出的 5 个 `SubscribeParams` / `SubscribeResult` 测试函数。
+
+`accept-m8.sh`（同一次复跑）关键行：
+
+```text
+握手 + robot.subscribe ack walk=velstand.onnx skills=['roulade', 'kick_left']  OK
+a–p 全部通过（与 Bite 2 相同的 move/enable 断言，这里不必逐条复述）
+q. robot.state 带 id → -32601，随后仍有 11 帧推送  OK
+r. 再订阅 hz=10，walk=velstand.onnx，0.5s 内 26 帧（≥18，全速率）  OK
+s. subscribe 未知字段 -32602，随后仍有 10 帧推送  OK
+t. 无 id robot.subscribe 静默，15 帧内只有 robot.state 推送  OK
+M8 断言 a–t 全部通过
+```
+
+旧断言 a–p 仍绿。本 Bite 新增的是入场握手和 q–t。
+
+- **握手**证明订阅入口和 ack 名单。脚本发 `robot.subscribe`、params `{}`（`scripts/accept-m8.sh:111-120`），断言 `accepted`、`walk=velstand.onnx`、`sitstand=alpha_sitstand.onnx`、`ground_pick=alpha_ground_pick.onnx`、`skills=['roulade','kick_left']`，并且结果里没有 `stand` / `unavailable`。打印行只带了 walk 和 skills，四个字段的断言都在打印之前。
+- **q** 证明带 id 的 `robot.state` 是 -32601，而且这次调用不拆掉已经建立的订阅：随后 0.2 秒内仍有推送，实测 11 帧（`:356-363`）。代码上这个分支也不把 `subscribed` 从 false 改成 true；q 跑的时候订阅已经在，所以它直接看到的是「推送还在」。
+- **r** 证明 hz 被收下、不降频、不回显。再发 `{hz: 10}`，`accepted` 仍真，`walk` 仍是 `velstand.onnx`，结果里没有 `hz`。随后 0.5 秒收帧，门槛 ≥18。脚本注释写明：10Hz 在 0.5 秒大约只有 5 帧（`:35-36`）。实测 26 帧，是全速率。
+- **s** 证明未知字段是 -32602，并且解析失败不退订：随后仍有推送，实测 10 帧（`:376-384`）。
+- **t** 证明无 id 的 `robot.subscribe` 不产生响应行：0.3 秒内收到的帧 method 都是 `robot.state`，实测 15 帧（`:386-390`）。「不开始推送」写在统一入口里——那条路径不给 `subscribed` 赋值（`src/main.rs:335-337`）。t 发出时这条连接已经订过，所以画面上仍是原有的推送，多出来的证据是「没有应答行」。
+
+## 6. 与原版差异
+
+**本 Bite 已对齐**
+
+| 对齐项 | 原版证据 | 我们 |
+|---|---|---|
+| 订阅入口是 `robot.subscribe`，参数形状 `{hz?: u32}`，未知字段拒绝 | `reference/duck-ipc-proto/src/lib.rs:781-782`、`:2742-2745` | `src/lib.rs:155-161`、`:195-203` |
+| ack 是 `SubscribeResult`：`accepted` / `walk` / `stand` / `unavailable` / `sitstand` / `ground_pick` / `skills` | `reference/duck-ipc-proto/src/lib.rs:2759-2787` | `src/lib.rs:171-189`、`assemble_subscribe_ack` `:207-223` |
+| `accepted` 恒 true，订阅不因策略没加载而拒绝 | `reference/robotd/src/main.rs:4609-4614` | `src/lib.rs:215` |
+| walk 报文件名；加载失败也报尝试过的文件 | `reference/duck-ipc-proto/src/lib.rs:2761-2765`；失败文案 `reference/robotd/src/main.rs:4620-4626` | `src/main.rs:266-268`、`src/lib.rs:218` |
+| sitstand / ground_pick 是文件名；skills 是配置技能名 | `reference/duck-ipc-proto/src/lib.rs:2776-2786` | `src/scheduler.rs:339-340`、`:409-420` |
+| `robot.state` 是服务端通知，永不带 id | `reference/duck-ipc-proto/src/lib.rs:783-791` | `ServerMessage::notify`（`src/lib.rs:96-102`）+ 推送 method（`src/main.rs:506-507`） |
+| 无 id 的 `robot.subscribe` 不开始推送 | 原版只在带 id 的路径上 `states = Some(...)`（`reference/robotd/src/main.rs:3724-3731`）；无 id 帧在更早处 `continue`（`:3711-3715`） | 统一入口 `_ => {}`（`src/main.rs:335-340`） |
+
+**偏差（`docs/deviations.md` 由主 agent 另行更新，这里只记本章结论）**
+
+- **D45 部分收敛**。入口和 `SubscribeResult` 名单已对齐。残余是 hz 不降频，仍归 D25，不另开 D 号。原版再订阅会换掉该订阅者的降频间隔（`reference/robotd/src/main.rs:3730-3732`）。我们再订阅只再回一份 ack，速率没有可换的间隔。
+- **`stand` 省略 = D33**。本 Bite 不收。
+- **没有 `no policy configured` 这句文案**。原版在 walk 为空、又没有加载错误时写它（`reference/robotd/src/main.rs:4622-4623`）。我们没有「配置里关掉策略」这条路。
+- **名单在进程启动时冻住**。原版注释把这些字段定义成进程活着就不变（`reference/duck-ipc-proto/src/lib.rs:2749-2750`）。策略热换是 D30，现在没有，冻住和这句话一致。热换落地时，这条要重看。
+
+**两张名单回答两件不同的事，不记偏差。** `robot.skills` 回答「`robot.do` 现在认哪些名字」，所以内置名 `ground_pick`、`sit_toggle` 和配置技能名排在一张表里（`Scheduler::available_names`，`src/scheduler.rs:385-404`）。subscribe 的 `skills` 回答「配置表里哪些一次性技能加载成功了」，只报那些名字；`ground_pick` 和 sitstand 各自占 ack 里的文件名字段。原版也是两问：`skills_report` 把内置名单独交出来，因为它们不是配置表条目，只读表的客户端会以为这两个名字不存在（`reference/robotd/src/main.rs:3860-3868`）；`SubscribeResult.skills` 则是可配置的一次性技能，按优先级，用 `robot.do` 认的名字（`reference/duck-ipc-proto/src/lib.rs:2782-2786`）。
+
+## 7. 常见坑与展望
+
+1. **`cargo test` 不更新 `target/debug/miniduckd`。** 验收脚本启动的是这个二进制（`scripts/accept-m8.sh:54`）。只跑测试、不先 `cargo build --bins`，脚本会拿着上一版 daemon 跑，握手和 q 会按旧协议失败。顺序是：`cargo build --bins`，然后 `bash scripts/accept-m8.sh`。
+2. **本机 `policies/` 起初只有 `velstand.onnx` 时，ack 只有 `accepted` 和 `walk`。** 缺 `alpha_sitstand.onnx`、`alpha_ground_pick.onnx`、`roulade.onnx`、`ball_kick_left.onnx`，握手断言失败，脚本打印实际 result，不放宽条件。权重用 `bash scripts/fetch-m6.sh`（脚本经代理向 huggingface 拉这四个文件，`scripts/fetch-m6.sh:10-22`）。coder 验收前代理超时，改从 hf-mirror 补过文件；镜像地址不在这个脚本里。
+3. **`Request` 缺省 params 是 JSON null。** `parse_subscribe` 把 null 当成 `{}`（`src/lib.rs:196-200`）。少这一步，不带 params 字段的 `robot.subscribe` 会因为 null 不是对象而被拒。单测 `subscribe_params_empty_and_absent_mean_every_tick` 覆盖的就是这条。
+
+**展望**：下一个 Bite 是 `robot.safeToRestart` 与 `robot.modelApi`（D47）。再之后是 C2：先做 kp=0.55 一行实验，验证 BAM 归因，再移植，让 sit / roulade 在仿真里物理通过。D25 的逐订阅者降频仍挂账。
+
+[^4]: hz：订阅参数里客户端声明的推送频率，单位是次/秒。
+[^5]: watch 的 latest-wins：这条连接的观察通道只保留最新一帧。推送跟不上控制循环时，中间帧被盖掉，不排队，也没有「丢了多少」的计数。

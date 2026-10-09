@@ -28,7 +28,7 @@
 | D22 | ~~quat 解析用 resize(4,0) 静默补零/截断~~ M5 已收敛：严格长度校验（≠4 即 Err）；顺手把 copy3（gyro/gravity）长度不符会 panic 的隐患统一改为 Err | M4（code review 发现） | M5 | 已收敛（M5） |
 | D23 | 跌倒响应为 fallen 判定直接触发 Limp（目标跟随实测位置+gain 50，直立后斜坡回 home 恢复），非原版 FallPredictor 陀螺外推预测 + Limp/Posing 三态机（still-rate 静止检测、max_ms 超时、pose_gain=160 均未实现）；原版 limp_fall 默认 OFF，我们默认 ON（velstand 零命令能站住，交接得回） | M5 | M8 裁决（或专设里程碑移植 fall.rs） | 待收敛（M5 已引入） |
 | D24 | read 失败跳拍不滑行；原版 COAST_TICKS=3（≤3 拍用上一样本续跑，对策略不可见） | M5（设计时确认保留现状） | M8 | 待收敛（M5 已引入） |
-| D25 | robot.state 用 watch latest-wins；原版 broadcast 256 帧缓冲 + 落后者 Lagged 丢帧 + 逐订阅者 hz 降频 | M5（50Hz 收敛 D14 时保留） | M8 | 待收敛（M5 已引入） |
+| D25 | robot.state 用 watch latest-wins；原版 broadcast 256 帧缓冲 + 落后者 Lagged 丢帧 + 逐订阅者 hz 降频。M8 Bite 3：`robot.subscribe` 已收下 hz（缺省/0/正整数合法），解析后丢弃，推送仍全速率；ack 不回显 hz。降频/broadcast/Lagged 仍未做 | M5（50Hz 收敛 D14 时保留） | M8 之后专设（本 Bite 明确不提前做） | 待收敛（M8 Bite 3 起：hz 已解析并丢弃） |
 | D26 | sim 推倒后躯干穿透地板（z=-0.111，接触求解器大冲击失真）；验收阈值因此是"z<0.08"而非躺平高度 | M5（验收实测） | M8 裁决（或调 push 幅度/timestep） | 待收敛（M5 已引入） |
 | D27 | FakeIo 上策略闭环漂移 0.13~0.18 rad（速度恒 0 不在训练分布），enable 验收阈值 0.4 是实测放宽 | M5（验收实测） | M8（或 FakeIo 长一阶惯性模型后收紧） | 待收敛（M5 已引入） |
 | D28 | 无 Mode(Walk/Roller) 与 roller/roller_crouch 槽（v5 权重仓库里有这两个文件，未下载未接线） | M6 | M8 | 待收敛（M6 已引入） |

@@ -1,6 +1,6 @@
 # M8 收敛验收 — 验收档案
 
-> M8 按 Bite 推进，本档案逐 Bite 追加。当前收录：Bite 1（robot.drive → robot.move）、Bite 2（robot.enable {on, toggle} + notification 统一入口 + disable 语义对齐）。
+> M8 按 Bite 推进，本档案逐 Bite 追加。当前收录：Bite 1（robot.drive → robot.move）、Bite 2（robot.enable {on, toggle} + notification 统一入口 + disable 语义对齐）、Bite 3（robot.subscribe {hz} + SubscribeResult ack；推送仍是 robot.state，hz 不降频）。
 
 ## Bite 1：robot.drive → robot.move（通知式连续意图 + vy 侧向）
 
@@ -147,3 +147,63 @@ M8 断言 a–p 全部通过
 - **D64 新登记并即收敛**：disable 语义（旧 RampDown=2s 斜坡+卸 torque vs 原版直接命令回 home+上电抱持）。复核中发现、用户裁决立即对齐不挂账。残余存疑：`Scheduler::reset()` 是否应连带清 Cascade 坐姿锁存，无原版逐行确证【合理推断：按"锁存不是 episode 记忆"判断不动】。连带代价：`robot.relax` 未实现前卸 torque 无出口（已登记）。
 - **D43 残余①②收敛**：head/mouth 通知语义已开、非意图方法通知统一静默。D43 仅剩残余③：mini-duckctl move 仍请求式逐条调用（教学工具定位保留）。
 - **联动记录**：请求式 move 应答是 `{accepted}` 超集（多回显 vx/vy/vyaw）；head/mouth 回显参数值、缺 `accepted` 字段（原版三者统一回 `IntentResult::accepted()`）——待后续 Bite 裁决。
+
+---
+
+## Bite 3：robot.subscribe {hz} + SubscribeResult ack（推送仍是 robot.state，hz 不降频）
+
+### 交付物
+
+- `src/lib.rs`：新增 `SubscribeParams`（`hz: Option<u32>`，`default` + `deny_unknown_fields`）与 `SubscribeResult`（`accepted` 恒 true；`walk` / `sitstand` / `ground_pick` 为文件名；`stand` 恒 `None` 并省略；`unavailable` 仅加载失败时为 `policy would not load: …`；`skills` 为配置技能名，空则省略）。`parse_subscribe` 把 JSON null 当成 `{}`。`assemble_subscribe_ack` 组进程生命周期内的 ack，不回显 hz。5 个新测试函数（`src/lib.rs:332-401`）。
+- `src/scheduler.rs`：`SITSTAND_FILE` / `GROUND_PICK_FILE`（`src/scheduler.rs:339-340`）同时给 `load` 和 `loaded_slots` 用。`LoadedSlots`（`:345-349`）的 skills 是 `SKILLS[i].name`（`roulade`、`kick_left`），不含 `ground_pick` / `sit_toggle`。`loaded_slots`（`:409-420`）在 spawn 前取一次。
+- `src/main.rs`：`load_failure`（PolicyError 的 Display）与 `policy_error`（`policy unavailable: …`）分开（`:77-90`）。`make_subscribe_ack` 取 walk 文件名（`:261-278`）。ack 在 `control::spawn` 前组好（`:101-104`）。带 id 的 `robot.subscribe` 解析成功即订阅并回这份 ack，hz 丢掉；解析失败不改 `subscribed`（`:354-367`）。无 id 的 `robot.subscribe` 走 notification 统一入口，静默丢弃，不开始推送（`:335-337`）。带 id 的 `robot.state` 落到 `METHOD_NOT_FOUND`（`:486-490`）。推送 method 仍是 `robot.state`，无 id（`:506-507`）。
+- `src/bin/mini-duckctl.rs`：`state` / `subscribe` 子命令名不变，内部改发 `robot.subscribe {}`（`:60-73`）。没有 hz 旗标。hello 仍走 stderr（`:266`），第一行 stdout 仍是 ack（`:283`），accept-m5 / accept-m6 的 `tail -n +2` 契约保持。
+- `scripts/accept-m8.sh`：入场握手改为 `robot.subscribe` + SubscribeResult 断言（`:106-121`）；追加 q–t（`:356-390`）。
+- **无新增、无删除模块，无改向。** 控制循环、调度器仲裁、Safety、RobotIo 未改行为。ack 冻在 RPC 层内部。
+
+### 验收实测
+
+`docker compose exec rust cargo test`（2026-10-09 主 agent 复跑）：
+
+```text
+test result: ok. 86 passed; 0 failed
+```
+
+构成：Bite 2 的 81 条 + 本 Bite 在 `src/lib.rs` 新增的 5 个测试函数（空对象与缺省 params、hz=0 与 hz=10、非法形状、成功时省略 stand/unavailable/空 skills/hz、失败仍报 walk 文件名）。
+
+`docker compose exec rust bash scripts/accept-m8.sh`（2026-10-09 主 agent 复跑；先 `cargo build --bins`，见 tutorial 常见坑 1）关键行：
+
+```text
+握手 + robot.subscribe ack walk=velstand.onnx skills=['roulade', 'kick_left']  OK
+q. robot.state 带 id → -32601，随后仍有 11 帧推送  OK
+r. 再订阅 hz=10，walk=velstand.onnx，0.5s 内 26 帧（≥18，全速率）  OK
+s. subscribe 未知字段 -32602，随后仍有 10 帧推送  OK
+t. 无 id robot.subscribe 静默，15 帧内只有 robot.state 推送  OK
+M8 断言 a–t 全部通过
+```
+
+旧断言 a–p 仍绿（与 Bite 2 相同的 move/enable 断言，此处不重复实录）。
+
+断言要点：握手断言 `accepted`、四个名单字段，且没有 `stand` / `unavailable`（`scripts/accept-m8.sh:114-120`）；q 的 -32601 之后推送仍在，订阅没被拆掉（`:356-363`）；r 的 26 帧 / 0.5s 高于 10Hz 约 5 帧的量级，且 ack 不含 `hz`（`:365-374`）；s 的 -32602 之后推送仍在，解析失败不退订（`:376-384`）；t 的 0.3s 内只有 `robot.state`，无响应行（`:386-390`）。
+
+### 涉及代码文件清单
+
+| 文件 | 变动 |
+|---|---|
+| `src/lib.rs` | +`SubscribeParams` / `SubscribeResult` / `parse_subscribe` / `assemble_subscribe_ack`；+5 测试函数 |
+| `src/scheduler.rs` | +`SITSTAND_FILE` / `GROUND_PICK_FILE` / `LoadedSlots` / `loaded_slots`；`load` 改用这两个常量 |
+| `src/main.rs` | `load_failure` 与 `policy_error` 分开；+`make_subscribe_ack`；`robot.subscribe` 分支；带 id 的 `robot.state` → METHOD_NOT_FOUND |
+| `src/bin/mini-duckctl.rs` | `state` / `subscribe` 内部改发 `robot.subscribe {}` |
+| `scripts/accept-m8.sh` | 入场握手改为 SubscribeResult；追加断言 q–t |
+| `docs/milestones/m8-convergence/{tutorial,acceptance}.md` | 第 11 章与本档案 |
+| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 标签与边契约更新到 Bite 3（dagre，无新增/删除模块） |
+
+`docs/deviations.md` 由主 agent 另行更新，本档案不改那个文件。
+
+### 偏差变动
+
+- **D45 部分收敛**：入口 + SubscribeResult 名单已对齐。残余是 hz 不降频，仍归 D25，不另开 D 号。
+- **stand 省略 = D33**，本 Bite 不收。
+- **无 `no policy configured` 文案**（没有「配置里关掉策略」这条路）。
+- **名单在进程启动时冻住**。热换是 D30，现在没有；冻住与原版「进程生命周期内不变」一致。热换落地时这条要重看。
+- **subscribe 的 skills 只回配置名，robot.skills 仍回内置名 + 配置名。** 这是两张名单回答两件不同的事，不记偏差。

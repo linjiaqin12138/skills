@@ -152,6 +152,76 @@ pub fn parse_enable(params: &Value) -> Result<EnableParams, String> {
         .map_err(|e| format!("robot.enable wants {{on: bool}} (optional toggle: bool): {e}"))
 }
 
+/// robot.subscribe 参数。hz 缺省（或 0）表示客户端要每拍；
+/// 本工程解析后丢弃，推送仍是控制循环全速率——逐订阅者降频是 D25，不在这层做。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SubscribeParams {
+    pub hz: Option<u32>,
+}
+
+/// robot.subscribe 的 ack。只往外序列化。
+///
+/// 这些字段在进程活着的时候不变，所以放在订阅应答里而不是每帧推送：
+/// 50Hz 重复两个文件名没有信息量。stand 恒为 None——本工程没有 stand 槽（D33）。
+/// skills 只放配置表里加载成功的一次性技能名（robot.do 用的 name，不是文件名），
+/// 不含 ground_pick / sit_toggle：那两个是内置名，名单在 robot.skills 里。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SubscribeResult {
+    /// 回答时恒为 true：订阅不拒绝，策略没加载上也要让客户端订上推送。
+    pub accepted: bool,
+    /// 尝试过的 walk 文件名（不是路径）。加载失败也要报，客户端才能看见是哪个文件没起来。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub walk: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stand: Option<String>,
+    /// walk 没起来的原因。成功则省略。文案是 "policy would not load: …"，
+    /// 与 health 的 "policy unavailable: …" 不是同一句。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unavailable: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sitstand: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ground_pick: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub skills: Vec<String>,
+}
+
+/// 解析 robot.subscribe 参数；Err 的文案即 INVALID_PARAMS 响应的 message。
+///
+/// 缺省 params 在 Request 里是 Null。hz 全可选，Null 与 {} 都是「每拍」，
+/// 否则手写的 `{"method":"robot.subscribe"}` 会因为 null 不是对象而被拒。
+pub fn parse_subscribe(params: &Value) -> Result<SubscribeParams, String> {
+    let params = if params.is_null() {
+        Value::Object(serde_json::Map::new())
+    } else {
+        params.clone()
+    };
+    serde_json::from_value(params)
+        .map_err(|e| format!("robot.subscribe wants {{hz?: u32}}: {e}"))
+}
+
+/// 组一份进程生命周期内不变的订阅 ack。load_error 是 PolicyError 的 Display；
+/// 调用方在 spawn 前算好文件名传进来，订阅路径不再碰磁盘。
+pub fn assemble_subscribe_ack(
+    walk_file: Option<String>,
+    load_error: Option<&str>,
+    sitstand: Option<String>,
+    ground_pick: Option<String>,
+    skills: Vec<String>,
+) -> SubscribeResult {
+    SubscribeResult {
+        accepted: true,
+        walk: walk_file,
+        stand: None,
+        unavailable: load_error.map(|e| format!("policy would not load: {e}")),
+        sitstand,
+        ground_pick,
+        skills,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -256,5 +326,77 @@ mod tests {
     fn enable_params_missing_on_rejected() {
         assert!(parse_enable(&serde_json::json!({})).is_err());
         assert!(parse_enable(&Value::Null).is_err());
+    }
+
+    #[test]
+    fn subscribe_params_empty_and_absent_mean_every_tick() {
+        assert_eq!(parse_subscribe(&serde_json::json!({})).unwrap().hz, None);
+        // Request 缺 params 字段时 serde default 给出 Null。
+        let req: Request = serde_json::from_str(
+            r#"{"jsonrpc":"2.0","id":1,"method":"robot.subscribe"}"#,
+        )
+        .unwrap();
+        assert!(req.params.is_null());
+        assert_eq!(parse_subscribe(&req.params).unwrap().hz, None);
+    }
+
+    #[test]
+    fn subscribe_params_hz_zero_and_ten_accepted() {
+        // 0 与 10 都是合法 u32。降频不在这层：两者都只是 Some(n)。
+        assert_eq!(parse_subscribe(&serde_json::json!({"hz": 10})).unwrap().hz, Some(10));
+        assert_eq!(parse_subscribe(&serde_json::json!({"hz": 0})).unwrap().hz, Some(0));
+    }
+
+    #[test]
+    fn subscribe_params_bad_shapes_rejected() {
+        for bad in [
+            serde_json::json!({"hz": 10, "foo": 1}),
+            serde_json::json!({"hz": -1}),
+            serde_json::json!({"hz": "10"}),
+        ] {
+            let err = parse_subscribe(&bad).unwrap_err();
+            assert!(err.contains("{hz?: u32}"), "{err}");
+        }
+    }
+
+    #[test]
+    fn subscribe_result_omits_stand_unavailable_and_empty_skills() {
+        let full = assemble_subscribe_ack(
+            Some("velstand.onnx".into()),
+            None,
+            Some("alpha_sitstand.onnx".into()),
+            Some("alpha_ground_pick.onnx".into()),
+            vec!["roulade".into(), "kick_left".into()],
+        );
+        let v = serde_json::to_value(&full).unwrap();
+        assert!(v.get("stand").is_none(), "{v}");
+        assert!(v.get("unavailable").is_none(), "{v}");
+        assert_eq!(v["accepted"], true);
+        assert_eq!(v["skills"], serde_json::json!(["roulade", "kick_left"]));
+        // ack 不回显 hz：SubscribeResult 上就没有这个字段。
+        assert!(v.get("hz").is_none(), "{v}");
+
+        let bare = assemble_subscribe_ack(Some("velstand.onnx".into()), None, None, None, Vec::new());
+        let v = serde_json::to_value(&bare).unwrap();
+        assert!(v.get("skills").is_none(), "{v}");
+        assert!(v.get("stand").is_none(), "{v}");
+        assert!(v.get("unavailable").is_none(), "{v}");
+    }
+
+    #[test]
+    fn subscribe_result_names_the_walk_file_that_failed() {
+        let failed = assemble_subscribe_ack(
+            Some("velstand.onnx".into()),
+            Some("reading policies/velstand.onnx: No such file or directory"),
+            None,
+            None,
+            Vec::new(),
+        );
+        let v = serde_json::to_value(&failed).unwrap();
+        assert_eq!(v["walk"], "velstand.onnx");
+        let unavailable = v["unavailable"].as_str().unwrap();
+        assert!(unavailable.contains("policy would not load"), "{unavailable}");
+        assert!(v.get("stand").is_none(), "{v}");
+        assert!(v.get("skills").is_none(), "{v}");
     }
 }

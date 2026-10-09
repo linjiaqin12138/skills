@@ -13,6 +13,9 @@
 //! 收敛为 `{on, toggle}`（toggle 由 daemon 侧翻转，永不拒绝），
 //! `robot.disable` 方法删除；notification（无 id 帧）统一入口：意图类
 //! （move/head/mouth）静默应用，其余方法静默丢弃。
+//! 订阅入口是 `robot.subscribe {hz}`（ack 为 SubscribeResult）；`robot.state`
+//! 只作为服务端推送的 method，带 id 的请求回 METHOD_NOT_FOUND。hz 收下即丢
+//! （D25，推送仍是控制循环全速率）。
 
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
@@ -22,9 +25,10 @@ use futures::{SinkExt, StreamExt};
 use miniduck::control::{self, SharedControl};
 use miniduck::io::{FakeIo, RobotIo, SimIo};
 use miniduck::safety::{Safety, SafetyConfig};
-use miniduck::scheduler::Scheduler;
+use miniduck::scheduler::{LoadedSlots, Scheduler};
 use miniduck::{
-    API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, MoveParams, Request, ServerMessage, parse_enable,
+    API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, MoveParams, Request, ServerMessage, SubscribeResult,
+    assemble_subscribe_ack, parse_enable, parse_subscribe,
 };
 use serde_json::{Value, json};
 use tokio::net::{UnixListener, UnixStream};
@@ -70,14 +74,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // M6：walk 是必须槽；其余技能槽各自可选，加载失败只让该技能不可用。
     let policy_path = std::env::var("MINIDUCK_POLICY").unwrap_or_else(|_| DEFAULT_POLICY.into());
     let policy_dir = std::env::var("MINIDUCK_POLICY_DIR").unwrap_or_else(|_| DEFAULT_POLICY_DIR.into());
-    let (scheduler, policy_error) = match Scheduler::load(
+    // load_failure 是 PolicyError 的 Display，只给 subscribe ack 的
+    // "policy would not load"。health 继续用 "policy unavailable: …"，两句不混。
+    let (scheduler, policy_error, load_failure) = match Scheduler::load(
         std::path::Path::new(&policy_path),
         std::path::Path::new(&policy_dir),
     ) {
-        Ok(s) => (Some(s), None),
+        Ok(s) => (Some(s), None, None),
         Err(e) => {
-            eprintln!("WARNING: failed to load policy {policy_path}: {e} — holding pose, reporting unhealthy");
-            (None, Some(format!("policy unavailable: {e}")))
+            let detail = e.to_string();
+            eprintln!(
+                "WARNING: failed to load policy {policy_path}: {detail} — holding pose, reporting unhealthy"
+            );
+            (None, Some(format!("policy unavailable: {detail}")), Some(detail))
         }
     };
     let policy_error = Arc::new(policy_error);
@@ -89,6 +98,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap_or_default(),
     );
     eprintln!("miniduckd skills: {}", skill_names.join(", "));
+    // 订阅 ack 在 spawn 前组好：walk 文件名从已知路径取（加载失败也拿得到），
+    // 其余槽从调度器的已加载名单取。订阅路径不再碰磁盘。
+    let slots = scheduler.as_ref().map(Scheduler::loaded_slots);
+    let subscribe_ack = make_subscribe_ack(&policy_path, load_failure.as_deref(), slots.as_ref());
 
     let io: Box<dyn RobotIo> = match &sim_addr {
         Some(addr) => {
@@ -134,6 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             control.clone(),
             policy_error.clone(),
             skill_names.clone(),
+            subscribe_ack.clone(),
             boot,
         ));
     }
@@ -242,6 +256,27 @@ fn apply_head_intent(control: &SharedControl, head: [f64; 4]) {
     control.lock().expect("control mutex poisoned").command.head = head;
 }
 
+/// walk 取路径的文件名而不是整段路径：加载失败时没有 Scheduler，
+/// 但客户端仍要看见是哪个文件没起来。
+fn make_subscribe_ack(
+    policy_path: &str,
+    load_error: Option<&str>,
+    slots: Option<&LoadedSlots>,
+) -> SubscribeResult {
+    let walk_file = std::path::Path::new(policy_path)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned());
+    let (sitstand, ground_pick, skills) = match slots {
+        Some(slots) => (
+            slots.sitstand.map(str::to_owned),
+            slots.ground_pick.map(str::to_owned),
+            slots.skills.iter().copied().map(str::to_owned).collect(),
+        ),
+        None => (None, None, Vec::new()),
+    };
+    assemble_subscribe_ack(walk_file, load_error, sitstand, ground_pick, skills)
+}
+
 async fn serve(
     stream: UnixStream,
     stats: Arc<control::Stats>,
@@ -249,6 +284,7 @@ async fn serve(
     control: SharedControl,
     policy_error: Arc<Option<String>>,
     skill_names: Arc<Vec<&'static str>>,
+    subscribe_ack: SubscribeResult,
     boot: Instant,
 ) {
     let mut framed = Framed::new(stream, LinesCodec::new());
@@ -296,7 +332,10 @@ async fn serve(
                                 apply_head_intent(&control, head);
                             }
                         }
-                        _ => {} // 非意图方法的 notification：静默丢弃
+                        // 非意图方法的 notification：静默丢弃。
+                        // robot.subscribe 也走这里——原版只在带 id 的请求路径设订阅，
+                        // 无 id 的订阅帧不开始推送。
+                        _ => {}
                     }
                     continue;
                 }
@@ -312,10 +351,20 @@ async fn serve(
                         req.id,
                         health(&stats, &policy_error, boot),
                     ),
-                    "robot.state" => {
-                        subscribed = true;
-                        ServerMessage::ok(req.id, json!({ "subscribed": true }))
-                    }
+                    // 订阅入口。hz 解析成功就丢：D25 不在本 Bite 做逐订阅者降频，
+                    // 推送仍是控制循环全速率。再订阅只再回一份 ack——这条连接只有一个 watch。
+                    // 解析失败不改 subscribed，已有订阅保持。
+                    "robot.subscribe" => match parse_subscribe(&req.params) {
+                        Ok(_) => {
+                            subscribed = true;
+                            ServerMessage::ok(
+                                req.id,
+                                serde_json::to_value(&subscribe_ack)
+                                    .expect("SubscribeResult is plain data"),
+                            )
+                        }
+                        Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
+                    },
                     // 使能开关（M8 收敛为原版语义，reference/robotd/src/main.rs:
                     // 4486-4512）：toggle 在 daemon 侧翻转——客户端不持有开关
                     // 信念（信念随对端重启/relax 漂移，漂移的信念让手柄 Start
