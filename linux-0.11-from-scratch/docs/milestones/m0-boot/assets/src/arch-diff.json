@@ -5,96 +5,135 @@
   "style": 1,
   "text_policy": "strict",
   "quality_profile": "showcase",
-  "width": 1450,
-  "height": 560,
-  "title": "M0 最小内核架构（Bite1）",
-  "subtitle": "Limine 引导 → kernel 串口输出 → qemu 终端",
+  "width": 1650,
+  "height": 760,
+  "title": "M0 最小内核架构（完结）",
+  "subtitle": "构建：make build → kernel.iso ｜ 启动：SeaBIOS → Limine → kernel → COM1 → qemu 终端",
   "containers": [
     {
       "id": "kernel-box",
-      "x": 540,
-      "y": 180,
+      "x": 740,
+      "y": 350,
       "width": 380,
       "height": 170,
       "label": "kernel",
-      "fill": "#f0fdf4",
-      "stroke": "#16a34a"
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af"
     }
   ],
   "nodes": [
     {
-      "id": "limine",
+      "id": "docker",
       "kind": "rect",
       "x": 40,
-      "y": 230,
+      "y": 90,
+      "width": 250,
+      "height": 80,
+      "label": "构建容器",
+      "sublabel": "cargo → xorriso → bios-install",
+      "fill": "#f0fdf4",
+      "stroke": "#16a34a",
+      "flat": true
+    },
+    {
+      "id": "iso",
+      "kind": "rect",
+      "x": 460,
+      "y": 90,
+      "width": 280,
+      "height": 80,
+      "label": "kernel.iso",
+      "sublabel": "kernel.elf + limine.conf + Limine 组件",
+      "fill": "#f0fdf4",
+      "stroke": "#16a34a",
+      "flat": true
+    },
+    {
+      "id": "seabios",
+      "kind": "rect",
+      "x": 40,
+      "y": 400,
+      "width": 180,
+      "height": 70,
+      "label": "SeaBIOS 固件",
+      "sublabel": "外部 · POST + 启动顺序",
+      "fill": "#f0fdf4",
+      "stroke": "#16a34a",
+      "flat": true
+    },
+    {
+      "id": "limine",
+      "kind": "rect",
+      "x": 370,
+      "y": 400,
       "width": 170,
       "height": 70,
       "label": "Limine 引导器",
       "sublabel": "外部 · 现成引导器",
-      "fill": "#f0fdf4",
-      "stroke": "#16a34a",
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af",
       "flat": true
     },
     {
       "id": "start",
       "kind": "rect",
-      "x": 580,
-      "y": 230,
+      "x": 780,
+      "y": 400,
       "width": 120,
       "height": 70,
       "label": "_start 入口",
       "sublabel": "main.rs",
-      "fill": "#f0fdf4",
-      "stroke": "#16a34a",
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af",
       "flat": true
     },
     {
       "id": "serial",
       "kind": "rect",
-      "x": 740,
-      "y": 230,
+      "x": 940,
+      "y": 400,
       "width": 140,
       "height": 70,
       "label": "serial 驱动",
       "sublabel": "serial.rs · 16550",
-      "fill": "#f0fdf4",
-      "stroke": "#16a34a",
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af",
       "flat": true
     },
     {
       "id": "com1",
       "kind": "rect",
-      "x": 1000,
-      "y": 230,
+      "x": 1200,
+      "y": 400,
       "width": 180,
       "height": 70,
       "label": "COM1 串口",
       "sublabel": "16550 UART · I/O 0x3F8",
-      "fill": "#f0fdf4",
-      "stroke": "#16a34a",
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af",
       "flat": true
     },
     {
       "id": "qemu",
       "kind": "rect",
-      "x": 1260,
-      "y": 230,
+      "x": 1450,
+      "y": 400,
       "width": 150,
       "height": 70,
       "label": "qemu 终端",
       "sublabel": "外部 · 宿主终端",
-      "fill": "#f0fdf4",
-      "stroke": "#16a34a",
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af",
       "flat": true
     },
     {
       "id": "diff-badge",
       "kind": "rect",
-      "x": 1280,
-      "y": 30,
-      "width": 140,
+      "x": 1370,
+      "y": 40,
+      "width": 250,
       "height": 36,
-      "label": "M0 全部新增",
+      "label": "Bite2 新增：构建链 + SeaBIOS",
       "fill": "#dcfce7",
       "stroke": "#16a34a",
       "flat": true
@@ -102,13 +141,40 @@
   ],
   "arrows": [
     {
+      "id": "mkbuild",
+      "source": "docker",
+      "target": "iso",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "make build"
+    },
+    {
+      "id": "attach",
+      "source": "iso",
+      "target": "seabios",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "write",
+      "label": "qemu -boot d -cdrom 挂载"
+    },
+    {
+      "id": "eltorito",
+      "source": "seabios",
+      "target": "limine",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "El Torito 引导"
+    },
+    {
       "id": "handoff",
       "source": "limine",
       "target": "start",
       "source_port": "right",
       "target_port": "left",
-      "flow": "write",
-      "label": "交付 CPU：64 位长模式 + 高半区虚拟地址"
+      "flow": "control",
+      "label": "交付 CPU：长模式 + 高半区"
     },
     {
       "id": "tx",
@@ -116,10 +182,10 @@
       "target": "com1",
       "source_port": "bottom",
       "target_port": "bottom",
-      "flow": "write",
+      "flow": "control",
       "label": "写 16550 寄存器发字节",
       "corridor_y": [
-        380
+        570
       ]
     },
     {
@@ -128,32 +194,28 @@
       "target": "qemu",
       "source_port": "top",
       "target_port": "top",
-      "flow": "write",
-      "label": "qemu -serial stdio 文本流",
+      "flow": "control",
+      "label": "qemu -serial 文本流",
       "corridor_y": [
-        100
+        320
       ]
     }
   ],
   "legend_orientation": "horizontal",
   "legend_x": 48,
-  "legend_y": 460,
+  "legend_y": 680,
   "legend_locked": true,
   "legend": [
     {
       "flow": "write",
-      "label": "新增：引导交付"
+      "label": "新增（Bite2）"
     },
     {
-      "flow": "write",
-      "label": "新增：寄存器写"
-    },
-    {
-      "flow": "write",
-      "label": "新增：文本输出流"
+      "flow": "control",
+      "label": "未变动（Bite1 已有）"
     }
   ],
-  "footer": "Style 1 · Flat Icon · linux-0.11-from-scratch M0 · 与 arch.svg 同布局，绿色=新增",
+  "footer": "Style 1 · Flat Icon · linux-0.11-from-scratch M0 · 与 arch.svg 同布局，绿=Bite2 新增，灰/紫=未变动",
   "footer_x": 48,
-  "footer_y": 520
+  "footer_y": 730
 }

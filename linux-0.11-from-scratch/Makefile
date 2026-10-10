@@ -6,9 +6,10 @@ DOCKER_IMG  := linux011-rust-toolchain
 DOCKER_CTR  := linux011-rust-build
 DOCKER_EXEC := docker exec $(DOCKER_CTR)
 QEMU        := qemu-system-x86_64
-QEMU_FLAGS  := -m 128M -serial stdio -drive file=reference/hdc-0.11.img,format=raw,if=ide
+# -boot d：默认启动顺序硬盘在前，会引导 reference/hdc-0.11.img 而不是我们的 CD
+QEMU_FLAGS  := -m 128M -boot d -serial stdio -drive file=reference/hdc-0.11.img,format=raw,if=ide
 
-.PHONY: toolchain ctr kernel build run debug clean help
+.PHONY: toolchain ctr kernel build run debug check clean help
 
 help: ## 显示本帮助
 	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*## /  →  /'
@@ -45,6 +46,13 @@ run: ## 宿主机启动 qemu（图形窗口 + 串口日志到终端）
 
 debug: ## 宿主 qemu 挂 gdb stub（:1234）+ 串口日志
 	$(QEMU) $(QEMU_FLAGS) -cdrom build/kernel.iso -s -S
+
+check: ## 无头跑 qemu，断言串口日志出现 "M0: kernel alive"（Bite2 验收）
+	@rm -f build/serial.log
+	timeout 20 $(QEMU) -m 128M -boot d -display none -serial file:build/serial.log \
+	    -drive file=reference/hdc-0.11.img,format=raw,if=ide -cdrom build/kernel.iso; \
+	rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
+	grep 'M0: kernel alive' build/serial.log
 
 clean: ## 清理构建产物
 	rm -rf build kernel/target user/target

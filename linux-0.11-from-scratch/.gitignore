@@ -1,3 +1,5 @@
 # 容器内构建产物（属主可能是 root）
 /kernel/target/
 /.cargo-home/
+/build/
+/reference/

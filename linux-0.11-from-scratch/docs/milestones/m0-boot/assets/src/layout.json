@@ -1,7 +1,7 @@
 {
   "canvas": {
-    "height": 560.0,
-    "width": 1450.0
+    "height": 760.0,
+    "width": 1650.0
   },
   "composition": {
     "limits": {
@@ -17,15 +17,15 @@
     },
     "metrics": {
       "bridged_crossings": 0,
-      "max_route_stretch": 1.163,
+      "max_route_stretch": 1.17,
       "minimum_container_gutter": 40.0,
       "minimum_node_gap": 40.0,
       "shortest_segment": 20.0,
-      "total_bends": 4
+      "total_bends": 6
     },
     "ok": true,
     "profile": "showcase",
-    "score": 98,
+    "score": 100,
     "violations": []
   },
   "edges": [
@@ -33,28 +33,123 @@
       "bends": 0,
       "bridges": [],
       "crossings": [],
-      "id": "handoff",
-      "length": 370.0,
+      "id": "mkbuild",
+      "length": 170.0,
       "route": [
         [
-          210.0,
-          265.0
+          290.0,
+          130.0
         ],
         [
-          580.0,
-          265.0
+          460.0,
+          130.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "docker",
+      "source_port": [
+        290.0,
+        130.0
+      ],
+      "target": "iso",
+      "target_port": [
+        460.0,
+        130.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "attach",
+      "length": 700.0,
+      "route": [
+        [
+          600.0,
+          170.0
+        ],
+        [
+          600.0,
+          194.0
+        ],
+        [
+          130.0,
+          194.0
+        ],
+        [
+          130.0,
+          400.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "iso",
+      "source_port": [
+        600.0,
+        170.0
+      ],
+      "target": "seabios",
+      "target_port": [
+        130.0,
+        400.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "eltorito",
+      "length": 150.0,
+      "route": [
+        [
+          220.0,
+          435.0
+        ],
+        [
+          370.0,
+          435.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "seabios",
+      "source_port": [
+        220.0,
+        435.0
+      ],
+      "target": "limine",
+      "target_port": [
+        370.0,
+        435.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "handoff",
+      "length": 240.0,
+      "route": [
+        [
+          540.0,
+          435.0
+        ],
+        [
+          780.0,
+          435.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "limine",
       "source_port": [
-        210.0,
-        265.0
+        540.0,
+        435.0
       ],
       "target": "start",
       "target_port": [
-        580.0,
-        265.0
+        780.0,
+        435.0
       ],
       "waypoints": []
     },
@@ -66,32 +161,32 @@
       "length": 320.8,
       "route": [
         [
-          810.0,
-          300.0
+          1010.0,
+          470.0
         ],
         [
-          810.0,
-          320.4
+          1010.0,
+          490.4
         ],
         [
-          1090.0,
-          320.4
+          1290.0,
+          490.4
         ],
         [
-          1090.0,
-          300.0
+          1290.0,
+          470.0
         ]
       ],
       "route_stretch": 1.146,
       "source": "serial",
       "source_port": [
-        810.0,
-        300.0
+        1010.0,
+        470.0
       ],
       "target": "com1",
       "target_port": [
-        1090.0,
-        300.0
+        1290.0,
+        470.0
       ],
       "waypoints": []
     },
@@ -100,35 +195,35 @@
       "bridges": [],
       "crossings": [],
       "id": "stdio",
-      "length": 285.0,
+      "length": 275.0,
       "route": [
         [
-          1090.0,
-          230.0
+          1290.0,
+          400.0
         ],
         [
-          1090.0,
-          210.0
+          1290.0,
+          380.0
         ],
         [
-          1335.0,
-          210.0
+          1525.0,
+          380.0
         ],
         [
-          1335.0,
-          230.0
+          1525.0,
+          400.0
         ]
       ],
-      "route_stretch": 1.163,
+      "route_stretch": 1.17,
       "source": "com1",
       "source_port": [
-        1090.0,
-        230.0
+        1290.0,
+        400.0
       ],
       "target": "qemu",
       "target_port": [
-        1335.0,
-        230.0
+        1525.0,
+        400.0
       ],
       "waypoints": []
     }
@@ -153,18 +248,18 @@
     "legend": {
       "actual": [
         48.0,
-        460.0
+        680.0
       ],
       "bounds": [
         38.0,
-        446.0,
-        400.0,
-        492.0
+        666.0,
+        437.92,
+        712.0
       ],
       "moved": false,
       "requested": [
         48.0,
-        460.0
+        680.0
       ]
     }
   },
@@ -182,8 +277,8 @@
   },
   "summary": {
     "bridged_crossings": 0,
-    "edges": 3,
-    "nodes": 5
+    "edges": 6,
+    "nodes": 8
   },
   "text_metrics": "heuristic-v1",
   "typography": {

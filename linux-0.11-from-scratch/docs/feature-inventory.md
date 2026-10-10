@@ -7,7 +7,7 @@
 - **FORK** = 本 fork（yuan-xy 版）的课程实验扩展，非 Linus 原版
 
 ## 1. 启动与硬件信息
-- [ ] 上电 → 长模式 → main（我们走 Limine，偏差 D1）
+- [x] 上电 → 长模式 → main（我们走 Limine，偏差 D1）——**M0 交付**（`_start` 即 main 的对应物；验收档案 [milestones/m0-boot/acceptance.md](milestones/m0-boot/acceptance.md)）
 - [ ] CMOS 实时钟读取（BCD→二进制），startup_time 正确（`init/main.c:78` time_init）
 - [ ] 内存信息来源：原版从 setup 采集的 0x90000 页 → 我们从 Limine memory map 取（机制差异，能力对齐）
 

@@ -129,7 +129,7 @@ Rust 默认全程安全检查；有些操作（内联汇编、读写裸指针、
 
 本 Bite 的架构只有一条链：
 
-![M0 架构](assets/dst/arch.svg)
+![M0 架构（Bite1 时点）](assets/dst/arch-bite1.svg)
 
 三个模块、三条边：
 
@@ -139,7 +139,9 @@ Rust 默认全程安全检查；有些操作（内联汇编、读写裸指针、
 
 M0 是工程的第一张架构图，全部是新增：
 
-![M0 架构变动](assets/dst/arch-diff.svg)
+![M0 架构变动（Bite1 时点）](assets/dst/arch-diff-bite1.svg)
+
+> 注：`arch.svg`/`arch-diff.svg` 已随 Bite2 更新为 M0 完结版（新增构建链与 SeaBIOS，见 [Bite2 教程](tutorial-bite2-iso-boot.md)）；本节引用的 Bite1 时点快照保留为 `arch-bite1.svg`/`arch-diff-bite1.svg`。
 
 两个设计决策值得记住：
 
@@ -212,7 +214,7 @@ panic = "abort"
 
 ## 验收
 
-> 本 Bite 验收 = 编出形状正确的 ELF。跑起来的验收【待 Bite2 补全：ISO 制作 + qemu 启动 + 串口输出断言】。
+> 本 Bite 验收 = 编出形状正确的 ELF。跑起来的验收（ISO 制作 + qemu 启动 + 串口输出断言）已在 Bite 2 完成：`make check` 断言串口日志出现 `M0: kernel alive`，实测通过——见 [tutorial-bite2-iso-boot.md「验收」](tutorial-bite2-iso-boot.md#验收) 与 [acceptance.md](acceptance.md)。
 
 构建在 docker 容器里跑（工具链约定见根 `Makefile`，容器镜像 `linux011-rust-toolchain`）。`cargo build` 输出：
 
@@ -261,7 +263,7 @@ ffffffff80000030 T _start
 
 另外，原版 0.11 没有串口日志通道，这是我们的增量能力，登记在 **D9**（显示机制差异，"另增串口日志通道"）名下；本 Bite 先用了这个通道的串口半边，屏幕半边（framebuffer）后续里程碑才出现。
 
-【待 Bite2 补全：Limine 配置文件与 ISO 布局若产生新偏差，在此登记】
+Bite 2 结论：Limine 配置文件与 ISO 布局未产生新偏差——El Torito 光盘 + Limine 引导是 D1 的具体化，标准 ISO 9660 镜像替代原版 dd 拼扇区同属 boot 架构豁免范围。详见 [tutorial-bite2-iso-boot.md「与原版差异」](tutorial-bite2-iso-boot.md#与原版差异)。
 
 ---
 
@@ -279,11 +281,11 @@ cargo 从**当前工作目录**（不是 manifest 所在目录）向上找配置
 docker 容器里默认 root，`target/` 目录属主变成 root，宿主机上删都删不掉。当时的约定是容器命令一律带 `-u $(id -u):$(id -g)`。后注（2026-10-07）：本机 docker 实为 rootless 模式，该约定反而踩雷——容器内非 root uid 经 subuid 映射后在宿主机不是本用户，写挂载卷直接 Permission denied；rootless 下容器内 root 恰好映射回宿主机当前用户，所以 Makefile 现已去掉 `-u`，产物归属自然正确。
 
 **坑 4：Limine base revision 选几？**
-选 3：0–5 已被官方弃用，6 太新（【合理推断】当前 pinned 的 Limine v10 二进制未必支持）。并且不能"请求了就当支持"——`_start` 里必须做握手检查（`kernel/src/main.rs:24`），不支持就明确报错停机，而不是带着错误的内存布局假设硬跑。
+选 3。（2026-10-09 核对订正）协议规范现行版本共定义 0–6 七个 base revision，口径是"0–5 已弃用"；但这句弃用声明随 base revision 6 于 2026-03-22 才写入规范（[limine-protocol@62ed932d](https://github.com/Limine-Bootloader/limine-protocol/commit/62ed932db4)，此前口径是"0–3 弃用"），比我们 pinned 的 v10.8.5 发布（2026-03-12）晚 10 天。v10.8.5 的 ChangeLog 显示它实现到 base revision **5** 为止（v10.8.0 引入），全篇无 6——所以原推断"6 太新未必支持"坐实为**事实：v10.8.5 最高支持 5**。请求 3 虽在弃用区间，但"弃用"≠"不支持"：协议规定引导器对不支持的版本保持请求数组第三项不变，`_start` 里的握手检查（`kernel/src/main.rs:24`）正是兜底，Bite 2 的 `make check` 已实测 v10.8.5 接受 3、打印正常。详见 [tutorial-bite2-iso-boot.md「细节展开」](tutorial-bite2-iso-boot.md#细节展开)。
 
 ### 展望（Bite 2）
 
-【待 Bite2 补全】下一 Bite：写 `limine.conf`，用 xorriso 把内核 + Limine 打成 ISO，qemu `-serial stdio` 启动，终端上断言 `M0: kernel alive` 这行字出现。本 Bite 编出的 ELF 到那时才算真正"活了"。
+（已完成）Bite 2 写了 `limine.conf`，用 xorriso 把内核 + Limine 打成 ISO，qemu `-boot d` 从光盘启动，串口日志断言 `M0: kernel alive` 出现——本 Bite 编出的 ELF 至此真正"活了"。见 [tutorial-bite2-iso-boot.md](tutorial-bite2-iso-boot.md)；M0 整里程碑验收记录见 [acceptance.md](acceptance.md)。
 
 ---
 
