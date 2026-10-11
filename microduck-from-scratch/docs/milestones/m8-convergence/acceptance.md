@@ -207,3 +207,101 @@ M8 断言 a–t 全部通过
 - **无 `no policy configured` 文案**（没有「配置里关掉策略」这条路）。
 - **名单在进程启动时冻住**。热换是 D30，现在没有；冻住与原版「进程生命周期内不变」一致。热换落地时这条要重看。
 - **subscribe 的 skills 只回配置名，robot.skills 仍回内置名 + 配置名。** 这是两张名单回答两件不同的事，不记偏差。
+
+---
+
+## Bite 4：robot.safeToRestart + robot.modelApi（D47 收敛），apply 前预检
+
+### 交付物
+
+- `src/lib.rs`：新增 `pub const MODEL_API: u32 = 2`（`:30`，对齐原版 `reference/robotd/src/main.rs:58`）、`SafeToRestartResult { safe, reason: Option<String> }`（`:36`，`reason` 为 `None` 时序列化省略，`skip_serializing_if`，对齐 `reference/duck-ipc-proto/src/lib.rs:3241-3247`）、`ModelApiResult { model_api: u32 }`（`:43`）。
+- `src/main.rs`：`safe_to_restart(stats)` 纯函数（`:206`）——`moving && !fallen` → `safe:false, reason:"the robot is walking"`（文案逐字对齐 `reference/robotd/src/main.rs:903-906`），否则 `safe:true` 且不带 `reason`；RPC 分发表加 `robot.safeToRestart`（`:502`）与 `robot.modelApi`（`:507`，返回 `MODEL_API`）。两个方法都是请求式，带 id 应答、无 id 走 notification 统一入口静默丢弃。
+- `src/control.rs`：`Stats` 加 `moving` / `fallen` 两个 `AtomicBool`（`:79`、`:81`）；控制循环每拍在发 `FrameSnapshot` 之前算 `moving` 并写两个原子量（`:594-604`）——`Limp` / `RampUp` 恒 true，`Driving` 取 `busy || |twist| > 0`，`Held` / `Stopped` 恒 false。口径对齐原版 `reference/robotd/src/main.rs:2822-2883`（跌倒序列与 homing 斜坡算移动、Driving 取 `busy || twist_magnitude > 0`、held 不算）。原版的 `force_busy`（`--busy` 调试旗标）没有对应实现。
+- `src/updater/robot.rs`（**新增模块**，160 行）：updaterd 视角的 robotd 客户端。`SafeToRestart` 四态枚举 `Yes / No(String) / Incompatible(String) / Unreachable` 与 `permits_restart()`（不可达放行、不可读拒绝），`ask()` 收发一行 JSON-RPC 并套 `tokio::time::timeout`，`safe_to_restart()` 把应答按四种结果归类（形状不对 → `Incompatible`，不猜、不按安全处理），`model_api()` 解析 `Option<u32>`。5 个测试函数（`:88-159`）。
+- `src/updater/engine.rs`：`apply()` 开头加预检（`:255` safeToRestart、`:261` modelApi），位于 `let from = store::current_version(&self.paths);` 之后、`set_phase(Phase::Verifying)` 之前——早于 manifest 校验、早于解包，拒绝时对持久状态零副作用（对齐原版 preflight 是 apply 第 0 步，`reference/updater/src/engine.rs:662-667`）。文案 `not safe to restart: {reason}` 与 `model api mismatch: expected 2, got {actual:?}`，都走既有的 `self.reject(...)`（-32003）。
+- `src/updater/mod.rs`：加 `pub mod robot;`。
+- `scripts/accept-m8.sh`：追加断言 u / v / w（`:392`、`:400`、`:416`），a–t 未动。
+- `scripts/accept-m8-updater.sh`（**新建**，177 行）：本 Bite 专属的 updater 侧端到端验收（造 1.0.0/2.0.0 两个 release、bootstrap 出厂 current=1.0.0、起 updaterd、走 Driving + 持续 move 让机器人走路、apply 2.0.0 应被拒、再静止后 apply 应成功）。
+- **新增模块 1 个（`updater/robot.rs`），无删除，无数据流改向。** `robot.state` 推送仍 50Hz，CLI 未动，CLI 也没有新增子命令。
+
+### 验收实测
+
+`docker compose exec rust cargo test`（2026-10-11 主 agent 复跑）：
+
+```text
+running 91 tests
+test result: ok. 91 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+```
+
+构成：Bite 3 的 86 条 + `src/updater/robot.rs` 的 5 个（safe:true→Yes、safe:false+reason→No、缺 `safe` 字段→Incompatible 且不许可重启、socket 不存在→Unreachable 且许可重启、modelApi 取值）。
+
+`docker compose exec rust bash scripts/accept-m8.sh` 关键行：
+
+```text
+u. 静止时 safeToRestart safe:true，reason 省略  OK
+v. move 后 safeToRestart safe:false reason='the robot is walking'  OK
+w. robot.modelApi → model_api:2  OK
+
+M8 断言 a–w 全部通过
+
+M8 验收（robot.move + robot.enable + robot.subscribe + safeToRestart/modelApi 对齐，notification 统一入口）全部通过
+```
+
+旧断言 a–t 仍绿（此处不重复实录）。断言要点：u 同时验 `safe is True` 且 `"reason" not in res`（省略不是 `null`）；v 先发无 id 的 `robot.move {vx:0.1}`、等推送里的 twist 收敛到 `[0.1,0,0]` 再问，避免在 deadman 还没生效的窗口里问空；w 验数值 2 而不是"有该字段"。
+
+`docker compose exec rust bash scripts/accept-m8-updater.sh`：
+
+```text
+release 1.0.0/2.0.0 就绪，出厂 current=1.0.0
+
+===== 场景：走路时 apply 被 safeToRestart 拒绝 =====
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+PASS: robot 进入 Driving
+PASS: 走路时 safeToRestart=false
+拒绝: Rejected: not safe to restart: the robot is walking
+PASS: apply 被 -32003 拒绝
+PASS: 拒绝后 current 保持 1.0.0
+committed 1.0.0 -> 2.0.0
+PASS: 静止后 apply 2.0.0 成功
+PASS: current->2.0.0
+
+===== M8-C1 updater 汇总：PASS=6 FAIL=0 =====
+```
+
+断言要点：错误码 `-32003`、文案含 `not safe to restart`、拒绝后 `current` 仍是 `1.0.0`；后半段先 `kill` 掉后台 move 进程再补发一次 `move 0 0 0`，等 deadman 清零（0.7s）才 apply，第二次才 `committed`。
+
+**回归**（`apply()` 的顺序改过，必须重跑 M7）：`docker compose exec rust bash scripts/accept-m7.sh` → `===== M7 汇总：PASS=39 FAIL=0 =====`，此前已知的 D1/E1 时序 flake 本次未复现。
+
+**边界自查**（coder subagent 实测，主 agent 未复验）：只起 updaterd、不起 miniduckd 时 apply 的真实输出是
+
+```text
+{"jsonrpc":"2.0","id":2,"error":{"code":-32003,"message":"Rejected: model api mismatch: expected 2, got None"}}
+```
+
+即 `safe_to_restart` 的 `Unreachable` 被放行，但 `model_api` 的 `None` 落到兜底分支被拒。这是 D65。
+
+### 涉及代码文件清单
+
+| 文件 | 变动 |
+|---|---|
+| `src/lib.rs` | +`MODEL_API` / `SafeToRestartResult` / `ModelApiResult` |
+| `src/main.rs` | +`safe_to_restart(stats)` 纯函数；+`robot.safeToRestart` / `robot.modelApi` 两个 RPC 分支 |
+| `src/control.rs` | `Stats` +`moving` / `fallen`；控制循环每拍记账（`:594-604`） |
+| `src/updater/robot.rs` | **新增模块**：`SafeToRestart` 枚举 + `permits_restart` + `ask` + `safe_to_restart` + `model_api` + 5 测试 |
+| `src/updater/engine.rs` | `apply()` 开头加预检（`:255`、`:261`） |
+| `src/updater/mod.rs` | +`pub mod robot;` |
+| `scripts/accept-m8.sh` | 追加断言 u–w |
+| `scripts/accept-m8-updater.sh` | **新建**：updater 侧端到端验收（6 断言） |
+| `docs/milestones/m8-convergence/tutorial-bite-4-safe-to-restart.html` | 第 12 章（本 Bite 教程页面） |
+| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 相对 Bite 3 重出：新增 robot 客户端、engine/RPC/Stats/控制循环改动、预检边 |
+
+`docs/deviations.md` 与 `docs/feature-inventory.md` 由主 agent 另行更新，本档案不改那两个文件。
+
+### 偏差变动
+
+- **D47 部分收敛**（功能清单两条 RPC 缺口）。两个方法上线，载荷、METHOD 名、`MODEL_API=2`、拒绝文案、`permits_restart` 语义全部对齐原版。残余拆成三条新登记。
+- **D65 新登记**：`model_api` 返回 `None` 时 apply 拒绝，原版视为兼容（`reference/updater/src/policy.rs:1032-1039`）。影响面仅限 daemon 不可达路径——而那恰恰是原版认为"控制循环没跑、没什么会动、这正是需要更新的机器人"的情形。待裁决。
+- **D66 新登记**：预检内联在 `apply()` 里，没有原版 `preflight.rs` 的 `Check` 枚举框架，也没有 SideloadDir / NoRemoteSession / 空间检查（M9/M10 视需要再拆）。
+- **D67 新登记**：`Incompatible` 分支不打日志，原版打 `tracing::warn!`（`reference/updater/src/robot.rs:201-203`）。契约漂移是排障第一现场，静默会让"更新莫名被拒"无从追查。M10 收敛。
+- **不算偏差的两处**：`moving` / `fallen` 落在 `control::Stats` 而非原版 daemon 内部的 state struct（因为我们的 RPC 层与健康门共享同一个 `Stats`，是模块切分差异不是行为差异）；原版的 `force_busy`（`--busy` 调试旗标）没有对应实现——教学复刻里没有教学价值。
+- **Bite 4 之后 C1 收口**，M8 转入 C2（BAM 移植）。

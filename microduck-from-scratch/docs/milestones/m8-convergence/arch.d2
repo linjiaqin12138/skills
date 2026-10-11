@@ -125,7 +125,7 @@ classes: {
   }
 }
 
-title: "microduck M8 系统架构 —— 订阅入口对齐 robot.subscribe + SubscribeResult；进程与模块零增删" {
+title: "microduck M8 系统架构 —— safeToRestart/modelApi 预检 + updater robot 客户端；apply 前新增 miniduckd 查询边" {
   near: top-center
   shape: text
   style.font-size: 22
@@ -168,6 +168,10 @@ p_updaterd: "进程 2：mini-updaterd（更新守护进程，M7）" {
     class: upd
   }
 
+  robot: "robot 客户端（updater/robot.rs）【M8 B4 新增】\nSafeToRestart 枚举：\nYes / No / Incompatible / Unreachable\nsafe_to_restart()：Unix socket 问 miniduckd\nmodel_api()：返回 MODEL_API=2\napply 流程最前：早于 manifest 校验、\n早于解包——预检拒绝时持久状态零副作用" {
+    class: upd
+  }
+
   journal: "journal（updater/journal.rs）\nupdate-log.jsonl 追加+sync_data\nCommitted/RolledBack/Rejected\npeer_uid 放行也记账\nprevious 从 log 推导" {
     class: upd
   }
@@ -177,7 +181,7 @@ p_updaterd: "进程 2：mini-updaterd（更新守护进程，M7）" {
 p_daemon: "进程 3：miniduckd（守护进程，M8 改动在 RPC 层与状态机）" {
   class: procbox
 
-  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\nnotification 统一入口：\n无 id 帧一律不应答——\nmove/head/mouth 静默应用，\n非意图方法静默丢弃\n订阅 robot.subscribe {hz}【M8 B3】\nack=SubscribeResult（ack 在启动时组好）\nwalk/sitstand/ground_pick 文件名\n+ skills 名；hz 解析后丢弃\nrobot.state 只作推送 method\n带 id 的 robot.state\n= METHOD_NOT_FOUND\n其余：hello / robot.health\nrobot.enable {on, toggle}\nrobot.move / robot.do / robot.skills\nrobot.mouth / robot.head" {
+  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\nnotification 统一入口：\n无 id 帧一律不应答——\nmove/head/mouth 静默应用，\n非意图方法静默丢弃\n订阅 robot.subscribe {hz}【M8 B3】\nack=SubscribeResult（ack 在启动时组好）\nwalk/sitstand/ground_pick 文件名\n+ skills 名；hz 解析后丢弃\nrobot.state 只作推送 method\n带 id 的 robot.state\n= METHOD_NOT_FOUND\n其余：hello / robot.health\nrobot.enable {on, toggle}\nrobot.move / robot.do / robot.skills\nrobot.mouth / robot.head\n【M8 B4】robot.safeToRestart\n【M8 B4】robot.modelApi\n（返回 MODEL_API=2）" {
     class: rpc
   }
 
@@ -185,11 +189,11 @@ p_daemon: "进程 3：miniduckd（守护进程，M8 改动在 RPC 层与状态�
     class: ctrl
   }
 
-  stats: "Stats\n(control.rs, 原子计数器)\ntick/reads/writes/skipped_reads\nconsecutive_read_errors\nachieved_millihz/policy_ok\nlast_tick_millis / driving" {
+  stats: "Stats\n(control.rs, 原子计数器)\ntick/reads/writes/skipped_reads\nconsecutive_read_errors\nachieved_millihz/policy_ok\nlast_tick_millis / driving\n【M8 B4】moving / fallen\n（AtomicBool，控制循环写）" {
     class: chan
   }
 
-  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机【M8 B2 改】：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制)\ndisable → Stopped（当拍直接命令\n回 home 无斜坡、不卸 torque，\npolicy reset 清 LSTM 槽）\n→ 再 enable 直接回 Driving（无斜坡）\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）" {
+  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机【M8 B2 改】：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制)\ndisable → Stopped（当拍直接命令\n回 home 无斜坡、不卸 torque，\npolicy reset 清 LSTM 槽）\n→ 再 enable 直接回 Driving（无斜坡）\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）\n【M8 B4】发 FrameSnapshot 前\n更新 Stats.moving/fallen：\nLimp/RampUp=true；Driving 时\nbusy 或 twist 非零=true；\nHeld/Stopped=false" {
     class: ctrl
   }
 
@@ -283,6 +287,15 @@ p_cli.ctl -> p_updaterd.ipc: "update.* 请求/响应\nUnix socket /tmp/mini-upda
 p_updaterd.ipc -> p_updaterd.engine: "apply/rollback\n（先 peer 门控再拿 flock，\n持锁调 engine）"
 p_updaterd.engine -> p_updaterd.manifest: "Verifying：\nmanifest 解析+sha256"
 p_updaterd.engine -> p_updaterd.store: "Extracting/Swapping：\n解包→rename→set_current"
+p_updaterd.engine -> p_updaterd.robot: "apply 预检（最前）：\nVerifying 之前先 safe_to_restart\n再 model_api；任一不通过=拒绝\n（预检拒绝时持久状态零副作用）" {
+  style.stroke: "#4F46E5"
+  style.stroke-width: 2
+}
+p_updaterd.robot -> p_updaterd.gate: "预检通过后再健康门" {
+  style.stroke: "#4F46E5"
+  style.stroke-width: 2
+  style.stroke-dash: 5
+}
 p_updaterd.engine -> p_updaterd.gate: "HealthGate：\npoll(budget)"
 p_updaterd.engine -> p_updaterd.journal: "每结局一行：\nCommitted/RolledBack/Rejected"
 p_updaterd.engine -> p_updaterd.supervisor: "kill 旧 daemon /\nspawn 新 daemon"
@@ -298,6 +311,13 @@ p_updaterd.supervisor -> p_daemon: "spawn/kill 进程\n（setsid 脱离会话；
 p_updaterd.gate -> p_daemon.rpc: "hello + robot.health 轮询 @500ms\nUnix socket /tmp/miniduckd.sock\n（unhealthy/超时=回滚依据）" {
   style.stroke: "#4F46E5"
   style.stroke-width: 2
+}
+
+# 5b. updaterd → miniduckd：apply 前预检（M8 B4 新增）
+p_updaterd.robot -> p_daemon.rpc: "safeToRestart + modelApi 预检（apply 前）\nUnix socket /tmp/miniduckd.sock\n（moving/fallen + MODEL_API=2）" {
+  style.stroke: "#4F46E5"
+  style.stroke-width: 2
+  style.stroke-dash: 5
 }
 
 # 6. updaterd ↔ 文件系统资产（M7）
@@ -340,9 +360,15 @@ p_daemon.p_io.sim -> p_sim.body: "TCP NDJSON op 帧：\nhello / read(步进20ms�
 p_daemon.loop -> p_daemon.watch: "每拍发布 FrameSnapshot"
 p_daemon.watch -> p_daemon.rpc: "changed() 唤醒\n（latest-wins 不积压）"
 
-# 13. Stats（不变）
-p_daemon.loop -> p_daemon.stats: "原子写（每拍记账）"
-p_daemon.stats -> p_daemon.rpc: "robot.health 原子读\n（健康门的数据源）"
+# 13. Stats（M8 B4：新增 moving/fallen 写，新增 safeToRestart 读）
+p_daemon.loop -> p_daemon.stats: "原子写（每拍记账）\n【M8 B4】moving / fallen" {
+  style.stroke: "#0D9488"
+  style.stroke-width: 2
+}
+p_daemon.stats -> p_daemon.rpc: "robot.health 原子读\n（健康门的数据源）\n【M8 B4】robot.safeToRestart 读 moving/fallen" {
+  style.stroke: "#0D9488"
+  style.stroke-width: 2
+}
 
 # 14. 外部资源 → 策略槽（不变）
 onnx -> p_daemon.sched.slots: "加载五份权重\n（walk 必须，其余可选）"

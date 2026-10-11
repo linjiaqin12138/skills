@@ -19,16 +19,16 @@
 
 | 处置 | 行数 |
 |---|---|
-| 已交付 | 42 |
+| 已交付 | 44 |
 | 偏差登记（沿用 D1–D41） | 33 |
-| 未登记缺口（预留新 D 号 D42–D63，共 22 条；D43/D44/D45 已于 M8 Bite 1/2/3 收敛） | 59 |
+| 未登记缺口（预留新 D 号 D42–D63，共 22 条；D43/D44/D45/D47 已于 M8 Bite 1/2/3/4 收敛） | 57 |
 | 建议豁免 | 49 |
 | **合计** | **183** |
 
 口径说明：按表行计数；一行覆盖一个 RPC 方法 / 一个 CLI 命令组 / 一个配置段（键组）/
 一个 crate。混合处置的行按处置列首个类目计数，次要类目在括号内注记。缺口行
 归并为 22 条新 D（D42–D63），逐条见文末「未登记缺口汇总」；D43（M8 Bite 1/2）、
-D44（M8 Bite 2）、D45（M8 Bite 3，hz 降频残余仍归 D25）已收敛，其余 19 条挂账待批次收敛。
+D44（M8 Bite 2）、D45（M8 Bite 3，hz 降频残余仍归 D25）、D47（M8 Bite 4，残余 D65/D66/D67）已收敛，其余 18 条挂账待批次收敛。
 
 既有决策的影响（STATE.md 决策记录）：`examples/` 是教程配套资产，不计入本清单；
 D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体按同原则处理。
@@ -81,9 +81,9 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 | update.show | :560 / :978 | 无 | 未登记缺口（D48；transcript 本体在 D41） |
 | update.subscribe | :561 / :980 | 无 | 偏差登记（D41） |
 | update.progress 通知 | :564（Progress :3105） | 无 | 偏差登记（D41） |
-| robot.safeToRestart | :572 / :983 | 无 | 未登记缺口（D47） |
+| robot.safeToRestart | :572 / :983 | main.rs:~:500 + control.rs 记账 moving/fallen（M8 Bite 4） | ~~未登记缺口（D47）~~ 已交付（M8 Bite 4；验收 milestones/m8-convergence/acceptance.md Bite 4） |
 | robot.health | :574 / :984 | main.rs:219（真实判定，M5） | 已交付（M5）；载荷字段缺口 D49 |
-| robot.modelApi | :576 / :985 | 无 | 未登记缺口（D47） |
+| robot.modelApi | :576 / :985 | main.rs:~:507 返回 lib.rs MODEL_API=2（M8 Bite 4） | ~~未登记缺口（D47）~~ 已交付（M8 Bite 4）；updater 侧预检语义残余 D65 |
 | robot.remoteSessionActive | :578 / :986 | 无 | 建议豁免（WebRTC 会话存在性，mediad 家族；拿不准，见文末） |
 | robot.move {vx,vy,vyaw}（通知式） | :597 / :990；MoveParams :2110 | lib.rs:114 MoveParams + main.rs:266 robot.move 双路径（M8 Bite 1；robot.drive 已删） | 已交付（M8 Bite 1）；head/mouth 通知语义与统一 apply_intent 入口残余入 D43 |
 | robot.head（通知式） | :599 / :992；HeadParams :2126 | main.rs:335（请求式，参数名一致） | 已交付（M6）；连续意图通知语义差异入 D43 |
@@ -259,7 +259,7 @@ updater.toml（reference/deploy/updater.toml，179 行）：
 - **D44** ~~robot.enable {on, toggle} vs 手搓 enable/disable 无参二分：缺 toggle（手柄 Start 语义），多出原版没有的 robot.disable~~ M8 Bite 2 已收敛：robot.enable {on, toggle} 全对齐（toggle daemon 侧翻转、永不拒绝、reason 逐字对齐），robot.disable 方法与 CLI 子命令一并删除（用户裁决）。另：disable 语义（斜坡+卸 torque vs 直接回 home 上电抱持）复核中新发现，登记 D64 并随 Bite 2 收敛（见 docs/deviations.md）。
 - **D45** ~~robot.subscribe {hz} + SubscribeResult ack 缺席，robot.state 兼作订阅入口~~ M8 Bite 3 已收敛入口与名单（walk/sitstand/ground_pick 文件名、skills 配置名、accepted 恒 true）。带 id 的 robot.state 改为 METHOD_NOT_FOUND。残余：hz 收下但不降频，仍归 D25；stand 省略归 D33；无 "no policy configured" 文案（没有策略开关配置）。
 - **D46** 命令 EMA 平滑缺席（[control] cmd_alpha/head_alpha；手搓意图直通，只有动作侧训练低通）。
-- **D47** updaterd 预检面 robot.safeToRestart / robot.modelApi 缺席（apply 前「现在重启安全吗」无从问起）。
+- **D47** ~~updaterd 预检面 robot.safeToRestart / robot.modelApi 缺席（apply 前「现在重启安全吗」无从问起）~~ M8 Bite 4 已收敛：两个 RPC 上线（载荷、METHOD 名、`MODEL_API=2`、reason 文案逐字对齐原版），控制循环每拍记 `moving`/`fallen`，updater 侧 `src/updater/robot.rs` 客户端四态枚举 + 预检插在 `apply()` 最前面。残余：D65（model_api None 拒绝，原版视为兼容）、D66（无 preflight 框架/其它检查项）、D67（Incompatible 不打日志）。
 - **D48** update.* 缺五条方法：resetToGolden（D37 关联）/ select / pin / listInstalled / show（D41 transcript 关联）。
 - **D49** robot.health 载荷字段缺口：degraded / 单值 reason / battery / motors / cpu_temp_c / cpu_throttle / control_loop / bus / imu 九个结构缺席（手搓为扁平教学字段）。
 - **D50** robot.state 载荷字段缺口：t / move 三元组 / head / policy / loop / joints+targets 命名 / velocities / currents_ma / odom / t_ns / frames / skeleton 缺席。
