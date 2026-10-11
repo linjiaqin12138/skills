@@ -389,14 +389,45 @@ frames = read_pushes(0.3)
 assert frames, "没收到推送"
 print(f"t. 无 id robot.subscribe 静默，{len(frames)} 帧内只有 robot.state 推送  OK")
 
+# ── 断言 u：静止时 safeToRestart safe:true，reason 省略 ──
+send({"jsonrpc": "2.0", "id": 18, "method": "robot.safeToRestart"})
+r = read_until_response(18)
+res = r.get("result", {})
+assert res.get("safe") is True, r
+assert "reason" not in res, r
+print("u. 静止时 safeToRestart safe:true，reason 省略  OK")
+
+# ── 断言 v：无 id robot.move {vx:0.1} 后，safeToRestart safe:false ──
+send({"jsonrpc": "2.0", "method": "robot.move", "params": {"vx": 0.1}})
+deadline = time.time() + 1.0
+while True:
+    msg = readline()
+    assert msg.get("method") == "robot.state", msg
+    if close(twist_of(msg["params"]), [0.1, 0.0, 0.0]):
+        break
+    assert time.time() < deadline, "move 通知没生效"
+send({"jsonrpc": "2.0", "id": 19, "method": "robot.safeToRestart"})
+r = read_until_response(19)
+res = r.get("result", {})
+assert res.get("safe") is False, r
+assert res.get("reason") == "the robot is walking", r
+print("v. move 后 safeToRestart safe:false reason='the robot is walking'  OK")
+
+# ── 断言 w：robot.modelApi → model_api:2 ──
+send({"jsonrpc": "2.0", "id": 20, "method": "robot.modelApi"})
+r = read_until_response(20)
+res = r.get("result", {})
+assert res.get("model_api") == 2, r
+print("w. robot.modelApi → model_api:2  OK")
+
 print()
-print("M8 断言 a–t 全部通过")
+print("M8 断言 a–w 全部通过")
 PY
 RC=$?
 
 echo
 if [ "$RC" = 0 ]; then
-    echo "M8 验收（robot.move + robot.enable + robot.subscribe 对齐，notification 统一入口）全部通过"
+    echo "M8 验收（robot.move + robot.enable + robot.subscribe + safeToRestart/modelApi 对齐，notification 统一入口）全部通过"
 else
     echo "FAIL: 断言脚本退出码 $RC"
 fi

@@ -26,8 +26,23 @@ pub const JSONRPC: &str = "2.0";
 /// 在握手上设卡会连本来能服务的调用一起拒掉。
 pub const API_VERSION: u32 = 1;
 
+/// 模型 I/O 契约版本。updater 用 `robot.modelApi` 做兼容性预检。
+pub const MODEL_API: u32 = 2;
+
 pub const METHOD_NOT_FOUND: i32 = -32601;
 pub const PARSE_ERROR: i32 = -32700;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SafeToRestartResult {
+    pub safe: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelApiResult {
+    pub model_api: u32,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request {

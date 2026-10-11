@@ -10,9 +10,11 @@ use std::process::{Child, Command};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use super::{gate, journal, manifest, store};
+use super::{gate, journal, manifest, robot, store};
 use super::journal::{LogEntry, Outcome};
 use super::paths::UpdaterPaths;
+use super::robot::SafeToRestart;
+use crate::MODEL_API;
 
 /// MAX_BOOT_ATTEMPTS：原版 engine.rs:38。试用版启动第 2 次还过不了门，
 /// 就承认它是砖，回滚。
@@ -246,6 +248,27 @@ impl Engine {
 
     pub async fn apply(&mut self, version: &str, peer_uid: Option<u32>) -> OpResult {
         let from = store::current_version(&self.paths);
+
+        // M8-C1：swap 之前先问 robotd 是否安全重启 + 模型 API 是否匹配。
+        // 放在最前面：早于 manifest 校验、早于解包——预检拒绝时还没动过
+        // manifest、没解包 staging、没 arm pending，对持久状态零副作用。
+        match robot::safe_to_restart(&self.daemon_sock, robot::ROBOT_RPC_TIMEOUT).await {
+            SafeToRestart::No(reason) | SafeToRestart::Incompatible(reason) => {
+                return Err(self.reject(from, version, format!("not safe to restart: {reason}"), peer_uid));
+            }
+            SafeToRestart::Yes | SafeToRestart::Unreachable => {}
+        }
+        match robot::model_api(&self.daemon_sock, robot::ROBOT_RPC_TIMEOUT).await {
+            Some(api) if api == MODEL_API => {}
+            actual => {
+                return Err(self.reject(
+                    from,
+                    version,
+                    format!("model api mismatch: expected {MODEL_API}, got {actual:?}"),
+                    peer_uid,
+                ));
+            }
+        }
 
         // Verifying：manifest 解析 + sha256。拒绝不留任何副作用。
         self.set_phase(Phase::Verifying);

@@ -27,8 +27,8 @@ use miniduck::io::{FakeIo, RobotIo, SimIo};
 use miniduck::safety::{Safety, SafetyConfig};
 use miniduck::scheduler::{LoadedSlots, Scheduler};
 use miniduck::{
-    API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, MoveParams, Request, ServerMessage, SubscribeResult,
-    assemble_subscribe_ack, parse_enable, parse_subscribe,
+    API_VERSION, MODEL_API, METHOD_NOT_FOUND, PARSE_ERROR, MoveParams, Request, SafeToRestartResult,
+    ServerMessage, SubscribeResult, assemble_subscribe_ack, parse_enable, parse_subscribe,
 };
 use serde_json::{Value, json};
 use tokio::net::{UnixListener, UnixStream};
@@ -200,6 +200,20 @@ fn health(stats: &control::Stats, policy_error: &Option<String>, boot: Instant) 
         "consecutive_read_errors": consecutive_read_errors,
         "achieved_hz": achieved_millihz as f64 / 1000.0,
     })
+}
+
+/// `robot.safeToRestart` 的判决：走路且没倒时不允许重启。
+fn safe_to_restart(stats: &control::Stats) -> SafeToRestartResult {
+    let moving = stats.moving.load(Ordering::Relaxed);
+    let fallen = stats.fallen.load(Ordering::Relaxed);
+    if moving && !fallen {
+        SafeToRestartResult {
+            safe: false,
+            reason: Some("the robot is walking".into()),
+        }
+    } else {
+        SafeToRestartResult { safe: true, reason: None }
+    }
 }
 
 /// 解析 robot.move 参数为 [vx, vy, vyaw]；Err 的文案即 INVALID_PARAMS
@@ -483,6 +497,17 @@ async fn serve(
                         }
                         Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
                     },
+                    // M8-C1：重启安全预检。控制循环自己记账 moving/fallen，
+                    // 这里只读原子量，永不阻塞控制任务。
+                    "robot.safeToRestart" => ServerMessage::ok(
+                        req.id,
+                        serde_json::to_value(safe_to_restart(&stats)).unwrap(),
+                    ),
+                    // M8-C1：模型 I/O 契约版本，给 updater 做兼容性预检。
+                    "robot.modelApi" => ServerMessage::ok(
+                        req.id,
+                        json!({ "model_api": MODEL_API }),
+                    ),
                     other => ServerMessage::err(
                         req.id,
                         METHOD_NOT_FOUND,

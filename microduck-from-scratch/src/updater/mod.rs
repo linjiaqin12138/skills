@@ -10,6 +10,7 @@
 pub mod engine;
 pub mod gate;
 pub mod ipc;
+pub mod robot;
 pub mod journal;
 pub mod lock;
 pub mod manifest;

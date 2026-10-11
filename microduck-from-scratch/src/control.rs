@@ -75,6 +75,10 @@ pub struct Stats {
     /// 技能请求（对齐原版 main.rs 的 homed 检查：accepted 然后什么都不
     /// 发生是最坏的回答）。
     pub driving: AtomicBool,
+    /// 本拍是否处于运动中。供 `robot.safeToRestart`：走路时不允许重启。
+    pub moving: AtomicBool,
+    /// 本拍是否已跌倒。与 `moving` 组合判断安全重启。
+    pub fallen: AtomicBool,
     /// 循环 epoch，last_tick_millis 的基准。
     pub started: std::time::Instant,
 }
@@ -91,6 +95,8 @@ impl Stats {
             achieved_millihz: AtomicU64::new(0),
             policy_ok: AtomicBool::new(policy_ok),
             driving: AtomicBool::new(false),
+            moving: AtomicBool::new(false),
+            fallen: AtomicBool::new(false),
             started: std::time::Instant::now(),
         }
     }
@@ -581,6 +587,21 @@ pub fn spawn(
                 stats
                     .driving
                     .store(matches!(phase, Phase::Driving), Ordering::Relaxed);
+
+                // safeToRestart 的判决由控制循环自己记账：走路且没倒时
+                // 不允许重启。Driving 阶段以"busy 或有 twist"为准，斜坡和
+                // 软倒也算在运动恢复期。
+                let moving = match &phase {
+                    Phase::Limp => true,
+                    Phase::RampUp { .. } => true,
+                    Phase::Driving => {
+                        let twist_magnitude = gated.twist.iter().map(|v| v * v).sum::<f64>().sqrt();
+                        busy || twist_magnitude > 0.0
+                    }
+                    Phase::Held { .. } | Phase::Stopped => false,
+                };
+                stats.moving.store(moving, Ordering::Relaxed);
+                stats.fallen.store(safety.fallen(), Ordering::Relaxed);
 
                 let mut obs_arr = [0.0f32; OBS_LEN];
                 obs_arr.copy_from_slice(obs_for_snapshot.as_slice());
