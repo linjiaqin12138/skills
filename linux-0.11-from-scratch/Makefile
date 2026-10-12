@@ -5,11 +5,12 @@
 DOCKER_IMG  := linux011-rust-toolchain
 DOCKER_CTR  := linux011-rust-build
 DOCKER_EXEC := docker exec $(DOCKER_CTR)
-QEMU        := qemu-system-x86_64
+# 优先用 PATH 里的 qemu；本机包装脚本在 ~/.local/bin（已设 LD_LIBRARY_PATH / -L）
+QEMU        := $(shell command -v qemu-system-x86_64 2>/dev/null || echo $(HOME)/.local/bin/qemu-system-x86_64)
 # -boot d：默认启动顺序硬盘在前，会引导 reference/hdc-0.11.img 而不是我们的 CD
 QEMU_FLAGS  := -m 128M -boot d -serial stdio -drive file=reference/hdc-0.11.img,format=raw,if=ide
 
-.PHONY: toolchain ctr kernel build run debug check clean help
+.PHONY: toolchain ctr kernel build run debug check check-m1-b1 clean help
 
 help: ## 显示本帮助
 	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*## /  →  /'
@@ -53,6 +54,32 @@ check: ## 无头跑 qemu，断言串口日志出现 "M0: kernel alive"（Bite2 �
 	    -drive file=reference/hdc-0.11.img,format=raw,if=ide -cdrom build/kernel.iso; \
 	rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
 	grep 'M0: kernel alive' build/serial.log
+
+# M1 Bite1：串口断言 + monitor screendump（证明真的画到了 framebuffer）
+# 非 rootless docker 时 build/ 属容器 root，宿主机 qemu 写不进；先把归属改回当前用户。
+check-m1-b1: build ## M1 Bite1 验收：FB 元数据 + 两行固定串 + screendump
+	@$(DOCKER_EXEC) chown -R $$(id -u):$$(id -g) /work/build
+	@mkdir -p build
+	@rm -f build/serial.log build/m1-bite1.ppm
+	@echo ">>> starting qemu (headless + monitor screendump)…"
+	@( sleep 3; printf 'screendump build/m1-bite1.ppm\nquit\n' ) | \
+	  $(QEMU) -m 128M -boot d -display none -vga std -net none \
+	    -monitor stdio \
+	    -serial file:build/serial.log \
+	    -drive file=reference/hdc-0.11.img,format=raw,if=ide \
+	    -cdrom build/kernel.iso; \
+	  rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
+	@echo ">>> serial.log:"
+	@cat build/serial.log
+	@echo ">>> asserting serial markers…"
+	@grep -F 'M0: kernel alive' build/serial.log
+	@grep -E 'M1: fb [0-9]+x[0-9]+x[0-9]+' build/serial.log
+	@grep -F 'M1: hello framebuffer' build/serial.log
+	@grep -F 'M1: console line 2' build/serial.log
+	@test -f build/m1-bite1.ppm
+	@sz=$$(wc -c < build/m1-bite1.ppm); echo "screendump size=$$sz"; \
+	  test $$sz -gt 10240
+	@echo "check-m1-b1 OK"
 
 clean: ## 清理构建产物
 	rm -rf build kernel/target user/target

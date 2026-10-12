@@ -1,0 +1,162 @@
+# M1 Bite1 权威全图：Limine FB + console 点阵 + 串口双写
+# Style 1：control=紫 write=绿 data=橙；浅色；kernel = 信任边界
+direction: right
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+  }
+}
+
+classes: {
+  ext: {
+    style: {
+      fill: "#fff7ed"
+      stroke: "#f97316"
+      font-color: "#111827"
+      border-radius: 10
+      bold: true
+      font-size: 13
+    }
+  }
+  artifact: {
+    style: {
+      fill: "#eff6ff"
+      stroke: "#3b82f6"
+      font-color: "#111827"
+      border-radius: 10
+      bold: true
+      font-size: 13
+    }
+  }
+  kmod: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#8b5cf6"
+      font-color: "#111827"
+      border-radius: 10
+      bold: true
+      font-size: 13
+    }
+  }
+  hw: {
+    style: {
+      fill: "#eff6ff"
+      stroke: "#3b82f6"
+      font-color: "#111827"
+      border-radius: 10
+      bold: true
+      font-size: 13
+    }
+  }
+  host: {
+    style: {
+      fill: "#fff7ed"
+      stroke: "#f97316"
+      font-color: "#111827"
+      border-radius: 10
+      bold: true
+      font-size: 13
+    }
+  }
+  e_ctrl: {
+    style: {
+      stroke: "#7c3aed"
+      stroke-width: 2
+      font-color: "#6b7280"
+      bold: true
+      font-size: 11
+    }
+  }
+  e_write: {
+    style: {
+      stroke: "#10b981"
+      stroke-width: 2
+      font-color: "#6b7280"
+      bold: true
+      font-size: 11
+    }
+  }
+  e_data: {
+    style: {
+      stroke: "#f97316"
+      stroke-width: 2
+      font-color: "#6b7280"
+      bold: true
+      font-size: 11
+    }
+  }
+}
+
+title: |md
+  **M1 Bite1 架构（printk / framebuffer console）**
+
+  构建：make build → kernel.iso ｜ 启动：SeaBIOS → Limine → kernel ｜ 输出：FB 点阵 + COM1 双写
+| {
+  near: top-center
+  shape: text
+}
+
+# 构建 + 引导
+docker: "构建容器\ncargo → xorriso" { class: ext }
+iso: "kernel.iso\nelf + limine.conf" { class: artifact }
+seabios: "SeaBIOS\nPOST + 启动" { class: ext }
+limine: "Limine\nEl Torito + FB 协议" { class: ext }
+
+docker -> iso: "make build" { class: e_write }
+iso -> seabios: "qemu -cdrom" { class: e_data }
+seabios -> limine: "El Torito" { class: e_ctrl }
+
+# kernel 信任边界
+kernel: "kernel（信任边界）" {
+  style: {
+    fill: "#faf5ff"
+    stroke: "#8b5cf6"
+    stroke-dash: 4
+    border-radius: 16
+    bold: true
+    font-color: "#8b5cf6"
+  }
+
+  start: "_start\nmain.rs" { class: kmod }
+  limine_fb: "limine_fb\n请求/响应" { class: kmod }
+  console: "console\n光标 + write_str" { class: kmod }
+  kfont: "font\n8×16 glyph" { class: kmod }
+  fb: "fb\nput_pixel" { class: kmod }
+  serial: "serial\n16550（M0）" { class: kmod }
+
+  start -> limine_fb: "first_framebuffer()" { class: e_ctrl }
+  start -> console: "clear + write_str" { class: e_write }
+  start -> serial: "同内容串 + FB 元数据" { class: e_write }
+  console -> kfont: "glyph(ch)" { class: e_data }
+  console -> fb: "put_pixel" { class: e_write }
+}
+
+limine -> kernel.start: "交付 CPU：长模式+高半区" { class: e_ctrl }
+limine -> kernel.limine_fb: "填写 FB response\n(addr/几何/mask)" { class: e_data }
+
+# 外部硬件 / 宿主
+vram: "线性显存\nLimine FB" { class: hw }
+qemu_gfx: "qemu 图形\nscreendump" { class: host }
+com1: "COM1\nI/O 0x3F8" { class: hw }
+qemu_term: "qemu 终端\n-serial" { class: host }
+
+kernel.fb -> vram: "RGB 像素" { class: e_write }
+vram -> qemu_gfx: "guest→窗口" { class: e_data }
+kernel.serial -> com1: "写 16550" { class: e_write }
+com1 -> qemu_term: "文本流" { class: e_data }
+
+legend: |md
+  紫=控制/引导 · 绿=写 · 橙=数据/文本
+| {
+  near: bottom-center
+  shape: text
+}
+
+footer: "Style 1 · d2/ELK · M1 Bite1（权威 SVG）" {
+  near: bottom-center
+  shape: text
+  style.font-size: 11
+  style.font-color: "#64748b"
+}

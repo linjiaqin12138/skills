@@ -7,7 +7,9 @@ target = "x86_64-unknown-none"
 # 相对路径基于 kernel crate 的根目录解析。
 # relocation-model=static：该 target 默认产出 PIE（Type: DYN），
 # 裸机内核没有动态加载器，必须生成固定地址的 EXEC
-rustflags = ["-C", "relocation-model=static", "-C", "link-arg=-Tlinker.ld"]
+# -znorelro：关掉 GNU_RELRO。否则 lld 会给 .got/.data 再挂一个只读 RELRO PHDR，
+# 与 RW PT_LOAD 挤在同一页，Limine 加载时会 PANIC（权限冲突）。
+rustflags = ["-C", "relocation-model=static", "-C", "link-arg=-Tlinker.ld", "-C", "link-arg=-znorelro"]
 
 # no_std 内核没有预编译的 core，需要从源码现编（nightly 专属功能，需 rust-src 组件）
 [unstable]

@@ -1,39 +1,114 @@
-//! M0 内核骨架：能被 Limine 加载，并向串口打印一行存活信息。
+//! M1 Bite1：Limine framebuffer + 固定 ASCII 字符串点阵输出（无 fmt / 无滚屏）。
 
-#![no_std] // 裸机环境没有 std，只用 core
-#![no_main] // 没有 C 运行时，也就没有 main；入口由我们自己定义
+#![no_std]
+#![no_main]
 
+mod console;
+mod fb;
+mod font;
+mod limine_fb;
 mod serial;
 
 use core::arch::asm;
 use core::panic::PanicInfo;
 
-/// Limine 基础协议版本（base revision）请求，布局见 PROTOCOL.md "Base Revisions"：
-/// 前两个 u64 是识别魔数，第三个是请求的协议版本。
-/// bootloader 若支持该版本，会在加载时把第三项原地清零；不支持则保持原样。
-#[used] // 这个 static 只被 bootloader 读，需要阻止编译器当死代码删掉
-#[unsafe(link_section = ".limine_requests")] // Limine 约定在此段扫描请求
+use console::Console;
+use limine_fb::Framebuffer;
+
+/// Limine base revision 请求（PROTOCOL.md "Base Revisions"）；
+/// 第三项被 bootloader 清零表示所请求版本受支持。
+#[used]
+#[unsafe(link_section = ".limine_requests")]
 static BASE_REVISION: [u64; 3] = [0xf956_2b2d_5c95_a6c8, 0x6a7b_3849_4453_6bdc, 3];
 
-/// 内核入口，由 Limine 直接跳转过来（`extern "C"` 保持符号名与调用约定稳定）
-#[unsafe(no_mangle)] // 符号名必须原样出现在 ELF 里，与 linker.ld 的 ENTRY(_start) 对应
+const LINE_HELLO: &str = "M1: hello framebuffer";
+const LINE_TWO: &str = "M1: console line 2";
+
+#[unsafe(no_mangle)]
 extern "C" fn _start() -> ! {
     serial::init();
 
-    // 协议握手检查：第三项没被清零，说明 bootloader 不支持我们要的协议版本
     if BASE_REVISION[2] != 0 {
         serial::write_str("M0: limine base revision 3 not supported\n");
         halt();
     }
 
+    let Some(framebuffer) = limine_fb::first_framebuffer() else {
+        serial::write_str("M1: no framebuffer\n");
+        serial::write_str("M0: kernel alive\n");
+        halt();
+    };
+
+    report_fb_meta(framebuffer);
+
+    let mut cons = Console::new(framebuffer);
+    cons.clear();
+    cons.write_str(LINE_HELLO);
+    cons.write_str("\n");
+    cons.write_str(LINE_TWO);
+    cons.write_str("\n");
+
+    // 屏幕与串口同内容，供自动化断言
+    serial::write_str(LINE_HELLO);
+    serial::write_str("\n");
+    serial::write_str(LINE_TWO);
+    serial::write_str("\n");
+
+    // 保留 M0 存活行作回归
     serial::write_str("M0: kernel alive\n");
     halt();
 }
 
-/// 停机：反复执行 hlt 让 CPU 休眠，直到有中断把它唤醒（目前没有中断，即永久停机）
+/// 串口打印 `M1: fb WxHxBPP` 与 mask，便于核对像素格式（猜了就有据可查）
+fn report_fb_meta(fb: &Framebuffer) {
+    serial::write_str("M1: fb ");
+    write_u64(fb.width);
+    serial::write_str("x");
+    write_u64(fb.height);
+    serial::write_str("x");
+    write_u64(fb.bpp as u64);
+    serial::write_str("\n");
+
+    // mask 便于对照是否真是 x8r8g8b8；【协议字段】直接打印
+    serial::write_str("M1: fb mask r");
+    write_u64(fb.red_mask_size as u64);
+    serial::write_str("@");
+    write_u64(fb.red_mask_shift as u64);
+    serial::write_str(" g");
+    write_u64(fb.green_mask_size as u64);
+    serial::write_str("@");
+    write_u64(fb.green_mask_shift as u64);
+    serial::write_str(" b");
+    write_u64(fb.blue_mask_size as u64);
+    serial::write_str("@");
+    write_u64(fb.blue_mask_shift as u64);
+    serial::write_str(" model=");
+    write_u64(fb.memory_model as u64);
+    serial::write_str("\n");
+}
+
+/// 无 core::fmt 的十进制输出（Bite2 才上 Write/printk!）
+fn write_u64(mut value: u64) {
+    if value == 0 {
+        serial::write_byte(b'0');
+        return;
+    }
+    let mut digits = [0u8; 20];
+    let mut len = 0;
+    while value > 0 {
+        digits[len] = b'0' + (value % 10) as u8;
+        value /= 10;
+        len += 1;
+    }
+    while len > 0 {
+        len -= 1;
+        serial::write_byte(digits[len]);
+    }
+}
+
 fn halt() -> ! {
     loop {
-        // SAFETY: hlt 只让 CPU 暂停，不访问内存与栈
+        // SAFETY: hlt 只暂停 CPU
         unsafe {
             asm!("hlt", options(nomem, nostack));
         }

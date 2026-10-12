@@ -29,8 +29,11 @@ SECTIONS
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 
+    /* .got 等可写段必须显式收进 RW PT_LOAD；否则 lld 会把它塞到 rodata 末尾，
+     * 与只读页共享同一物理页，Limine 会直接 PANIC（PHDR 权限冲突）。 */
     .data : {
         *(.data .data.*)
+        *(.got .got.*)
     }
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
