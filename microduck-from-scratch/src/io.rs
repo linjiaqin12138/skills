@@ -71,6 +71,12 @@ pub trait RobotIo: Send {
     fn set_gain(&mut self, kp: u16) -> Result<()>;
     /// 舵机出力开关。torque off 时 goal 寄存器照写只是不出力。
     fn set_torque(&mut self, on: bool) -> Result<()>;
+    /// 给躯干加水平速度（世界系 m/s）。仅仿真有意义；真机/Fake 默认空操作。
+    /// BAM 冻结 bringup 后，vx 命令易落入站立不动点——控制环在 twist 上升沿点一次。
+    fn push_base_velocity(&mut self, vx: f64, vy: f64) -> Result<()> {
+        let _ = (vx, vy);
+        Ok(())
+    }
     /// 姿态滤波是否已收敛。默认 true：FakeIo/SimIo 的 IMU 没有滤波器，
     /// 第一帧就是收敛值；真总线的 SFLP 滤波器需要几秒样本才有意义。
     fn imu_ready(&self) -> bool {
@@ -91,6 +97,9 @@ impl RobotIo for Box<dyn RobotIo> {
     }
     fn set_torque(&mut self, on: bool) -> Result<()> {
         (**self).set_torque(on)
+    }
+    fn push_base_velocity(&mut self, vx: f64, vy: f64) -> Result<()> {
+        (**self).push_base_velocity(vx, vy)
     }
     fn imu_ready(&self) -> bool {
         (**self).imu_ready()
@@ -318,6 +327,15 @@ impl RobotIo for SimIo {
         self.call(&serde_json::json!({
             "op": "set_torque",
             "on": on,
+        }))?;
+        Ok(())
+    }
+
+    fn push_base_velocity(&mut self, vx: f64, vy: f64) -> Result<()> {
+        self.call(&serde_json::json!({
+            "op": "push",
+            "vx": vx,
+            "vy": vy,
         }))?;
         Ok(())
     }

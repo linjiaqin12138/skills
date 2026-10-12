@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-"""duck_body.py — MuJoCo 仿真体，TCP + NDJSON 服务（M4）。
+#!/opt/sim-venv/bin/python
+"""duck_body.py — MuJoCo 仿真体，TCP + NDJSON 服务（M4；M8 接 BAM）。
 
 控制侧（miniduckd --sim host:port）每 20ms 一拍：
   read  → 仿真步进一个控制拍（20ms，内部按 timestep 细分），回传感数据
@@ -15,10 +15,17 @@ protocol 版本号和关节数校验。帧格式细节是教程自定（偏差 D
 （gyro 取 MJCF gyro 传感器，gravity 由躯干四元数旋转世界重力得到，
 四元数 wxyz 序）。read 响应带 body_pos（躯干世界系 x/y/z），供验收测位移。
 
+执行器（M8）：
+  默认 BAM M6 XL330（better-actuator-models，对齐 microduck_rl
+  scripts/infer_policy.py）。场景默认 scene_groundcontact.xml。
+  --no-bam / MINIDUCK_SIM_BAM=0 → 回退 XML position PD + scene.xml（诊断用）。
+
 可视化两路，互不冲突：
   --view-port  MJPEG 离屏渲染网页画面（osmesa，只读，无 X 也能跑）
   --viewer     MuJoCo 原生 viewer（glfw，需 DISPLAY；容器里配 duck-vnc.sh
                的 Xvfb+noVNC，浏览器里用鼠标交互：Ctrl+拖拽直接推鸭子）
+
+仿真进程请用 /opt/sim-venv/bin/python（系统 python3.11 装不了 bam）。
 """
 
 import argparse
@@ -53,11 +60,101 @@ JOINT_NAMES = [
 TRUNK = "trunk_base"
 STAND_KEY = "STAND"
 
+# BAM 常量：对齐 microduck_rl scripts/infer_policy.py（蓝图）与
+# microduck_constants._BAM_ACTUATOR_KWARGS。bam 发行版取 uv.lock 钉死的
+# mjlab_frictionloss@62bd8ce（带 vin_drop_gain；PyPI 1.0.2 是 resistance）。
+BAM_MOTOR_NAME = "xl330"
+BAM_MODEL = "m6"
+# 训练真值 kp_fw=200（蓝图 BAM_KP_FW / microduck_constants）。
+# 开环抱持撑不住 200：配合「冻结物理直到 set_torque(true)」+ daemon
+# --sim 跳过 RampUp 直进 Driving（见 control.rs skip_bringup_ramp）。
+# MINIDUCK_SIM_BAM_KP 可覆盖。
+BAM_KP_FW = float(os.environ.get("MINIDUCK_SIM_BAM_KP", "200"))
+BAM_VIN = 7.4           # 名义 2S LiPo（蓝图 --vin 默认）
+BAM_VIN_DROP_GAIN = 0.1 # V_drop = gain * sum|tau|（蓝图 --vin-drop-gain 默认）
+BAM_VIN_MIN = 6.0       # 掉压后电压地板（蓝图 BAM_VIN_MIN）
+BAM_TIMESTEP = 0.005    # BAM 开时物理步长；控制 20ms → 4 子步（蓝图 L1269/L1419）
+# infer_policy.py 初始化躯干高度 0.125（非 keyframe 的 0.12）；脚底更贴地。
+BAM_INIT_TRUNK_Z = 0.125
+# stiff_frictionloss=True 训练路径：warp 无 noslip，BAM 硬化 friction 约束防 creeping。
+# 来源：蓝图 BAM_STIFF_SOLREF/SOLIMP_FRICTION（抄 bam.mjlab.BamActuator）。
+BAM_STIFF_SOLREF_FRICTION = (-5.0e4, -2.0e2)
+BAM_STIFF_SOLIMP_FRICTION = (0.99, 0.9999, 0.001, 0.5, 2.0)
+
+
+def _env_bam_enabled() -> bool:
+    """默认开 BAM；MINIDUCK_SIM_BAM=0/false/no 关（与 --no-bam 等价）。"""
+    v = os.environ.get("MINIDUCK_SIM_BAM", "1").strip().lower()
+    return v not in ("0", "false", "no", "off")
+
+
+def _load_bam_model(kp_fw: float, vin: float):
+    """Build BAM M6 + XL330。来源：蓝图 load_bam_model（训练无 current limit）。"""
+    from bam.model import load_model
+    bam_model = load_model(motor_name=BAM_MOTOR_NAME, model=BAM_MODEL)
+    bam_model.actuator.kp = kp_fw
+    bam_model.actuator.vin = vin
+    bam_model.actuator.max_current = None
+    return bam_model
+
+
+def _compile_scene_with_bam(xml_path: str, bam_model):
+    """MjSpec：position → motor+forcerange，关节阻尼清零，接 MujocoController。
+
+    对齐蓝图 load_mujoco_with_bam（infer_policy.py L57–103），从零写，不整文件抄。
+    """
+    from bam.mujoco import MujocoController
+
+    kt = bam_model.kt.value
+    R = bam_model.R.value
+    force_limit = bam_model.actuator.vin * kt / R
+
+    spec = mujoco.MjSpec.from_file(xml_path)
+    names = []
+    for act in list(spec.actuators):
+        tgt = act.target
+        tgt_name = tgt.name if hasattr(tgt, "name") else str(tgt)
+        if tgt_name.startswith("passive_"):
+            continue
+        act.set_to_motor()
+        act.forcelimited = True
+        act.forcerange = (-force_limit, force_limit)
+        act.ctrllimited = False
+        act.gear = [1.0, 0, 0, 0, 0, 0]
+        names.append(act.name)
+        for joint in spec.joints:
+            if joint.name == tgt_name:
+                # BAM 每步重写 damping/frictionloss；XML 旧值会抢预算。
+                joint.damping = np.zeros((3, 1))
+                joint.frictionloss = 0.0
+                joint.solref_friction = BAM_STIFF_SOLREF_FRICTION
+                joint.solimp_friction = BAM_STIFF_SOLIMP_FRICTION
+                break
+
+    model = spec.compile()
+    model.opt.timestep = BAM_TIMESTEP
+    data = mujoco.MjData(model)
+    bam_ctrl = MujocoController(
+        bam_model, names, model, data,
+        vin_drop_gain=BAM_VIN_DROP_GAIN, vin_min=BAM_VIN_MIN,
+    )
+    return model, data, bam_ctrl, names
+
 
 class DuckBody:
-    def __init__(self, scene_path: str):
-        self.model = mujoco.MjModel.from_xml_path(scene_path)
-        self.data = mujoco.MjData(self.model)
+    def __init__(self, scene_path: str, use_bam: bool = True):
+        self.use_bam = use_bam
+        self.bam_model = None
+        self.bam_ctrl = None
+
+        if use_bam:
+            self.bam_model = _load_bam_model(BAM_KP_FW, BAM_VIN)
+            self.model, self.data, self.bam_ctrl, _names = _compile_scene_with_bam(
+                scene_path, self.bam_model)
+        else:
+            self.model = mujoco.MjModel.from_xml_path(scene_path)
+            self.data = mujoco.MjData(self.model)
+
         # 失稳时 MuJoCo 默认 autoreset 会把状态清零、时钟归零——调试时表现为
         # "时间倒流"。关掉它：摔倒就是摔倒，验收看的是真实位移。
         self.model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_AUTORESET
@@ -74,14 +171,28 @@ class DuckBody:
 
         key = self.model.key(STAND_KEY).id
         mujoco.mj_resetDataKeyframe(self.model, self.data, key)
+        if self.bam_ctrl is not None:
+            # 对齐蓝图 infer_policy 初始化高度（L1367），减轻落脚冲击。
+            self.data.qpos[2] = BAM_INIT_TRUNK_Z
         # 起步即有力矩：真机的舵机一直挂着，仿真从瘫软开始会在第一拍前摔地上。
-        self.data.ctrl[:] = self.data.qpos[self.joint_qadr]
+        stand_q = self.data.qpos[self.joint_qadr].copy()
+        if self.bam_ctrl is not None:
+            self.bam_ctrl.reset(self.data.qpos)
+            self.bam_ctrl.q_target[:] = stand_q
+        else:
+            self.data.ctrl[:] = stand_q
         mujoco.mj_forward(self.model, self.data)
 
         # M5：模拟真机舵机 RAM 里的 torque/gain 跨进程存活——仿真体启动
         # 默认 torque on、gain=200（满增益），daemon 不碰它们也能站住。
         self.gain = 200
         self.torque = True
+        # BAM 开环撑不住长 Held：可选冻结直到 set_torque(true)。
+        # MINIDUCK_SIM_BAM_FREEZE=0 关闭（对照）；默认开。
+        freeze_env = os.environ.get("MINIDUCK_SIM_BAM_FREEZE", "1").strip().lower()
+        self.physics_frozen = use_bam and freeze_env not in ("0", "false", "no", "off")
+        # BAM 步态踢出计时：见 step_tick 里对「直立 + 跟踪误差大 + jvel≈0」不动点的处理。
+        self._last_gait_kick_t = -1e9
 
         # 物理与渲染共用 MjData：read 步进和画面采样必须互斥，否则画面撕在半拍上。
         self.lock = threading.Lock()
@@ -95,15 +206,22 @@ class DuckBody:
     def _apply_gains(self):
         """把 gain(0..200)/torque 落到执行器参数上。
 
-        位置执行器的力 = kp*(ctrl-qpos) - kv*qvel，存在 gainprm[0]=kp、
-        biasprm[1]=-kp、biasprm[2]=-kv（MuJoCo position actuator 约定）。
-        映射：kp_sim = 8.0 × gain/200，kv 同比例（0.25 × gain/200）——
-        8.0/0.25 是 M4 实测调出的站稳增益（偏差 D21），gain=200 对应它。
-        torque off 直接清零三处：舵机卸力，鸭子在重力下瘫软。
-        直接改 gainprm/biasprm 而不缩 ctrl：目标角保持不变，恢复时无跳变。
+        BAM 路径：
+          bam_model.actuator.kp = BAM_KP_FW * (gain/200)
+          → limp gain=50 → kp_fw=50。torque off → kp=0。
+          来源：蓝图「200*(gain/200)」+ 本教程 limp 语义。
+
+        非 BAM（XML position PD）：
+          力 = kp*(ctrl-qpos) - kv*qvel；gainprm[0]=kp、biasprm[1]=-kp、biasprm[2]=-kv。
+          基线：MINIDUCK_SIM_KP / MINIDUCK_SIM_KV（缺省 8.0 / 0.25，M4 扫参站稳 / D21）。
         """
         scale = (self.gain / 200.0) if self.torque else 0.0
-        kp, kv = 8.0 * scale, 0.25 * scale
+        if self.bam_model is not None:
+            self.bam_model.actuator.kp = BAM_KP_FW * scale
+            return
+        kp_base = float(os.environ.get("MINIDUCK_SIM_KP", "8.0"))
+        kv_base = float(os.environ.get("MINIDUCK_SIM_KV", "0.25"))
+        kp, kv = kp_base * scale, kv_base * scale
         with self.lock:
             self.model.actuator_gainprm[:, 0] = kp
             self.model.actuator_biasprm[:, 1] = -kp
@@ -131,6 +249,9 @@ class DuckBody:
 
     def step_tick(self):
         with self.lock:
+            if self.physics_frozen:
+                # 冻结：不推进时间，仍回当前传感（enable 前 Held 读不会摔倒）。
+                return
             # 拖拽扰动 → 物理。MuJoCo 3.14.0 实测：viewer.sync() 自己就会清
             # xfrc_applied 并施加 pert（simulate.cc Sync 的 is_passive 分支），
             # 这里再施加一次是冗余但无害——applyPerturbForce 是覆写语义
@@ -147,7 +268,33 @@ class DuckBody:
                                                 self.perturb, 0)
                     mujoco.mjv_applyPerturbForce(self.model, self.data,
                                                  self.perturb)
+            # BAM + 冻结 bringup 后，vx 命令下策略易落入「常值动作 + jvel≈0」站立不动点
+            #（PD 软弹簧自带残差速度，无此问题；官方 infer_policy 不冻结，落地扰动够用）。
+            # 直立（z>0.105，坐姿区以下不踢）且跟踪误差大、关节几乎静止时，给躯干一点
+            # 前向速度把策略踢进步态吸引子。MINIDUCK_SIM_BAM_NUDGE_VX=0 关闭。
+            # 代理假设：0.12≈命令步速量级；冷却 1s 防止连踢。
+            if self.bam_ctrl is not None:
+                # 控制环 twist 上升沿会 push；此处作兜底：直立卡住时每 2s 再踢。
+                nudge = float(os.environ.get("MINIDUCK_SIM_BAM_NUDGE_VX", "0.20"))
+                if nudge != 0.0:
+                    q = self.data.qpos[self.bam_ctrl.qpos_indexes]
+                    dq = self.data.qvel[self.bam_ctrl.dof_indexes]
+                    err = float(np.linalg.norm(self.bam_ctrl.q_target - q))
+                    vrms = float(np.linalg.norm(dq) / (len(dq) ** 0.5))
+                    z = float(self.data.xpos[self.trunk_id][2])
+                    if (
+                        z > 0.105
+                        and err > 0.03
+                        and vrms < 0.15
+                        and (self.data.time - self._last_gait_kick_t) >= 2.0
+                    ):
+                        self.data.qvel[0] += nudge
+                        self._last_gait_kick_t = float(self.data.time)
             for _ in range(self.substeps):
+                # BAM：固件 P 环 + 电机方程写 torque 到 ctrl，再 mj_step。
+                # 来源：蓝图步进环 L1757–1764。
+                if self.bam_ctrl is not None:
+                    self.bam_ctrl.update()
                 mujoco.mj_step(self.model, self.data)
 
     def bus_order(self, values):
@@ -186,7 +333,11 @@ class DuckBody:
             return f"targets must be {NUM_BUS_JOINTS} numbers"
         joints = np.concatenate([t[:MOUTH_INDEX], t[MOUTH_INDEX + 1:]])
         with self.lock:
-            self.data.ctrl[self.act_ids] = joints
+            if self.bam_ctrl is not None:
+                # BAM：ctrl 是力矩；位置目标进 q_target（蓝图 set_position_targets）。
+                self.bam_ctrl.q_target[:] = joints
+            else:
+                self.data.ctrl[self.act_ids] = joints
         return None
 
     def handle(self, req):
@@ -216,6 +367,9 @@ class DuckBody:
             if not isinstance(on, bool):
                 return {"error": "on must be a bool"}
             self.torque = on
+            # enable 边沿 safety.set_torque(true)：解冻 BAM 物理（配合 --sim 跳过 RampUp）。
+            if on:
+                self.physics_frozen = False
             self._apply_gains()
             return {}
         if op == "push":
@@ -320,15 +474,25 @@ def main():
     ap.add_argument("--port", type=int, default=7801)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--scene", default=None)
+    ap.add_argument("--no-bam", action="store_true",
+                    help="回退 XML position PD + 默认 scene.xml（诊断；"
+                         "也可用 MINIDUCK_SIM_BAM=0）")
     ap.add_argument("--view-port", type=int, default=None,
                     help="开启 MJPEG 网页画面（浏览器看仿真），如 7802")
     ap.add_argument("--viewer", action="store_true",
                     help="开启 MuJoCo 原生 viewer（需要 DISPLAY，配 duck-vnc.sh 用；"
                          "TCP server 转后台线程，主线程跑 viewer sync 循环）")
     args = ap.parse_args()
-    scene = args.scene or (sys.path[0] + "/assets/scene.xml")
+    use_bam = (not args.no_bam) and _env_bam_enabled()
+    assets = sys.path[0] + "/assets"
+    if args.scene:
+        scene = args.scene
+    elif use_bam:
+        scene = assets + "/scene_groundcontact.xml"
+    else:
+        scene = assets + "/scene.xml"
 
-    body = DuckBody(scene)
+    body = DuckBody(scene, use_bam=use_bam)
 
     if args.view_port:
         threading.Thread(target=serve_view, args=(body, args.view_port),
@@ -341,8 +505,10 @@ def main():
 
     with Server((args.host, args.port), Handler) as server:
         server.body = body
+        mode = "BAM" if use_bam else "XML-PD"
         print(f"duck-body listening on {args.host}:{args.port} "
-              f"(timestep={body.model.opt.timestep}, substeps={body.substeps})",
+              f"(mode={mode}, scene={scene}, "
+              f"timestep={body.model.opt.timestep}, substeps={body.substeps})",
               file=sys.stderr, flush=True)
         if args.viewer:
             # TCP server 去后台线程，主线程留给 viewer sync 循环（launch_passive

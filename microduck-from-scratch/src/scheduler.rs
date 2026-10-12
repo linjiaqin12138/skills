@@ -50,8 +50,9 @@ pub struct SkillDef {
     /// onnx 文件名（相对策略目录）。kick 的文件名是训练 run 名而非角色名
     /// （reference/robotd-params/src/lib.rs:1312-1317 的注释专门解释了这个坑）。
     pub file: &'static str,
-    /// 窗口长度（50Hz 拍数）。roulade 1.0s / kick 0.5s
-    /// （reference/robotd-params/src/lib.rs:1330 / :1318）。
+    /// 窗口长度（50Hz 拍数）。roulade 2.0s / kick 0.5s
+    /// （roulade 对齐官方 infer_policy --roulade-duration 默认 2.0s；
+    /// kick 仍 reference/robotd-params/src/lib.rs:1318）。
     pub duration_ticks: u64,
 }
 
@@ -61,7 +62,7 @@ pub const SKILLS: [SkillDef; 2] = [
     SkillDef {
         name: "roulade",
         file: "roulade.onnx",
-        duration_ticks: 50, // 1.0s × 50Hz
+        duration_ticks: 100, // 2.0s × 50Hz（官方 --roulade-duration 默认）
     },
     SkillDef {
         name: "kick_left",

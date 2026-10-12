@@ -124,7 +124,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 50 Hz 控制任务。Safety 拥有唯一写句柄：从这里把 io 交出去之后，
     // 本进程再没有第二条碰电机的路径。stats 由循环自己记账。
     let safety = Safety::new(io, SafetyConfig::default());
-    let (stats, frame_rx) = control::spawn(safety, scheduler, control.clone());
+    // --sim：跳过 bringup 斜坡（BAM 开环撑不住；仿真体在 set_torque(true) 前冻结）。
+    let (stats, frame_rx) = control::spawn_with_options(
+        safety,
+        scheduler,
+        control.clone(),
+        /*skip_bringup_ramp=*/ sim_addr.is_some(),
+    );
 
     // 上次异常退出残留的 socket 文件会让 bind 报 AddrInUse。先清再绑。
     let _ = std::fs::remove_file(SOCK_PATH);

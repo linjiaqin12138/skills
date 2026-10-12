@@ -18,7 +18,7 @@
 #     B3. ground_pick：skill 字段 + twist 相位编码（|twist|=1）+ 自动回 walk
 #     B4. sit_toggle（降级断言，物理失败已登记 D34）：调度正确性——
 #         skill=="sit"、obs twist=[1,0,0]、锁存
-#     B5. roulade（物理失败已登记 D35）：窗口计时 50 拍、busy 期间 fallen
+#     B5. roulade（物理失败已登记 D35）：窗口计时 100 拍、busy 期间 fallen
 #         不触发 Limp（gain 保持 200）、窗口结束后 Limp 接管（gain 50）
 #     B6. kick_left：skill 字段 + 窗口结束自动回 walk + 不摔倒
 set -u
@@ -28,6 +28,15 @@ SIM_PORT=7804
 SIM_ADDR=127.0.0.1:$SIM_PORT
 SIM_PID=""
 DAEMON_PID=""
+# Bite 6 后 duck_body 默认 BAM，需 /opt/sim-venv；可用 SIM_PYTHON 覆盖。
+SIM_PYTHON="${SIM_PYTHON:-/opt/sim-venv/bin/python}"
+# 若 venv 不存在则回退系统 python3 + --no-bam（旧容器）。
+if [ ! -x "$SIM_PYTHON" ]; then
+    SIM_PYTHON=python3
+    SIM_BAM_ARGS=(--no-bam)
+else
+    SIM_BAM_ARGS=()
+fi
 
 cleanup() {
     [ -n "$DAEMON_PID" ] && kill "$DAEMON_PID" 2>/dev/null
@@ -65,7 +74,8 @@ fresh_sim() {
     kill $SIM_PID 2>/dev/null; SIM_PID=""
     sleep 1
     rm -f /tmp/miniduckd.sock
-    python3 sim/duck_body.py --port $SIM_PORT 2>/tmp/m6-sim.log &
+    env MUJOCO_GL=disable "$SIM_PYTHON" sim/duck_body.py "${SIM_BAM_ARGS[@]}" \
+        --port $SIM_PORT 2>/tmp/m6-sim.log &
     SIM_PID=$!
     sleep 3
     ./target/debug/miniduckd --sim "$SIM_ADDR" 2>/tmp/m6-daemon.log &
@@ -318,8 +328,8 @@ import json
 frames = [json.loads(l)['params'] for l in open('/tmp/m6-rou.ndjson') if l.strip()]
 rou = [f for f in frames if f.get('skill') == 'roulade']
 assert rou, '没见过 skill=="roulade" 的帧'
-# 窗口 50 拍 = 1.0s；推送丢帧放宽到 35..70。
-assert 35 <= len(rou) <= 70, f'roulade 窗口应 ~50 帧，实际 {len(rou)}'
+# 窗口 100 拍 = 2.0s（对齐官方 --roulade-duration）；推送丢帧放宽到 70..130。
+assert 70 <= len(rou) <= 130, f'roulade 窗口应 ~100 帧，实际 {len(rou)}'
 assert all(f['obs'][48:55] == [0.0] * 7 for f in rou[:3]), '技能窗口内 command 应全零'
 # busy 门控（D32）：roulade 期间即使 fallen=true 也不许进 Limp（gain 保持 200）。
 busy_fallen = [f for f in rou if f['fallen']]
@@ -329,7 +339,7 @@ assert all(f['gain'] == 200 for f in busy_fallen), \
 # 窗口结束、busy 解除后：Limp 接管（gain 50 出现）。
 after = frames[frames.index(rou[-1]) + 1:]
 assert any(f['gain'] == 50 for f in after), 'busy 结束后 fallen 应触发 Limp（gain 50）'
-print(f'roulade：{len(rou)} 帧窗口（~50），busy 期间 {len(busy_fallen)} 帧 fallen 全部 gain=200，'
+print(f'roulade：{len(rou)} 帧窗口（~100），busy 期间 {len(busy_fallen)} 帧 fallen 全部 gain=200，'
       f'结束后 Limp 接管  OK')
 EOF
 

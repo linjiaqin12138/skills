@@ -125,7 +125,7 @@ classes: {
   }
 }
 
-title: "microduck M8 系统架构 —— safeToRestart/modelApi 预检 + updater robot 客户端；apply 前新增 miniduckd 查询边" {
+title: "microduck M8 系统架构 —— Bite 6 BAM+groundcontact（默认 MujocoController；--no-bam 回退 XML PD）" {
   near: top-center
   shape: text
   style.font-size: 22
@@ -193,7 +193,7 @@ p_daemon: "进程 3：miniduckd（守护进程，M8 改动在 RPC 层与状态�
     class: chan
   }
 
-  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机【M8 B2 改】：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制)\ndisable → Stopped（当拍直接命令\n回 home 无斜坡、不卸 torque，\npolicy reset 清 LSTM 槽）\n→ 再 enable 直接回 Driving（无斜坡）\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）\n【M8 B4】发 FrameSnapshot 前\n更新 Stats.moving/fallen：\nLimp/RampUp=true；Driving 时\nbusy 或 twist 非零=true；\nHeld/Stopped=false" {
+  loop: "控制循环 50Hz\n(control.rs)\ninterval_at + MissedTickBehavior::Skip\n五阶段状态机【M8 B2 改】：\nHeld → RampUp(100拍) → Driving\n⇄ Limp(busy 时抑制)\ndisable → Stopped（当拍直接命令\n回 home 无斜坡、不卸 torque，\npolicy reset 清 LSTM 槽）\n→ 再 enable 直接回 Driving（无斜坡）\n【M8 B6】--sim：skip_bringup_ramp\nenable 边沿直进 Driving（无 RampUp）\ntwist 进入行走带(0.05..0.4)\n上升沿 push_base_velocity(0.30)\n踢步态吸引子（真机空操作）\n每拍：read→observe→gate\n→ driving_tick→apply\n持有 last_action / 低通锚点\n（跨换网保留）\n【M8 B4】发 FrameSnapshot 前\n更新 Stats.moving/fallen：\nLimp/RampUp=true；Driving 时\nbusy 或 twist 非零=true；\nHeld/Stopped=false" {
     class: ctrl
   }
 
@@ -205,7 +205,7 @@ p_daemon: "进程 3：miniduckd（守护进程，M8 改动在 RPC 层与状态�
       stroke-width: 2
       border-radius: 10
     }
-    cascade: "Cascade 纯状态机\n优先级链每拍仲裁：\n技能窗口 > ground_pick\n> sit/rise > walk\ncommand 块重编码：\n技能=全零 / gp=相位编码\nsit=vx载flag / rise=全零\n窗口计时（到期先交还）" {
+    cascade: "Cascade 纯状态机\n优先级链每拍仲裁：\n技能窗口 > ground_pick\n> sit/rise > walk\ncommand 块重编码：\n技能=全零 / gp=相位编码\nsit=vx载flag / rise=全零\n窗口计时（到期先交还）\n【M8 B6】roulade=100 拍\n（2.0s×50Hz，官方默认）" {
       class: sched
     }
     obs: "Obs 组装\n(obs.rs)\nobs[61] = gyro3 + gravity3\n+ pos14 + vel14\n+ last_action14 + command13\n（command 块=调度器重编码后，\n不一定是客户端原值）" {
@@ -224,7 +224,7 @@ p_daemon: "进程 3：miniduckd（守护进程，M8 改动在 RPC 层与状态�
     class: safety
   }
 
-  p_io: "RobotIo（io.rs trait）\nread / write / set_gain / set_torque / imu_ready" {
+  p_io: "RobotIo（io.rs trait）\nread / write / set_gain / set_torque\npush_base_velocity / imu_ready\n【M8 B6】push 默认空操作；\nSimIo 发 op=push" {
     style: {
       fill: "#F5F3FF"
       font-color: "#4C1D95"
@@ -232,19 +232,19 @@ p_daemon: "进程 3：miniduckd（守护进程，M8 改动在 RPC 层与状态�
       stroke-width: 2
       border-radius: 10
     }
-    fake: "FakeIo\n(io.rs)\n完美跟踪假总线\n进程内（默认）" {
+    fake: "FakeIo\n(io.rs)\n完美跟踪假总线\n进程内（默认）\npush_base_velocity=空操作" {
       class: io
     }
-    sim: "SimIo\n(io.rs)\nTCP + NDJSON op 帧\n（--sim host:port 时启用）" {
+    sim: "SimIo\n(io.rs)\nTCP + NDJSON op 帧\n（--sim host:port 时启用）\n【M8 B6】push_base_velocity\n→ op=push {vx,vy}" {
       class: io
     }
   }
 }
 
 # ---------- 进程 4：仿真体 ----------
-p_sim: "进程 4：duck_body.py（MuJoCo 仿真体）" {
+p_sim: "进程 4：duck_body.py（MuJoCo 仿真体）【M8 B6 BAM】" {
   class: procbox
-  body: "duck_body.py\n(sim/duck_body.py)\nTCP 服务器，NDJSON op 帧\nread = 步进 20ms 物理\n回 15 关节位置/速度 + IMU\n+ body_pos + gain/torque 回显\npush = 躯干 qvel 扰动\n模型资产：sim/assets/" {
+  body: "duck_body.py\n(sim/duck_body.py)【M8 B6】\nTCP 服务器，NDJSON op 帧\n默认 BAM：better-actuator-models\nMujocoController（M6 XL330）\n场景 scene_groundcontact.xml\ntimestep=0.005，每拍 4 子步\n--no-bam / MINIDUCK_SIM_BAM=0\n→ 回退 XML PD + scene.xml\nread = 步进 20ms 物理\n回 15 关节位置/速度 + IMU\n+ body_pos + gain/torque 回显\npush = 躯干 qvel 扰动\n（kick 步态吸引子）\n模型资产：sim/assets/" {
     class: sim
   }
 }
@@ -350,11 +350,11 @@ p_daemon.sched.cascade -> p_daemon.loop: "busy() 抑制 Driving→Limp\n（falle
   style.stroke-dash: 5
 }
 
-# 11. 控制循环 ↔ Safety → RobotIo → 仿真体（不变）
-p_daemon.loop -> p_daemon.safety: "每拍：read → observe → gate\n→ apply(targets[15], hold, gain)\n回 sensors + fallen/gain"
+# 11. 控制循环 ↔ Safety → RobotIo → 仿真体（B6：--sim 时 push 踢步态）
+p_daemon.loop -> p_daemon.safety: "每拍：read → observe → gate\n→ apply(targets[15], hold, gain)\n回 sensors + fallen/gain\n【B6】行走带上升沿\npush_base_velocity(0.30)"
 p_daemon.safety -> p_daemon.p_io.fake: "进程内内存读写"
-p_daemon.safety -> p_daemon.p_io.sim: "write targets[15] @50Hz\nset_gain / set_torque"
-p_daemon.p_io.sim -> p_sim.body: "TCP NDJSON op 帧：\nhello / read(步进20ms→pos/vel/IMU 应答)\nwrite / set_gain / set_torque"
+p_daemon.safety -> p_daemon.p_io.sim: "write targets[15] @50Hz\nset_gain / set_torque\n【B6】push_base_velocity"
+p_daemon.p_io.sim -> p_sim.body: "TCP NDJSON op 帧：\nhello / read(步进20ms→pos/vel/IMU 应答)\nwrite / set_gain / set_torque\n【B6】push {vx,vy}"
 
 # 12. watch → RPC → CLI（不变）
 p_daemon.loop -> p_daemon.watch: "每拍发布 FrameSnapshot"

@@ -158,6 +158,11 @@ impl<T: RobotIo> Safety<T> {
         self.io.set_torque(on)
     }
 
+    /// 仿真用：给躯干加水平速度。真机路径为空操作。
+    pub fn push_base_velocity(&mut self, vx: f64, vy: f64) -> Result<(), IoError> {
+        self.io.push_base_velocity(vx, vy)
+    }
+
     /// 当前实际运行的增益（上次写入值），未必是调用方最近一次想要的。
     pub fn gain(&self) -> Option<u16> {
         self.gain

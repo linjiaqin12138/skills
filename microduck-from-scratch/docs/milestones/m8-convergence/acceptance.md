@@ -1,6 +1,6 @@
 # M8 收敛验收 — 验收档案
 
-> M8 按 Bite 推进，本档案逐 Bite 追加。当前收录：Bite 1（robot.drive → robot.move）、Bite 2（robot.enable {on, toggle} + notification 统一入口 + disable 语义对齐）、Bite 3（robot.subscribe {hz} + SubscribeResult ack；推送仍是 robot.state，hz 不降频）。
+> M8 按 Bite 推进，本档案逐 Bite 追加。当前收录：Bite 1–5 + Bite 6（BAM 移植）。
 
 ## Bite 1：robot.drive → robot.move（通知式连续意图 + vy 侧向）
 
@@ -305,3 +305,79 @@ PASS: current->2.0.0
 - **D67 新登记**：`Incompatible` 分支不打日志，原版打 `tracing::warn!`（`reference/updater/src/robot.rs:201-203`）。契约漂移是排障第一现场，静默会让"更新莫名被拒"无从追查。M10 收敛。
 - **不算偏差的两处**：`moving` / `fallen` 落在 `control::Stats` 而非原版 daemon 内部的 state struct（因为我们的 RPC 层与健康门共享同一个 `Stats`，是模块切分差异不是行为差异）；原版的 `force_busy`（`--busy` 调试旗标）没有对应实现——教学复刻里没有教学价值。
 - **Bite 4 之后 C1 收口**，M8 转入 C2（BAM 移植）。
+
+---
+
+## Bite 5：BAM 诊断——kp=8 vs kp=0.55 对照（C2 第一步，不移植 BAM）
+
+### 交付物
+
+- `sim/duck_body.py`：`_apply_gains` 基线增益改读 `MINIDUCK_SIM_KP` / `MINIDUCK_SIM_KV`，缺省仍 `8.0` / `0.25`；注释写明 0.55/0（no-bam XML）、8/0.25（M4 扫参）、训练真值 BAM `kp_fw=200`。
+- `scripts/accept-m8-bam-diag.sh`（**新建**）：端口 7805，A/B 两组对照（站立 / sit_toggle / roulade），打印对照表；B 组站立失败是合法证据，整场 exit 0。
+- **未改**：Rust、`robot_walk.xml` 永久 kp、accept-m4/m5/m6、bam 包、碰撞/timestep。
+- 教程：`docs/milestones/m8-convergence/tutorial-bite-5-bam-diag.html`（第 13 章）；`arch.svg` / `arch-diff.svg` 标注无架构变动（仅仿真体内 PD env 钩子）。
+
+### 验收实测
+
+主 agent 2026-10-12 复跑 `docker compose exec rust bash scripts/accept-m8-bam-diag.sh`：
+
+```text
+===== 组 A：kp=8 kv=0.25（教程默认） =====
+站立：PASS  body z≈0.117  skill=walk
+sit：skill=sit? yes；摔倒：frame=53 z≈-0.110 gravity_z≈0.821
+roulade：fallen 帧=32 / win=50
+
+===== 组 B：kp=0.55 kv=0（no-bam XML） =====
+站立：FAIL  body z≈-0.113
+sit/roulade：已 fallen → accepted=False
+
+结论：A 能站却技能摔；B 连站不住 → 指向 BAM 缺失，非「教程增益过大」
+```
+
+回归：`cargo test` → 91 passed；`accept-m8.sh` → 断言 a–w 全部通过。
+
+### 涉及代码文件清单
+
+| 文件 | 变动 |
+|---|---|
+| `sim/duck_body.py` | `_apply_gains` 读 env 基线增益 |
+| `scripts/accept-m8-bam-diag.sh` | **新建**诊断脚本 |
+| `docs/milestones/m8-convergence/tutorial-bite-5-bam-diag.html` | 第 13 章 |
+| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 无架构变动；diff 标 duck_body 内部改动 |
+
+### 偏差变动
+
+- **D21 / D34 / D35 不收敛**：本 Bite 只提供裁决证据。待用户确认归因后，下一 Bite 移植 BAM 再核销。
+- **新登记无**（env 钩子是教学实验开关，不是行为偏差）。
+
+---
+
+## Bite 6：BAM 移植（C2）——sit 物理通过 + roulade 落地 upright + 行走回归
+
+### 交付物
+
+- `sim/duck_body.py`：默认 BAM M6 XL330（`MjSpec`→motor、`MujocoController`、timestep 0.005、冻结至 `set_torque(true)`、gait nudge 兜底）；`--no-bam` 回退
+- `sim/assets/scene_groundcontact.xml` + `robot_groundcontact.xml`；`PROVENANCE.md` 更新
+- `src/control.rs`：`--sim` 时 `skip_bringup_ramp`；twist 行走带上升沿 `push_base_velocity(0.30)`（D68）
+- `src/scheduler.rs`：roulade `duration_ticks` 50→100（对齐官方 2.0s）
+- `src/io.rs` / `src/safety.rs`：`push_base_velocity`
+- `scripts/accept-m8-bam.sh`；`docker/Dockerfile` 建 `/opt/sim-venv`（uv + py3.12 + bam）
+- 教程 `tutorial-bite-6-bam.html`（第 14 章）
+
+### 验收实测（主 agent 2026-10-12）
+
+```text
+站立：PASS  z=0.125
+sit：PASS  fallen 恒 false、z=0.0593；起身 z=0.1185
+roulade：PASS  100 帧（中段 fallen=36），结束后 upright z=0.117
+行走：PASS  前移 0.588 m（门槛 0.4）
+M8 BAM 物理验收全部通过
+```
+
+回归：`cargo test` 91；`accept-m8.sh` a–w 全绿。
+
+### 偏差变动
+
+- **D21 / D34 已收敛**
+- **D35 部分收敛**（结束后 upright；中段 fallen 残余）
+- **D68 新登记**：冻结 bringup → gait kick 补偿
