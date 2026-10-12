@@ -3,6 +3,9 @@
 > 概念深读（M1 Bite1 背景卡片承诺）。面向无嵌入式背景的读者。
 > 读完你应能回答：写一个像素时偏移怎么算；为什么行步长 `pitch` 常常不等于 `width × 每像素字节数`。
 
+> 交互版（推荐）：[assets/linear-framebuffer/index.html](assets/linear-framebuffer/index.html)
+>
+
 ## 一句话版本
 
 **线性 framebuffer** 是一块连续内存，按「从左到右、从上到下」扫描整屏。每个像素占固定字节数（bpp，bits per pixel）。第 `(x, y)` 个像素的字节偏移是：
