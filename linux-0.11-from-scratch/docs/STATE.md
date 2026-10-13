@@ -7,7 +7,9 @@
 - 环境：qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`reference/limine`（v10.8.5-binary）+ `reference/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
-用户确认 M1 Bite1 后进入 **M1 Bite2「printk! + 滚屏」**：`core::fmt::Write` 接到 console、`printk!` 宏双写屏幕+串口、光标到底滚屏；验收 = 串口 grep 格式化多行 + screendump 目检。本 Bite 遗留：D12（无 fmt/滚屏）待 Bite2 收敛。
+用户确认后进入 **M1 Bite2「printk! + 滚屏」**：`core::fmt::Write` 接到 console、`printk!` 宏双写屏幕+串口、光标到底滚屏；验收 = 串口 grep 格式化多行 + screendump 目检。本 Bite 遗留：D12（无 fmt/滚屏）待 Bite2 收敛。
+
+**2026-10-13**：Limine 协议已改为官方 `limine` crate 0.6.5（D14）；`make check-m1-b1` 复跑通过。
 
 ## 项目固定决策（v2，2026-10-03）
 - **目标架构：x86_64**（用户明确选择，抛弃 i386 历史包袱）；引导器 Limine v10（已克隆 reference/limine）；Rust target x86_64-unknown-none（官方，已装）
@@ -31,7 +33,7 @@
 - 用户偏好: `skills/clone-from-scrach-tutor/user-prefs.md` + `docs/user-prefs.md`
 
 ## 偏差登记簿计数
-- docs/deviations.md：**13 条**——待收敛 4（D2/D3/D6/D12）、永久豁免·架构 8（D1/D4/D7/D8/D9/D10/D11/D13）、待裁决 1（D5）
+- docs/deviations.md：**14 条**——待收敛 4（D2/D3/D6/D12）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）
 
 ## 本机环境侦察（续）
 

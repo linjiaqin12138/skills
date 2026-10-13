@@ -21,10 +21,12 @@ SECTIONS
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 
-    /* Limine 约定：启动请求（base revision 等）放在这个段里供 bootloader 扫描；
+    /* Limine 请求区：start → 请求 → end 必须按此顺序，marker 才生效；
      * KEEP 防止 rustc 默认开启的 --gc-sections 把它回收掉 */
     .limine_requests : {
-        KEEP(*(.limine_requests))
+        KEEP(*(.limine_requests_start))
+        KEEP(*(.limine_requests .limine_requests.*))
+        KEEP(*(.limine_requests_end))
     }
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));

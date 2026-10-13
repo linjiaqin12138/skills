@@ -15,12 +15,6 @@ use core::panic::PanicInfo;
 use console::Console;
 use limine_fb::Framebuffer;
 
-/// Limine base revision 请求（PROTOCOL.md "Base Revisions"）；
-/// 第三项被 bootloader 清零表示所请求版本受支持。
-#[used]
-#[unsafe(link_section = ".limine_requests")]
-static BASE_REVISION: [u64; 3] = [0xf956_2b2d_5c95_a6c8, 0x6a7b_3849_4453_6bdc, 3];
-
 const LINE_HELLO: &str = "M1: hello framebuffer";
 const LINE_TWO: &str = "M1: console line 2";
 
@@ -28,7 +22,7 @@ const LINE_TWO: &str = "M1: console line 2";
 extern "C" fn _start() -> ! {
     serial::init();
 
-    if BASE_REVISION[2] != 0 {
+    if !limine_fb::BASE_REVISION.is_supported() {
         serial::write_str("M0: limine base revision 3 not supported\n");
         halt();
     }
@@ -59,7 +53,7 @@ extern "C" fn _start() -> ! {
     halt();
 }
 
-/// 串口打印 `M1: fb WxHxBPP` 与 mask，便于核对像素格式（猜了就有据可查）
+/// 串口打印 `M1: fb WxHxBPP` 与 mask，便于核对像素格式
 fn report_fb_meta(fb: &Framebuffer) {
     serial::write_str("M1: fb ");
     write_u64(fb.width);
@@ -69,7 +63,6 @@ fn report_fb_meta(fb: &Framebuffer) {
     write_u64(fb.bpp as u64);
     serial::write_str("\n");
 
-    // mask 便于对照是否真是 x8r8g8b8；【协议字段】直接打印
     serial::write_str("M1: fb mask r");
     write_u64(fb.red_mask_size as u64);
     serial::write_str("@");

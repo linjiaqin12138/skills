@@ -30,8 +30,8 @@ pub fn put_pixel(fb: &Framebuffer, x: usize, y: usize, r: u8, g: u8, b: u8) {
     let pixel = pack_rgb(fb, r, g, b);
     let bpp = fb.bpp as usize;
     let offset = y * fb.pitch as usize + x * (bpp / 8);
-    // SAFETY: address 是 Limine 映射的 FB；pitch/bpp 来自协议响应
-    let base = fb.address;
+    // SAFETY: address() 是 Limine 映射的 FB；pitch/bpp 来自协议响应
+    let base = fb.address() as *mut u8;
     unsafe {
         match bpp {
             32 => {
@@ -39,7 +39,8 @@ pub fn put_pixel(fb: &Framebuffer, x: usize, y: usize, r: u8, g: u8, b: u8) {
                 core::ptr::write_volatile(ptr, pixel);
             }
             24 => {
-                // 少见路径：按小端写 3 字节
+                // 少见路径：按小端写 3 字节 
+                // Rust 没有 u24，没法一次写「三字节整数」，只能拆成三个 u8，并手动按小端顺序写（低字节先）。
                 let ptr = base.add(offset);
                 core::ptr::write_volatile(ptr, (pixel & 0xff) as u8);
                 core::ptr::write_volatile(ptr.add(1), ((pixel >> 8) & 0xff) as u8);
@@ -65,7 +66,7 @@ pub fn clear(fb: &Framebuffer, r: u8, g: u8, b: u8) {
         // SAFETY: 同上，整块 FB 可写
         unsafe {
             for y in 0..h {
-                let row = fb.address.add(y * pitch) as *mut u32;
+                let row = (fb.address() as *mut u8).add(y * pitch) as *mut u32;
                 for x in 0..w {
                     core::ptr::write_volatile(row.add(x), pixel);
                 }

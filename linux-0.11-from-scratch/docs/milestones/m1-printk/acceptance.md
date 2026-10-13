@@ -33,7 +33,8 @@ check-m1-b1 OK
 
 | 文件 | 职责 |
 |---|---|
-| `kernel/src/limine_fb.rs` | Framebuffer 请求/响应 + `first_framebuffer()` |
+| `kernel/src/limine_fb.rs` | 经 `limine` crate 声明请求 + `first_framebuffer()`（2026-10-13 起不再手写布局） |
+| `kernel/Cargo.toml` | 依赖 `limine = "0.6.5"` |
 | `kernel/src/fb.rs` | `put_pixel` / `clear`（按 mask 打包） |
 | `kernel/src/font.rs` | 自制 8×16 ASCII 点阵 |
 | `kernel/src/console.rs` | 光标 + `put_char` / `write_str`（无滚屏） |

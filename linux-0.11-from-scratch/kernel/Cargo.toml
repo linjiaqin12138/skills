@@ -3,6 +3,10 @@ name = "kernel"
 version = "0.1.0"
 edition = "2024"
 
+[dependencies]
+# Limine 引导协议的官方 Rust 绑定（no_std）；替代手写请求/响应布局
+limine = "0.6.5"
+
 # 内核没有运行时环境可以 unwind，panic 只能直接中止
 [profile.dev]
 panic = "abort"

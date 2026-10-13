@@ -815,7 +815,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </thead>
 <tbody><tr>
 <td><code>limine_fb</code></td>
-<td>手写请求/响应结构，取第一块 FB</td>
+<td>经 <code>limine</code> crate 声明请求，取第一块 FB</td>
 <td>新增</td>
 </tr>
 <tr>
@@ -856,25 +856,25 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-md"><h3>决策导览</h3>
 <p>本 Bite 两张决策卡片：</p>
 <ol>
-<li>为何手写 Limine FB 结构体。</li>
+<li>Limine 协议绑定：手写 → 改用 <code>limine</code> crate（D14）。</li>
 <li>像素颜色按 mask 打包，还是写死 x8r8g8b8。</li>
 </ol>
-<h3>【决策卡片】手写 Limine FB 结构体</h3>
+<h3>【决策卡片】Limine 协议绑定（crate）</h3>
 <ul>
-<li><strong>决策点</strong>：内核如何拿到 <code>struct limine_framebuffer</code> 的布局与魔数。</li>
+<li><strong>决策点</strong>：内核如何拿到 framebuffer 请求/响应类型与魔数。</li>
 <li><strong>备选</strong>：<ol>
-<li>按 <code>limine.h</code> / PROTOCOL.md 手写 <code>#[repr(C)]</code>（所选）</li>
+<li>按 <code>limine.h</code> / PROTOCOL.md 手写 <code>#[repr(C)]</code>（交付时曾选）</li>
 <li>bindgen 链入官方头文件</li>
-<li>依赖现成 <code>limine</code> crate</li>
+<li>依赖现成 <code>limine</code> crate（<strong>现行</strong>）</li>
 </ol>
 </li>
-<li><strong>选择</strong>：备选 1。与 M0 base revision 同一策略：协议当说明书，不引入 C/crate 依赖。字段与魔数可对照 <code>reference/limine-protocol/</code>。</li>
+<li><strong>选择</strong>：备选 3（2026-10-13）。用户偏好「少造轮子」；官方 crate 0.6.5 提供 <code>BaseRevision</code> / <code>FramebufferRequest</code> / start·end marker，行为与手写一致。登记偏差 D14。</li>
 <li><strong>放弃的成本</strong>：<ul>
-<li>没选 2（bindgen）：头文件一改，绑定自动跟上，少手抄错位风险。我们放弃这份「跟上游同步」的便利，换手工对照字段。</li>
-<li>没选 3（limine crate）：社区已封装请求宏与类型，少写 <code>link_section</code> 样板。我们放弃这份现成封装，换「每一字节布局自己看得见」。</li>
+<li>没选手写：少了「每一字节布局自己看得见」的教学透明度；换「少样板、跟上游类型」的维护成本。</li>
+<li>没选 bindgen：仍要维护 C 工具链与 <code>build.rs</code>；crate 已够用。</li>
 </ul>
 </li>
-<li><strong>失效边界</strong>：协议 revision 加字段且插在中间时，手写布局会错位。本 Bite 已把 <code>edid</code>/<code>modes</code> 按头文件排齐，但仍需对照上游变更。</li>
+<li><strong>失效边界</strong>：crate 与本机 Limine 协议 revision 不兼容时，需升 crate 或核对 <code>BaseRevision</code>。本机仍请求 revision 3（crate 最高支持 6，向下兼容）。</li>
 </ul>
 <h3>【决策卡片】按 mask 打包像素</h3>
 <ul>
@@ -896,19 +896,18 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </section>
 <section class="am-panel" id="panel-D">
 <header class="am-panel-head"><span class="am-panel-id">D</span><h2>代码领读</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>顺序跟设计走：请求结构 → 取 FB → 写像素 → 字形 → 控制台 → <code>_start</code> → 链接坑相关配置。</p>
-<h3>1. 手写请求与 <code>first_framebuffer</code></h3>
-<p><code>#[repr(C)]</code>：按 C 布局排字段，和 Limine 写的内存一致。[^repr]</p>
-<p><code>static mut</code> + <code>link_section</code>：把请求放进 <code>.limine_requests</code>，供 bootloader 扫描填写 <code>response</code>。[^used]</p>
+<div class="am-panel-body"><div class="am-md"><p>顺序跟设计走：crate 请求 → 取 FB → 写像素 → 字形 → 控制台 → <code>_start</code> → 链接坑相关配置。</p>
+<h3>1. <code>limine</code> crate 请求与 <code>first_framebuffer</code></h3>
+<p>依赖 <code>limine = &quot;0.6.5&quot;</code>。静态请求放进分段后的 <code>.limine_requests_*</code>，由 linker 排成 start → 请求 → end。</p>
+<p><code>BaseRevision::with_revision(3)</code> / <code>FramebufferRequest::new()</code> 替代手写魔数与 <code>repr(C)</code>。</p>
 </div>
-<figure class="am-codeblock" data-am-src="kernel/src/limine_fb.rs" data-am-lines="16-54"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/limine_fb.rs:16-54</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="16">/// 对应 `struct limine_framebuffer_request`</span><span class="am-ln" data-n="17">#[repr(C)]</span><span class="am-ln" data-n="18">pub struct FramebufferRequest {</span><span class="am-ln" data-n="19">    pub id: [u64; 4],</span><span class="am-ln" data-n="20">    pub revision: u64,</span><span class="am-ln" data-n="21">    pub response: *mut FramebufferResponse,</span><span class="am-ln" data-n="22">}</span><span class="am-ln" data-n="23"></span><span class="am-ln" data-n="24">/// 对应 `struct limine_framebuffer_response`</span><span class="am-ln" data-n="25">#[repr(C)]</span><span class="am-ln" data-n="26">pub struct FramebufferResponse {</span><span class="am-ln" data-n="27">    pub revision: u64,</span><span class="am-ln" data-n="28">    pub framebuffer_count: u64,</span><span class="am-ln" data-n="29">    pub framebuffers: *mut *mut Framebuffer,</span><span class="am-ln" data-n="30">}</span><span class="am-ln" data-n="31"></span><span class="am-ln" data-n="32">/// 对应 `struct limine_framebuffer`（本 Bite 只用到 address/几何/mask；</span><span class="am-ln" data-n="33">/// 后面的 edid/modes 字段保留布局对齐，避免读错偏移）</span><span class="am-ln" data-n="34">#[repr(C)]</span><span class="am-ln am-ln--hl" data-n="35">pub struct Framebuffer {</span><span class="am-ln am-ln--hl" data-n="36">    pub address: *mut u8,</span><span class="am-ln am-ln--hl" data-n="37">    pub width: u64,</span><span class="am-ln am-ln--hl" data-n="38">    pub height: u64,</span><span class="am-ln am-ln--hl" data-n="39">    pub pitch: u64,</span><span class="am-ln am-ln--hl" data-n="40">    pub bpp: u16,</span><span class="am-ln am-ln--hl" data-n="41">    pub memory_model: u8,</span><span class="am-ln am-ln--hl" data-n="42">    pub red_mask_size: u8,</span><span class="am-ln am-ln--hl" data-n="43">    pub red_mask_shift: u8,</span><span class="am-ln am-ln--hl" data-n="44">    pub green_mask_size: u8,</span><span class="am-ln am-ln--hl" data-n="45">    pub green_mask_shift: u8,</span><span class="am-ln am-ln--hl" data-n="46">    pub blue_mask_size: u8,</span><span class="am-ln am-ln--hl" data-n="47">    pub blue_mask_shift: u8,</span><span class="am-ln" data-n="48">    pub unused: [u8; 7],</span><span class="am-ln" data-n="49">    pub edid_size: u64,</span><span class="am-ln" data-n="50">    pub edid: *mut u8,</span><span class="am-ln" data-n="51">    // response revision 1 起才保证有意义；本 Bite 不读</span><span class="am-ln" data-n="52">    pub mode_count: u64,</span><span class="am-ln" data-n="53">    pub modes: *mut *mut u8,</span><span class="am-ln" data-n="54">}</span></code></pre></figure>
-<figure class="am-codeblock" data-am-src="kernel/src/limine_fb.rs" data-am-lines="70-89"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/limine_fb.rs:70-89</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="70">/// 取第一块 framebuffer；失败返回 None（无响应 / 数量为 0）</span><span class="am-ln am-ln--hl" data-n="71">pub fn first_framebuffer() -&gt; Option&lt;&amp;&#39;static Framebuffer&gt; {</span><span class="am-ln am-ln--hl" data-n="72">    // SAFETY: Limine 在跳进内核前写好 response；之后只读</span><span class="am-ln am-ln--hl" data-n="73">    let request = unsafe { &amp;*&amp;raw const FRAMEBUFFER_REQUEST };</span><span class="am-ln am-ln--hl" data-n="74">    let response = request.response;</span><span class="am-ln am-ln--hl" data-n="75">    if response.is_null() {</span><span class="am-ln am-ln--hl" data-n="76">        return None;</span><span class="am-ln am-ln--hl" data-n="77">    }</span><span class="am-ln am-ln--hl" data-n="78">    // SAFETY: response 非空时由 bootloader 保证指向有效结构</span><span class="am-ln am-ln--hl" data-n="79">    let response = unsafe { &amp;*response };</span><span class="am-ln am-ln--hl" data-n="80">    if response.framebuffer_count == 0 || response.framebuffers.is_null() {</span><span class="am-ln am-ln--hl" data-n="81">        return None;</span><span class="am-ln am-ln--hl" data-n="82">    }</span><span class="am-ln am-ln--hl" data-n="83">    // SAFETY: count&gt;=1 时 framebuffers[0] 有效</span><span class="am-ln am-ln--hl" data-n="84">    let fb_ptr = unsafe { *response.framebuffers };</span><span class="am-ln am-ln--hl" data-n="85">    if fb_ptr.is_null() {</span><span class="am-ln am-ln--hl" data-n="86">        return None;</span><span class="am-ln am-ln--hl" data-n="87">    }</span><span class="am-ln am-ln--hl" data-n="88">    Some(unsafe { &amp;*fb_ptr })</span><span class="am-ln" data-n="89">}</span></code></pre></figure>
-<div class="am-md"><p>Rust：<code>Option&lt;&amp;&#39;static Framebuffer&gt;</code> 表示「可能没有 FB」；有则返回静态引用。[^option]
-<code>let Some(x) = … else { … }</code> 是在 <code>_start</code> 里拆开 Option 的写法，见下一节。</p>
+<figure class="am-codeblock" data-am-src="kernel/src/limine_fb.rs" data-am-lines="11-32"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/limine_fb.rs:11-32</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="11">#[used]</span><span class="am-ln" data-n="12">#[unsafe(link_section = &quot;.limine_requests_start&quot;)]</span><span class="am-ln" data-n="13">static REQUESTS_START: RequestsStartMarker = RequestsStartMarker::new();</span><span class="am-ln" data-n="14"></span><span class="am-ln" data-n="15">/// 继续请求 base revision 3（与 M0 一致；crate 最高支持 6，向下兼容）</span><span class="am-ln" data-n="16">#[used]</span><span class="am-ln" data-n="17">#[unsafe(link_section = &quot;.limine_requests&quot;)]</span><span class="am-ln" data-n="18">pub static BASE_REVISION: BaseRevision = BaseRevision::with_revision(3);</span><span class="am-ln" data-n="19"></span><span class="am-ln" data-n="20">#[used]</span><span class="am-ln" data-n="21">#[unsafe(link_section = &quot;.limine_requests&quot;)]</span><span class="am-ln" data-n="22">static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();</span><span class="am-ln" data-n="23"></span><span class="am-ln" data-n="24">#[used]</span><span class="am-ln" data-n="25">#[unsafe(link_section = &quot;.limine_requests_end&quot;)]</span><span class="am-ln" data-n="26">static REQUESTS_END: RequestsEndMarker = RequestsEndMarker::new();</span><span class="am-ln" data-n="27"></span><span class="am-ln am-ln--hl" data-n="28">/// 取第一块 framebuffer；无响应或列表为空则 None</span><span class="am-ln am-ln--hl" data-n="29">pub fn first_framebuffer() -&gt; Option&lt;&amp;&#39;static Framebuffer&gt; {</span><span class="am-ln am-ln--hl" data-n="30">    let response = FRAMEBUFFER_REQUEST.response()?;</span><span class="am-ln am-ln--hl" data-n="31">    response.framebuffers().first().copied()</span><span class="am-ln" data-n="32">}</span></code></pre></figure>
+<div class="am-md"><p>Rust：<code>Option&lt;&amp;&#39;static Framebuffer&gt;</code> 表示「可能没有 FB」；<code>?</code> 在返回 Option 的函数里把 <code>None</code> 提前返回。[^option]</p>
 <h3>2. 按 mask 写像素</h3>
+<p><code>address()</code> 是 crate 的访问器（字段本身私有）。</p>
 </div>
 <figure class="am-codeblock" data-am-src="kernel/src/fb.rs" data-am-lines="10-19"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/fb.rs:10-19</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="10">/// 把 (r,g,b) 按 framebuffer 的 mask 折成一个像素字</span><span class="am-ln am-ln--hl" data-n="11">fn pack_rgb(fb: &amp;Framebuffer, r: u8, g: u8, b: u8) -&gt; u32 {</span><span class="am-ln am-ln--hl" data-n="12">    // 用 mask size 截断再移位；常见 qemu+Limine 为 8:8:8 @ shift 16/8/0（x8r8g8b8）</span><span class="am-ln am-ln--hl" data-n="13">    let r_bits = (r as u32) &gt;&gt; (8u32.saturating_sub(fb.red_mask_size as u32));</span><span class="am-ln am-ln--hl" data-n="14">    let g_bits = (g as u32) &gt;&gt; (8u32.saturating_sub(fb.green_mask_size as u32));</span><span class="am-ln am-ln--hl" data-n="15">    let b_bits = (b as u32) &gt;&gt; (8u32.saturating_sub(fb.blue_mask_size as u32));</span><span class="am-ln am-ln--hl" data-n="16">    (r_bits &lt;&lt; fb.red_mask_shift)</span><span class="am-ln am-ln--hl" data-n="17">        | (g_bits &lt;&lt; fb.green_mask_shift)</span><span class="am-ln am-ln--hl" data-n="18">        | (b_bits &lt;&lt; fb.blue_mask_shift)</span><span class="am-ln" data-n="19">}</span></code></pre></figure>
-<figure class="am-codeblock" data-am-src="kernel/src/fb.rs" data-am-lines="21-55"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/fb.rs:21-55</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="21">/// 写单个像素；越界静默丢弃（本 Bite 控制打印行数，不应越界）</span><span class="am-ln" data-n="22">pub fn put_pixel(fb: &amp;Framebuffer, x: usize, y: usize, r: u8, g: u8, b: u8) {</span><span class="am-ln" data-n="23">    if x &gt;= fb.width as usize || y &gt;= fb.height as usize {</span><span class="am-ln" data-n="24">        return;</span><span class="am-ln" data-n="25">    }</span><span class="am-ln" data-n="26">    if fb.memory_model != limine_fb::MEMORY_MODEL_RGB {</span><span class="am-ln" data-n="27">        return;</span><span class="am-ln" data-n="28">    }</span><span class="am-ln" data-n="29"></span><span class="am-ln am-ln--hl" data-n="30">    let pixel = pack_rgb(fb, r, g, b);</span><span class="am-ln am-ln--hl" data-n="31">    let bpp = fb.bpp as usize;</span><span class="am-ln am-ln--hl" data-n="32">    let offset = y * fb.pitch as usize + x * (bpp / 8);</span><span class="am-ln am-ln--hl" data-n="33">    // SAFETY: address 是 Limine 映射的 FB；pitch/bpp 来自协议响应</span><span class="am-ln am-ln--hl" data-n="34">    let base = fb.address;</span><span class="am-ln am-ln--hl" data-n="35">    unsafe {</span><span class="am-ln am-ln--hl" data-n="36">        match bpp {</span><span class="am-ln am-ln--hl" data-n="37">            32 =&gt; {</span><span class="am-ln am-ln--hl" data-n="38">                let ptr = base.add(offset) as *mut u32;</span><span class="am-ln am-ln--hl" data-n="39">                core::ptr::write_volatile(ptr, pixel);</span><span class="am-ln am-ln--hl" data-n="40">            }</span><span class="am-ln" data-n="41">            24 =&gt; {</span><span class="am-ln" data-n="42">                // 少见路径：按小端写 3 字节</span><span class="am-ln" data-n="43">                let ptr = base.add(offset);</span><span class="am-ln" data-n="44">                core::ptr::write_volatile(ptr, (pixel &amp; 0xff) as u8);</span><span class="am-ln" data-n="45">                core::ptr::write_volatile(ptr.add(1), ((pixel &gt;&gt; 8) &amp; 0xff) as u8);</span><span class="am-ln" data-n="46">                core::ptr::write_volatile(ptr.add(2), ((pixel &gt;&gt; 16) &amp; 0xff) as u8);</span><span class="am-ln" data-n="47">            }</span><span class="am-ln" data-n="48">            16 =&gt; {</span><span class="am-ln" data-n="49">                let ptr = base.add(offset) as *mut u16;</span><span class="am-ln" data-n="50">                core::ptr::write_volatile(ptr, pixel as u16);</span><span class="am-ln" data-n="51">            }</span><span class="am-ln" data-n="52">            _ =&gt; {}</span><span class="am-ln" data-n="53">        }</span><span class="am-ln" data-n="54">    }</span><span class="am-ln" data-n="55">}</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="kernel/src/fb.rs" data-am-lines="21-55"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/fb.rs:21-55</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="21">/// 写单个像素；越界静默丢弃（本 Bite 控制打印行数，不应越界）</span><span class="am-ln" data-n="22">pub fn put_pixel(fb: &amp;Framebuffer, x: usize, y: usize, r: u8, g: u8, b: u8) {</span><span class="am-ln" data-n="23">    if x &gt;= fb.width as usize || y &gt;= fb.height as usize {</span><span class="am-ln" data-n="24">        return;</span><span class="am-ln" data-n="25">    }</span><span class="am-ln" data-n="26">    if fb.memory_model != limine_fb::MEMORY_MODEL_RGB {</span><span class="am-ln" data-n="27">        return;</span><span class="am-ln" data-n="28">    }</span><span class="am-ln" data-n="29"></span><span class="am-ln am-ln--hl" data-n="30">    let pixel = pack_rgb(fb, r, g, b);</span><span class="am-ln am-ln--hl" data-n="31">    let bpp = fb.bpp as usize;</span><span class="am-ln am-ln--hl" data-n="32">    let offset = y * fb.pitch as usize + x * (bpp / 8);</span><span class="am-ln am-ln--hl" data-n="33">    // SAFETY: address() 是 Limine 映射的 FB；pitch/bpp 来自协议响应</span><span class="am-ln am-ln--hl" data-n="34">    let base = fb.address() as *mut u8;</span><span class="am-ln am-ln--hl" data-n="35">    unsafe {</span><span class="am-ln am-ln--hl" data-n="36">        match bpp {</span><span class="am-ln am-ln--hl" data-n="37">            32 =&gt; {</span><span class="am-ln am-ln--hl" data-n="38">                let ptr = base.add(offset) as *mut u32;</span><span class="am-ln am-ln--hl" data-n="39">                core::ptr::write_volatile(ptr, pixel);</span><span class="am-ln am-ln--hl" data-n="40">            }</span><span class="am-ln" data-n="41">            24 =&gt; {</span><span class="am-ln" data-n="42">                // 少见路径：按小端写 3 字节</span><span class="am-ln" data-n="43">                let ptr = base.add(offset);</span><span class="am-ln" data-n="44">                core::ptr::write_volatile(ptr, (pixel &amp; 0xff) as u8);</span><span class="am-ln" data-n="45">                core::ptr::write_volatile(ptr.add(1), ((pixel &gt;&gt; 8) &amp; 0xff) as u8);</span><span class="am-ln" data-n="46">                core::ptr::write_volatile(ptr.add(2), ((pixel &gt;&gt; 16) &amp; 0xff) as u8);</span><span class="am-ln" data-n="47">            }</span><span class="am-ln" data-n="48">            16 =&gt; {</span><span class="am-ln" data-n="49">                let ptr = base.add(offset) as *mut u16;</span><span class="am-ln" data-n="50">                core::ptr::write_volatile(ptr, pixel as u16);</span><span class="am-ln" data-n="51">            }</span><span class="am-ln" data-n="52">            _ =&gt; {}</span><span class="am-ln" data-n="53">        }</span><span class="am-ln" data-n="54">    }</span><span class="am-ln" data-n="55">}</span></code></pre></figure>
 <div class="am-md"><p><code>as</code>：做数值类型转换（如 <code>u8</code> → <code>u32</code>）。[^as]
 <code>write_volatile</code>：告诉编译器「这次写不能优化掉」，显存属于 memory-mapped I/O。</p>
 <h3>3. 点阵字形与控制台</h3>
@@ -922,22 +921,21 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <code>newline</code> 只下移 <code>FONT_HEIGHT</code>，<strong>不滚屏</strong>——行数超出后由 <code>put_pixel</code> 静默丢弃。</p>
 <h3>4. <code>_start</code>：画屏 + 串口双写</h3>
 </div>
-<figure class="am-codeblock" data-am-src="kernel/src/main.rs" data-am-lines="27-59"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/main.rs:27-59</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="27">#[unsafe(no_mangle)]</span><span class="am-ln" data-n="28">extern &quot;C&quot; fn _start() -&gt; ! {</span><span class="am-ln" data-n="29">    serial::init();</span><span class="am-ln" data-n="30"></span><span class="am-ln" data-n="31">    if BASE_REVISION[2] != 0 {</span><span class="am-ln" data-n="32">        serial::write_str(&quot;M0: limine base revision 3 not supported\n&quot;);</span><span class="am-ln" data-n="33">        halt();</span><span class="am-ln" data-n="34">    }</span><span class="am-ln" data-n="35"></span><span class="am-ln am-ln--hl" data-n="36">    let Some(framebuffer) = limine_fb::first_framebuffer() else {</span><span class="am-ln am-ln--hl" data-n="37">        serial::write_str(&quot;M1: no framebuffer\n&quot;);</span><span class="am-ln am-ln--hl" data-n="38">        serial::write_str(&quot;M0: kernel alive\n&quot;);</span><span class="am-ln am-ln--hl" data-n="39">        halt();</span><span class="am-ln am-ln--hl" data-n="40">    };</span><span class="am-ln am-ln--hl" data-n="41"></span><span class="am-ln am-ln--hl" data-n="42">    report_fb_meta(framebuffer);</span><span class="am-ln am-ln--hl" data-n="43"></span><span class="am-ln am-ln--hl" data-n="44">    let mut cons = Console::new(framebuffer);</span><span class="am-ln am-ln--hl" data-n="45">    cons.clear();</span><span class="am-ln am-ln--hl" data-n="46">    cons.write_str(LINE_HELLO);</span><span class="am-ln am-ln--hl" data-n="47">    cons.write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="48">    cons.write_str(LINE_TWO);</span><span class="am-ln am-ln--hl" data-n="49">    cons.write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="50"></span><span class="am-ln am-ln--hl" data-n="51">    // 屏幕与串口同内容，供自动化断言</span><span class="am-ln am-ln--hl" data-n="52">    serial::write_str(LINE_HELLO);</span><span class="am-ln am-ln--hl" data-n="53">    serial::write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="54">    serial::write_str(LINE_TWO);</span><span class="am-ln am-ln--hl" data-n="55">    serial::write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="56"></span><span class="am-ln am-ln--hl" data-n="57">    // 保留 M0 存活行作回归</span><span class="am-ln am-ln--hl" data-n="58">    serial::write_str(&quot;M0: kernel alive\n&quot;);</span><span class="am-ln" data-n="59">    halt();</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="kernel/src/main.rs" data-am-lines="21-53"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/main.rs:21-53</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="21">#[unsafe(no_mangle)]</span><span class="am-ln" data-n="22">extern &quot;C&quot; fn _start() -&gt; ! {</span><span class="am-ln" data-n="23">    serial::init();</span><span class="am-ln" data-n="24"></span><span class="am-ln am-ln--hl" data-n="25">    if !limine_fb::BASE_REVISION.is_supported() {</span><span class="am-ln am-ln--hl" data-n="26">        serial::write_str(&quot;M0: limine base revision 3 not supported\n&quot;);</span><span class="am-ln am-ln--hl" data-n="27">        halt();</span><span class="am-ln am-ln--hl" data-n="28">    }</span><span class="am-ln am-ln--hl" data-n="29"></span><span class="am-ln am-ln--hl" data-n="30">    let Some(framebuffer) = limine_fb::first_framebuffer() else {</span><span class="am-ln am-ln--hl" data-n="31">        serial::write_str(&quot;M1: no framebuffer\n&quot;);</span><span class="am-ln am-ln--hl" data-n="32">        serial::write_str(&quot;M0: kernel alive\n&quot;);</span><span class="am-ln am-ln--hl" data-n="33">        halt();</span><span class="am-ln am-ln--hl" data-n="34">    };</span><span class="am-ln am-ln--hl" data-n="35"></span><span class="am-ln am-ln--hl" data-n="36">    report_fb_meta(framebuffer);</span><span class="am-ln am-ln--hl" data-n="37"></span><span class="am-ln am-ln--hl" data-n="38">    let mut cons = Console::new(framebuffer);</span><span class="am-ln am-ln--hl" data-n="39">    cons.clear();</span><span class="am-ln am-ln--hl" data-n="40">    cons.write_str(LINE_HELLO);</span><span class="am-ln am-ln--hl" data-n="41">    cons.write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="42">    cons.write_str(LINE_TWO);</span><span class="am-ln am-ln--hl" data-n="43">    cons.write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="44"></span><span class="am-ln am-ln--hl" data-n="45">    // 屏幕与串口同内容，供自动化断言</span><span class="am-ln am-ln--hl" data-n="46">    serial::write_str(LINE_HELLO);</span><span class="am-ln am-ln--hl" data-n="47">    serial::write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="48">    serial::write_str(LINE_TWO);</span><span class="am-ln am-ln--hl" data-n="49">    serial::write_str(&quot;\n&quot;);</span><span class="am-ln am-ln--hl" data-n="50"></span><span class="am-ln am-ln--hl" data-n="51">    // 保留 M0 存活行作回归</span><span class="am-ln am-ln--hl" data-n="52">    serial::write_str(&quot;M0: kernel alive\n&quot;);</span><span class="am-ln am-ln--hl" data-n="53">    halt();</span></code></pre></figure>
 <div class="am-md"><p><code>mod console;</code> 等：声明同目录模块。[^mod]
 <code>const LINE_*: &amp;str</code>：字符串切片，存在只读数据里。
 失败路径仍打印 <code>M0: kernel alive</code>，保住 M0 回归标记。</p>
 <p>配置侧：<code>limine.conf</code> 请求 <code>800x600x32</code>。</p>
 </div>
 <figure class="am-codeblock" data-am-src="limine.conf" data-am-lines="13-18"><figcaption class="am-code-head"><span class="am-code-title">limine.conf:13-18</span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="text"><span class="am-ln" data-n="13">/Linux 0.11 (Rust) M1</span><span class="am-ln" data-n="14">    protocol: limine</span><span class="am-ln" data-n="15">    kernel_path: boot():/kernel.elf</span><span class="am-ln" data-n="16">    # boot(): = 启动盘本身（无分区光盘的整卷），内核放在 ISO 根目录。</span><span class="am-ln" data-n="17">    # 固定分辨率让验收可预期；若 qemu 无此模式 Limine 会自动挑一个（CONFIG.md resolution）</span><span class="am-ln" data-n="18">    resolution: 800x600x32</span></code></pre></figure>
-<div class="am-md"><p>链接侧：<code>.got</code> 必须进可写 <code>.data</code>，并关 GNU_RELRO——见「常见坑」。</p>
+<div class="am-md"><p>链接侧：请求段顺序 + <code>.got</code> 进可写 <code>.data</code> + 关 GNU_RELRO——见「常见坑」。</p>
 </div>
-<figure class="am-codeblock" data-am-src="kernel/linker.ld" data-am-lines="32-37"><figcaption class="am-code-head"><span class="am-code-title">kernel/linker.ld:32-37</span><span class="am-code-lang">ld</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ld"><span class="am-ln" data-n="32">    /* .got 等可写段必须显式收进 RW PT_LOAD；否则 lld 会把它塞到 rodata 末尾，</span><span class="am-ln" data-n="33">     * 与只读页共享同一物理页，Limine 会直接 PANIC（PHDR 权限冲突）。 */</span><span class="am-ln" data-n="34">    .data : {</span><span class="am-ln" data-n="35">        *(.data .data.*)</span><span class="am-ln" data-n="36">        *(.got .got.*)</span><span class="am-ln" data-n="37">    }</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="kernel/linker.ld" data-am-lines="24-30"><figcaption class="am-code-head"><span class="am-code-title">kernel/linker.ld:24-30</span><span class="am-code-lang">ld</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ld"><span class="am-ln" data-n="24">    /* Limine 请求区：start → 请求 → end 必须按此顺序，marker 才生效；</span><span class="am-ln" data-n="25">     * KEEP 防止 rustc 默认开启的 --gc-sections 把它回收掉 */</span><span class="am-ln" data-n="26">    .limine_requests : {</span><span class="am-ln" data-n="27">        KEEP(*(.limine_requests_start))</span><span class="am-ln" data-n="28">        KEEP(*(.limine_requests .limine_requests.*))</span><span class="am-ln" data-n="29">        KEEP(*(.limine_requests_end))</span><span class="am-ln" data-n="30">    }</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="kernel/linker.ld" data-am-lines="34-39"><figcaption class="am-code-head"><span class="am-code-title">kernel/linker.ld:34-39</span><span class="am-code-lang">ld</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ld"><span class="am-ln" data-n="34">    /* .got 等可写段必须显式收进 RW PT_LOAD；否则 lld 会把它塞到 rodata 末尾，</span><span class="am-ln" data-n="35">     * 与只读页共享同一物理页，Limine 会直接 PANIC（PHDR 权限冲突）。 */</span><span class="am-ln" data-n="36">    .data : {</span><span class="am-ln" data-n="37">        *(.data .data.*)</span><span class="am-ln" data-n="38">        *(.got .got.*)</span><span class="am-ln" data-n="39">    }</span></code></pre></figure>
 <figure class="am-codeblock" data-am-src=".cargo/config.toml" data-am-lines="8-12"><figcaption class="am-code-head"><span class="am-code-title">.cargo/config.toml:8-12</span><span class="am-code-lang">toml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="toml"><span class="am-ln" data-n="8"># relocation-model=static：该 target 默认产出 PIE（Type: DYN），</span><span class="am-ln" data-n="9"># 裸机内核没有动态加载器，必须生成固定地址的 EXEC</span><span class="am-ln" data-n="10"># -znorelro：关掉 GNU_RELRO。否则 lld 会给 .got/.data 再挂一个只读 RELRO PHDR，</span><span class="am-ln" data-n="11"># 与 RW PT_LOAD 挤在同一页，Limine 加载时会 PANIC（权限冲突）。</span><span class="am-ln" data-n="12">rustflags = [&quot;-C&quot;, &quot;relocation-model=static&quot;, &quot;-C&quot;, &quot;link-arg=-Tlinker.ld&quot;, &quot;-C&quot;, &quot;link-arg=-znorelro&quot;]</span></code></pre></figure>
 <div class="am-md"><p>脚注（Rust 语法速查）：</p>
 <ul>
-<li>[^repr]: <code>repr(C)</code> = C 布局。不用它，字段顺序可能和 bootloader 对不齐。</li>
-<li>[^used]: <code>#[used]</code> 防止链接器丢掉「看似没人读」的静态量。</li>
-<li>[^option]: <code>Option&lt;T&gt;</code> 表示有或无；<code>None</code> / <code>Some(值)</code> 两态。</li>
+<li>[^option]: <code>Option&lt;T&gt;</code> 表示有或无；<code>None</code> / <code>Some(值)</code> 两态。函数里 <code>?</code> 遇 <code>None</code> 直接返回。</li>
 <li>[^as]: <code>as</code> 是显式数值转换；截断由你负责。</li>
 <li>[^impl]: <code>impl</code> 给结构体挂方法；常见接收者是 <code>&amp;self</code> / <code>&amp;mut self</code>。</li>
 <li>[^mod]: <code>mod name;</code> 去找 <code>name.rs</code> 或 <code>name/mod.rs</code>。</li>
@@ -1033,11 +1031,17 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <header class="am-panel-head"><span class="am-panel-id">G</span><h2>常见坑与展望</h2></header>
 <div class="am-panel-body"><div class="am-md"><h3>常见坑（实测）</h3>
 <ol>
-<li><p><strong><code>.got</code> 与 rodata 同页 + GNU_RELRO → Limine ELF PANIC</strong><br>lld 可能把 <code>.got</code> 塞进只读段末尾。Limine 加载时权限冲突直接 PANIC。<br>修法：<code>linker.ld</code> 把 <code>.got</code> 收进 <code>.data</code>；<code>.cargo/config.toml</code> 加 <code>-znorelro</code>。</p>
+<li><p><strong><code>.got</code> 与 rodata 同页 + GNU_RELRO → Limine ELF PANIC</strong>
+lld 可能把 <code>.got</code> 塞进只读段末尾。Limine 加载时权限冲突直接 PANIC。
+修法：<code>linker.ld</code> 把 <code>.got</code> 收进 <code>.data</code>；<code>.cargo/config.toml</code> 加 <code>-znorelro</code>。
+示意图与原理：<a href="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/elf-relro-got/index.html">ELF 段布局与 RELRO</a>。</p>
 </li>
-<li><p><strong>非 rootless docker 时 <code>build/</code> 属 root</strong><br>宿主机 qemu 写不了 <code>serial.log</code> / screendump。<br>修法：<code>check-m1-b1</code> 里先 <code>chown</code> 再跑 qemu。</p>
+<li><p><strong>非 rootless docker 时 <code>build/</code> 属 root</strong>
+宿主机 qemu 写不了 <code>serial.log</code> / screendump。
+修法：<code>check-m1-b1</code> 里先 <code>chown</code> 再跑 qemu。</p>
 </li>
-<li><p><strong>qemu 缺网卡 ROM</strong><br>可能干扰无头启动。验收已加 <code>-net none</code>。</p>
+<li><p><strong>qemu 缺网卡 ROM</strong>
+可能干扰无头启动。验收已加 <code>-net none</code>。</p>
 </li>
 </ol>
 <h3>展望 → M1 Bite2</h3>
@@ -1049,6 +1053,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li>验收改为：格式化多行 grep + 截图</li>
 </ul>
 <p>本 Bite 的固定两行字符串，届时会被格式化输出替换。</p>
+<p>Limine 协议已改用 <code>limine</code> crate（D14），无需再单独做绑定重构。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-H">
@@ -1061,19 +1066,21 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>已渲染：<a href="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/linear-framebuffer/index.html">概念页 HTML</a>。md 源仍保留；背景卡片链接已指向该页。</p>
 <h3>8×16 是一个字符的像素块吗？（面板 C）</h3>
 <p>是。每个可打印字符对应一张 <strong>8 宽 × 16 高</strong> 的点阵（glyph）：16 行、每行 1 字节。</p>
-<p><code>console</code> 按位点亮前景色，就在屏幕上画出该字符。见 <code>font.rs</code> 的 <code>FONT_WIDTH</code> / <code>FONT_HEIGHT</code>。</p>
-<h3>手写结构体是不是重复造轮子？（面板 C）</h3>
-<p>造的不是引导器，只是协议响应的内存布局说明书（几十行 <code>repr(C)</code>）。</p>
-<p>用 <code>limine</code> crate / bindgen <strong>完全合法</strong>，决策卡片备选里写过。</p>
-<p>我们没选，是为了「每一字节看得见」和 <code>no_std</code> 零依赖骨架，不是导入有硬伤。后期可换成 crate。</p>
+<h3>手写结构体 / 换成 crate？（面板 C、H）——已换成</h3>
+<p>2026-10-13 已改用官方 <code>limine</code> crate 0.6.5。<code>limine_fb.rs</code> 只保留请求静态量与 <code>first_framebuffer()</code> 薄封装。</p>
+<p><code>make check-m1-b1</code> 复跑通过。登记偏差 D14。偏好见 <code>docs/user-prefs.md</code>。</p>
 <h3>mask 是什么？（面板 C）</h3>
-<p>mask = 像素字里「哪几位是红/绿/蓝、从第几位起」的说明书。</p>
-<p>串口 <code>r8@16 g8@8 b8@0</code>：红 8 位从 bit16、绿从 bit8、蓝从 bit0。</p>
-<p><code>fb::pack_rgb</code> 按它把 <code>(r,g,b)</code> 折成 <code>u32</code> 再写入显存。</p>
+<p>mask = 像素字里「哪几位是红/绿/蓝、从第几位起」的说明书。串口 <code>r8@16 g8@8 b8@0</code> 即此。</p>
+<h3>write_volatile 是大端还是小端？（面板 D）</h3>
+<p><strong>跟 CPU 目标架构走。</strong> x86_64 固定小端 = 低字节放低地址。<code>write_volatile::&lt;u32&gt;</code> 按本机端序写。</p>
+<p>mask 是位域；端序是字节落盘顺序——两层别混。</p>
+<p>24bpp 分支是按小端拆三字节（<code>pixel &amp; 0xff</code> 先写最低地址）。</p>
 <h3>glyph 是啥？（面板 D）</h3>
-<p><strong>glyph（字形）</strong> = 单个字符的点阵形状，不是整个字符串。</p>
-<p><code>newline</code> 只改光标；<code>draw_glyph</code> 取出 8×16 位图再逐像素 <code>put_pixel</code>。</p>
-<p>缺字用实心块（<code>MISSING_GLYPH</code>），避免空白和空格分不清。</p>
+<p><strong>glyph（字形）</strong> = 单个字符的点阵形状。<code>draw_glyph</code> 画它；<code>newline</code> 只挪光标。</p>
+<h3>RELRO / 段布局示意图（面板 D 建议）</h3>
+<p><a href="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/elf-relro-got/index.html">ELF 段布局与 RELRO</a>。</p>
+<h3>为什么字体要自制？（面板 F）</h3>
+<p>裸机图形模式无系统字库。本 Bite 自制 ASCII 点阵；后续可嵌 PSF。</p>
 </div></div>
 </section>
 </div>
@@ -1094,7 +1101,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-12 18:37 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-13 11:53 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -1165,7 +1172,7 @@ _start -&gt; serial: 同步两行 + M0 存活
 
 | 模块 | 职责 | 本 Bite |
 |---|---|---|
-| `limine_fb` | 手写请求/响应结构，取第一块 FB | 新增 |
+| `limine_fb` | 经 `limine` crate 声明请求，取第一块 FB | 新增 |
 | `fb` | 清屏、按 mask 写像素 | 新增 |
 | `font` | 8×16 ASCII 点阵 | 新增 |
 | `console` | 光标 + `write_str`（无滚屏） | 新增 |
@@ -1191,21 +1198,21 @@ _start -&gt; serial: 同两行 + M0: kernel alive
 
 本 Bite 两张决策卡片：
 
-1. 为何手写 Limine FB 结构体。
+1. Limine 协议绑定：手写 → 改用 `limine` crate（D14）。
 2. 像素颜色按 mask 打包，还是写死 x8r8g8b8。
 
-### 【决策卡片】手写 Limine FB 结构体
+### 【决策卡片】Limine 协议绑定（crate）
 
-- **决策点**：内核如何拿到 `struct limine_framebuffer` 的布局与魔数。
+- **决策点**：内核如何拿到 framebuffer 请求/响应类型与魔数。
 - **备选**：
-  1. 按 `limine.h` / PROTOCOL.md 手写 `#[repr(C)]`（所选）
+  1. 按 `limine.h` / PROTOCOL.md 手写 `#[repr(C)]`（交付时曾选）
   2. bindgen 链入官方头文件
-  3. 依赖现成 `limine` crate
-- **选择**：备选 1。与 M0 base revision 同一策略：协议当说明书，不引入 C/crate 依赖。字段与魔数可对照 `reference/limine-protocol/`。
+  3. 依赖现成 `limine` crate（**现行**）
+- **选择**：备选 3（2026-10-13）。用户偏好「少造轮子」；官方 crate 0.6.5 提供 `BaseRevision` / `FramebufferRequest` / start·end marker，行为与手写一致。登记偏差 D14。
 - **放弃的成本**：
-  - 没选 2（bindgen）：头文件一改，绑定自动跟上，少手抄错位风险。我们放弃这份「跟上游同步」的便利，换手工对照字段。
-  - 没选 3（limine crate）：社区已封装请求宏与类型，少写 `link_section` 样板。我们放弃这份现成封装，换「每一字节布局自己看得见」。
-- **失效边界**：协议 revision 加字段且插在中间时，手写布局会错位。本 Bite 已把 `edid`/`modes` 按头文件排齐，但仍需对照上游变更。
+  - 没选手写：少了「每一字节布局自己看得见」的教学透明度；换「少样板、跟上游类型」的维护成本。
+  - 没选 bindgen：仍要维护 C 工具链与 `build.rs`；crate 已够用。
+- **失效边界**：crate 与本机 Limine 协议 revision 不兼容时，需升 crate 或核对 `BaseRevision`。本机仍请求 revision 3（crate 最高支持 6，向下兼容）。
 
 ### 【决策卡片】按 mask 打包像素
 
@@ -1219,27 +1226,24 @@ _start -&gt; serial: 同两行 + M0: kernel alive
 - **失效边界**：`memory_model` 不是 RGB、或 bpp 不是 16/24/32 时，`put_pixel` 直接丢弃。换主机/固件后务必看串口 `M1: fb mask …`。
 
 可选旁注：字体自制几何点阵，未嵌 PSF。好处是无外部字库许可问题；代价是字形丑、缺字只能画实心块。Bite 范围只覆盖可打印 ASCII。
-
 ## 代码领读
 
-顺序跟设计走：请求结构 → 取 FB → 写像素 → 字形 → 控制台 → `_start` → 链接坑相关配置。
+顺序跟设计走：crate 请求 → 取 FB → 写像素 → 字形 → 控制台 → `_start` → 链接坑相关配置。
 
-### 1. 手写请求与 `first_framebuffer`
+### 1. `limine` crate 请求与 `first_framebuffer`
 
-`#[repr(C)]`：按 C 布局排字段，和 Limine 写的内存一致。[^repr]
+依赖 `limine = &quot;0.6.5&quot;`。静态请求放进分段后的 `.limine_requests_*`，由 linker 排成 start → 请求 → end。
 
-`static mut` + `link_section`：把请求放进 `.limine_requests`，供 bootloader 扫描填写 `response`。[^used]
+`BaseRevision::with_revision(3)` / `FramebufferRequest::new()` 替代手写魔数与 `repr(C)`。
 
-```rust src=kernel/src/limine_fb.rs lines=16-54 hl=35-47
+```rust src=kernel/src/limine_fb.rs lines=11-32 hl=28-31
 ```
 
-```rust src=kernel/src/limine_fb.rs lines=70-89 hl=71-88
-```
-
-Rust：`Option&lt;&amp;&#39;static Framebuffer&gt;` 表示「可能没有 FB」；有则返回静态引用。[^option]
-`let Some(x) = … else { … }` 是在 `_start` 里拆开 Option 的写法，见下一节。
+Rust：`Option&lt;&amp;&#39;static Framebuffer&gt;` 表示「可能没有 FB」；`?` 在返回 Option 的函数里把 `None` 提前返回。[^option]
 
 ### 2. 按 mask 写像素
+
+`address()` 是 crate 的访问器（字段本身私有）。
 
 ```rust src=kernel/src/fb.rs lines=10-19 hl=11-18
 ```
@@ -1269,7 +1273,7 @@ Rust：`impl Console { … }` 给结构体挂方法；`&amp;mut self` 表示方�
 
 ### 4. `_start`：画屏 + 串口双写
 
-```rust src=kernel/src/main.rs lines=27-59 hl=36-58
+```rust src=kernel/src/main.rs lines=21-53 hl=25-53
 ```
 
 `mod console;` 等：声明同目录模块。[^mod]
@@ -1281,9 +1285,12 @@ Rust：`impl Console { … }` 给结构体挂方法；`&amp;mut self` 表示方�
 ```text src=limine.conf lines=13-18
 ```
 
-链接侧：`.got` 必须进可写 `.data`，并关 GNU_RELRO——见「常见坑」。
+链接侧：请求段顺序 + `.got` 进可写 `.data` + 关 GNU_RELRO——见「常见坑」。
 
-```ld src=kernel/linker.ld lines=32-37
+```ld src=kernel/linker.ld lines=24-30
+```
+
+```ld src=kernel/linker.ld lines=34-39
 ```
 
 ```toml src=.cargo/config.toml lines=8-12
@@ -1291,13 +1298,10 @@ Rust：`impl Console { … }` 给结构体挂方法；`&amp;mut self` 表示方�
 
 脚注（Rust 语法速查）：
 
-- [^repr]: `repr(C)` = C 布局。不用它，字段顺序可能和 bootloader 对不齐。
-- [^used]: `#[used]` 防止链接器丢掉「看似没人读」的静态量。
-- [^option]: `Option&lt;T&gt;` 表示有或无；`None` / `Some(值)` 两态。
+- [^option]: `Option&lt;T&gt;` 表示有或无；`None` / `Some(值)` 两态。函数里 `?` 遇 `None` 直接返回。
 - [^as]: `as` 是显式数值转换；截断由你负责。
 - [^impl]: `impl` 给结构体挂方法；常见接收者是 `&amp;self` / `&amp;mut self`。
 - [^mod]: `mod name;` 去找 `name.rs` 或 `name/mod.rs`。
-
 ## 验收
 
 命令（项目根）：
@@ -1366,15 +1370,16 @@ check-m1-b1 OK
 
 ### 常见坑（实测）
 
-1. **`.got` 与 rodata 同页 + GNU_RELRO → Limine ELF PANIC**  
-   lld 可能把 `.got` 塞进只读段末尾。Limine 加载时权限冲突直接 PANIC。  
+1. **`.got` 与 rodata 同页 + GNU_RELRO → Limine ELF PANIC**
+   lld 可能把 `.got` 塞进只读段末尾。Limine 加载时权限冲突直接 PANIC。
    修法：`linker.ld` 把 `.got` 收进 `.data`；`.cargo/config.toml` 加 `-znorelro`。
+   示意图与原理：[ELF 段布局与 RELRO](/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/elf-relro-got/index.html)。
 
-2. **非 rootless docker 时 `build/` 属 root**  
-   宿主机 qemu 写不了 `serial.log` / screendump。  
+2. **非 rootless docker 时 `build/` 属 root**
+   宿主机 qemu 写不了 `serial.log` / screendump。
    修法：`check-m1-b1` 里先 `chown` 再跑 qemu。
 
-3. **qemu 缺网卡 ROM**  
+3. **qemu 缺网卡 ROM**
    可能干扰无头启动。验收已加 `-net none`。
 
 ### 展望 → M1 Bite2
@@ -1388,6 +1393,7 @@ check-m1-b1 OK
 
 本 Bite 的固定两行字符串，届时会被格式化输出替换。
 
+Limine 协议已改用 `limine` crate（D14），无需再单独做绑定重构。
 ## 细节展开
 
 ### pitch、bpp 是什么？（面板 B）
@@ -1406,31 +1412,35 @@ check-m1-b1 OK
 
 是。每个可打印字符对应一张 **8 宽 × 16 高** 的点阵（glyph）：16 行、每行 1 字节。
 
-`console` 按位点亮前景色，就在屏幕上画出该字符。见 `font.rs` 的 `FONT_WIDTH` / `FONT_HEIGHT`。
+### 手写结构体 / 换成 crate？（面板 C、H）——已换成
 
-### 手写结构体是不是重复造轮子？（面板 C）
+2026-10-13 已改用官方 `limine` crate 0.6.5。`limine_fb.rs` 只保留请求静态量与 `first_framebuffer()` 薄封装。
 
-造的不是引导器，只是协议响应的内存布局说明书（几十行 `repr(C)`）。
-
-用 `limine` crate / bindgen **完全合法**，决策卡片备选里写过。
-
-我们没选，是为了「每一字节看得见」和 `no_std` 零依赖骨架，不是导入有硬伤。后期可换成 crate。
+`make check-m1-b1` 复跑通过。登记偏差 D14。偏好见 `docs/user-prefs.md`。
 
 ### mask 是什么？（面板 C）
 
-mask = 像素字里「哪几位是红/绿/蓝、从第几位起」的说明书。
+mask = 像素字里「哪几位是红/绿/蓝、从第几位起」的说明书。串口 `r8@16 g8@8 b8@0` 即此。
 
-串口 `r8@16 g8@8 b8@0`：红 8 位从 bit16、绿从 bit8、蓝从 bit0。
+### write_volatile 是大端还是小端？（面板 D）
 
-`fb::pack_rgb` 按它把 `(r,g,b)` 折成 `u32` 再写入显存。
+**跟 CPU 目标架构走。** x86_64 固定小端 = 低字节放低地址。`write_volatile::&lt;u32&gt;` 按本机端序写。
+
+mask 是位域；端序是字节落盘顺序——两层别混。
+
+24bpp 分支是按小端拆三字节（`pixel &amp; 0xff` 先写最低地址）。
 
 ### glyph 是啥？（面板 D）
 
-**glyph（字形）** = 单个字符的点阵形状，不是整个字符串。
+**glyph（字形）** = 单个字符的点阵形状。`draw_glyph` 画它；`newline` 只挪光标。
 
-`newline` 只改光标；`draw_glyph` 取出 8×16 位图再逐像素 `put_pixel`。
+### RELRO / 段布局示意图（面板 D 建议）
 
-缺字用实心块（`MISSING_GLYPH`），避免空白和空格分不清。</textarea>
+[ELF 段布局与 RELRO](/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/elf-relro-got/index.html)。
+
+### 为什么字体要自制？（面板 F）
+
+裸机图形模式无系统字库。本 Bite 自制 ASCII 点阵；后续可嵌 PSF。</textarea>
 <script>
 (() => {
   const root = document.documentElement;
