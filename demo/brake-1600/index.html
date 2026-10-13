@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>1600牛顿</title>
+<style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: #101722;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  canvas {
+    position: fixed;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  canvas:focus { outline: none; }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+</style>
+</head>
+<body>
+<canvas id="game" tabindex="0" aria-label="1600牛顿，第三视角刹车。按住刹车踏板，不要超过1600牛顿。"></canvas>
+<div id="live" class="sr" aria-live="polite"></div>
+<script>
+'use strict';
+
+var canvas = document.getElementById('game');
+var live = document.getElementById('live');
+var ctx = canvas.getContext('2d');
+
+var SANS = '"Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
+var NUM = '"Bahnschrift", "Segoe UI", "Arial Narrow", sans-serif';
+
+var MASS = 1520;
+var G = 9.81;
+var MU = 0.95;
+var WHEEL_R = 0.31;
+var WHEEL_I = 6.2;
+var SLIP_K = 78000;
+var CD = 0.30;
+var AREA = 2.2;
+var RHO = 1.2;
+var CRR = 0.012;
+var A_FULL = 6.7;
+var LIMIT = 1600;
+var T_FULL = A_FULL * WHEEL_R * MASS;
+var PERSON_X = 108;
+var HIT_X = PERSON_X - 0.45;
+var V0 = 100 / 3.6;
+var CAR_LEN = 4.55;
+var CAM_BACK = 12.8;
+var CAM_H = 2.42;
+var CAM_LAT = -1.4;
+var CAM_K = 7.5;
+var CAM_D = 1.35;
+
+var C = {
+  sky0: '#101722',
+  sky1: '#24344c',
+  sky2: '#e09462',
+  hill: '#1a2330',
+  hill2: '#141b26',
+  grass: '#243028',
+  grass2: '#1c2820',
+  road: '#434a58',
+  roadDark: '#3a404c',
+  paint: '#f3ecdf',
+  car: '#e4ddd0',
+  carNear: '#d4cdc0',
+  carFar: '#a39e93',
+  carTop: '#efe8dc',
+  carBot: '#5e5a54',
+  glass: '#243246',
+  tire: '#141618',
+  rim: '#d5cfc3',
+  brake: '#ff3828',
+  vest: '#ff7a1a',
+  skin: '#e2b394',
+  ink: '#1c1916',
+  cream: '#f4efe4',
+  danger: '#d21f16',
+  rubber: '#121416',
+  metal: '#9aa1ab',
+  floor: '#2a261f'
+};
+
+var W = 960;
+var H = 540;
+var focal = 1400;
+var horizon = 200;
+var reduced = false;
+
+var mode = 'menu';
+var reason = '';
+var bumperX = 0;
+var v = V0;
+var omega = V0 / WHEEL_R;
+var a = 0;
+var slip = 0;
+var locked = false;
+var pedal = 0;
+var pedalTarget = 0;
+var pressure = 0;
+var blown = false;
+var latch = false;
+var peak = 0;
+var pitch = 0;
+var pitchVel = 0;
+var heave = 0;
+var heaveVel = 0;
+var camX = -CAR_LEN - CAM_BACK;
+var camVel = V0;
+var yaw = 0;
+var camPitch = 0;
+var camPitchVel = 0;
+var spin = 0;
+var shake = 0;
+var visT = 0;
+var elapsed = 0;
+var endAge = 0;
+var fallen = 0;
+var hitDone = false;
+var impactSpeed = 0;
+var hint = 1;
+var acc = 0;
+var last = 0;
+var pedaling = false;
+var pointerX = 0;
+var pointerY = 0;
+var pointerId = null;
+var keys = Object.create(null);
+var particles = [];
+var trace = [];
+var traceAcc = 0;
+var pin = null;
+var ui = {};
+
+try {
+  reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+} catch (e) {}
+
+var audioCtx = null;
+var roadGain = null;
+var roadFilter = null;
+var brakeGain = null;
+var brakeOsc = null;
+
+function clamp(n, a, b) { return n < a ? a : n > b ? b : n; }
+
+function say(text) { live.textContent = text; }
+
+function resize() {
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  var rect = canvas.getBoundingClientRect();
+  var vw = window.innerWidth || rect.width;
+  var vh = window.innerHeight || rect.height;
+  W = Math.max(1, Math.floor(Math.min(rect.width, vw)));
+  H = Math.max(1, Math.floor(Math.min(rect.height, vh)));
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.max(1, Math.floor(W * dpr));
+  canvas.height = Math.max(1, Math.floor(H * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var want = clamp(Math.min(W * 0.30, H * 0.34), 150, 300);
+  focal = want * 13.2 / 1.72;
+  layout();
+}
+
+function layout() {
+  var narrow = W < 860;
+  var short = H < 620;
+  ui.narrow = narrow;
+  ui.s = narrow ? 0.82 : (short ? 0.9 : 1);
+  ui.cluster = {
+    x: 12,
+    y: 12,
+    w: narrow ? Math.max(160, W - 48) : Math.min(460, Math.max(300, W * 0.38)),
+    h: short || narrow ? 78 : 92
+  };
+  ui.gauge = {
+    x: 16,
+    y: ui.cluster.y + ui.cluster.h + 12,
+    w: narrow ? 58 : 70,
+    h: clamp(H - (ui.cluster.y + ui.cluster.h + 28), 120, narrow ? Math.min(260, H * 0.36) : (short ? 280 : 420))
+  };
+  var wellW = narrow ? Math.min(150, W * 0.46) : 188;
+  var wellH = narrow ? Math.min(240, H * 0.32) : clamp(H * (short ? 0.46 : 0.52), 200, 360);
+  ui.well = {
+    x: W - wellW - (narrow ? 28 : 14),
+    y: H - wellH - 14,
+    w: wellW,
+    h: wellH
+  };
+  ui.hinge = {
+    x: ui.well.x + 26,
+    y: ui.well.y + (short ? 52 : 58),
+    len: Math.max(64, Math.min(ui.well.w - 86, ui.well.h - 108)),
+    a0: 0.78,
+    a1: 1.34
+  };
+  var mh = narrow ? Math.min(H - 20, 470) : Math.min(H - 36, 540);
+  ui.menu = narrow
+    ? { x: 12, y: Math.max(8, H - mh - 10), w: W - 24, h: mh }
+    : { x: 22, y: 18, w: Math.min(392, W * 0.34), h: mh };
+  ui.startBtn = {
+    x: ui.menu.x + 22,
+    y: ui.menu.y + ui.menu.h - 64,
+    w: ui.menu.w - 44,
+    h: 46
+  };
+  var ew = Math.min(440, W - 36);
+  ui.end = { x: (W - ew) / 2, y: Math.max(16, (H - 292) / 2), w: ew, h: 292 };
+  ui.againBtn = {
+    x: ui.end.x + 24,
+    y: ui.end.y + ui.end.h - 62,
+    w: ui.end.w - 48,
+    h: 44
+  };
+}
+
+function inRect(x, y, r) {
+  return r && x >= r.x && y >= r.y && x <= r.x + r.w && y <= r.y + r.h;
+}
+
+function resetWorld() {
+  bumperX = 0;
+  v = V0;
+  omega = V0 / WHEEL_R;
+  a = -0.3;
+  slip = 0;
+  locked = false;
+  pedal = 0;
+  pedalTarget = 0;
+  pressure = 0;
+  blown = false;
+  latch = false;
+  peak = 0;
+  pitch = 0;
+  pitchVel = 0;
+  heave = 0;
+  heaveVel = 0;
+  camX = -CAR_LEN - CAM_BACK;
+  camVel = V0;
+  camPitch = 0;
+  camPitchVel = 0;
+  spin = 0;
+  shake = 0;
+  elapsed = 0;
+  endAge = 0;
+  fallen = 0;
+  hitDone = false;
+  impactSpeed = 0;
+  hint = 1;
+  particles = [];
+  trace = [];
+  traceAcc = 0;
+  pin = null;
+  pedaling = false;
+  updateYaw(0);
+}
+
+function startGame() {
+  resetWorld();
+  mode = 'play';
+  reason = '';
+  setupAudio();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  say('开始。车速100公里每小时，踩住刹车，不要超过1600牛顿。');
+}
+
+function beginBlow() {
+  if (blown) return;
+  blown = true;
+  mode = 'lose';
+  reason = 'disconnect';
+  endAge = 0;
+  shake = reduced ? 0 : 0.55;
+  pitchVel -= 0.45;
+  camVel += 3.2;
+  var h = ui.hinge || { x: W - 80, y: H * 0.5 };
+  pin = { x: h.x + 40, y: h.y + 20, vx: 220, vy: -260, rot: 0, life: 0.9 };
+  tone(90, 0.28, 'square', 0.05, 40);
+  tone(180, 0.12, 'triangle', 0.03, 70);
+  say('刹车断开。踩踏力超过1600牛顿。');
+}
+
+function beginHit() {
+  if (hitDone) return;
+  hitDone = true;
+  impactSpeed = Math.max(impactSpeed, v);
+  if (mode === 'play') {
+    mode = 'lose';
+    reason = 'hit';
+    endAge = 0;
+    say('没刹住，撞上了前面的人。当时大约' + Math.round(v * 3.6) + '公里每小时。');
+  } else if (reason === 'disconnect') {
+    say('刹车断开，随后撞上了前面的人。');
+  }
+  fallen = 0.001;
+  shake = Math.max(shake, reduced ? 0 : 1);
+  a = -15;
+  pitchVel += 0.7;
+  tone(70, 0.35, 'sine', 0.07, 35);
+  noise(0.22, 0.08);
+}
+
+function beginWin() {
+  if (mode !== 'play') return;
+  mode = 'win';
+  reason = 'win';
+  endAge = 0;
+  v = 0;
+  omega = 0;
+  var margin = PERSON_X - bumperX;
+  say('刹住了。刹车距离' + bumperX.toFixed(0) + '米，离人还有' + margin.toFixed(0) + '米。');
+  tone(520, 0.12, 'sine', 0.03, 520);
+  tone(780, 0.18, 'sine', 0.025, 780);
+}
+
+function updateYaw(dt) {
+  var lookX = bumperX - 2.15;
+  var target = Math.atan2(-CAM_LAT, Math.max(1, lookX - camX));
+  if (!dt) yaw = target;
+  else yaw += (target - yaw) * (1 - Math.exp(-dt * 2.4));
+}
+
+function chaseCamera(dt) {
+  var desired = bumperX - CAR_LEN - CAM_BACK;
+  camVel += ((desired - camX) * CAM_K - (camVel - v) * CAM_D) * dt;
+  camX += camVel * dt;
+  var rush = clamp((camVel - v) / 28, -0.4, 1);
+  var pitchTarget = pitch * 0.85 + clamp(-a, -1, 8) * 0.01 + rush * 0.02;
+  camPitchVel += ((pitchTarget - camPitch) * 10 - camPitchVel * 4.5) * dt;
+  camPitch += camPitchVel * dt;
+  updateYaw(dt);
+}
+
+function suspension(dt, targetA) {
+  var pitchTarget = clamp(-targetA / 10, -0.055, 0.02);
+  pitchVel += ((pitchTarget - pitch) * 48 - pitchVel * 7.2) * dt;
+  pitch += pitchVel * dt;
+  var heaveTarget = clamp(-targetA, 0, 8) * 0.004;
+  heaveVel += ((heaveTarget - heave) * 60 - heaveVel * 9) * dt;
+  heave += heaveVel * dt;
+}
+
+function readPedal(dt) {
+  var slow = keys.ShiftLeft || keys.ShiftRight;
+  var down = keys.ArrowDown || keys.KeyS;
+  var up = keys.ArrowUp || keys.KeyW;
+  if (blown) return;
+  if (pedaling && ui.hinge) {
+    var dx = pointerX - ui.hinge.x;
+    var dy = pointerY - ui.hinge.y;
+    if (dx * dx + dy * dy > 36) {
+      var ang = Math.atan2(dy, dx);
+      ang = clamp(ang, ui.hinge.a0, ui.hinge.a1);
+      pedalTarget = ((ang - ui.hinge.a0) / (ui.hinge.a1 - ui.hinge.a0)) * 2000;
+      latch = false;
+    }
+  } else if (down) {
+    pedalTarget = Math.min(2000, pedalTarget + (slow ? 380 : 1650) * dt);
+    latch = true;
+  } else if (up) {
+    pedalTarget = Math.max(0, pedalTarget - (slow ? 380 : 2200) * dt);
+    latch = true;
+  } else if (!latch) {
+    pedalTarget = Math.max(0, pedalTarget - 1100 * dt);
+  }
+}
+
+function step(dt) {
+  layout();
+  if (mode === 'play') readPedal(dt);
+  if (!blown) {
+    pedal += (pedalTarget - pedal) * (1 - Math.exp(-dt / 0.055));
+    if (pedal > peak) peak = pedal;
+    if (mode === 'play' && pedal > LIMIT) beginBlow();
+  }
+  if (blown) {
+    pedal += (360 - pedal) * (1 - Math.exp(-dt / 0.09));
+    pressure += (0 - pressure) * (1 - Math.exp(-dt / 0.045));
+  } else {
+    pressure += (pedal - pressure) * (1 - Math.exp(-dt / 0.12));
+  }
+
+  var T = blown ? 0 : (pressure / LIMIT) * T_FULL;
+  var Fmax = MU * MASS * G;
+  var Fdrag = 0.5 * CD * AREA * RHO * v * v;
+  var Froll = v > 0.05 ? CRR * MASS * G : 0;
+  var denom = Math.max(v, 1.2);
+  slip = (omega * WHEEL_R - v) / denom;
+  var Ft = clamp(SLIP_K * slip, -Fmax, Fmax);
+  a = (Ft - Fdrag - Froll) / MASS;
+  var alpha = (-T - Ft * WHEEL_R) / WHEEL_I;
+  var omegaUnc = omega + alpha * dt;
+  locked = false;
+  if (!hitDone && omegaUnc <= 0 && T > 0 && v > 0) {
+    locked = true;
+    omega = 0;
+    Ft = -Math.min(Fmax, T / WHEEL_R);
+    a = (Ft - Fdrag - Froll) / MASS;
+    v = Math.max(0, v + a * dt);
+    slip = -0.18;
+  } else if (!hitDone) {
+    omega = Math.max(0, omegaUnc);
+    v = Math.max(0, v + a * dt);
+  }
+
+  if (hitDone) {
+    v = Math.max(0, v - 28 * dt);
+    omega = v / WHEEL_R;
+    a += (0 - a) * (1 - Math.exp(-dt * 4));
+    bumperX += v * dt;
+    if (bumperX > HIT_X + 0.15) bumperX = HIT_X + 0.15;
+  } else {
+    bumperX += v * dt;
+    if (bumperX >= HIT_X) {
+      beginHit();
+    } else if (v < 0.12 && T > 160) {
+      v = 0;
+      omega = 0;
+      a = 0;
+      if (mode === 'play') beginWin();
+    }
+  }
+
+  spin += omega * dt;
+  suspension(dt, a);
+  chaseCamera(dt);
+  if (mode === 'play' || mode === 'lose' || mode === 'win') elapsed += dt;
+  if (mode !== 'play') endAge += dt;
+  if (fallen > 0 && fallen < 1) fallen = Math.min(1, fallen + dt * 1.7);
+  if (shake > 0) shake *= Math.exp(-dt * (reduced ? 12 : 3.2));
+
+  if ((locked || slip < -0.07) && pressure > 400 && v > 2 && particles.length < 28) {
+    if (Math.random() < dt * 18) {
+      particles.push({
+        x: bumperX - CAR_LEN + 0.95,
+        z: Math.random() < 0.5 ? -0.82 : 0.82,
+        y: 0.12,
+        vy: 0.45 + Math.random() * 0.4,
+        vz: (Math.random() - 0.5) * 0.3,
+        life: 0.55,
+        max: 0.55,
+        r: 0.16 + Math.random() * 0.12
+      });
+    }
+  }
+  for (var i = particles.length - 1; i >= 0; i--) {
+    var p = particles[i];
+    p.life -= dt;
+    p.y += p.vy * dt;
+    p.z += p.vz * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+  if (pin) {
+    pin.life -= dt;
+    pin.x += pin.vx * dt;
+    pin.y += pin.vy * dt;
+    pin.vy += 900 * dt;
+    pin.rot += dt * 8;
+    if (pin.life <= 0) pin = null;
+  }
+
+  traceAcc += dt;
+  if (traceAcc > 0.05) {
+    traceAcc = 0;
+    trace.push(v * 3.6);
+    if (trace.length > 80) trace.shift();
+  }
+  syncAudio();
+}
+
+function settle(dt) {
+  a += (0 - a) * (1 - Math.exp(-dt * 2.4));
+  v = 0;
+  omega = 0;
+  suspension(dt, a);
+  chaseCamera(dt);
+  endAge += dt;
+  if (fallen > 0 && fallen < 1) fallen = Math.min(1, fallen + dt * 1.7);
+  if (shake > 0) shake *= Math.exp(-dt * 3);
+  syncAudio();
+}
+
+function proj(x, y, z) {
+  var dx = x - camX;
+  var dz = z - CAM_LAT;
+  var cos = Math.cos(yaw);
+  var sin = Math.sin(yaw);
+  var xCam = dx * cos + dz * sin;
+  var zCam = -dx * sin + dz * cos;
+  if (xCam < 0.35) return null;
+  var k = focal / xCam;
+  return {
+    sx: W * 0.5 + zCam * k,
+    sy: horizon + (CAM_H - y) * k,
+    k: k,
+    d: xCam
+  };
+}
+
+function carBodyPoint(rx, y, z) {
+  var cgRx = 2.15;
+  var cgY = 0.52;
+  var dx = rx - cgRx;
+  var dy = y - cgY;
+  var c = Math.cos(pitch);
+  var s = Math.sin(pitch);
+  var rr = cgRx + dx * c + dy * s;
+  var ry = cgY - dx * s + dy * c + heave;
+  return proj(bumperX - CAR_LEN + rr, ry, z);
+}
+
+function quad(a, b, c, d, color) {
+  if (!a || !b || !c || !d) return;
+  ctx.beginPath();
+  ctx.moveTo(a.sx, a.sy);
+  ctx.lineTo(b.sx, b.sy);
+  ctx.lineTo(c.sx, c.sy);
+  ctx.lineTo(d.sx, d.sy);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function roundRect(x, y, w, h, r) {
+  var rr = Math.min(r, w * 0.5, h * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function sectionCorners(s) {
+  return {
+    bl: carBodyPoint(s.rx, s.y0, -s.hb),
+    br: carBodyPoint(s.rx, s.y0, s.hb),
+    tr: carBodyPoint(s.rx, s.y1, s.hb),
+    tl: carBodyPoint(s.rx, s.y1, -s.hb)
+  };
+}
+
+var SECTIONS = [
+  { rx: 0.05, hb: 0.78, y0: 0.48, y1: 1.02 },
+  { rx: 0.32, hb: 0.90, y0: 0.40, y1: 1.12 },
+  { rx: 1.25, hb: 0.92, y0: 0.48, y1: 1.50 },
+  { rx: 2.50, hb: 0.90, y0: 0.52, y1: 1.47 },
+  { rx: 3.30, hb: 0.86, y0: 0.60, y1: 1.08 },
+  { rx: 4.10, hb: 0.84, y0: 0.48, y1: 0.84 },
+  { rx: 4.50, hb: 0.76, y0: 0.36, y1: 0.60 }
+];
+
+function drawSky() {
+  var g = ctx.createLinearGradient(0, 0, 0, Math.max(horizon, 1));
+  g.addColorStop(0, C.sky0);
+  g.addColorStop(0.58, C.sky1);
+  g.addColorStop(1, C.sky2);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, Math.max(horizon + 2, 0));
+  var sunX = W * 0.16;
+  var sunY = horizon - Math.min(54, H * 0.06);
+  var halo = ctx.createRadialGradient(sunX, sunY, 8, sunX, sunY, 160);
+  halo.addColorStop(0, 'rgba(255,214,170,0.95)');
+  halo.addColorStop(0.25, 'rgba(255,170,110,0.45)');
+  halo.addColorStop(1, 'rgba(255,150,90,0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 160, 0, 6.2832);
+  ctx.fill();
+  if (!reduced) {
+    ctx.fillStyle = 'rgba(244, 228, 214, 0.16)';
+    for (var i = 0; i < 4; i++) {
+      var cx = ((i * 280 + visT * 8) % (W + 240)) - 120;
+      var cy = horizon * (0.22 + i * 0.12);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 78, 16, 0, 0, 6.2832);
+      ctx.ellipse(cx + 46, cy + 4, 42, 12, 0, 0, 6.2832);
+      ctx.fill();
+    }
+  }
+  ctx.fillStyle = C.hill2;
+  ctx.beginPath();
+  ctx.moveTo(0, horizon + 1);
+  for (var x = 0; x <= W; x += 18) {
+    var y = horizon - 46 - Math.sin(x * 0.008 + 1.2) * 22 - Math.sin(x * 0.021) * 10;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, horizon + 8);
+  ctx.lineTo(0, horizon + 8);
+  ctx.fill();
+  ctx.fillStyle = C.hill;
+  ctx.beginPath();
+  ctx.moveTo(0, horizon + 1);
+  for (var x2 = 0; x2 <= W; x2 += 18) {
+    var y2 = horizon - 18 - Math.sin(x2 * 0.012) * 14 - Math.sin(x2 * 0.03 + 2) * 6;
+    ctx.lineTo(x2, y2);
+  }
+  ctx.lineTo(W, horizon + 8);
+  ctx.lineTo(0, horizon + 8);
+  ctx.fill();
+}
+
+function drawGround() {
+  ctx.fillStyle = C.grass2;
+  ctx.fillRect(0, horizon, W, H - horizon);
+  var xNear = camX + 4;
+  var xFar = camX + 260;
+  quad(proj(xNear, 0, -16), proj(xNear, 0, 16), proj(xFar, 0, 16), proj(xFar, 0, -16), C.grass);
+  quad(proj(xNear, 0, -4.3), proj(xNear, 0, 4.3), proj(xFar, 0, 4.3), proj(xFar, 0, -4.3), C.road);
+  quad(proj(xNear, 0, -1.55), proj(xNear, 0, 1.55), proj(xFar, 0, 1.55), proj(xFar, 0, -1.55), C.roadDark);
+
+  ctx.lineCap = 'butt';
+  var period = 9;
+  var dash = 3.1;
+  var x0 = Math.floor((camX - 2) / period) * period;
+  for (var x = x0; x < camX + 200; x += period) {
+    var a = proj(x, 0.01, 0);
+    var b = proj(x + dash, 0.01, 0);
+    if (!a || !b) continue;
+    ctx.strokeStyle = C.paint;
+    ctx.globalAlpha = clamp(1.15 - a.d / 180, 0, 0.9);
+    ctx.lineWidth = Math.max(1.2, 0.14 * a.k);
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy);
+    ctx.lineTo(b.sx, b.sy);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  [[-4.15, -4.28], [4.15, 4.28]].forEach(function (pair) {
+    var p0 = proj(xNear, 0.015, pair[0]);
+    var p1 = proj(xFar, 0.015, pair[0]);
+    if (!p0 || !p1) return;
+    ctx.strokeStyle = 'rgba(243,236,223,0.75)';
+    ctx.lineWidth = Math.max(1, 0.08 * p0.k);
+    ctx.beginPath();
+    ctx.moveTo(p0.sx, p0.sy);
+    ctx.lineTo(p1.sx, p1.sy);
+    ctx.stroke();
+  });
+
+  [80, 60, 40, 20].forEach(function (remain) {
+    var px = PERSON_X - remain;
+    var p = proj(px, 0.02, 0);
+    if (!p || p.d > 70) return;
+    ctx.save();
+    ctx.translate(p.sx, p.sy);
+    ctx.scale(1, 0.42);
+    ctx.font = '700 ' + Math.max(11, 1.15 * p.k) + 'px ' + NUM;
+    ctx.fillStyle = 'rgba(243,236,223,0.7)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(remain), 0, 0);
+    ctx.restore();
+  });
+
+  for (var s = 0; s < 5; s++) {
+    var z0 = -1.35 + s * 0.62;
+    quad(
+      proj(PERSON_X - 1.7, 0.02, z0),
+      proj(PERSON_X - 1.7, 0.02, z0 + 0.28),
+      proj(PERSON_X - 0.85, 0.02, z0 + 0.28),
+      proj(PERSON_X - 0.85, 0.02, z0),
+      'rgba(243,236,223,0.88)'
+    );
+  }
+}
+
+function drawLamps() {
+  var start = Math.floor(camX / 26) * 26 - 26;
+  var xs = [];
+  for (var x = start; x < camX + 210; x += 26) xs.push(x);
+  xs.sort(function (a, b) { return b - a; });
+  xs.forEach(function (x) {
+    [-7.4, 7.4].forEach(function (z) {
+      var base = proj(x, 0, z);
+      var top = proj(x, 5.1, z);
+      if (!base || !top || base.d < 1.2 || base.d > 170) return;
+      ctx.globalAlpha = clamp(1.2 - base.d / 150, 0.2, 1);
+      ctx.strokeStyle = '#2c3340';
+      ctx.lineWidth = Math.max(1, 0.07 * base.k);
+      ctx.beginPath();
+      ctx.moveTo(base.sx, base.sy);
+      ctx.lineTo(top.sx, top.sy);
+      ctx.stroke();
+      var head = proj(x, 5.05, z - Math.sign(z) * 0.55);
+      if (head) {
+        var rad = Math.max(2, 0.28 * head.k);
+        var glow = ctx.createRadialGradient(head.sx, head.sy, 0, head.sx, head.sy, rad * 5);
+        glow.addColorStop(0, 'rgba(255, 206, 140, 0.9)');
+        glow.addColorStop(0.35, 'rgba(255, 170, 90, 0.25)');
+        glow.addColorStop(1, 'rgba(255, 160, 80, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(head.sx, head.sy, rad * 5, 0, 6.2832);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+  });
+}
+
+function drawPerson() {
+  var sway = Math.sin(visT * 1.5) * 0.04;
+  var feet = proj(PERSON_X, 0, sway);
+  var hip = proj(PERSON_X, 0.86, sway);
+  var neck = proj(PERSON_X, 1.42, sway);
+  var head = proj(PERSON_X, 1.64, sway);
+  if (!feet || !head) return;
+  ctx.save();
+  if (fallen > 0) {
+    ctx.translate(feet.sx, feet.sy);
+    ctx.rotate(fallen * 1.15 * (CAM_LAT < 0 ? 1 : -1));
+    ctx.translate(-feet.sx, -feet.sy);
+  }
+  var k = feet.k;
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(feet.sx, feet.sy, Math.max(4, 0.38 * k), Math.max(2, 0.12 * k), 0, 0, 6.2832);
+  ctx.fill();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#241e1a';
+  ctx.lineWidth = Math.max(2, 0.11 * k);
+  var kneeL = proj(PERSON_X, 0.46, sway - 0.1);
+  var kneeR = proj(PERSON_X, 0.46, sway + 0.1);
+  var footL = proj(PERSON_X, 0, sway - 0.12);
+  var footR = proj(PERSON_X, 0, sway + 0.12);
+  ctx.beginPath();
+  if (hip && kneeL && footL) {
+    ctx.moveTo(hip.sx, hip.sy);
+    ctx.lineTo(kneeL.sx, kneeL.sy);
+    ctx.lineTo(footL.sx, footL.sy);
+  }
+  if (hip && kneeR && footR) {
+    ctx.moveTo(hip.sx, hip.sy);
+    ctx.lineTo(kneeR.sx, kneeR.sy);
+    ctx.lineTo(footR.sx, footR.sy);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = C.vest;
+  ctx.lineWidth = Math.max(3, 0.28 * k);
+  ctx.beginPath();
+  ctx.moveTo(hip.sx, hip.sy);
+  ctx.lineTo(neck.sx, neck.sy);
+  ctx.stroke();
+  ctx.strokeStyle = '#f3ecdf';
+  ctx.lineWidth = Math.max(1, 0.05 * k);
+  ctx.beginPath();
+  ctx.moveTo(hip.sx, hip.sy + 0.22 * k);
+  ctx.lineTo(neck.sx, neck.sy - 0.05 * k);
+  ctx.stroke();
+  var handL = proj(PERSON_X, 1.05, sway - 0.28);
+  var handR = proj(PERSON_X, 1.05, sway + 0.28);
+  var shL = proj(PERSON_X, 1.32, sway - 0.16);
+  var shR = proj(PERSON_X, 1.32, sway + 0.16);
+  ctx.strokeStyle = C.skin;
+  ctx.lineWidth = Math.max(2, 0.08 * k);
+  ctx.beginPath();
+  if (shL && handL) { ctx.moveTo(shL.sx, shL.sy); ctx.lineTo(handL.sx, handL.sy); }
+  if (shR && handR) { ctx.moveTo(shR.sx, shR.sy); ctx.lineTo(handR.sx, handR.sy); }
+  ctx.stroke();
+  ctx.fillStyle = C.skin;
+  ctx.beginPath();
+  ctx.arc(head.sx, head.sy, Math.max(3.5, 0.16 * k), 0, 6.2832);
+  ctx.fill();
+  ctx.restore();
+
+  var mark = proj(PERSON_X, 2.35, 0);
+  if (mark && fallen < 0.4) {
+    var r = Math.max(13, 0.42 * mark.k);
+    ctx.fillStyle = C.vest;
+    ctx.beginPath();
+    ctx.moveTo(mark.sx, mark.sy - r);
+    ctx.lineTo(mark.sx + r * 0.72, mark.sy);
+    ctx.lineTo(mark.sx, mark.sy + r * 0.72);
+    ctx.lineTo(mark.sx - r * 0.72, mark.sy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#1c1916';
+    ctx.font = '700 ' + Math.max(10, r * 0.7) + 'px ' + SANS;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('人', mark.sx, mark.sy);
+  }
+}
+
+function drawWheel(rx, z) {
+  var c = proj(bumperX - CAR_LEN + rx, WHEEL_R, z);
+  if (!c) return;
+  var rad = WHEEL_R * c.k;
+  var rxw = rad * 0.46;
+  var ryw = rad * 0.96;
+  ctx.save();
+  ctx.translate(c.sx, c.sy);
+  ctx.fillStyle = '#0e1013';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rxw, ryw, 0, 0, 6.2832);
+  ctx.fill();
+  ctx.fillStyle = C.rim;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rxw * 0.55, ryw * 0.55, 0, 0, 6.2832);
+  ctx.fill();
+  ctx.strokeStyle = '#3a3e44';
+  ctx.lineWidth = Math.max(1, rad * 0.06);
+  ctx.save();
+  ctx.rotate(spin);
+  ctx.beginPath();
+  ctx.moveTo(0, -ryw * 0.42);
+  ctx.lineTo(0, ryw * 0.42);
+  ctx.moveTo(-rxw * 0.42, 0);
+  ctx.lineTo(rxw * 0.42, 0);
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#1a1d22';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rxw * 0.16, ryw * 0.16, 0, 0, 6.2832);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCar() {
+  var shadow = proj(bumperX - 2.2, 0, 0);
+  if (shadow) {
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.beginPath();
+    ctx.ellipse(shadow.sx, shadow.sy + 2, 1.7 * shadow.k, 0.42 * shadow.k, -yaw * 0.4, 0, 6.2832);
+    ctx.fill();
+  }
+  var glowAmt = blown ? 0 : clamp(pressure / 900, 0, 1);
+  if (glowAmt > 0.05) {
+    var pool = proj(bumperX - CAR_LEN - 0.3, 0.02, 0);
+    if (pool) {
+      ctx.fillStyle = 'rgba(255, 40, 28, ' + (0.18 * glowAmt) + ')';
+      ctx.beginPath();
+      ctx.ellipse(pool.sx, pool.sy, 1.3 * pool.k, 0.35 * pool.k, 0, 0, 6.2832);
+      ctx.fill();
+    }
+  }
+
+  for (var i = SECTIONS.length - 2; i >= 0; i--) {
+    var A = sectionCorners(SECTIONS[i]);
+    var B = sectionCorners(SECTIONS[i + 1]);
+    quad(A.tr, B.tr, B.br, A.br, C.carFar);
+    quad(A.bl, A.br, B.br, B.bl, C.carBot);
+    quad(A.tl, B.tl, B.tr, A.tr, i > 2 ? C.carTop : '#ddd4c6');
+    quad(A.tl, A.bl, B.bl, B.tl, C.carNear);
+  }
+
+  var glassRear = [
+    carBodyPoint(1.35, 1.18, -0.62),
+    carBodyPoint(1.35, 1.18, 0.62),
+    carBodyPoint(2.35, 1.40, 0.55),
+    carBodyPoint(2.35, 1.40, -0.55)
+  ];
+  quad(glassRear[0], glassRear[1], glassRear[2], glassRear[3], C.glass);
+  var wind = [
+    carBodyPoint(2.55, 1.38, -0.58),
+    carBodyPoint(2.55, 1.38, 0.58),
+    carBodyPoint(3.22, 1.02, 0.62),
+    carBodyPoint(3.22, 1.02, -0.62)
+  ];
+  quad(wind[0], wind[1], wind[2], wind[3], '#2c3d52');
+
+  var cap = sectionCorners(SECTIONS[0]);
+  quad(cap.bl, cap.br, cap.tr, cap.tl, '#cfc7ba');
+  var plate = [
+    carBodyPoint(0.02, 0.58, -0.22),
+    carBodyPoint(0.02, 0.58, 0.22),
+    carBodyPoint(0.02, 0.78, 0.22),
+    carBodyPoint(0.02, 0.78, -0.22)
+  ];
+  quad(plate[0], plate[1], plate[2], plate[3], '#f7f1e4');
+
+  [[-0.58, 0.78], [0.58, 0.78]].forEach(function (lz) {
+    var p = carBodyPoint(0.04, lz[1], lz[0]);
+    if (!p) return;
+    var rw = Math.max(4, 0.2 * p.k);
+    var rh = Math.max(3, 0.1 * p.k);
+    ctx.fillStyle = glowAmt > 0.08 ? C.brake : '#6a2420';
+    roundRect(p.sx - rw, p.sy - rh, rw * 2, rh * 2, 3);
+    ctx.fill();
+    if (glowAmt > 0.08) {
+      var rad = rw * (2.2 + glowAmt * 2.4);
+      var g = ctx.createRadialGradient(p.sx, p.sy, rw * 0.2, p.sx, p.sy, rad);
+      g.addColorStop(0, 'rgba(255,50,36,' + (0.55 * glowAmt) + ')');
+      g.addColorStop(1, 'rgba(255,40,30,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, rad, 0, 6.2832);
+      ctx.fill();
+    }
+  });
+
+  drawWheel(0.98, 0.86);
+  drawWheel(0.98, -0.86);
+}
+
+function drawSmoke() {
+  particles.forEach(function (p) {
+    var q = proj(p.x, p.y, p.z);
+    if (!q) return;
+    ctx.fillStyle = 'rgba(210,206,200,' + (0.28 * p.life / p.max) + ')';
+    ctx.beginPath();
+    ctx.ellipse(q.sx, q.sy, p.r * q.k, p.r * q.k * 0.55, 0, 0, 6.2832);
+    ctx.fill();
+  });
+}
+
+function drawWorld() {
+  horizon = H * 0.40 + camPitch * (reduced ? 40 : 240);
+  horizon = clamp(horizon, H * 0.22, H * 0.58);
+  var rush = clamp((camVel - v) * 0.012, -0.12, 0.18);
+  var saved = focal;
+  focal = saved * (1 + (reduced ? 0 : rush));
+  ctx.save();
+  if (shake > 0.01 && !reduced) {
+    ctx.translate(Math.sin(visT * 46) * 7 * shake, Math.cos(visT * 39) * 4 * shake);
+  }
+  drawSky();
+  drawGround();
+  drawLamps();
+  drawPerson();
+  drawSmoke();
+  drawCar();
+  ctx.restore();
+  focal = saved;
+}
+
+function fontPx(n) {
+  return Math.round(n * (ui.s || 1));
+}
+
+function drawCluster() {
+  var r = ui.cluster;
+  roundRect(r.x, r.y, r.w, r.h, 14);
+  ctx.fillStyle = 'rgba(244,239,228,0.94)';
+  ctx.fill();
+  var cols = [
+    { n: (v * 3.6).toFixed(v * 3.6 < 10 ? 1 : 0), u: 'km/h', label: '速度' },
+    { n: Math.max(0, -a).toFixed(1), u: 'm/s²', label: '减速度' },
+    { n: Math.max(0, PERSON_X - bumperX).toFixed((PERSON_X - bumperX) < 20 ? 1 : 0), u: 'm', label: '距人' }
+  ];
+  var colW = r.w / 3;
+  for (var i = 0; i < 3; i++) {
+    var x = r.x + colW * i;
+    if (i) {
+      ctx.strokeStyle = 'rgba(28,25,22,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, r.y + 12);
+      ctx.lineTo(x, r.y + r.h - 30);
+      ctx.stroke();
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(28,25,22,0.62)';
+    ctx.font = '600 ' + fontPx(12) + 'px ' + SANS;
+    ctx.fillText(cols[i].label, x + colW / 2, r.y + 20);
+    ctx.fillStyle = C.ink;
+    if (i === 1 && -a > 5) ctx.fillStyle = '#9f1f18';
+    if (i === 2 && PERSON_X - bumperX < 18) ctx.fillStyle = C.danger;
+    ctx.font = '600 ' + fontPx(28) + 'px ' + NUM;
+    ctx.fillText(cols[i].n, x + colW / 2, r.y + 52);
+    ctx.fillStyle = 'rgba(28,25,22,0.55)';
+    ctx.font = '500 ' + fontPx(11) + 'px ' + SANS;
+    ctx.fillText(cols[i].u, x + colW / 2, r.y + 68);
+  }
+  if (trace.length > 1) {
+    ctx.beginPath();
+    var left = r.x + 12;
+    var top = r.y + r.h - 16;
+    var tw = r.w - 24;
+    for (var t = 0; t < trace.length; t++) {
+      var px = left + (trace.length === 1 ? 0 : t / (trace.length - 1)) * tw;
+      var py = top - (trace[t] / 110) * 12;
+      if (t === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = 'rgba(28,25,22,0.45)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+}
+
+function drawGauge() {
+  var r = ui.gauge;
+  roundRect(r.x, r.y, r.w, r.h, 12);
+  ctx.fillStyle = 'rgba(244,239,228,0.94)';
+  ctx.fill();
+  var innerX = r.x + 16;
+  var innerY = r.y + 28;
+  var innerW = r.w - 32;
+  var innerH = r.h - 58;
+  roundRect(innerX, innerY, innerW, innerH, 6);
+  ctx.fillStyle = '#e7e0d2';
+  ctx.fill();
+  var y1600 = innerY + innerH - (LIMIT / 2000) * innerH;
+  ctx.fillStyle = 'rgba(210,31,22,0.16)';
+  ctx.fillRect(innerX, innerY, innerW, Math.max(0, y1600 - innerY));
+  var shown = clamp(pedal, 0, 2000);
+  var fillH = (shown / 2000) * innerH;
+  ctx.fillStyle = shown > LIMIT ? '#ff3828' : shown > 1450 ? '#c43224' : '#8d2e24';
+  ctx.fillRect(innerX, innerY + innerH - fillH, innerW, fillH);
+  ctx.strokeStyle = C.danger;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(innerX - 4, y1600);
+  ctx.lineTo(innerX + innerW + 4, y1600);
+  ctx.stroke();
+  var yLine = innerY + innerH - (clamp(pressure, 0, 2000) / 2000) * innerH;
+  ctx.fillStyle = C.ink;
+  ctx.beginPath();
+  ctx.moveTo(innerX + innerW + 2, yLine);
+  ctx.lineTo(innerX + innerW + 9, yLine - 4);
+  ctx.lineTo(innerX + innerW + 9, yLine + 4);
+  ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = shown > 1450 ? C.danger : C.ink;
+  ctx.font = '600 ' + fontPx(22) + 'px ' + NUM;
+  ctx.fillText(String(Math.round(shown)), r.x + r.w / 2, r.y + r.h - 14);
+  ctx.fillStyle = 'rgba(28,25,22,0.7)';
+  ctx.font = '600 ' + fontPx(12) + 'px ' + SANS;
+  ctx.textAlign = 'left';
+  ctx.fillText(r.w < 64 ? 'N' : '踩踏力 N', r.x + 10, r.y + 18);
+  ctx.fillStyle = C.danger;
+  ctx.textAlign = 'right';
+  ctx.font = '700 ' + fontPx(11) + 'px ' + NUM;
+  ctx.fillText('1600', r.x + r.w - 8, y1600 - 4);
+  if (locked && v > 1) {
+    ctx.fillStyle = C.danger;
+    ctx.textAlign = 'left';
+    ctx.font = '600 ' + fontPx(12) + 'px ' + SANS;
+    ctx.fillText('车轮咬死', r.x, r.y + r.h + 16);
+  }
+}
+
+function drawFootwell() {
+  var w = ui.well;
+  var h = ui.hinge;
+  roundRect(w.x, w.y, w.w, w.h, 18);
+  ctx.fillStyle = '#16191d';
+  ctx.fill();
+  roundRect(w.x + 10, w.y + 34, w.w - 20, w.h - 46, 12);
+  ctx.fillStyle = C.floor;
+  ctx.fill();
+  ctx.fillStyle = C.cream;
+  ctx.font = '600 ' + fontPx(13) + 'px ' + SANS;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('刹车踏板', w.x + 14, w.y + 23);
+  ctx.fillStyle = C.danger;
+  ctx.font = '700 ' + fontPx(12) + 'px ' + NUM;
+  ctx.textAlign = 'right';
+  ctx.fillText('1600 N', w.x + w.w - 12, w.y + 23);
+
+  ctx.textAlign = 'left';
+  if (pedal > 1450 && !blown && mode === 'play') {
+    ctx.fillStyle = C.danger;
+    ctx.font = '600 ' + fontPx(12) + 'px ' + SANS;
+    ctx.fillText('接近断开', w.x + 14, w.y + w.h - 14);
+  } else {
+    ctx.fillStyle = 'rgba(244,239,228,0.62)';
+    ctx.font = '500 ' + fontPx(11) + 'px ' + SANS;
+    ctx.fillText(latch ? '松键就停在这一脚' : '按住拖动，松手抬脚', w.x + 14, w.y + w.h - 14);
+  }
+
+  ctx.save();
+  roundRect(w.x + 8, w.y + 32, w.w - 16, w.h - 52, 12);
+  ctx.clip();
+
+  var limitAng = h.a0 + (LIMIT / 2000) * (h.a1 - h.a0);
+  ctx.strokeStyle = 'rgba(226,59,50,0.95)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(h.x + Math.cos(limitAng) * (h.len * 0.35), h.y + Math.sin(limitAng) * (h.len * 0.35));
+  ctx.lineTo(h.x + Math.cos(limitAng) * (h.len + 6), h.y + Math.sin(limitAng) * (h.len + 6));
+  ctx.stroke();
+
+  var dep = clamp((blown ? pedal : Math.max(pedal, pedalTarget * 0.2 + pedal * 0.8)) / 2000, 0, 1);
+  var ang = h.a0 + dep * (h.a1 - h.a0);
+  ctx.save();
+  ctx.translate(h.x, h.y);
+  ctx.rotate(ang);
+  ctx.fillStyle = blown ? '#6e3430' : C.metal;
+  roundRect(0, -4, h.len, 8, 3);
+  ctx.fill();
+  ctx.fillStyle = C.rubber;
+  roundRect(h.len - 42, -20, 50, 40, 7);
+  ctx.fill();
+  ctx.fillStyle = '#2c3136';
+  for (var i = 0; i < 4; i++) {
+    roundRect(h.len - 36, -14 + i * 8, 36, 3, 1.5);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.fillStyle = blown ? '#888' : C.cream;
+  ctx.beginPath();
+  ctx.arc(h.x, h.y, 6, 0, 6.2832);
+  ctx.fill();
+  ctx.fillStyle = '#1c1916';
+  ctx.beginPath();
+  ctx.arc(h.x, h.y, 2.2, 0, 6.2832);
+  ctx.fill();
+  ctx.restore();
+
+  if (pin) {
+    ctx.save();
+    ctx.translate(pin.x, pin.y);
+    ctx.rotate(pin.rot);
+    ctx.globalAlpha = clamp(pin.life / 0.3, 0, 1);
+    ctx.fillStyle = C.danger;
+    roundRect(-12, -3, 24, 6, 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawButton(r, label, hot) {
+  roundRect(r.x, r.y, r.w, r.h, 10);
+  ctx.fillStyle = hot ? '#9f1f18' : C.ink;
+  ctx.fill();
+  ctx.fillStyle = C.cream;
+  ctx.font = '600 ' + fontPx(18) + 'px ' + SANS;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + 1);
+}
+
+function drawMenu() {
+  var c = ui.menu;
+  roundRect(c.x, c.y, c.w, c.h, 18);
+  ctx.fillStyle = 'rgba(244,239,228,0.95)';
+  ctx.fill();
+  var x = c.x + 26;
+  var y = c.y + 18;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(28,25,22,0.55)';
+  ctx.font = '600 ' + fontPx(13) + 'px ' + SANS;
+  ctx.fillText('时速 100 km/h', x, y + 16);
+  ctx.fillStyle = C.ink;
+  ctx.font = '600 ' + fontPx(72) + 'px ' + NUM;
+  ctx.fillText('1600', x, y + 92);
+  ctx.font = '600 ' + fontPx(22) + 'px ' + SANS;
+  ctx.fillText('牛顿', x + 4, y + 122);
+  ctx.font = '500 ' + fontPx(15) + 'px ' + SANS;
+  var lines = [
+    '车道前面站着一个人。',
+    '踩住踏板，力气越大，停得越短。',
+    '超过 1600 N，刹车断开。',
+    '距离太长，就会撞上去。',
+    '踏板下去之后，车不会马上慢下来。'
+  ];
+  var ly = y + 162;
+  for (var i = 0; i < lines.length; i++) {
+    ctx.fillStyle = i === 4 ? '#6e3a28' : C.ink;
+    ctx.fillText(lines[i], x, ly);
+    ly += fontPx(24);
+  }
+  ctx.fillStyle = 'rgba(28,25,22,0.72)';
+  ctx.font = '500 ' + fontPx(13) + 'px ' + SANS;
+  ctx.fillText('鼠标按住踏板拖动，松手等于抬脚。', x, c.y + c.h - 92);
+  ctx.fillText('方向键 ↓↑ 加减力，松开后停在这一脚。', x, c.y + c.h - 74);
+  drawButton(ui.startBtn, '开始刹车', inRect(pointerX, pointerY, ui.startBtn));
+}
+
+function resultCopy() {
+  if (reason === 'disconnect') {
+    var lines = [
+      '踩踏力超过 1600 N，管路泄压。',
+      '制动力没了，速度还在。'
+    ];
+    if (hitDone) lines.push('接着以 ' + Math.round(impactSpeed * 3.6) + ' km/h 撞上前面的人。');
+    else lines.push('车正往人身上冲。');
+    return { title: '刹车断开', lines: lines };
+  }
+  if (reason === 'hit') {
+    var tip = peak < 1050 ? '这一脚偏轻。' : '踩晚了，或者中间松过。';
+    return {
+      title: '没刹住',
+      lines: [
+        '走了 ' + Math.max(0, bumperX).toFixed(0) + ' 米，还是撞上了。',
+        '撞上时还有 ' + Math.round(impactSpeed * 3.6) + ' km/h。',
+        tip + ' 峰值 ' + Math.round(peak) + ' N。'
+      ]
+    };
+  }
+  var margin = Math.max(0, PERSON_X - bumperX);
+  var flavor = margin < 8 ? '几乎贴到人。' : margin < 22 ? '前面留了一小段。' : '停得还比较早。';
+  return {
+    title: '刹住了',
+    lines: [
+      '刹车距离 ' + Math.max(0, bumperX).toFixed(1) + ' 米。',
+      '离人还有 ' + margin.toFixed(1) + ' 米，' + flavor,
+      '峰值踩踏力 ' + Math.round(peak) + ' N。'
+    ]
+  };
+}
+
+function drawEnd() {
+  if (endAge < 1.35) {
+    var title = reason === 'disconnect' ? '刹车断开' : reason === 'win' ? '刹住了' : '没刹住';
+    ctx.save();
+    ctx.translate(W / 2, H * 0.22);
+    ctx.rotate(-0.04);
+    ctx.globalAlpha = clamp(endAge / 0.15, 0, 1) * (endAge > 1 ? 1 - (endAge - 1) / 0.35 : 1);
+    ctx.fillStyle = reason === 'win' ? C.cream : '#ffefef';
+    ctx.font = '600 ' + fontPx(64) + 'px ' + SANS;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(title, 0, 0);
+    ctx.restore();
+  }
+  if (endAge < 0.85) return;
+  var card = ui.end;
+  var copy = resultCopy();
+  ctx.globalAlpha = clamp((endAge - 0.85) / 0.28, 0, 1);
+  roundRect(card.x, card.y, card.w, card.h, 18);
+  ctx.fillStyle = 'rgba(244,239,228,0.96)';
+  ctx.fill();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = reason === 'win' ? C.ink : C.danger;
+  ctx.font = '600 ' + fontPx(36) + 'px ' + SANS;
+  ctx.fillText(copy.title, card.x + 26, card.y + 58);
+  ctx.fillStyle = C.ink;
+  ctx.font = '500 ' + fontPx(16) + 'px ' + SANS;
+  for (var i = 0; i < copy.lines.length; i++) {
+    ctx.fillText(copy.lines[i], card.x + 26, card.y + 102 + i * 28);
+  }
+  drawButton(ui.againBtn, '再来一次', inRect(pointerX, pointerY, ui.againBtn));
+  ctx.globalAlpha = 1;
+}
+
+function drawHint() {
+  if (mode !== 'play' || hint < 0.04 || elapsed > 4.2 || ui.narrow) return;
+  ctx.globalAlpha = clamp(hint, 0, 1);
+  ctx.fillStyle = C.cream;
+  ctx.font = '600 ' + fontPx(16) + 'px ' + SANS;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  var hy = ui.cluster.y + ui.cluster.h + 26;
+  ctx.fillStyle = 'rgba(16,23,34,0.55)';
+  var hw = 340;
+  roundRect(W / 2 - hw / 2, hy - 18, hw, 28, 8);
+  ctx.fill();
+  ctx.fillStyle = C.cream;
+  ctx.fillText('按住踏板。越重越狠，过了红线就断。', W / 2, hy);
+  ctx.globalAlpha = 1;
+}
+
+function draw() {
+  layout();
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = C.sky0;
+  ctx.fillRect(0, 0, W, H);
+  drawWorld();
+  if (mode !== 'menu') {
+    drawCluster();
+    drawGauge();
+    drawHint();
+  }
+  if (!(mode === 'menu' && ui.narrow)) drawFootwell();
+  if (mode === 'menu') drawMenu();
+  if (mode === 'win' || mode === 'lose') drawEnd();
+  var overBtn = (mode === 'menu' && inRect(pointerX, pointerY, ui.startBtn))
+    || ((mode === 'win' || mode === 'lose') && endAge > 0.9 && inRect(pointerX, pointerY, ui.againBtn))
+    || (mode === 'play' && inRect(pointerX, pointerY, ui.well));
+  canvas.style.cursor = overBtn ? 'pointer' : 'default';
+}
+
+function frame(now) {
+  if (!last) last = now;
+  var dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.25) dt = 0;
+  dt = Math.min(dt, 0.05);
+  visT += dt;
+  if (mode === 'play' && elapsed > 0.4 && (pedaling || pedal > 40)) hint -= dt * 0.8;
+  acc += dt;
+  var h = 1 / 120;
+  var guard = 0;
+  while (acc >= h && guard++ < 8) {
+    if (mode === 'play' || mode === 'lose') step(h);
+    else if (mode === 'win') settle(h);
+    else acc = 0;
+    if (mode === 'menu') break;
+    acc -= h;
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+
+function canvasPos(e) {
+  var r = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (W / r.width),
+    y: (e.clientY - r.top) * (H / r.height)
+  };
+}
+
+function pressAt(x, y) {
+  if (mode === 'menu' && inRect(x, y, ui.startBtn)) {
+    startGame();
+    return true;
+  }
+  if ((mode === 'win' || mode === 'lose') && endAge > 0.9 && inRect(x, y, ui.againBtn)) {
+    startGame();
+    return true;
+  }
+  return false;
+}
+
+canvas.addEventListener('pointerdown', function (e) {
+  var p = canvasPos(e);
+  pointerX = p.x;
+  pointerY = p.y;
+  canvas.focus();
+  if (pressAt(p.x, p.y)) {
+    pedaling = false;
+    return;
+  }
+  if (mode === 'play' && inRect(p.x, p.y, ui.well)) {
+    pedaling = true;
+    pointerId = e.pointerId;
+    canvas.setPointerCapture(e.pointerId);
+    setupAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+});
+
+canvas.addEventListener('pointermove', function (e) {
+  var p = canvasPos(e);
+  pointerX = p.x;
+  pointerY = p.y;
+});
+
+function endPointer(e) {
+  if (pointerId === null || e.pointerId === pointerId) {
+    pedaling = false;
+    pointerId = null;
+  }
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+
+window.addEventListener('keydown', function (e) {
+  if (e.repeat) return;
+  keys[e.code] = true;
+  if (e.code === 'ArrowDown' || e.code === 'ArrowUp' || e.code === 'Space') e.preventDefault();
+  if (e.code === 'Enter' || e.code === 'Space') {
+    if (mode === 'menu') startGame();
+    else if ((mode === 'win' || mode === 'lose') && endAge > 0.7) startGame();
+  }
+  if ((e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'KeyW') && mode === 'play') {
+    setupAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+});
+
+window.addEventListener('keyup', function (e) {
+  keys[e.code] = false;
+});
+
+window.addEventListener('resize', resize);
+
+function setupAudio() {
+  if (audioCtx) return;
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  audioCtx = new AC();
+  var len = audioCtx.sampleRate * 2;
+  var buffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  var data = buffer.getChannelData(0);
+  var b0 = 0;
+  var b1 = 0;
+  for (var i = 0; i < len; i++) {
+    var white = Math.random() * 2 - 1;
+    b0 = 0.995 * b0 + 0.02 * white;
+    b1 = 0.97 * b1 + 0.04 * white;
+    data[i] = b0 * 0.7 + b1 * 0.25;
+  }
+  var src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  src.loop = true;
+  roadFilter = audioCtx.createBiquadFilter();
+  roadFilter.type = 'lowpass';
+  roadFilter.frequency.value = 420;
+  roadGain = audioCtx.createGain();
+  roadGain.gain.value = 0;
+  src.connect(roadFilter);
+  roadFilter.connect(roadGain);
+  roadGain.connect(audioCtx.destination);
+  src.start();
+  brakeOsc = audioCtx.createOscillator();
+  brakeOsc.type = 'sawtooth';
+  brakeOsc.frequency.value = 60;
+  var bf = audioCtx.createBiquadFilter();
+  bf.type = 'lowpass';
+  bf.frequency.value = 220;
+  brakeGain = audioCtx.createGain();
+  brakeGain.gain.value = 0;
+  brakeOsc.connect(bf);
+  bf.connect(brakeGain);
+  brakeGain.connect(audioCtx.destination);
+  brakeOsc.start();
+}
+
+function syncAudio() {
+  if (!audioCtx || !roadGain) return;
+  var now = audioCtx.currentTime;
+  var moving = mode === 'play' || mode === 'lose' || mode === 'win';
+  roadGain.gain.setTargetAtTime(moving ? Math.min(0.04, (v / 28) * 0.038) : 0, now, 0.08);
+  roadFilter.frequency.setTargetAtTime(260 + v * 16, now, 0.1);
+  var bg = !blown && pressure > 140 && moving ? Math.min(0.02, (pressure / LIMIT) * 0.018) : 0;
+  brakeGain.gain.setTargetAtTime(bg, now, 0.06);
+  brakeOsc.frequency.setTargetAtTime(42 + pressure * 0.05, now, 0.06);
+}
+
+function tone(freq, dur, type, gain, slide) {
+  if (!audioCtx) return;
+  var o = audioCtx.createOscillator();
+  var g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  if (slide && slide !== freq) o.frequency.exponentialRampToValueAtTime(Math.max(1, slide), audioCtx.currentTime + dur);
+  g.gain.setValueAtTime(gain, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + dur + 0.02);
+}
+
+function noise(dur, gain) {
+  if (!audioCtx) return;
+  var len = Math.floor(audioCtx.sampleRate * dur);
+  var buffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  var data = buffer.getChannelData(0);
+  for (var i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  var src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  var g = audioCtx.createGain();
+  g.gain.value = gain;
+  var f = audioCtx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = 180;
+  src.connect(f);
+  f.connect(g);
+  g.connect(audioCtx.destination);
+  src.start();
+}
+
+resize();
+resetWorld();
+mode = 'menu';
+draw();
+canvas.focus();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
