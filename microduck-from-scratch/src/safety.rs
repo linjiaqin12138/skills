@@ -149,10 +149,11 @@ impl<T: RobotIo> Safety<T> {
     }
 
     /// 舵机出力开关。经由此处是因为 Safety 拥有唯一写句柄。
-    /// 控制循环只在 enabled 开关边沿（robot.enable 写入了新值）调它，
-    /// 绝不每拍调，也绝不在
-    /// 进程启动时调——舵机 RAM 里的 torque 跨进程存活，被 supervisor
-    /// 重启的 daemon 必须让站着的机器人继续站着。
+    /// 控制循环只在 enabled 开关边沿调它，绝不每拍调，Held 启动也不调——
+    /// 舵机 RAM 里的 torque 跨进程存活，被重启的 daemon 必须让站着的
+    /// 机器人继续站着。`--sim` 且策略已加载时 main 在进循环前调一次
+    /// true：仿真没有跨进程的舵机 RAM，不开 torque 第一拍的策略目标
+    /// 不会出力；开环抱持约 2 秒就会摔倒。
     pub fn set_torque(&mut self, on: bool) -> Result<(), IoError> {
         eprintln!("safety: torque {on}");
         self.io.set_torque(on)

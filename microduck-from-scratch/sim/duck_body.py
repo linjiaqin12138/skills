@@ -66,9 +66,7 @@ STAND_KEY = "STAND"
 BAM_MOTOR_NAME = "xl330"
 BAM_MODEL = "m6"
 # 训练真值 kp_fw=200（蓝图 BAM_KP_FW / microduck_constants）。
-# 开环抱持撑不住 200：配合「冻结物理直到 set_torque(true)」+ daemon
-# --sim 跳过 RampUp 直进 Driving（见 control.rs skip_bringup_ramp）。
-# MINIDUCK_SIM_BAM_KP 可覆盖。
+# MINIDUCK_SIM_BAM_KP 可覆盖（诊断）。
 BAM_KP_FW = float(os.environ.get("MINIDUCK_SIM_BAM_KP", "200"))
 BAM_VIN = 7.4           # 名义 2S LiPo（蓝图 --vin 默认）
 BAM_VIN_DROP_GAIN = 0.1 # V_drop = gain * sum|tau|（蓝图 --vin-drop-gain 默认）
@@ -187,12 +185,6 @@ class DuckBody:
         # 默认 torque on、gain=200（满增益），daemon 不碰它们也能站住。
         self.gain = 200
         self.torque = True
-        # BAM 开环撑不住长 Held：可选冻结直到 set_torque(true)。
-        # MINIDUCK_SIM_BAM_FREEZE=0 关闭（对照）；默认开。
-        freeze_env = os.environ.get("MINIDUCK_SIM_BAM_FREEZE", "1").strip().lower()
-        self.physics_frozen = use_bam and freeze_env not in ("0", "false", "no", "off")
-        # BAM 步态踢出计时：见 step_tick 里对「直立 + 跟踪误差大 + jvel≈0」不动点的处理。
-        self._last_gait_kick_t = -1e9
 
         # 物理与渲染共用 MjData：read 步进和画面采样必须互斥，否则画面撕在半拍上。
         self.lock = threading.Lock()
@@ -249,9 +241,6 @@ class DuckBody:
 
     def step_tick(self):
         with self.lock:
-            if self.physics_frozen:
-                # 冻结：不推进时间，仍回当前传感（enable 前 Held 读不会摔倒）。
-                return
             # 拖拽扰动 → 物理。MuJoCo 3.14.0 实测：viewer.sync() 自己就会清
             # xfrc_applied 并施加 pert（simulate.cc Sync 的 is_passive 分支），
             # 这里再施加一次是冗余但无害——applyPerturbForce 是覆写语义
@@ -268,28 +257,6 @@ class DuckBody:
                                                 self.perturb, 0)
                     mujoco.mjv_applyPerturbForce(self.model, self.data,
                                                  self.perturb)
-            # BAM + 冻结 bringup 后，vx 命令下策略易落入「常值动作 + jvel≈0」站立不动点
-            #（PD 软弹簧自带残差速度，无此问题；官方 infer_policy 不冻结，落地扰动够用）。
-            # 直立（z>0.105，坐姿区以下不踢）且跟踪误差大、关节几乎静止时，给躯干一点
-            # 前向速度把策略踢进步态吸引子。MINIDUCK_SIM_BAM_NUDGE_VX=0 关闭。
-            # 代理假设：0.12≈命令步速量级；冷却 1s 防止连踢。
-            if self.bam_ctrl is not None:
-                # 控制环 twist 上升沿会 push；此处作兜底：直立卡住时每 2s 再踢。
-                nudge = float(os.environ.get("MINIDUCK_SIM_BAM_NUDGE_VX", "0.20"))
-                if nudge != 0.0:
-                    q = self.data.qpos[self.bam_ctrl.qpos_indexes]
-                    dq = self.data.qvel[self.bam_ctrl.dof_indexes]
-                    err = float(np.linalg.norm(self.bam_ctrl.q_target - q))
-                    vrms = float(np.linalg.norm(dq) / (len(dq) ** 0.5))
-                    z = float(self.data.xpos[self.trunk_id][2])
-                    if (
-                        z > 0.105
-                        and err > 0.03
-                        and vrms < 0.15
-                        and (self.data.time - self._last_gait_kick_t) >= 2.0
-                    ):
-                        self.data.qvel[0] += nudge
-                        self._last_gait_kick_t = float(self.data.time)
             for _ in range(self.substeps):
                 # BAM：固件 P 环 + 电机方程写 torque 到 ctrl，再 mj_step。
                 # 来源：蓝图步进环 L1757–1764。
@@ -367,9 +334,6 @@ class DuckBody:
             if not isinstance(on, bool):
                 return {"error": "on must be a bool"}
             self.torque = on
-            # enable 边沿 safety.set_torque(true)：解冻 BAM 物理（配合 --sim 跳过 RampUp）。
-            if on:
-                self.physics_frozen = False
             self._apply_gains()
             return {}
         if op == "push":

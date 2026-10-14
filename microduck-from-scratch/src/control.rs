@@ -14,6 +14,10 @@
 //!                                    │
 //!                                    └──enable {on:true}──▶ 直接回 Driving（无斜坡）
 //!
+//! 假总线与无策略从 Held 起。`--sim` 且策略已加载是例外：调用方已
+//! torque on、enabled=true，循环第一拍就是 Driving。仿真里开环抱持约
+//! 2 秒前倾摔倒，RampUp 正好是这 2 秒，策略必须在落地期间就在环里。
+//!
 //! 斜坡完成后按 enabled 现值落 Driving 或 Stopped，所以 RampUp/Limp 途中的
 //! enable 边沿不会丢（边沿只动 Held/Stopped/Driving，其余阶段自然汇入）。
 //! 卸 torque 是 robot.relax 的活（enable 管策略、init/relax 管电源，两对
@@ -336,21 +340,15 @@ fn ramp_done_phase(enabled: bool) -> Phase {
 /// 启动控制任务，返回计数器和最新快照的接收端。
 /// `control` 由 RPC 层写（robot.move/enable/do/mouth/head）、循环每拍读。
 /// `scheduler` 为 None 时（D19：walk 策略加载失败不退出）永远停在 Held 抱持。
+///
+/// `start_driving`：仅 `--sim` 且策略已加载。调用方已 `set_torque(true)`
+/// 并置 `enabled`。仿真开环抱持约 2 秒摔倒，第一拍必须已经是 Driving，
+/// 不能再走 RampUp。假总线传 false。
 pub fn spawn(
-    safety: Safety<Box<dyn RobotIo>>,
-    scheduler: Option<Scheduler>,
-    control: SharedControl,
-) -> (Arc<Stats>, watch::Receiver<FrameSnapshot>) {
-    // FakeIo/真机默认：完整 Held→RampUp bringup。
-    spawn_with_options(safety, scheduler, control, /*skip_bringup_ramp=*/ false)
-}
-
-/// 与 [`spawn`] 相同，可关掉 bringup 斜坡（`--sim` / BAM 用）。
-pub fn spawn_with_options(
     mut safety: Safety<Box<dyn RobotIo>>,
     mut scheduler: Option<Scheduler>,
     control: SharedControl,
-    skip_bringup_ramp: bool,
+    start_driving: bool,
 ) -> (Arc<Stats>, watch::Receiver<FrameSnapshot>) {
     let config = SafetyConfig::default();
     let stats = Arc::new(Stats::new(scheduler.is_some()));
@@ -368,16 +366,20 @@ pub fn spawn_with_options(
             // 原版用 Skip：积压时丢拍，避免 Burst 连发电机命令；Delay 实测掉到 43.1Hz。
             timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
-            let mut phase = Phase::Held { hold: None };
-            let mut was_enabled = false;
-            let mut torque_on = false;
+            // was_enabled 与相位一起置位：enabled 已经是 true。若从 false
+            // 边沿进来，Held 会走 RampUp——2 秒开环，仿真里正好是摔倒时间。
+            let mut phase = if start_driving {
+                Phase::Driving
+            } else {
+                Phase::Held { hold: None }
+            };
+            let mut was_enabled = start_driving;
+            let mut torque_on = start_driving;
             // 策略输出低通锚点；斜坡/Limp 阶段不算，策略第一拍为 None。
             let mut previous_targets: Option<[f64; NUM_JOINTS]> = None;
             // 斜坡/抱持/Limp 期间保持 0；策略成功拍才更新，失败不改。
             let mut last_action = [0.0f32; ACTION_LEN];
             let mut tick: u64 = 0;
-            // BAM 仿真：上一次 gated twist 水平范数；用于检测 0→非零上升沿。
-            let mut prev_twist_speed = 0.0f64;
 
             // 速率/抖动统计：每 5 秒一行，给 grep 用；同时记进 Stats 供 health。
             let mut window_start = Instant::now();
@@ -445,27 +447,6 @@ pub fn spawn_with_options(
                 // gate 每拍都调（armed 语义防日志噪音）；Driving 用 gated 命令组 obs。
                 let (gated, _limit) = safety.gate(command, intent_age);
 
-                // BAM + 冻结 bringup：静止站立时 vx 命令会落入策略不动点（常值
-                // 动作、jvel≈0、几乎不位移）。PD 软弹簧自带残差速度无此问题。
-                // 在 gated twist 水平速度进入行走量级（0.05..0.4）的上升沿给仿
-                // 真躯干一点前向速度，踢进步态吸引子（真机 push 为空操作）。
-                // 上限 0.4：避开 sit 的 posture 旗标 twist=[1,0,0]（speed=1）。
-                // 代理假设：0.30 m/s（对照实验：手动 push 0.30 → dx≈0.45；
-                // 0.20/0.25 仅到 ≈0.36，略低于 0.4 门槛）。
-                if skip_bringup_ramp {
-                    let speed = (gated.twist[0] * gated.twist[0]
-                        + gated.twist[1] * gated.twist[1])
-                        .sqrt();
-                    let walk_band = (0.05..0.4).contains(&speed);
-                    let was_walk = (0.05..0.4).contains(&prev_twist_speed);
-                    if walk_band && !was_walk {
-                        if let Err(e) = safety.push_base_velocity(0.30, 0.0) {
-                            eprintln!("push_base_velocity failed: {e}");
-                        }
-                    }
-                    prev_twist_speed = speed;
-                }
-
                 // enabled 边沿检测（robot.enable 写入的开关在这里变成相位
                 // 转移）。只在边沿动作，绝不在 Held 里每拍碰 torque。边沿立即
                 // 生效（先于跌倒判定），否则 "Driving 中跌倒"与"同拍 enable
@@ -474,17 +455,10 @@ pub fn spawn_with_options(
                     Some(EdgeAction::PowerOnAndRamp) => match safety.set_torque(true) {
                         Ok(()) => {
                             torque_on = true;
-                            if skip_bringup_ramp {
-                                // 仿真 BAM：解冻后直接 Driving，让策略立刻接管。
-                                previous_targets = None;
-                                last_action = [0.0; ACTION_LEN];
-                                phase = Phase::Driving;
-                            } else {
-                                phase = Phase::RampUp {
-                                    start: sensors.positions,
-                                    tick: 0,
-                                };
-                            }
+                            phase = Phase::RampUp {
+                                start: sensors.positions,
+                                tick: 0,
+                            };
                         }
                         Err(e) => eprintln!("set_torque(true) failed: {e}"),
                     },

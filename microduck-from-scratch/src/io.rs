@@ -72,7 +72,7 @@ pub trait RobotIo: Send {
     /// 舵机出力开关。torque off 时 goal 寄存器照写只是不出力。
     fn set_torque(&mut self, on: bool) -> Result<()>;
     /// 给躯干加水平速度（世界系 m/s）。仅仿真有意义；真机/Fake 默认空操作。
-    /// BAM 冻结 bringup 后，vx 命令易落入站立不动点——控制环在 twist 上升沿点一次。
+    /// 控制环不调用。跌倒验收走仿真协议 op=push（accept-m5.sh），不是步态踢出。
     fn push_base_velocity(&mut self, vx: f64, vy: f64) -> Result<()> {
         let _ = (vx, vy);
         Ok(())

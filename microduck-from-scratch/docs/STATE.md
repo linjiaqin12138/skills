@@ -3,10 +3,10 @@
 > 新会话续传入口：读本文件 + user-prefs.md（项目级路线）+ deviations.md + questions.md + feature-inventory.md + docs/milestones/ 最新一章，然后从"下一步"继续。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `reference/`，只读）
-- **当前位置**：M8 C2 主目标已落地（BAM + sit 物理通过 + roulade 结束后 upright + 行走回归）。路线见决策记录 6。回归：91 单测 + accept-m8 a–w + **accept-m8-bam 全绿**（2026-10-12：sit z≈0.059；roulade 100 拍中段 fallen≈36 但落地 upright；行走 dx=0.588m）
+- **当前位置**：M8 Bite 7 未交付。`--sim` 且策略已加载时，控制循环第一拍就是 Driving（不冻结、不注速度）。站立过了（2026-10-13：z≈0.117，skill=walk，fallen=false）。**accept-m8-bam 仍失败**：坐姿起身之后进 Limp（rise 50 帧后 fallen=true、gain=50、z≈0.042）。91 单测 + accept-m8 a–w 仍绿。Bite 6 当时的绿是 sit z≈0.059、roulade 中段 fallen≈36 但落地 upright、行走 dx=0.588m。路线见决策记录 6、9。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `milestones/m8-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `tutorial-bite-6-bam.html`（第 14 章）
-- **下一步**：M8 收尾裁决残余（D35 中段 fallen / D68 gait kick / D65 model_api None）→ 进 M9，或先专设 Bite 清 D35/D68。另：D43 残余③ CLI move 请求式保留；m7 D1/E1 flake
+- **下一步**：M8 Bite 8（2026-10-14 用户同意用新 Bite 对齐，尚未动手）。只改仿真节拍：策略目标先写入 `q_target`，再 `bam update` + `mj_step`（蓝图同一步）。不恢复冻结 / nudge / `push(0.30)`。`--sim` 仍第一拍 Driving，假总线仍 Held→RampUp。验收：`accept-m8-bam` 起身 z>0.08 且不进 Limp，站立 / roulade 结束直立 / 行走 ≥0.4 m 门槛不放宽；`cargo test` 与 `accept-m8` 仍绿。D35 中段 fallen、D65 不动。
 
 ## 里程碑进度
 
@@ -20,7 +20,7 @@
 | M5 安全层（deadman/限位/跌倒） | ✅ 验收通过（milestones/m5-safety/，35 单测+accept-m5 六项+accept-m4 回归全绿） |
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（milestones/m6-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（milestones/m7-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept-m7.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
-| M8 收敛验收 | 进行中（C 线）：C1 Bite 1–4 ✅；C2 Bite 5 诊断 ✅；Bite 6 BAM ✅（D21/D34 收敛，D35 部分，D68 新开） |
+| M8 收敛验收 | 进行中：Bite 1–6 已交付；**Bite 7 未交付**（站立 z≈0.117 已过；坐姿起身进 Limp，z≈0.042） |
 | M9 仿真与训练（批次 2） | 未开始（规划：自建 MJCF 仿真模型、BAM 执行器建模深入、自己训练策略；对齐 microduck_rl 相关部分） |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
@@ -40,7 +40,7 @@
 - M4 验收：`docker compose exec rust bash scripts/accept-m4.sh`。M5：`accept-m5.sh`（sim 端口 7803）。M6：`accept-m6.sh`（sim 端口 7804；权重先跑 `bash scripts/fetch-m6.sh`）。M7：`accept-m7.sh`（五场景 39 断言；根目录 /tmp/m7-demo 隔离，不需要仿真；**本机 D1/E1 有时序 flake，见下**）。M8：`accept-m8.sh`（FakeIo 无需仿真；断言 a–w）+ `accept-m8-updater.sh`（Bite 4 updater 预检端到端，6 断言，根目录 /tmp/m8-updater-demo 隔离，不需要仿真）。两者都先 `cargo build --bins`：`cargo test` 不更新 `target/debug/miniduckd`
 - 最新架构图：`docs/milestones/m8-convergence/arch.d2` + `arch.svg`（Bite 6：BAM+groundcontact；arch-diff 相对 Bite 5：duck_body 醒目，control/scheduler/io 次醒目）
 - 仿真：默认 `/opt/sim-venv/bin/python sim/duck_body.py`（BAM）；`--no-bam` 回退。物理验收：`bash scripts/accept-m8-bam.sh`（端口 7806）。诊断：`bash scripts/accept-m8-bam-diag.sh`（强制 no-bam）
-- **M8 Bite 6 后行为变化**：仿真默认 BAM+groundcontact；`--sim` 跳过 RampUp；行走意图上升沿会给躯干 +0.30 m/s 水平速度（D68）；roulade 窗口 2.0s（100 拍）
+- **当前仿真行为（Bite 7 未交付）**：默认仍是 BAM+groundcontact，roulade 窗口 2.0s。冻结和 push 0.30 不在代码里。`--sim` 且策略已加载时第一拍就是 Driving，并 `set_torque(true)` 一次。假总线仍是 Held→RampUp。站立能过；坐姿起身会进 Limp。
 - Rust 工具链：容器 `miniduck-rust`，rustc 1.99.0（`rust:1-bookworm`，DaoCloud 镜像；2026-10-06 换机重建后从 1.98.1 升到 1.99.0）。宿主机不装 rustup
 - HF Hub 直连本机超时，下载走镜像或上述代理
 
@@ -54,7 +54,7 @@
 
 见 `skills/clone-from-scrach-tutor/user-prefs.md`（用户级背景）+ `docs/user-prefs.md`（项目级：整机闭环路线、硬件与 BAM 侦察结论）；流程规则（类比/章节结构/行文分层/画图/代码风格/用词）已上收 SKILL.md。要点：里程碑代码由 coder subagent 构建、主 agent 复核验收；终态必须与原项目一致（铁律 8/9）。
 
-偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Bite 6**：D21/D34 已收敛；D35 部分收敛；**D68 新开**（BAM 冻结 bringup + gait kick）。其余要点同前：D2 豁免；D44/D45/D64 已收敛；D47 部分（残余 D65–D67）；D43 仅剩 CLI move 请求式。
+偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Bite 6**：D21/D34 已收敛；D35 部分收敛。**D68**：冻结和注速度已拆；`--sim` 第一拍 Driving，站立过，坐姿起身进 Limp，未收敛。其余要点同前：D2 豁免；D44/D45/D64 已收敛；D47 部分（残余 D65–D67）；D43 仅剩 CLI move 请求式。
 
 ## M6 复核更正（2026-09-28，教程写作时发现）
 
@@ -76,3 +76,5 @@
 6. **M8 范围与后续路线（2026-10-04 用户裁决）**：M8 走 C 线——只对齐非硬件依赖内容（robot.move+vy / robot.enable{on,toggle} / robot.subscribe 入口 / updater safeToRestart 预检）+ 移植 BAM（Rhoban/bam 解析式模型，官方蓝图 microduck_rl scripts/infer_policy.py；先跑 kp=0.55 一行实验验证归因）让 sit/roulade 物理通过，D21/D34/D35 在 M8 收敛。**其余功能缺口（D42–D63 及偏差簿残余项）不做豁免收尾**，分配到后续批次：M9 仿真与训练、M10 驱动与硬件（此批完成后代码完全对齐原项目，D52 crate 边界/配置面等在此批或 M9 收敛）、M11 结构与外壳（无代码）。总目标=整机工程闭环，详见 docs/user-prefs.md
 7. **CLI disable 一并删除（2026-10-06 M8 Bite 2）**：daemon 删 robot.disable 是铁律 8 强制（原版没有）；用户裁决 CLI 也不留别名——关就是 `mini-duckctl enable off`，accept-m5.sh A1c 等脚本跟着改
 8. **disable 语义差异立即对齐（2026-10-06 M8 Bite 2）**：复核发现原版 disable 不卸 torque、无斜坡、直接命令回 home 保持上电（此前未登记，新登记 D64）。用户裁决不挂账、本 Bite 立即对齐——RampDown 退役、Stopped 上岗；代价登记在案：robot.relax 落地前卸 torque 无出口（D53 缺口待排期）
+9. **D68 单独开 Bite 清掉（2026-10-13）**：用户裁决不挂到 M9，并选择策略在倒下之前进环。代码已做成 `--sim` 第一拍 Driving。站立 z≈0.117 通过。坐姿起身 50 拍后进 Limp（z≈0.042），Bite 7 未交付。没有写回冻结或注速度。D35 / D65 不动。
+10. **起身交接另开 Bite 8（2026-10-14）**：1 秒窗口保持与原项目一致。下一 Bite 只对齐「先写目标、再步进」，用来让起身结束时身体进入 velstand 接得住的状态。不把 D68 装回。

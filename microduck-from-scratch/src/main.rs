@@ -123,14 +123,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 50 Hz 控制任务。Safety 拥有唯一写句柄：从这里把 io 交出去之后，
     // 本进程再没有第二条碰电机的路径。stats 由循环自己记账。
-    let safety = Safety::new(io, SafetyConfig::default());
-    // --sim：跳过 bringup 斜坡（BAM 开环撑不住；仿真体在 set_torque(true) 前冻结）。
-    let (stats, frame_rx) = control::spawn_with_options(
-        safety,
-        scheduler,
-        control.clone(),
-        /*skip_bringup_ramp=*/ sim_addr.is_some(),
-    );
+    let mut safety = Safety::new(io, SafetyConfig::default());
+    // 仿真里固件增益 200 对应的位置伺服静态站不住，开环抱持约 2 秒前倾摔倒。
+    // RampUp 正好是这 2 秒。策略必须在从 0.125 落地期间就在环里，对齐
+    // infer_policy。这不是再注一脚速度。无策略（D19）仍停在 Held，不假装在开。
+    // 假总线不走这里：accept-m8 依赖「启动 enabled=false，enable 后才 RampUp」。
+    let mut start_driving = false;
+    if sim_addr.is_some() && scheduler.is_some() {
+        match safety.set_torque(true) {
+            Ok(()) => {
+                control.lock().expect("control mutex poisoned").enabled = true;
+                start_driving = true;
+            }
+            Err(e) => eprintln!("set_torque(true) failed: {e}"),
+        }
+    }
+    let (stats, frame_rx) = control::spawn(safety, scheduler, control.clone(), start_driving);
 
     // 上次异常退出残留的 socket 文件会让 bind 报 AddrInUse。先清再绑。
     let _ = std::fs::remove_file(SOCK_PATH);
