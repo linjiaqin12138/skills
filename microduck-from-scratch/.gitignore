@@ -1,5 +1,6 @@
 /target
 /reference
+/.tmp-official
 /policies/*.onnx
 /third_party/
 /tests/fixtures/*.onnx

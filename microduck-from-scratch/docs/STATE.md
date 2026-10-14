@@ -3,10 +3,10 @@
 > 新会话续传入口：读本文件 + user-prefs.md（项目级路线）+ deviations.md + questions.md + feature-inventory.md + docs/milestones/ 最新一章，然后从"下一步"继续。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `reference/`，只读）
-- **当前位置**：M8 Bite 7 未交付。`--sim` 且策略已加载时，控制循环第一拍就是 Driving（不冻结、不注速度）。站立过了（2026-10-13：z≈0.117，skill=walk，fallen=false）。**accept-m8-bam 仍失败**：坐姿起身之后进 Limp（rise 50 帧后 fallen=true、gain=50、z≈0.042）。91 单测 + accept-m8 a–w 仍绿。Bite 6 当时的绿是 sit z≈0.059、roulade 中段 fallen≈36 但落地 upright、行走 dx=0.588m。路线见决策记录 6、9。
+- **当前位置**：M8 Bite 8 代码已改，**验收未过**。BAM 路径改为本拍先写 `q_target` 再 `update` + `mj_step`（`sim/duck_body.py` `handle_read` / `handle_write`）。不恢复冻结 / nudge / `push(0.30)`。`--sim` 仍第一拍 Driving，假总线仍 Held→RampUp。2026-10-14 `accept-m8-bam`：站立 z=0.117、sit 起身 z=0.116 且 skill=walk、fallen=false、roulade 结束直立（中段 fallen=39）都过；**行走 dx=0.005 m（门槛 0.4）失败**。官方对照（Q80）同样走不动：`infer_policy.py` 站稳后再给 `vx=0.15`，10 s dx=0.0052 m；从落下就给命令，关节速度峰值 0.32，dx 仍 0.0079 m。不要装回注速度。91 单测 + accept-m8 a–w 仍绿。教程未写。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `milestones/m8-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `tutorial-bite-6-bam.html`（第 14 章）
-- **下一步**：M8 Bite 8（2026-10-14 用户同意用新 Bite 对齐，尚未动手）。只改仿真节拍：策略目标先写入 `q_target`，再 `bam update` + `mj_step`（蓝图同一步）。不恢复冻结 / nudge / `push(0.30)`。`--sim` 仍第一拍 Driving，假总线仍 Held→RampUp。验收：`accept-m8-bam` 起身 z>0.08 且不进 Limp，站立 / roulade 结束直立 / 行走 ≥0.4 m 门槛不放宽；`cargo test` 与 `accept-m8` 仍绿。D35 中段 fallen、D65 不动。
+- **下一步**：用户换时间自己看官方窗口。步骤在 `docs/verify-official-walk.md`（系统终端启动 `infer_policy.py`，先看站直，再按一次 ↑）。看完并点头之前不写 Bite 8 教程，不改 0.4 m 门槛，不改 `SIT_RISE_TICKS`，不把 D68 标成收敛，不装回 `push(0.30)`。D35 中段 fallen、D65 不动。
 
 ## 里程碑进度
 
@@ -20,7 +20,7 @@
 | M5 安全层（deadman/限位/跌倒） | ✅ 验收通过（milestones/m5-safety/，35 单测+accept-m5 六项+accept-m4 回归全绿） |
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（milestones/m6-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（milestones/m7-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept-m7.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
-| M8 收敛验收 | 进行中：Bite 1–6 已交付；**Bite 7 未交付**（站立 z≈0.117 已过；坐姿起身进 Limp，z≈0.042） |
+| M8 收敛验收 | 进行中：Bite 1–6 已交付；**Bite 8 未验收**（起身/站立/roulade 结束直立过；行走 dx=0.005 m 未过；官方 infer 对照同样 dx≈0.005） |
 | M9 仿真与训练（批次 2） | 未开始（规划：自建 MJCF 仿真模型、BAM 执行器建模深入、自己训练策略；对齐 microduck_rl 相关部分） |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
@@ -40,7 +40,7 @@
 - M4 验收：`docker compose exec rust bash scripts/accept-m4.sh`。M5：`accept-m5.sh`（sim 端口 7803）。M6：`accept-m6.sh`（sim 端口 7804；权重先跑 `bash scripts/fetch-m6.sh`）。M7：`accept-m7.sh`（五场景 39 断言；根目录 /tmp/m7-demo 隔离，不需要仿真；**本机 D1/E1 有时序 flake，见下**）。M8：`accept-m8.sh`（FakeIo 无需仿真；断言 a–w）+ `accept-m8-updater.sh`（Bite 4 updater 预检端到端，6 断言，根目录 /tmp/m8-updater-demo 隔离，不需要仿真）。两者都先 `cargo build --bins`：`cargo test` 不更新 `target/debug/miniduckd`
 - 最新架构图：`docs/milestones/m8-convergence/arch.d2` + `arch.svg`（Bite 6：BAM+groundcontact；arch-diff 相对 Bite 5：duck_body 醒目，control/scheduler/io 次醒目）
 - 仿真：默认 `/opt/sim-venv/bin/python sim/duck_body.py`（BAM）；`--no-bam` 回退。物理验收：`bash scripts/accept-m8-bam.sh`（端口 7806）。诊断：`bash scripts/accept-m8-bam-diag.sh`（强制 no-bam）
-- **当前仿真行为（Bite 7 未交付）**：默认仍是 BAM+groundcontact，roulade 窗口 2.0s。冻结和 push 0.30 不在代码里。`--sim` 且策略已加载时第一拍就是 Driving，并 `set_torque(true)` 一次。假总线仍是 Held→RampUp。站立能过；坐姿起身会进 Limp。
+- **当前仿真行为（Bite 8 未验收）**：默认仍是 BAM+groundcontact，roulade 窗口 2.0s。冻结和 push 0.30 不在代码里。`--sim` 且策略已加载时第一拍就是 Driving。假总线仍是 Held→RampUp。BAM 的 `read` 不步进，`write` 写入 `q_target` 后再 `step_tick`；非 BAM 仍是读时步进。站立、坐姿起身、roulade 结束直立能过；站稳后给 `vx` 不迈步。官方 `infer_policy.py` 在同一份 velstand 上同样不迈步（Q80）。
 - Rust 工具链：容器 `miniduck-rust`，rustc 1.99.0（`rust:1-bookworm`，DaoCloud 镜像；2026-10-06 换机重建后从 1.98.1 升到 1.99.0）。宿主机不装 rustup
 - HF Hub 直连本机超时，下载走镜像或上述代理
 
@@ -54,7 +54,7 @@
 
 见 `skills/clone-from-scrach-tutor/user-prefs.md`（用户级背景）+ `docs/user-prefs.md`（项目级：整机闭环路线、硬件与 BAM 侦察结论）；流程规则（类比/章节结构/行文分层/画图/代码风格/用词）已上收 SKILL.md。要点：里程碑代码由 coder subagent 构建、主 agent 复核验收；终态必须与原项目一致（铁律 8/9）。
 
-偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Bite 6**：D21/D34 已收敛；D35 部分收敛。**D68**：冻结和注速度已拆；`--sim` 第一拍 Driving，站立过，坐姿起身进 Limp，未收敛。其余要点同前：D2 豁免；D44/D45/D64 已收敛；D47 部分（残余 D65–D67）；D43 仅剩 CLI move 请求式。
+偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Bite 6**：D21/D34 已收敛；D35 部分收敛。**D68**：冻结和注速度已拆；Bite 8 消掉了「目标晚一拍进物理」，坐姿起身已过。行走不动点还在，未收敛。其余要点同前：D2 豁免；D44/D45/D64 已收敛；D47 部分（残余 D65–D67）；D43 仅剩 CLI move 请求式。
 
 ## M6 复核更正（2026-09-28，教程写作时发现）
 

@@ -2,9 +2,11 @@
 """duck_body.py — MuJoCo 仿真体，TCP + NDJSON 服务（M4；M8 接 BAM）。
 
 控制侧（miniduckd --sim host:port）每 20ms 一拍：
-  read  → 仿真步进一个控制拍（20ms，内部按 timestep 细分），回传感数据
-          （响应带 gain/torque 回显，M5 起）
-  write → 收 15 维总线序目标角（嘴在 index 9，仿真体没有嘴，丢弃）
+  read  → 回传感数据（响应带 gain/torque 回显，M5 起）。
+          非 BAM 在此步进：目标上一拍已在 ctrl。BAM 不在此步进。
+  write → 收 15 维总线序目标角（嘴在 index 9，仿真体没有嘴，丢弃）。
+          BAM 必须先把本拍目标写入 q_target 再步进。步进若留在 read，
+          物理吃的是上一拍目标，起身结束交给 velstand 时身体还停在接不住的姿态。
   set_gain/set_torque → 执行器增益缩放/卸力（M5：跌倒软倒验收用）
   push  → 给躯干加水平速度扰动（M5：把鸭子推倒的验收用）
   body  → 只查躯干位置不步进（验收测位移用）
@@ -186,7 +188,7 @@ class DuckBody:
         self.gain = 200
         self.torque = True
 
-        # 物理与渲染共用 MjData：read 步进和画面采样必须互斥，否则画面撕在半拍上。
+        # 物理与渲染共用 MjData：步进和画面采样必须互斥，否则画面撕在半拍上。
         self.lock = threading.Lock()
         self.renderer = None
         # --viewer 模式由 run_viewer() 挂上的被动 viewer 扰动状态（mjvPerturb）。
@@ -294,6 +296,25 @@ class DuckBody:
             "torque": self.torque,
         }
 
+    def handle_read(self):
+        # BAM 不能在读时步进：本拍目标还没写入。若先用旧目标空跑一拍，
+        # 坐姿起身结束交给 velstand 时身体还停在接不住的姿态。
+        # 非 BAM 的目标上一拍已在 ctrl，读的时候用它推进。
+        # 本拍没有 write（控制侧读失败会跳过写）时 BAM 时间不推进。
+        if self.bam_ctrl is None:
+            self.step_tick()
+        return self.sensors()
+
+    def handle_write(self, targets):
+        err = self.write_targets(targets)
+        if err:
+            return {"error": err}
+        # 力矩由本拍 q_target 算出。步进必须跟在这次写入之后，
+        # 否则物理永远落后一个控制周期，起身交接接不住。
+        if self.bam_ctrl is not None:
+            self.step_tick()
+        return {}
+
     def write_targets(self, targets):
         t = np.asarray(targets, dtype=float)
         if t.shape != (NUM_BUS_JOINTS,):
@@ -316,12 +337,9 @@ class DuckBody:
                 return {"error": f"simulator body has {NUM_BUS_JOINTS} bus joints"}
             return {"protocol": PROTOCOL, "joints": NUM_BUS_JOINTS}
         if op == "read":
-            # 节拍由控制侧驱动：每次 read 步进 20ms 仿真时间再回报。
-            self.step_tick()
-            return self.sensors()
+            return self.handle_read()
         if op == "write":
-            err = self.write_targets(req.get("targets", []))
-            return {"error": err} if err else {}
+            return self.handle_write(req.get("targets", []))
         if op == "set_gain":
             gain = req.get("gain")
             if not isinstance(gain, int) or not 0 <= gain <= 200:
@@ -370,8 +388,9 @@ def run_viewer(body: DuckBody):
     后台线程跑（Linux；macOS 才强制主线程，那是 mjpython 的事），这里主线程
     只做 60Hz sync——但为保险仍把主线程留给 viewer、TCP server 放后台线程。
 
-    为什么被动模式：物理节拍由控制侧（daemon 每 20ms 的 read）驱动，不能让
-    viewer 自己的物理线程抢着 mj_step。被动 viewer 只负责显示和记录鼠标拖拽。
+    为什么被动模式：物理由控制侧每 20ms 驱动（BAM 在写入本拍目标之后，
+    非 BAM 在 read），不能让 viewer 自己的物理线程抢着 mj_step。
+    被动 viewer 只负责显示和记录鼠标拖拽。
     daemon 不连时物理冻结，但画面照常可以旋转、缩放、选中刚体。
     """
     import mujoco.viewer

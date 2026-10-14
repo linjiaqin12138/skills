@@ -431,3 +431,45 @@
 - 不能打包票。BAM 必要且是最强嫌疑，但「接上 BAM = 技能物理通过」不是定理——Bite 5 对照不能证明这一步
 - 官方两具身体：`robot_walk.xml` 走路（砍躯干/头碰撞）；`robot_groundcontact.xml` 给 SitStand/Roulade 等（精选碰地 geom，身体能真躺地）。我们整场挂 walk，只换 BAM 不换碰撞仍可能贴地/滚翻物理不对
 - Bite 6 口径：先 BAM 实测；不过再补 groundcontact（必要时 timestep）。次要项：观测噪声。排查顺序碰撞 → timestep → 噪声 → 权重
+
+## Q76（M8 Bite 8）：切换到站立后，策略是不是接不住身体？
+- 接住了。坐姿起身结束交给 velstand：z=0.116，skill=walk，fallen=false，没有进 Limp。roulade 结束同样直立，z=0.117。节拍在 `sim/duck_body.py` 的 `handle_write`：本拍目标先写入 `q_target`，再 `update` + `mj_step`，起身最后一拍的姿态在交棒前已经进了物理
+- 行走失败时身体也一直站着。站稳后 `vx=0.15` 走 10 秒，z 从 0.117 到 0.116，前移 0.005 m。门槛量的是位移，不是有没有摔倒
+- 迈不开步的原因：直立且关节速度约 0.007 时，同一份 velstand 在 twist=0、0.15、0.30 下都输出几乎不变的小动作（`vx=0.15` 那段动作标准差均值 0.004）。观测、动作、下一拍观测都停在「抱住这个姿势」。速度命令写进观测，不足以离开这个状态。落地时的晃动若已经灭了，命令来得再晚也踢不动
+- 放弃：用 `push(0.30)` 在速度命令上升沿往躯干里注速度。赌：先写目标再步进会让身体停在 velstand 既能接住、又能走出步态的状态。失效边界：交接（起身、滚翻结束）这条赌赢了；站稳之后才给速度命令，这条赌输了。两种节拍下都几乎零位移，所以不是这次改节拍把步态改没的
+- Bite 8 教程尚未成页。成页时把本条移进该篇「细节展开」
+
+## Q77（M8 Bite 8）：站稳后不迈步，是不是和原项目不对齐？
+- 节拍、观测、行走增益这几条对得上，解释不了这次失败。`obs[48]=0.15` 已经进了网络；原始动作标准差均值 0.004，低通和 `action_scale=0.9` 没有把一个步态滤掉。`vx=0.30`（官方键盘前进上限）同样几乎零位移。读时步进和写后步进都一样。这几项与 `reference/robotd/src/control.rs` 的行走档一致：scale 0.9，头低通 0.5，腿低通 0.7，命令块 48..51 是 vx,vy,vyaw（`reference/duck-control/src/obs.rs` 文件头）
+- 更正（Q78）：默认发行不加载 stand。`will_stand` 只在有人另外装上 `alpha_stand.onnx` 时才切换。v5 默认就是一份 velstand 兼站兼走（`reference/robotd-params/src/lib.rs:1578-1582`，测试在 :3160-3163 写明 "velstand stands on its own; no standing network by default"）。D33 是可选旧配对，不是这次迈不开步的原因
+- 成页时把本条和 Q76、Q78 一起移进 Bite 8「细节展开」
+
+## Q78（M8 Bite 8）：现在是能站走不动吗？velstand 是站立模型吗？走要换一份权重吗？以前能走是因为一直在追站立目标吗？
+- 能站，走不动。站立 z≈0.117，skill=walk，fallen=false。站稳后 `vx=0.15` 走 10 秒前移 0.005 m，高度仍约 0.116。起身和滚翻结束也接得住
+- velstand 是 v5 的行走步态，不是单独的站立模型。零命令时它自己站住，有 twist 时走路。默认 `stand` 槽是空的，行走策略在任何速度上都跑。`alpha_stand.onnx` 配 `alpha_walking.onnx` 是旧的一对，留在发行包里给手动装回去的板子；装上之后 `|twist| ≤ 0.05` 才切到 Stand（scale 1.0，增益 ×0.8）
+- 走不动不用换模型。默认原项目和我们一样，站和走都是 velstand
+- 以前能走不是因为物理一直在追上一拍的站立目标。把步进改回「读的时候用旧目标推进」，BAM 下走 4 秒仍约 0.005 m。Bite 6 的 0.588 m 是速度命令上升沿给躯干注了 0.30 m/s。更早的 M4 能走，是 XML 位置伺服抱姿时关节还有残余速度，策略离得开不动点
+
+## Q79（M8 Bite 8）：要怎么和原项目对齐才能走动？
+- 换模型对不上默认发行。v5 站和走都是 velstand，stand 槽默认空（Q78）
+- 换行走身体也不够。BAM 改挂 `scene.xml`（robot_walk）站稳后 `vx=0.15` 走 6 秒，dx=0.0046，z 仍约 0.116。官方推理默认场景是 `scene.xml`（`infer_policy.py` 的 `MICRODUCK_XML`），我们默认是 groundcontact；这次对照说明场景差不是迈不开的那一档
+- 命令从落地起就给上也不够。6 秒 dx=0.007，采样时平均关节速度已经约 0.0035。官方靠从 0.125 m 落下的残留进吸引子；我们这份接触把残留在零点几秒内磨平了
+- 原项目没有「收到 vx 就自动推一把」。`infer_policy.py` 的 `random_push` 是手动按键，幅度上限 1.0 m/s，注释写明模拟训练的 `push_by_setting_velocity`。robotd 真机不注速度，扰动来自传感器和脚底。Bite 6 的自动 `push(0.30)` 能走出 0.588 m，那是我们加的补偿
+- 要对齐到能走：让仿真在速度命令到来时，关节速度还留在策略训练见过的范围里，并用官方 `infer_policy.py` 同权重、同场景做一次对照，确认他们的残留确实能启动步态。在那之前，自动注速度不算对齐
+
+## Q80（M8 Bite 8）：官方 infer_policy 站稳后再给 vx，走得动吗？
+- 走不动。同一份 `policies/velstand.onnx`，官方 `infer_policy.py`（microduck_rl `develop`）默认场景、BAM、`--action-scale 0.9`、`--new-cmd-obs`、投影重力。无 viewer、无按键、无 `random_push`。先零命令 2 s，再 `lin_vel_x=0.15` 走 10 s：dx=0.0052 m，z 从 0.1166 到 0.1158，命令到来时平均 |关节速度|=0.0026，10 s 动作标准差均值 0.0029，`obs[48]=0.15`
+- 落下残留也踢不动。同一套从第一拍就给 `vx=0.15`（躯干 z 从 0.125 落到 0.116）：前 0.5 s 平均 |关节速度|峰值 0.32，10 s 仍 dx=0.0079 m。Q79 里「官方靠落地残留进吸引子」在这份脚本上不成立
+- 官方默认 `scene.xml` 包含的是 `robot_groundcontact.xml`，和我们仓库里那份逐字节相同。我们自己的 `sim/assets/scene.xml` 包的是 `robot_walk.xml`，不是这份默认场景
+- 不要装回 `push(0.30)`。官方这条路径和我们一样停在直立不动点。行走门槛 0.4 m 仍然过不了
+
+## Q81（M8 Bite 8）：官方自己走不动，是不是他们的项目有问题？
+- 相对他们自己写下的契约，这条仿真回放是坏的。`reference/robotd-params/src/lib.rs:1579` 写明 v5 的 velstand「有 twist 就走，零命令就站」。Q80 里 twist 已经在 `obs[48]`，10 秒只走 5 mm，网络输出几乎是常数（标准差均值 0.0029）。乘 1.0 还是 0.9 都变不出步态
+- 坏的范围是这份权重在官方 MuJoCo CPU 回放里的行为，不是我们少对齐了一行。脚本、场景、BAM、61 维观测都是他们的
+- 真机不在这次实验里。robotd 不注速度，扰动来自传感器和脚底；训练推力和 `infer_policy.py` 的 P 键是另一条路。不能从这次仿真推出板子上的鸭子不会走
+
+## Q82（M8 Bite 8）：用原项目自己的 robotd 和 duck-body 跑，走得动吗？
+- 站得起来，走不动。2026-10-14 在容器里编了参考克隆的 `robotd` 0.15.0（`a9ec4b2`），接 microduck_rl `develop` 的 `duck-body`（`b02fdea`，2026-10-12，无头，默认 `scene.xml`，关键帧 `SIT`，协议 1）。策略是 v5 默认：`velstand.onnx`，stand 槽空，另挂已有的 `alpha_sitstand.onnx`
+- `robot.enable` 被接受。日志写「seated boot — rising via the sitstand policy」。1 秒内 z 从 0.070 到 0.116，重力 z≈-1，之后保持直立
+- 站稳后 `robot.move` `vx=0.15` 发 8 秒：dx=0.0061 m，z 仍 0.116。官方这条仿真路径和 Q80 的 `infer_policy.py` 一样，速度命令离开不了直立不动点
+- `duck-body` 用的是场景里的位置执行器，按增益 200 做比例，不是 `infer_policy.py` 里的 BAM 控制器。两条官方仿真都复现了「能站、不迈步」
