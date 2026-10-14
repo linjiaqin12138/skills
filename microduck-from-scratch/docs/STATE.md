@@ -3,10 +3,10 @@
 > 新会话续传入口：读本文件 + user-prefs.md（项目级路线）+ deviations.md + questions.md + feature-inventory.md + docs/milestones/ 最新一章，然后从"下一步"继续。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `reference/`，只读）
-- **当前位置**：M8 Bite 8 代码已改，**验收未过**。BAM 路径改为本拍先写 `q_target` 再 `update` + `mj_step`（`sim/duck_body.py` `handle_read` / `handle_write`）。不恢复冻结 / nudge / `push(0.30)`。`--sim` 仍第一拍 Driving，假总线仍 Held→RampUp。2026-10-14 `accept-m8-bam`：站立 z=0.117、sit 起身 z=0.116 且 skill=walk、fallen=false、roulade 结束直立（中段 fallen=39）都过；**行走 dx=0.005 m（门槛 0.4）失败**。官方对照（Q80）同样走不动：`infer_policy.py` 站稳后再给 `vx=0.15`，10 s dx=0.0052 m；从落下就给命令，关节速度峰值 0.32，dx 仍 0.0079 m。不要装回注速度。91 单测 + accept-m8 a–w 仍绿。教程未写。
+- **当前位置**：M8 Bite 8 **已交付（2026-10-14，用户裁决 0.8 方案收尾）**，教程 `tutorial-bite-8-walk-verdict.html`（第 15 章）已发布。行走不动点结案：双侧实验坐实"0.15/0.3 不走"是公开 velstand 权重对训练分布内小命令不响应（官方 infer_policy.py 与我们 dx 都 ≈0.005；给初速度或 vx=0.8 双侧都能走，用户双边肉眼验证）。行走验收改为 vx=0.8 ×10s 前移 ≥2.0m（实测 4.9m 量级）。BAM 步进在 write（与官方主循环同序、read 无副作用；**机制订正 Q83**：读/写两种步进顺序递推等价，回退实验双向全绿，"先写再步进让起身接得住"的解释作废）。accept-m8-bam 四项全绿（mujoco 3.16）；回归 91 单测 + accept-m8 a–w + accept-m8-updater 6/6 全绿。**D68 已收敛**（残余"0.3 不走"= 上游权重现状，M9 自训策略解决）。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `milestones/m8-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `tutorial-bite-6-bam.html`（第 14 章）
-- **下一步**：用户换时间自己看官方窗口。步骤在 `docs/verify-official-walk.md`（系统终端启动 `infer_policy.py`，先看站直，再按一次 ↑）。看完并点头之前不写 Bite 8 教程，不改 0.4 m 门槛，不改 `SIT_RISE_TICKS`，不把 D68 标成收敛，不装回 `push(0.30)`。D35 中段 fallen、D65 不动。
+- **下一步**：**Phase 4 收敛验收**（等用户说"继续"再启动）：以 feature-inventory.md 为主线逐项打勾（复刻项是否全部交付、豁免理由是否仍成立），对照偏差簿核对残余偏差，逐条请用户裁决"对齐回去/保留"；通过后做权衡复盘 + 可迁移原则 + 检验题，然后用户裁决进 M9。**环境备注**：2026-10-14 重建镜像后 `/opt/sim-venv` 首次真正进镜像（此前只在旧容器层，up -d 重建即丢）；mujoco 3.14→3.16，验收已在新版复跑全绿。宿主机可直接跑仿真+daemon（验证官方用的 `~/microduck-verify/.venv` 有 mujoco+bam；二进制 bookworm 构建、glibc 2.39 兼容，ORT_DYLIB_PATH 指 third_party）。宿主机玩法：`~/microduck-verify/.venv/bin/python sim/duck_body.py --viewer --port 7801` + `ORT_DYLIB_PATH=$PWD/third_party/onnxruntime/lib/libonnxruntime.so target/debug/miniduckd --sim 127.0.0.1:7801` + `target/debug/mini-duckctl move 0.8 0 0 --secs 10`。
 
 ## 里程碑进度
 
@@ -20,7 +20,7 @@
 | M5 安全层（deadman/限位/跌倒） | ✅ 验收通过（milestones/m5-safety/，35 单测+accept-m5 六项+accept-m4 回归全绿） |
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（milestones/m6-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（milestones/m7-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept-m7.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
-| M8 收敛验收 | 进行中：Bite 1–6 已交付；**Bite 8 未验收**（起身/站立/roulade 结束直立过；行走 dx=0.005 m 未过；官方 infer 对照同样 dx≈0.005） |
+| M8 收敛验收 | Bite 1–6 + 8 全部交付（2026-10-14 Bite 8：D68 收敛、行走 vx=0.8 ≥2.0m 实测 4.93m，教程第 15 章）；**待 Phase 4 收敛验收** |
 | M9 仿真与训练（批次 2） | 未开始（规划：自建 MJCF 仿真模型、BAM 执行器建模深入、自己训练策略；对齐 microduck_rl 相关部分） |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
@@ -39,8 +39,8 @@
 - 构建/测试：在容器里做，见 `docs/dev-container.md`。`docker compose exec rust cargo build && docker compose exec rust cargo test`。不要用 `bash -lc` 包 cargo，否则 PATH 会丢
 - M4 验收：`docker compose exec rust bash scripts/accept-m4.sh`。M5：`accept-m5.sh`（sim 端口 7803）。M6：`accept-m6.sh`（sim 端口 7804；权重先跑 `bash scripts/fetch-m6.sh`）。M7：`accept-m7.sh`（五场景 39 断言；根目录 /tmp/m7-demo 隔离，不需要仿真；**本机 D1/E1 有时序 flake，见下**）。M8：`accept-m8.sh`（FakeIo 无需仿真；断言 a–w）+ `accept-m8-updater.sh`（Bite 4 updater 预检端到端，6 断言，根目录 /tmp/m8-updater-demo 隔离，不需要仿真）。两者都先 `cargo build --bins`：`cargo test` 不更新 `target/debug/miniduckd`
 - 最新架构图：`docs/milestones/m8-convergence/arch.d2` + `arch.svg`（Bite 6：BAM+groundcontact；arch-diff 相对 Bite 5：duck_body 醒目，control/scheduler/io 次醒目）
-- 仿真：默认 `/opt/sim-venv/bin/python sim/duck_body.py`（BAM）；`--no-bam` 回退。物理验收：`bash scripts/accept-m8-bam.sh`（端口 7806）。诊断：`bash scripts/accept-m8-bam-diag.sh`（强制 no-bam）
-- **当前仿真行为（Bite 8 未验收）**：默认仍是 BAM+groundcontact，roulade 窗口 2.0s。冻结和 push 0.30 不在代码里。`--sim` 且策略已加载时第一拍就是 Driving。假总线仍是 Held→RampUp。BAM 的 `read` 不步进，`write` 写入 `q_target` 后再 `step_tick`；非 BAM 仍是读时步进。站立、坐姿起身、roulade 结束直立能过；站稳后给 `vx` 不迈步。官方 `infer_policy.py` 在同一份 velstand 上同样不迈步（Q80）。
+- 仿真：默认 `/opt/sim-venv/bin/python sim/duck_body.py`（BAM；宿主机可用 `~/microduck-verify/.venv/bin/python` 直接跑，`--viewer` 原生窗口不卡）；`--no-bam` 回退。物理验收：`bash scripts/accept-m8-bam.sh`（端口 7806；行走 vx=0.8 ≥2.0m）。诊断：`bash scripts/accept-m8-bam-diag.sh`（强制 no-bam）
+- **当前仿真行为（Bite 8 已验收）**：默认仍是 BAM+groundcontact，roulade 窗口 2.0s。冻结和 push 0.30 不在代码里。`--sim` 且策略已加载时第一拍就是 Driving。假总线仍是 Held→RampUp。BAM 的 `read` 不步进，`write` 写入 `q_target` 后再 `step_tick`；非 BAM 仍是读时步进。站立、坐姿起身、roulade 结束直立、vx=0.8 行走（10s 前移 ≈4.9m）都过。vx=0.15/0.3 不迈步是上游 velstand 权重现状（官方双侧一致），M9 自训策略解决。
 - Rust 工具链：容器 `miniduck-rust`，rustc 1.99.0（`rust:1-bookworm`，DaoCloud 镜像；2026-10-06 换机重建后从 1.98.1 升到 1.99.0）。宿主机不装 rustup
 - HF Hub 直连本机超时，下载走镜像或上述代理
 
@@ -78,3 +78,4 @@
 8. **disable 语义差异立即对齐（2026-10-06 M8 Bite 2）**：复核发现原版 disable 不卸 torque、无斜坡、直接命令回 home 保持上电（此前未登记，新登记 D64）。用户裁决不挂账、本 Bite 立即对齐——RampDown 退役、Stopped 上岗；代价登记在案：robot.relax 落地前卸 torque 无出口（D53 缺口待排期）
 9. **D68 单独开 Bite 清掉（2026-10-13）**：用户裁决不挂到 M9，并选择策略在倒下之前进环。代码已做成 `--sim` 第一拍 Driving。站立 z≈0.117 通过。坐姿起身 50 拍后进 Limp（z≈0.042），Bite 7 未交付。没有写回冻结或注速度。D35 / D65 不动。
 10. **起身交接另开 Bite 8（2026-10-14）**：1 秒窗口保持与原项目一致。下一 Bite 只对齐「先写目标、再步进」，用来让起身结束时身体进入 velstand 接得住的状态。不把 D68 装回。
+11. **Bite 8 行走验收按 0.8 方案收尾（2026-10-14）**：用户肉眼验证官方窗口（0.3 不走、P 键注速度能走、打补丁 0.8 能走）+ 我们鸭子同条件复现（0.8 能走）后裁决：行走验收改 vx=0.8 ×10s 前移 ≥2.0m（实测 4.9m），验收目标=集成栈能驱动步态；0.3 不走登记为上游 velstand 权重现状（非我方偏差，不进豁免清单），M9 自训策略时真正解决。D68 收敛。

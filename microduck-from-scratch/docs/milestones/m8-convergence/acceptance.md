@@ -381,3 +381,42 @@ M8 BAM 物理验收全部通过
 - **D21 / D34 已收敛**
 - **D35 部分收敛**（结束后 upright；中段 fallen 残余）
 - **D68 新登记**：冻结 bringup → gait kick 补偿
+
+---
+
+## Bite 8：行走不动点结案——先写目标再步进 + 0.8 分布外命令实验（D68 收敛）
+
+### 交付物
+
+- `sim/duck_body.py`：BAM 路径改为 `write` 本拍先写 `q_target` 再 `update`+`mj_step`（与官方 infer_policy.py 主循环同序；read 无副作用，缺 write 时物理冻结。**订正 2026-10-14**：曾记录为"起身交接修复"——读者推导 + 回退实验证明读/写两种步进顺序化简是同一递推，读时步进四项验收同样全绿（起身 z=0.1160、行走 4.929m），该机制解释作废，见 questions.md Q83）
+- `scripts/accept-m8-bam.sh`：行走场景 vx=0.15→**0.8**、门槛 0.4m→**2.0m**（实测 4.9m，留 >2× 余量；裁决依据见下）
+- `docs/verify-official-walk.md`：**新建**——官方 infer_policy.py 肉眼验证流程（用户亲测），含 ↑ 上限 0.3→0.8 的本地补丁步骤
+- `docker/Dockerfile` 的 `/opt/sim-venv` 层首次真正进镜像（2026-10-14 重建；此前只存在于旧容器层，容器重建即丢）。mujoco 3.14→3.16，四项物理验收在新版上全绿
+- 教程 `tutorial-bite-8-walk-verdict.html`（第 15 章）
+
+### 关键实验记录（裁决证据链）
+
+| 条件 | 官方 infer_policy.py | 我们的鸭子（miniduckd+duck_body） |
+|---|---|---|
+| vx=0.15/0.3（训练分布内） | 前倾不迈步，10s dx=0.0052 m（Q80 脚本实测） | 前倾不迈步，10s dx=0.005 m |
+| 给初速度（官方 P 键注 1 m/s / 我们 Ctrl+拖拽） | 步态被带起（用户肉眼验证） | 同左（用户肉眼验证） |
+| vx=0.8（分布外，infer_policy.py:1369 打补丁） | **能走**（用户肉眼验证） | **能走**：验收实测 10s 前移 4.9 m |
+
+结论：行走不动点的根因是**公开 velstand 权重对训练分布内的小速度命令不响应**（训练上限 0.3，infer_policy.py:1358 注释"limits matching training ranges"），不是 BAM 移植/仿真节拍/控制环差异。0.8 验收的是"集成栈能驱动步态"这一真能力；小命令不走是上游权重现状，指向 M9 自训策略。
+
+### 验收实测（主 agent 2026-10-14，容器内，mujoco 3.16 + bam@62bd8ce）
+
+```text
+站立：PASS  body z=0.1166  skill=walk  fallen=False
+sit：126 帧 skill=sit、fallen 恒 false、z=0.0596；起身 z=0.1157  OK
+roulade：100 帧窗口（中段 fallen=40），结束后 walk/fallen=false/gain=200 z=0.1170  OK
+行走：vx=0.8 × 10s，前移 4.930 m（首轮 4.911 m；门槛 2.0）  PASS
+M8 BAM 物理验收全部通过
+```
+
+回归：`cargo test` → 91 passed；`accept-m8.sh` → 断言 a–w 全部通过；`accept-m8-updater.sh` → 6/6。
+
+### 偏差变动
+
+- **D68 已收敛**：起身交接修复（先写目标再步进）+ 行走不动点归因上游权重，行走验收改 0.8 通过。残余"0.3 不走"登记为上游现状，非我方偏差，M9 自训策略时真正解决
+- 无新登记

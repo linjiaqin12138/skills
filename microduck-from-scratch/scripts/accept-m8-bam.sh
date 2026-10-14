@@ -8,7 +8,11 @@
 #
 # 门槛（实测后写入；行走门槛相对 M4 的 0.5m 略放宽到 0.4m，BAM+groundcontact）：
 #   站立：enable 后 z>0.08、skill=walk、fallen=false
-#   行走：vx=0.15 走 10s，前移 ≥0.4m
+#   行走：vx=0.8 走 10s，前移 ≥2.0m（2026-10-14 实测 4.911m，留 >2× 余量）
+#         【2026-10-14 用户裁决】公开 velstand 权重对训练分布内命令（0.15/0.3）
+#         不响应——官方 infer_policy.py 与我们双侧实测 dx≈0.005；vx=0.8
+#         （分布外）双侧都能走出步态。故行走验收改为 0.8，验收目标是
+#         "集成栈能驱动步态"；0.3 不走是上游权重现状，指向 M9 自训策略。
 #   sit：sit_toggle → skill=sit；≥2s fallen 恒 false；躯干 z ∈ [0.04, 0.10]；
 #        再 sit_toggle 起身 → walk、z>0.08、fallen=false
 #   roulade：窗口 100 拍（2.0s，对齐官方 --roulade-duration）。
@@ -228,23 +232,23 @@ print(f"roulade：{len(rou)} 帧窗口（中段 fallen={rou_fallen}），"
 EOF
 echo "roulade：PASS  post z=$POST_Z"
 
-echo "== 行走回归：vx=0.15 × 10s（门槛前移 ≥0.4m）=="
+echo "== 行走回归：vx=0.8 × 10s（公开权重对小命令不响应，0.8 才起步态；门槛见头部裁决）=="
 fresh_sim
 wait_stand >/dev/null
 BODY0=$(body)
 echo "走前 body(x y z t): $BODY0"
 X0=$(echo "$BODY0" | awk '{print $1}')
-./target/debug/mini-duckctl move 0.15 0 0 --secs 10 || fail "move"
+./target/debug/mini-duckctl move 0.8 0 0 --secs 10 || fail "move"
 BODY1=$(body)
 echo "走后 body(x y z t): $BODY1"
 X1=$(echo "$BODY1" | awk '{print $1}')
 Z1=$(echo "$BODY1" | awk '{print $3}')
 DIST=$(awk -v a="$X0" -v b="$X1" 'BEGIN { printf "%.3f", b - a }')
-echo "前移 ${DIST} m（门槛 0.4；M4 曾用 0.5，BAM+groundcontact 略放宽）"
-awk -v d="$DIST" 'BEGIN { exit !(d + 0 >= 0.4) }' || fail "位移不足（$DIST < 0.4）"
+echo "前移 ${DIST} m"
+awk -v d="$DIST" 'BEGIN { exit !(d + 0 >= 2.0) }' || fail "位移不足（$DIST < 2.0）"
 awk -v z="$Z1" 'BEGIN { exit !(z > 0.08) }' || fail "走完摔倒 z=$Z1"
 echo "行走：PASS"
 
 echo
-echo "M8 BAM 物理验收全部通过：站立 + sit 坐稳起身 + roulade 不摔 + 行走(≥0.4m)"
+echo "M8 BAM 物理验收全部通过：站立 + sit 坐稳起身 + roulade 不摔 + 行走(vx=0.8 ≥2.0m)"
 exit 0

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" font-family="'Noto Sans CJK SC','WenQuanYi Micro Hei',sans-serif">
+  <rect x="0" y="0" width="960" height="640" fill="#16202b" rx="10"/>
+  <text x="30" y="38" fill="#e8eef4" font-size="20" font-weight="bold">两种步进顺序：闭环其实等价，差别只在边界</text>
+
+  <!-- ===== 旧顺序 ===== -->
+  <text x="30" y="76" fill="#7fd4ff" font-size="15" font-weight="bold">旧：read 时步进</text>
+  <!-- tick n row -->
+  <rect x="30" y="90" width="200" height="52" fill="#0e3a52" stroke="#7fd4ff" rx="6"/>
+  <text x="130" y="112" fill="#dff2ff" font-size="12.5" text-anchor="middle">step：用 T(n−1) 推进 20ms</text>
+  <text x="130" y="130" fill="#9fc6e0" font-size="12" text-anchor="middle">物理吃上一拍的目标</text>
+  <rect x="250" y="90" width="150" height="52" fill="#14324a" stroke="#5aa0c8" rx="6"/>
+  <text x="325" y="112" fill="#dff2ff" font-size="12.5" text-anchor="middle">read 回传感 X(n+1)</text>
+  <text x="325" y="130" fill="#9fc6e0" font-size="12" text-anchor="middle">步进后的状态</text>
+  <rect x="420" y="90" width="200" height="52" fill="#3a2f10" stroke="#d8b84a" rx="6"/>
+  <text x="520" y="112" fill="#f5e6b8" font-size="12.5" text-anchor="middle">daemon 决策 T(n) = f(X(n+1))</text>
+  <text x="520" y="130" fill="#c9b574" font-size="12" text-anchor="middle">策略推理 + 安全门</text>
+  <rect x="640" y="90" width="170" height="52" fill="#14324a" stroke="#5aa0c8" rx="6"/>
+  <text x="725" y="112" fill="#dff2ff" font-size="12.5" text-anchor="middle">write 只存 T(n)</text>
+  <text x="725" y="130" fill="#9fc6e0" font-size="12" text-anchor="middle">不步进，等下一拍 read</text>
+  <text x="830" y="122" fill="#5f7688" font-size="13">→ 第 n+1 拍又先 step…</text>
+
+  <!-- ===== 新顺序 ===== -->
+  <text x="30" y="196" fill="#8be89b" font-size="15" font-weight="bold">新：write 时步进</text>
+  <rect x="30" y="210" width="150" height="52" fill="#14324a" stroke="#5aa0c8" rx="6"/>
+  <text x="105" y="232" fill="#dff2ff" font-size="12.5" text-anchor="middle">read 回传感 X(n)</text>
+  <text x="105" y="250" fill="#9fc6e0" font-size="12" text-anchor="middle">不步进</text>
+  <rect x="200" y="210" width="200" height="52" fill="#3a2f10" stroke="#d8b84a" rx="6"/>
+  <text x="300" y="232" fill="#f5e6b8" font-size="12.5" text-anchor="middle">daemon 决策 T(n) = f(X(n))</text>
+  <text x="300" y="250" fill="#c9b574" font-size="12" text-anchor="middle">同一份策略、同一份输入</text>
+  <rect x="420" y="210" width="230" height="52" fill="#0e4530" stroke="#8be89b" rx="6"/>
+  <text x="535" y="232" fill="#dfffe6" font-size="12.5" text-anchor="middle">write 存 T(n)，立刻 step 推进 20ms</text>
+  <text x="535" y="250" fill="#9ed8ae" font-size="12" text-anchor="middle">物理吃本拍目标 → X(n+1)</text>
+  <text x="670" y="242" fill="#5f7688" font-size="13">→ 第 n+1 拍 read 读到的就是 X(n+1)</text>
+
+  <!-- ===== 等价结论 ===== -->
+  <rect x="30" y="292" width="900" height="72" fill="#22193a" stroke="#a78bfa" rx="8"/>
+  <text x="480" y="322" fill="#e4dcff" font-size="15" text-anchor="middle" font-weight="bold">两条链化简出来是同一个递推： X(n+1) = step( X(n), f(X(n)) )</text>
+  <text x="480" y="348" fill="#b7a8e8" font-size="13" text-anchor="middle">同一初始状态、同一份策略 → 闭环轨迹逐拍相同。「物理永远落后一拍」的说法不成立——你的推导是对的</text>
+
+  <!-- ===== 边界差异 ===== -->
+  <text x="30" y="404" fill="#ffb86b" font-size="15" font-weight="bold">真正的差别只在三个边界上</text>
+
+  <rect x="30" y="418" width="288" height="110" fill="#2b1a12" stroke="#d98a4a" rx="8"/>
+  <text x="46" y="444" fill="#ffd9b0" font-size="13.5" font-weight="bold">① 启动第一拍</text>
+  <text x="46" y="466" fill="#d9b493" font-size="12">旧：先用初始抱持目标空走 20ms，</text>
+  <text x="46" y="484" fill="#d9b493" font-size="12">daemon 第一个观测已落后一拍。</text>
+  <text x="46" y="502" fill="#d9b493" font-size="12">新：从刚落下的状态直接开始。</text>
+
+  <rect x="336" y="418" width="288" height="110" fill="#2b1a12" stroke="#d98a4a" rx="8"/>
+  <text x="352" y="444" fill="#ffd9b0" font-size="13.5" font-weight="bold">② read 失败 / 缺 write 的拍</text>
+  <text x="352" y="466" fill="#d9b493" font-size="12">旧：物理照样用旧目标走 20ms，</text>
+  <text x="352" y="484" fill="#d9b493" font-size="12">仿真时间在控制环缺席时继续漂。</text>
+  <text x="352" y="502" fill="#d9b493" font-size="12">新：物理冻结，等 write 来了再走。</text>
+
+  <rect x="642" y="418" width="288" height="110" fill="#2b1a12" stroke="#d98a4a" rx="8"/>
+  <text x="658" y="444" fill="#ffd9b0" font-size="13.5" font-weight="bold">③ read 有副作用</text>
+  <text x="658" y="466" fill="#d9b493" font-size="12">旧：任何客户端多发一个 read，</text>
+  <text x="658" y="484" fill="#d9b493" font-size="12">物理就多走 20ms（被轮询加速！）。</text>
+  <text x="658" y="502" fill="#d9b493" font-size="12">新：read 纯查询，多少客户端都安全。</text>
+
+  <!-- ===== 那为什么起身结果变了 ===== -->
+  <rect x="30" y="548" width="900" height="72" fill="#0f2b3a" stroke="#4fc3f7" rx="8"/>
+  <text x="46" y="574" fill="#cbeaff" font-size="13">那坐姿起身从摔变过怎么解释？两种顺序的闭环等价 → 差别只能来自边界①的启动相位差（接触动力学混沌放大），</text>
+  <text x="46" y="594" fill="#cbeaff" font-size="13">或那次失败本身是临界动作的运气。走路场景做过回退对照：两种顺序都是 dx≈0.005m，证明稳态行为确实与顺序无关。</text>
+  <text x="46" y="612" fill="#7fb8d8" font-size="12.5">保留 write 时步进的真正理由：与官方 infer_policy.py 主循环同序（观测→推理→写目标→步进）+ 上面②③两条工程性质。</text>
+</svg>
