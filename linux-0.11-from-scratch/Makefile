@@ -10,7 +10,7 @@ QEMU        := $(shell command -v qemu-system-x86_64 2>/dev/null || echo $(HOME)
 # -boot d：默认启动顺序硬盘在前，会引导 reference/hdc-0.11.img 而不是我们的 CD
 QEMU_FLAGS  := -m 128M -boot d -serial stdio -drive file=reference/hdc-0.11.img,format=raw,if=ide
 
-.PHONY: toolchain ctr kernel build run debug check check-m1-b1 clean help
+.PHONY: toolchain ctr kernel build run debug check check-m1-b2 clean help
 
 help: ## 显示本帮助
 	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*## /  →  /'
@@ -36,7 +36,7 @@ ctr: ## 确保构建容器已启动（一般无需手动跑，kernel/build 会�
 	    echo "启动构建容器 $(DOCKER_CTR)…"; \
 	    docker start $(DOCKER_CTR) >/dev/null; }
 
-kernel: ctr ## 只编译内核 ELF（容器内；Bite2 前 make build 未就绪，先用这个）
+kernel: ctr ## 只编译内核 ELF（容器内；不做 ISO，调语法错误时更快）
 	$(DOCKER_EXEC) cargo build --manifest-path kernel/Cargo.toml
 
 build: ctr ## 编译内核 + 用户态 + 制作 ISO（容器内）
@@ -55,14 +55,21 @@ check: ## 无头跑 qemu，断言串口日志出现 "M0: kernel alive"（Bite2 �
 	rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
 	grep 'M0: kernel alive' build/serial.log
 
-# M1 Bite1：串口断言 + monitor screendump（证明真的画到了 framebuffer）
-# 非 rootless docker 时 build/ 属容器 root，宿主机 qemu 写不进；先把归属改回当前用户。
-check-m1-b1: build ## M1 Bite1 验收：FB 元数据 + 两行固定串 + screendump
-	@$(DOCKER_EXEC) chown -R $$(id -u):$$(id -g) /work/build
+# check-m1-b1 已于 M1 Bite2 验收时退役：demo 输出被替换，旧断言不再成立；
+# 其回归断言（M0 alive / fb 元数据）已由 check-m1-b2 继承。
+# 历史验收记录见 docs/milestones/m1-printk/acceptance.md。
+
+# build/ 归容器进程所有时，宿主机 qemu 写不进；先把归属改回宿主机当前用户。
+# 注意不能写 $(id -u)：rootless docker 下宿主机用户在容器内映射为 uid 0，
+# 直接取挂载点 /work 在容器内的属主，rootless / 非 rootless 两种环境都对。
+# M1 Bite2：printk! 格式化 + 滚屏压测。
+# 滚屏会把前面的回归行滚出屏幕，但串口有全量，断言只走串口。
+check-m1-b2: build ## M1 Bite2 验收：printk! fmt + 60 行滚屏 + screendump
+	@$(DOCKER_EXEC) chown -R --reference=/work /work/build
 	@mkdir -p build
-	@rm -f build/serial.log build/m1-bite1.ppm
+	@rm -f build/serial.log build/m1-bite2.ppm
 	@echo ">>> starting qemu (headless + monitor screendump)…"
-	@( sleep 3; printf 'screendump build/m1-bite1.ppm\nquit\n' ) | \
+	@( sleep 3; printf 'screendump build/m1-bite2.ppm\nquit\n' ) | \
 	  $(QEMU) -m 128M -boot d -display none -vga std -net none \
 	    -monitor stdio \
 	    -serial file:build/serial.log \
@@ -74,12 +81,13 @@ check-m1-b1: build ## M1 Bite1 验收：FB 元数据 + 两行固定串 + screend
 	@echo ">>> asserting serial markers…"
 	@grep -F 'M0: kernel alive' build/serial.log
 	@grep -E 'M1: fb [0-9]+x[0-9]+x[0-9]+' build/serial.log
-	@grep -F 'M1: hello framebuffer' build/serial.log
-	@grep -F 'M1: console line 2' build/serial.log
-	@test -f build/m1-bite1.ppm
-	@sz=$$(wc -c < build/m1-bite1.ppm); echo "screendump size=$$sz"; \
+	@grep -F 'M1: fmt hex=0x002a dec=42 str=ok' build/serial.log
+	@grep -F 'M1: scroll line 00' build/serial.log
+	@grep -F 'M1: scroll line 59' build/serial.log
+	@test -f build/m1-bite2.ppm
+	@sz=$$(wc -c < build/m1-bite2.ppm); echo "screendump size=$$sz"; \
 	  test $$sz -gt 10240
-	@echo "check-m1-b1 OK"
+	@echo "check-m1-b2 OK"
 
 clean: ## 清理构建产物
 	rm -rf build kernel/target user/target

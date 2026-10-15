@@ -2,14 +2,18 @@
 
 ## 当前位置
 - Phase: 3（逐层手搓）进行中
-- 里程碑: **M1 进行中** — **Bite1 已通过**（2026-10-12，`make check-m1-b1`；验收档案 `docs/milestones/m1-printk/acceptance.md`）；Bite2 未开始
-- 教程：M1 Bite1 `docs/milestones/m1-printk/tutorial-bite1-framebuffer.html`；概念 `docs/concepts/linear-framebuffer.md`；M0 仍见 `docs/milestones/m0-boot/`
+- 里程碑: **M1 已通过**（Bite1 2026-10-12 + Bite2 2026-10-15，`make check-m1-b2`；验收档案 `docs/milestones/m1-printk/acceptance.md`）
+- 教程：M1 Bite1 `tutorial-bite1-framebuffer.html` + Bite2 `tutorial-bite2-printk-scroll.html`（同目录）；概念 `docs/concepts/linear-framebuffer.md`
 - 环境：qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`reference/limine`（v10.8.5-binary）+ `reference/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
-用户确认后进入 **M1 Bite2「printk! + 滚屏」**：`core::fmt::Write` 接到 console、`printk!` 宏双写屏幕+串口、光标到底滚屏；验收 = 串口 grep 格式化多行 + screendump 目检。本 Bite 遗留：D12（无 fmt/滚屏）待 Bite2 收敛。
+用户确认后进入 **M2「GDT(扁平)/IDT + CPU 异常接管 + panic 打印」**（phase-2.md）：故意除零 → 打印异常名与寄存器现场而非死机。printk! 已就绪可直接用；panic_handler 目前只会 halt（main.rs:77）。
+- 注意 M2 动工前先想清楚 D15 的口径：M2 只接 CPU 异常（同步），还不开外部中断，static mut console 假设仍成立；M3 开中断才必须换锁。
+- Makefile 注意：`check-m1-b1` 已退役（demo 输出被 Bite2 替换），当前验收命令只有 `make check-m1-b2`。
 
-**2026-10-13**：Limine 协议已改为官方 `limine` crate 0.6.5（D14）；`make check-m1-b1` 复跑通过。
+**2026-10-13**：Limine 协议已改为官方 `limine` crate 0.6.5（D14）。
+
+**am patch 工具教训（2026-10-15）**：对旧 Bite 页面执行 `am patch` 会重读所有 `src=` 引用的**当前**代码文件——若代码已被后续 Bite 改过，旧页面的代码嵌入块和 arch.svg 会漂移成新内容，与旧正文矛盾。维护旧页面用手术式插入（从试渲染提取新块、git checkout 恢复、手工插入渲染区 + #am-source 草稿区），不直接 am patch 定稿。Bite1 页面已按此处理。
 
 ## 项目固定决策（v2，2026-10-03）
 - **目标架构：x86_64**（用户明确选择，抛弃 i386 历史包袱）；引导器 Limine v10（已克隆 reference/limine）；Rust target x86_64-unknown-none（官方，已装）
@@ -25,15 +29,15 @@
 - reference（只读对照）: `linux-0.11-from-scratch/reference/`（limine binary + limine-protocol；Linux-0.11 源码克隆可按需补回；`.gitignore` 忽略整个 reference/）
 - Rust 语法书（检索用，只读）: `reference/book-cn/`（若缺失可再浅克隆 rust-lang-cn/book-cn）；在线版 https://rustwiki.org/zh-CN/book/
 - 原项目构建: 待 Linux-0.11 reference 补回后 `cd reference && make && make start`
-- 最新架构图: `docs/arch/original.svg`（原项目总图）；**本工程当前架构权威图：`docs/milestones/m1-printk/assets/dst/arch.svg`（M1 Bite1）**；arch-diff：`…/arch-diff.svg`
+- 最新架构图: `docs/arch/original.svg`（原项目总图）；**本工程当前架构权威图：`docs/milestones/m1-printk/assets/dst/arch.svg`（M1 Bite2，含 console→serial 双写边）**；arch-diff：`…/arch-diff.svg`（M0→M1）、`…/arch-diff-bite2.svg`（Bite2 变动）
 - **画图工具链**：默认 fireworks（`vendor/fireworks-tech-graph/`，2026-10-12 本机网络未能 clone，M1 Bite1 **权威 SVG 暂用 d2**；fireworks 兼容 JSON 已落在 `m1-printk/assets/src/arch*.json`，工具可用后可重渲）。工作流见既有 STATE 经验；Style 1 配色沿用
 - Phase 1 拆解文档: `docs/phase-1.md`
 - Phase 2 路线图: `docs/phase-2.md`
-- **功能清单: `docs/feature-inventory.md`**。计数：**42 项，已交付 1 / 未交付 41**（M0 交付 §1；M1 Bite1 推进显示路径，尚未勾完 P0 tty 整项——待 M1 完结/后续 tty 里程碑）
+- **功能清单: `docs/feature-inventory.md`**。计数：**42 项，已交付 1 / 未交付 41**（M0 交付 §1；M1 完结推进 §6 tty 的屏幕写显路径——framebuffer+字体+滚屏+printk! 已通并注记进度，整项（含转义序列/键盘/行规程）待 M3/M13）
 - 用户偏好: `skills/clone-from-scrach-tutor/user-prefs.md` + `docs/user-prefs.md`
 
 ## 偏差登记簿计数
-- docs/deviations.md：**14 条**——待收敛 4（D2/D3/D6/D12）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）
+- docs/deviations.md：**15 条**——待收敛 4（D2/D3/D6/D15）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）、已收敛 1（D12，M1 Bite2）
 
 ## 本机环境侦察（续）
 
@@ -46,7 +50,7 @@
 | hdc-0.11.img | 1MB stub（非原版镜像） | M10 前换回真镜像 |
 | fireworks-tech-graph | ❌ 2026-10-12 未能 clone | M1 暂 d2；JSON 已备 |
 
-**结论：M1 Bite1 全链路已通（`make build && make check-m1-b1`）。**
+**结论：M1 全链路已通（`make build && make check-m1-b2`）。**
 
 ## Phase 0 侦察结论摘要
 - 一句话本质：BIOS 加载软盘/硬盘引导扇区 → 启动一个 i386 保护模式、支持多进程 + MINIX 文件系统 + tty 终端的单内核 OS

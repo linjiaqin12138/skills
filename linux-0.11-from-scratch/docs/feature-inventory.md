@@ -49,7 +49,7 @@
 - [ ] STUB stty / gtty（`kernel/sys.c:31-38`）；ustat 若原版实现则 P1（待 M11 核对 fs/open.c:21 上下文）
 
 ## 6. 设备
-- [ ] P0 tty 控制台：屏幕写显（framebuffer 实现，含转义序列子集）、键盘输入、行规程（canonical/echo/退格/擦除）
+- [ ] P0 tty 控制台：屏幕写显（framebuffer 实现，含转义序列子集）、键盘输入、行规程（canonical/echo/退格/擦除）——进度：屏幕写显路径已通（M1：framebuffer + 字体 + 滚屏 + printk!，验收 [milestones/m1-printk/acceptance.md](milestones/m1-printk/acceptance.md)）；转义序列/键盘/行规程待 M3/M13
 - [ ] P0 /dev/null、/dev/console、/dev/tty0
 - [ ] P1 /dev/mem /dev/kmem /dev/port（mem 驱动族）
 - [ ] P0 IDE 硬盘 hd（请求队列 + 电梯合并）

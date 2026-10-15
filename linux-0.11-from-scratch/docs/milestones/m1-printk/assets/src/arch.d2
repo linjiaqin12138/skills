@@ -1,4 +1,4 @@
-# M1 Bite1 权威全图：Limine FB + console 点阵 + 串口双写
+# M1 Bite2 权威全图：Limine FB + console 点阵（printk!）+ 双写收进 console
 # Style 1：control=紫 write=绿 data=橙；浅色；kernel = 信任边界
 direction: right
 
@@ -90,9 +90,9 @@ classes: {
 }
 
 title: |md
-  **M1 Bite1 架构（printk / framebuffer console）**
+  **M1 Bite2 架构（printk / framebuffer console）**
 
-  构建：make build → kernel.iso ｜ 启动：SeaBIOS → Limine → kernel ｜ 输出：FB 点阵 + COM1 双写
+  构建：make build → kernel.iso ｜ 启动：SeaBIOS → Limine → kernel ｜ 输出：FB 点阵 + COM1（双写收进 console）
 | {
   near: top-center
   shape: text
@@ -121,16 +121,17 @@ kernel: "kernel（信任边界）" {
 
   start: "_start\nmain.rs" { class: kmod }
   limine_fb: "limine_fb\n请求/响应" { class: kmod }
-  console: "console\n光标 + write_str" { class: kmod }
+  console: "console\nfmt::Write + printk!" { class: kmod }
   kfont: "font\n8×16 glyph" { class: kmod }
-  fb: "fb\nput_pixel" { class: kmod }
+  fb: "fb\nput_pixel + scroll_up" { class: kmod }
   serial: "serial\n16550（M0）" { class: kmod }
 
   start -> limine_fb: "first_framebuffer()" { class: e_ctrl }
-  start -> console: "clear + write_str" { class: e_write }
-  start -> serial: "同内容串 + FB 元数据" { class: e_write }
+  start -> console: "init + printk!" { class: e_write }
+  start -> serial: "早期降级直写" { class: e_write }
   console -> kfont: "glyph(ch)" { class: e_data }
   console -> fb: "put_pixel" { class: e_write }
+  console -> serial: "镜像字节流（双写）" { class: e_write }
 }
 
 limine -> kernel.start: "交付 CPU：长模式+高半区" { class: e_ctrl }
@@ -154,8 +155,8 @@ legend: |md
   shape: text
 }
 
-footer: "Style 1 · d2/ELK · M1 Bite1（权威 SVG）" {
-  near: bottom-center
+footer: "Style 1 · d2/ELK · M1 Bite2（权威 SVG）" {
+  near: bottom-right
   shape: text
   style.font-size: 11
   style.font-color: "#64748b"

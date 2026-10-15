@@ -1,4 +1,4 @@
-//! M1 Bite1：Limine framebuffer + 固定 ASCII 字符串点阵输出（无 fmt / 无滚屏）。
+//! M1 Bite2：printk!（core::fmt 格式化 + 屏幕/串口双写）+ 滚屏压测。
 
 #![no_std]
 #![no_main]
@@ -12,11 +12,7 @@ mod serial;
 use core::arch::asm;
 use core::panic::PanicInfo;
 
-use console::Console;
 use limine_fb::Framebuffer;
-
-const LINE_HELLO: &str = "M1: hello framebuffer";
-const LINE_TWO: &str = "M1: console line 2";
 
 #[unsafe(no_mangle)]
 extern "C" fn _start() -> ! {
@@ -33,70 +29,39 @@ extern "C" fn _start() -> ! {
         halt();
     };
 
-    report_fb_meta(framebuffer);
+    console::init(framebuffer);
 
-    let mut cons = Console::new(framebuffer);
-    cons.clear();
-    cons.write_str(LINE_HELLO);
-    cons.write_str("\n");
-    cons.write_str(LINE_TWO);
-    cons.write_str("\n");
+    // 回归 marker：M0 存活行 + M1 framebuffer 元数据（改走 printk!，双写屏幕+串口）
+    printk!("M0: kernel alive\n");
+    printk!(
+        "M1: fb {}x{}x{}\n",
+        framebuffer.width, framebuffer.height, framebuffer.bpp
+    );
+    report_fb_mask(framebuffer);
 
-    // 屏幕与串口同内容，供自动化断言
-    serial::write_str(LINE_HELLO);
-    serial::write_str("\n");
-    serial::write_str(LINE_TWO);
-    serial::write_str("\n");
+    // fmt 演示：hex 定宽补零 / 十进制 / 字符串
+    printk!("M1: fmt hex={:#06x} dec={} str={}\n", 42, 42, "ok");
 
-    // 保留 M0 存活行作回归
-    serial::write_str("M0: kernel alive\n");
+    // 滚屏压测：60 行远超屏幕容量（实测 qemu std vga 为 800x600，600/16 ≈ 37 行），必然触发滚屏
+    for i in 0..60 {
+        printk!("M1: scroll line {:02}\n", i);
+    }
+
     halt();
 }
 
-/// 串口打印 `M1: fb WxHxBPP` 与 mask，便于核对像素格式
-fn report_fb_meta(fb: &Framebuffer) {
-    serial::write_str("M1: fb ");
-    write_u64(fb.width);
-    serial::write_str("x");
-    write_u64(fb.height);
-    serial::write_str("x");
-    write_u64(fb.bpp as u64);
-    serial::write_str("\n");
-
-    serial::write_str("M1: fb mask r");
-    write_u64(fb.red_mask_size as u64);
-    serial::write_str("@");
-    write_u64(fb.red_mask_shift as u64);
-    serial::write_str(" g");
-    write_u64(fb.green_mask_size as u64);
-    serial::write_str("@");
-    write_u64(fb.green_mask_shift as u64);
-    serial::write_str(" b");
-    write_u64(fb.blue_mask_size as u64);
-    serial::write_str("@");
-    write_u64(fb.blue_mask_shift as u64);
-    serial::write_str(" model=");
-    write_u64(fb.memory_model as u64);
-    serial::write_str("\n");
-}
-
-/// 无 core::fmt 的十进制输出（Bite2 才上 Write/printk!）
-fn write_u64(mut value: u64) {
-    if value == 0 {
-        serial::write_byte(b'0');
-        return;
-    }
-    let mut digits = [0u8; 20];
-    let mut len = 0;
-    while value > 0 {
-        digits[len] = b'0' + (value % 10) as u8;
-        value /= 10;
-        len += 1;
-    }
-    while len > 0 {
-        len -= 1;
-        serial::write_byte(digits[len]);
-    }
+/// fb 各颜色通道 mask 一行，供核对像素格式（排障用，断言不依赖）
+fn report_fb_mask(fb: &Framebuffer) {
+    printk!(
+        "M1: fb mask r{}@{} g{}@{} b{}@{} model={}\n",
+        fb.red_mask_size,
+        fb.red_mask_shift,
+        fb.green_mask_size,
+        fb.green_mask_shift,
+        fb.blue_mask_size,
+        fb.blue_mask_shift,
+        fb.memory_model,
+    );
 }
 
 fn halt() -> ! {

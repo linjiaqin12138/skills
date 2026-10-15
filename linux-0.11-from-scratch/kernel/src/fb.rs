@@ -18,7 +18,7 @@ fn pack_rgb(fb: &Framebuffer, r: u8, g: u8, b: u8) -> u32 {
         | (b_bits << fb.blue_mask_shift)
 }
 
-/// 写单个像素；越界静默丢弃（本 Bite 控制打印行数，不应越界）
+/// 写单个像素；越界静默丢弃（正常路径不越界，这里是兜底）
 pub fn put_pixel(fb: &Framebuffer, x: usize, y: usize, r: u8, g: u8, b: u8) {
     if x >= fb.width as usize || y >= fb.height as usize {
         return;
@@ -55,11 +55,42 @@ pub fn put_pixel(fb: &Framebuffer, x: usize, y: usize, r: u8, g: u8, b: u8) {
     }
 }
 
+/// 整屏内容上移 `rows` 像素行，底部腾出的区域填 (r,g,b)。
+/// `core::ptr::copy` 语义同 memmove，源/目标区域重叠也安全。
+pub fn scroll_up(fb: &Framebuffer, rows: usize, r: u8, g: u8, b: u8) {
+    let height = fb.height as usize;
+    if rows == 0 {
+        return;
+    }
+    if rows >= height {
+        clear(fb, r, g, b);
+        return;
+    }
+
+    let pitch = fb.pitch as usize;
+    let shift = rows * pitch;
+    let total = height * pitch;
+    let base = fb.address() as *mut u8;
+    // SAFETY: base 是 Limine 映射的整块 FB；[shift, total) → [0, total-shift) 均在界内
+    unsafe {
+        core::ptr::copy(base.add(shift), base, total - shift);
+    }
+
+    // 底部逐像素填背景色：put_pixel 自带越界与像素格式检查，兼容 16/24/32 bpp
+    for y in (height - rows)..height {
+        for x in 0..fb.width as usize {
+            put_pixel(fb, x, y, r, g, b);
+        }
+    }
+}
+
 /// 整屏填成纯色
 pub fn clear(fb: &Framebuffer, r: u8, g: u8, b: u8) {
     let w = fb.width as usize;
     let h = fb.height as usize;
-    // 32bpp 时按行用同一像素字快填，避免逐像素循环的开销
+    // 快路径：32bpp 时按行填同一像素字。与下面 put_pixel 慢路径完全等效，
+    // 纯属优化且实测差距很小（release 下 ~20%，一次清屏 µs 级）——
+    // 留作"同语义换实现"的示例，删掉行为不变。慢路径兜住 16/24bpp。
     if fb.bpp == 32 && fb.memory_model == limine_fb::MEMORY_MODEL_RGB {
         let pixel = pack_rgb(fb, r, g, b);
         let pitch = fb.pitch as usize;

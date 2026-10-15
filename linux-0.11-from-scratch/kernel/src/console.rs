@@ -1,9 +1,15 @@
-//! 最小文本控制台：光标 + put_char / write_str。
-//! 本 Bite 不做滚屏——调用方保证行数不超出屏幕。
+//! 文本控制台：光标 + fmt::Write（屏幕/串口双写）+ 滚屏。
+//!
+//! 全局实例用 `static mut`：现阶段内核单核、无中断、无并发，不存在竞争。
+//! 待收敛项：引入中断/多核后必须换成带锁的封装。
+
+use core::fmt;
+use core::ptr::addr_of_mut;
 
 use crate::fb::{self, COLOR_BG, COLOR_FG};
 use crate::font::{self, FONT_HEIGHT, FONT_WIDTH};
 use crate::limine_fb::Framebuffer;
+use crate::serial;
 
 pub struct Console {
     fb: &'static Framebuffer,
@@ -32,18 +38,12 @@ impl Console {
         self.cursor_y = 0;
     }
 
-    pub fn write_str(&mut self, s: &str) {
-        for byte in s.bytes() {
-            self.put_char(byte);
-        }
-    }
-
-    pub fn put_char(&mut self, ch: u8) {
+    fn put_char(&mut self, ch: u8) {
         if ch == b'\n' {
             self.newline();
             return;
         }
-        // 行尾不够放下一个字形就换行（本 Bite 固定短串，几乎走不到）
+        // 行尾不够放下一个字形就换行
         if self.cursor_x + FONT_WIDTH > self.fb.width as usize {
             self.newline();
         }
@@ -54,7 +54,11 @@ impl Console {
     fn newline(&mut self) {
         self.cursor_x = 0;
         self.cursor_y += FONT_HEIGHT;
-        // 不做滚屏：超出后继续往下画会被 put_pixel 丢弃
+        // 光标触底：整屏上移一行字符的高度，光标留在最后一行
+        if self.cursor_y + FONT_HEIGHT > self.fb.height as usize {
+            fb::scroll_up(self.fb, FONT_HEIGHT, self.bg.0, self.bg.1, self.bg.2);
+            self.cursor_y -= FONT_HEIGHT;
+        }
     }
 
     fn draw_glyph(&self, ch: u8) {
@@ -69,4 +73,51 @@ impl Console {
             }
         }
     }
+}
+
+/// 屏幕和串口是同一个控制台的两个出口，双写点收在这里：
+/// 每个字节既上屏也镜像到串口，两处内容始终一致。
+impl fmt::Write for Console {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for byte in s.bytes() {
+            self.put_char(byte);
+            serial::write_byte(byte);
+        }
+        Ok(())
+    }
+}
+
+static mut CONSOLE: Option<Console> = None;
+
+/// 初始化全局控制台并清屏；只在 _start 早期、拿到 framebuffer 后调用一次
+pub fn init(fb: &'static Framebuffer) {
+    let mut cons = Console::new(fb);
+    cons.clear();
+    // SAFETY: 单核无中断阶段，且全局只在此处写入一次
+    unsafe {
+        *addr_of_mut!(CONSOLE) = Some(cons);
+    }
+}
+
+fn global() -> Option<&'static mut Console> {
+    // SAFETY: 单核无中断无并发，不存在竞争；
+    // 经 addr_of_mut! 拿裸指针再解引用，避免 static_mut_refs lint 的中间引用
+    unsafe { (*addr_of_mut!(CONSOLE)).as_mut() }
+}
+
+/// printk! 的后端；未初始化（无 framebuffer 的降级路径）时静默丢弃
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use fmt::Write;
+    if let Some(cons) = global() {
+        let _ = cons.write_fmt(args);
+    }
+}
+
+/// 格式化打印到全局控制台（屏幕 + 串口），用法同 std 的 print!
+#[macro_export]
+macro_rules! printk {
+    ($($arg:tt)*) => {
+        $crate::console::_print(core::format_args!($($arg)*))
+    };
 }
