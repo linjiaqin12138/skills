@@ -2,14 +2,14 @@
 
 ## 当前位置
 - Phase: 3（逐层手搓）进行中
-- 里程碑: **M1 已通过**（Bite1 2026-10-12 + Bite2 2026-10-15，`make check-m1-b2`；验收档案 `docs/milestones/m1-printk/acceptance.md`）
-- 教程：M1 Bite1 `tutorial-bite1-framebuffer.html` + Bite2 `tutorial-bite2-printk-scroll.html`（同目录）；概念 `docs/concepts/linear-framebuffer.md`
+- 里程碑: **M2 进行中**——Bite1（GDT 扁平接管 + IDT + CPU 异常接管）2026-10-16 通过 `make check-m2-b1`（主 agent 复跑确认），待用户确认后进入 Bite2；M1 已通过
+- 教程：M1 Bite1 `tutorial-bite1-framebuffer.html` + Bite2 `tutorial-bite2-printk-scroll.html`（m1-printk/）；**M2 Bite1 `m2-exceptions/tutorial-bite1-gdt-idt.html`**；概念 `linear-framebuffer.md` + `gdt-long-mode.md` + `idt-exception-frame.md`
 - 环境：qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`reference/limine`（v10.8.5-binary）+ `reference/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
-用户确认后进入 **M2「GDT(扁平)/IDT + CPU 异常接管 + panic 打印」**（phase-2.md）：故意除零 → 打印异常名与寄存器现场而非死机。printk! 已就绪可直接用；panic_handler 目前只会 halt（main.rs:77）。
-- 注意 M2 动工前先想清楚 D15 的口径：M2 只接 CPU 异常（同步），还不开外部中断，static mut console 假设仍成立；M3 开中断才必须换锁。
-- Makefile 注意：`check-m1-b1` 已退役（demo 输出被 Bite2 替换），当前验收命令只有 `make check-m1-b2`。
+用户确认后进入 **M2 Bite2「panic 打印」**：panic_handler 接 printk!，panic!() 打印消息与位置而非静默 halt（main.rs:77 附近）。伏笔已埋：Rust `1/0` 走 panic 不走 #DE，Bite1 教程坑 2 已点到。
+- M2 之后是 M3「中断：LAPIC 定时器 100Hz + IOAPIC 键盘」（phase-2.md），届时 D15（static mut console 换锁）与 D16 前半（IDT 向量 32~255 空洞）必须收敛。
+- Makefile 验收命令：`check-m1-b2`（M1）、`check-m2-b1`（M2 Bite1）；`check-m1-b1` 已退役。
 
 **2026-10-13**：Limine 协议已改为官方 `limine` crate 0.6.5（D14）。
 
@@ -29,7 +29,7 @@
 - reference（只读对照）: `linux-0.11-from-scratch/reference/`（limine binary + limine-protocol；Linux-0.11 源码克隆可按需补回；`.gitignore` 忽略整个 reference/）
 - Rust 语法书（检索用，只读）: `reference/book-cn/`（若缺失可再浅克隆 rust-lang-cn/book-cn）；在线版 https://rustwiki.org/zh-CN/book/
 - 原项目构建: 待 Linux-0.11 reference 补回后 `cd reference && make && make start`
-- 最新架构图: `docs/arch/original.svg`（原项目总图）；**本工程当前架构权威图：`docs/milestones/m1-printk/assets/dst/arch.svg`（M1 Bite2，含 console→serial 双写边）**；arch-diff：`…/arch-diff.svg`（M0→M1）、`…/arch-diff-bite2.svg`（Bite2 变动）
+- 最新架构图: `docs/arch/original.svg`（原项目总图）；**本工程当前架构权威图：`docs/milestones/m2-exceptions/assets/dst/arch.svg`（M2 Bite1，新增 gdt/idt 模块与异常路径）**；arch-diff：`…/m2-exceptions/assets/dst/arch-diff.svg`（M1→M2）
 - **画图工具链**：默认 fireworks（`vendor/fireworks-tech-graph/`，2026-10-12 本机网络未能 clone，M1 Bite1 **权威 SVG 暂用 d2**；fireworks 兼容 JSON 已落在 `m1-printk/assets/src/arch*.json`，工具可用后可重渲）。工作流见既有 STATE 经验；Style 1 配色沿用
 - Phase 1 拆解文档: `docs/phase-1.md`
 - Phase 2 路线图: `docs/phase-2.md`
@@ -37,7 +37,7 @@
 - 用户偏好: `skills/clone-from-scrach-tutor/user-prefs.md` + `docs/user-prefs.md`
 
 ## 偏差登记簿计数
-- docs/deviations.md：**15 条**——待收敛 4（D2/D3/D6/D15）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）、已收敛 1（D12，M1 Bite2）
+- docs/deviations.md：**16 条**——待收敛 5（D2/D3/D6/D15/D16）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）、已收敛 1（D12，M1 Bite2）
 
 ## 本机环境侦察（续）
 

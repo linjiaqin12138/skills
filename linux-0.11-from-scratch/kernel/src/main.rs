@@ -1,4 +1,4 @@
-//! M1 Bite2：printk!（core::fmt 格式化 + 屏幕/串口双写）+ 滚屏压测。
+//! M2 Bite1：GDT 扁平接管 + IDT + CPU 异常接管（除零异常验收）。
 
 #![no_std]
 #![no_main]
@@ -6,6 +6,8 @@
 mod console;
 mod fb;
 mod font;
+mod gdt;
+mod idt;
 mod limine_fb;
 mod serial;
 
@@ -47,7 +49,31 @@ extern "C" fn _start() -> ! {
         printk!("M1: scroll line {:02}\n", i);
     }
 
+    // M2 Bite1：用自己的扁平 GDT 与 256 项 IDT 接管段与异常
+    gdt::init();
+    printk!("M2: gdt ok\n");
+    idt::init();
+    printk!("M2: idt ok\n");
+
+    // 验收动作：故意触发 #DE 除零异常，预期打印现场后停机（不再三连重启）
+    trigger_divide_error();
+
     halt();
+}
+
+/// 用内联汇编的 div 指令真触发 #DE。
+/// 注意不能写 Rust 的 `0 / 0`：除法运算符除零只走 panic!，不进 IDT
+fn trigger_divide_error() {
+    // SAFETY: 故意制造 0/0；div 不读内存不依赖栈，标志位本就由 div 置为未定义
+    unsafe {
+        asm!(
+            "xor edx, edx",
+            "xor eax, eax",
+            "div eax",
+            options(nomem, nostack),
+        );
+    }
+    // div 必然触发异常，永远走不到这里；真走到也说明异常接管失败，halt 兜底即可
 }
 
 /// fb 各颜色通道 mask 一行，供核对像素格式（排障用，断言不依赖）

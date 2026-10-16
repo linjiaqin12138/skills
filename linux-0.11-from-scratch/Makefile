@@ -10,7 +10,7 @@ QEMU        := $(shell command -v qemu-system-x86_64 2>/dev/null || echo $(HOME)
 # -boot d：默认启动顺序硬盘在前，会引导 reference/hdc-0.11.img 而不是我们的 CD
 QEMU_FLAGS  := -m 128M -boot d -serial stdio -drive file=reference/hdc-0.11.img,format=raw,if=ide
 
-.PHONY: toolchain ctr kernel build run debug check check-m1-b2 clean help
+.PHONY: toolchain ctr kernel build run debug check check-m1-b2 check-m2-b1 clean help
 
 help: ## 显示本帮助
 	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*## /  →  /'
@@ -88,6 +88,38 @@ check-m1-b2: build ## M1 Bite2 验收：printk! fmt + 60 行滚屏 + screendump
 	@sz=$$(wc -c < build/m1-bite2.ppm); echo "screendump size=$$sz"; \
 	  test $$sz -gt 10240
 	@echo "check-m1-b2 OK"
+
+# M2 Bite1：GDT 扁平接管 + IDT 接管全部 CPU 异常 + 故意除零触发 #DE。
+# 关键断言：M0 alive 恰好一次（无三连重启）；异常现场行含 rip/cs/rflags/通用寄存器。
+check-m2-b1: build ## M2 Bite1 验收：gdt/idt ok + EXCEPTION #0 寄存器现场 + screendump
+	@$(DOCKER_EXEC) chown -R --reference=/work /work/build
+	@mkdir -p build
+	@rm -f build/serial.log build/m2-bite1.ppm
+	@echo ">>> starting qemu (headless + monitor screendump)…"
+	@( sleep 3; printf 'screendump build/m2-bite1.ppm\nquit\n' ) | \
+	  $(QEMU) -m 128M -boot d -display none -vga std -net none \
+	    -monitor stdio \
+	    -serial file:build/serial.log \
+	    -drive file=reference/hdc-0.11.img,format=raw,if=ide \
+	    -cdrom build/kernel.iso; \
+	  rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
+	@echo ">>> serial.log:"
+	@cat build/serial.log
+	@echo ">>> asserting serial markers…"
+	@test "$$(grep -c -F 'M0: kernel alive' build/serial.log)" -eq 1
+	@grep -E 'M1: fb [0-9]+x[0-9]+x[0-9]+' build/serial.log
+	@grep -F 'M1: fmt hex=0x002a dec=42 str=ok' build/serial.log
+	@grep -F 'M1: scroll line 00' build/serial.log
+	@grep -F 'M1: scroll line 59' build/serial.log
+	@grep -F 'M2: gdt ok' build/serial.log
+	@grep -F 'M2: idt ok' build/serial.log
+	@grep -F 'EXCEPTION #0' build/serial.log
+	@grep -F 'divide error' build/serial.log
+	@grep -E 'M2: rip=0x[0-9a-f]+' build/serial.log
+	@test -f build/m2-bite1.ppm
+	@sz=$$(wc -c < build/m2-bite1.ppm); echo "screendump size=$$sz"; \
+	  test $$sz -gt 10240
+	@echo "check-m2-b1 OK"
 
 clean: ## 清理构建产物
 	rm -rf build kernel/target user/target
