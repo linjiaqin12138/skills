@@ -3,10 +3,12 @@
 > 新会话续传入口：读本文件 + user-prefs.md（项目级路线）+ deviations.md + questions.md + feature-inventory.md + docs/milestones/ 最新一章，然后从"下一步"继续。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `reference/`，只读）
-- **当前位置**：M8 Bite 8 **已交付（2026-10-14，用户裁决 0.8 方案收尾）**，教程 `tutorial-bite-8-walk-verdict.html`（第 15 章）已发布。行走不动点结案：双侧实验坐实"0.15/0.3 不走"是公开 velstand 权重对训练分布内小命令不响应（官方 infer_policy.py 与我们 dx 都 ≈0.005；给初速度或 vx=0.8 双侧都能走，用户双边肉眼验证）。行走验收改为 vx=0.8 ×10s 前移 ≥2.0m（实测 4.9m 量级）。BAM 步进在 write（与官方主循环同序、read 无副作用；**机制订正 Q83**：读/写两种步进顺序递推等价，回退实验双向全绿，"先写再步进让起身接得住"的解释作废）。accept-m8-bam 四项全绿（mujoco 3.16）；回归 91 单测 + accept-m8 a–w + accept-m8-updater 6/6 全绿。**D68 已收敛**（残余"0.3 不走"= 上游权重现状，M9 自训策略解决）。
+- **当前位置**：**M8 全部交付（Bite 1–6、8、9、10），Phase 4 收敛验收与复盘已完成（2026-10-15）**。Bite 10（D36 对齐原版 robot.do 门口裁决）：102 单测 + accept-m8 a–w+z1–z5+x/y + accept-m8-updater 8/8 + accept-m8-bam 四项全绿，教程 `tutorial-bite-10-do-verdict.html`（第 17 章）已抽查交付。**复盘落盘 `docs/phase-4.md`**：收敛验收结论 + 8 条原作者决策失效边界 + 5 条可迁移原则 + 检验题（机械臂 OTA 场景，待用户作答点评）。feature-inventory 批次归属回填进行中（subagent）。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `milestones/m8-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `tutorial-bite-6-bam.html`（第 14 章）
-- **下一步**：**Phase 4 收敛验收**（等用户说"继续"再启动）：以 feature-inventory.md 为主线逐项打勾（复刻项是否全部交付、豁免理由是否仍成立），对照偏差簿核对残余偏差，逐条请用户裁决"对齐回去/保留"；通过后做权衡复盘 + 可迁移原则 + 检验题，然后用户裁决进 M9。**环境备注**：2026-10-14 重建镜像后 `/opt/sim-venv` 首次真正进镜像（此前只在旧容器层，up -d 重建即丢）；mujoco 3.14→3.16，验收已在新版复跑全绿。宿主机可直接跑仿真+daemon（验证官方用的 `~/microduck-verify/.venv` 有 mujoco+bam；二进制 bookworm 构建、glibc 2.39 兼容，ORT_DYLIB_PATH 指 third_party）。宿主机玩法：`~/microduck-verify/.venv/bin/python sim/duck_body.py --viewer --port 7801` + `ORT_DYLIB_PATH=$PWD/third_party/onnxruntime/lib/libonnxruntime.so target/debug/miniduckd --sim 127.0.0.1:7801` + `target/debug/mini-duckctl move 0.8 0 0 --secs 10`。
+- **M8 Bite 8 已交付（2026-10-14，用户裁决 0.8 方案收尾）**，教程 `tutorial-bite-8-walk-verdict.html`（第 15 章）已发布。行走不动点结案：双侧实验坐实"0.15/0.3 不走"是公开 velstand 权重对训练分布内小命令不响应（官方 infer_policy.py 与我们 dx 都 ≈0.005；给初速度或 vx=0.8 双侧都能走，用户双边肉眼验证）。行走验收改为 vx=0.8 ×10s 前移 ≥2.0m（实测 4.9m 量级）。BAM 步进在 write（与官方主循环同序、read 无副作用；**机制订正 Q83**：读/写两种步进顺序递推等价，回退实验双向全绿，"先写再步进让起身接得住"的解释作废）。**D68 已收敛**（残余"0.3 不走"= 上游权重现状，M9 自训策略解决）。
+- **M8 Bite 9 已交付（2026-10-15，Phase 4 就地对齐组）**，教程 `tutorial-bite-9-phase4-fixes.html`（第 16 章）：D13（IoError 四变体，对齐 duck-control/src/io.rs:50-71）、D20（**修订裁决：保留 LSTM 分支**=原版 loader 能力面，补合成 (3,3) LSTM 夹具运行时覆盖；实证：官方全 tag v1–v8+main + 7 社区采样模型全 FF）、D24（COAST_TICKS=3 滑行，robotd/src/main.rs:137；consecutive_read_errors 每次失败即计、skipped_reads 语义收窄为真瞎跳拍）、D65（model_api None 放行）。**新登记 D69**（盲拍 hold 写入 + RESET_AFTER_PAUSE=200ms + BUS_DROP_QUIET 未移植，挂 M10）。
+- **下一步**：**M9 已裁决开工（2026-10-16）**。检验题已答并点评完毕（phase-4.md 收官）。M9 拆五个里程碑、GPU 后置，方案与覆盖映射在 **`docs/m9-plan.md`**；microduck_rl 侦察报告在 `docs/recon-microduck-rl.md`（仓库已浅克隆至 `reference/microduck_rl/`，只读）。当前开工 **M9a 自建 MJCF 仿真模型（CPU）**。台账已全部落账（deviations.md 裁决 + feature-inventory.md 批次归属回填完毕）。**环境备注**：2026-10-14 重建镜像后 `/opt/sim-venv` 首次真正进镜像；mujoco 3.16。宿主机可直接跑仿真+daemon（`~/microduck-verify/.venv` 有 mujoco+bam+onnx；二进制 bookworm 构建）。宿主机玩法：`~/microduck-verify/.venv/bin/python sim/duck_body.py --viewer --port 7801` + `ORT_DYLIB_PATH=$PWD/third_party/onnxruntime/lib/libonnxruntime.so target/debug/miniduckd --sim 127.0.0.1:7801` + `target/debug/mini-duckctl move 0.8 0 0 --secs 10`。
 
 ## 里程碑进度
 
@@ -20,8 +22,8 @@
 | M5 安全层（deadman/限位/跌倒） | ✅ 验收通过（milestones/m5-safety/，35 单测+accept-m5 六项+accept-m4 回归全绿） |
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（milestones/m6-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（milestones/m7-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept-m7.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
-| M8 收敛验收 | Bite 1–6 + 8 全部交付（2026-10-14 Bite 8：D68 收敛、行走 vx=0.8 ≥2.0m 实测 4.93m，教程第 15 章）；**待 Phase 4 收敛验收** |
-| M9 仿真与训练（批次 2） | 未开始（规划：自建 MJCF 仿真模型、BAM 执行器建模深入、自己训练策略；对齐 microduck_rl 相关部分） |
+| M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 docs/phase-4.md |
+| M9 仿真与训练（批次 2） | **进行中（2026-10-16 开工）**：拆 M9a–M9e 五个里程碑、GPU 后置（方案 docs/m9-plan.md）。M9a 自建 MJCF（CPU）当前；M9b 训练管线解剖（CPU）；M9c 调度对齐① FallPredictor/odometry（CPU）；M9d 云上训练（GPU，Vast.ai 5090）；M9e Velocity 全链路闭环+调度对齐② |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
 
@@ -54,7 +56,7 @@
 
 见 `skills/clone-from-scrach-tutor/user-prefs.md`（用户级背景）+ `docs/user-prefs.md`（项目级：整机闭环路线、硬件与 BAM 侦察结论）；流程规则（类比/章节结构/行文分层/画图/代码风格/用词）已上收 SKILL.md。要点：里程碑代码由 coder subagent 构建、主 agent 复核验收；终态必须与原项目一致（铁律 8/9）。
 
-偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Bite 6**：D21/D34 已收敛；D35 部分收敛。**D68**：冻结和注速度已拆；Bite 8 消掉了「目标晚一拍进物理」，坐姿起身已过。行走不动点还在，未收敛。其余要点同前：D2 豁免；D44/D45/D64 已收敛；D47 部分（残余 D65–D67）；D43 仅剩 CLI move 请求式。
+偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Phase 4 裁决已落账（2026-10-15，见 deviations.md 顶部裁决段）**：A 组核销（D1 等）；永久保留 D10/D27/D40/D43③；Bite 9 就地收敛中 D13/D20/D24/D65；挂 M9：D4/D23/D26/D28/D29/D30/D32/D33/D35 残余/odometry/「0.3 不走」上游权重；挂 M10：D5/D7/D12/D15（目标值改 31）/D25/D37–D41/D42–D63/D66/D67；挂 M11：D31。**D36 漏列待补问**。D2 豁免维持；padd/pad.* 不豁免改 M10 再评估（用户有 Xbox 手柄）。
 
 ## M6 复核更正（2026-09-28，教程写作时发现）
 
@@ -79,3 +81,8 @@
 9. **D68 单独开 Bite 清掉（2026-10-13）**：用户裁决不挂到 M9，并选择策略在倒下之前进环。代码已做成 `--sim` 第一拍 Driving。站立 z≈0.117 通过。坐姿起身 50 拍后进 Limp（z≈0.042），Bite 7 未交付。没有写回冻结或注速度。D35 / D65 不动。
 10. **起身交接另开 Bite 8（2026-10-14）**：1 秒窗口保持与原项目一致。下一 Bite 只对齐「先写目标、再步进」，用来让起身结束时身体进入 velstand 接得住的状态。不把 D68 装回。
 11. **Bite 8 行走验收按 0.8 方案收尾（2026-10-14）**：用户肉眼验证官方窗口（0.3 不走、P 键注速度能走、打补丁 0.8 能走）+ 我们鸭子同条件复现（0.8 能走）后裁决：行走验收改 vx=0.8 ×10s 前移 ≥2.0m（实测 4.9m），验收目标=集成栈能驱动步态；0.3 不走登记为上游 velstand 权重现状（非我方偏差，不进豁免清单），M9 自训策略时真正解决。D68 收敛。
+12. **Phase 4 版本基准（2026-10-15）**：reference 以磁盘克隆 daemon-v0.14.1（API_VERSION=31，origin/main HEAD，commit 344925c）为终态对齐基准；清单原按 API 37 检出写成，行号证据回填修正，API 32–37 差量留 M10 终态盘点。
+13. **Phase 4 就地对齐组（2026-10-15，M8 Bite 9）**：D13 IoError 分类、D24 COAST_TICKS=3、D65 model_api None 放行、D20 删 LSTM 死代码。D20 前提由用户确认后查证：HF pollen-robotics/microduck-policies 全部 tag（v1–v8+main）只有同 10 个 onnx，全量探针验证均 1-in/1-out feedforward——原版 LSTM 分支从未被自家模型触发，故删；M9 自训若用 recurrent 再写回。
+14. **Phase 4 批次挂账（2026-10-15）**：D23/D32（FallPredictor）挂 M9；D31 音频族**不豁免**挂 M11 再评估；odometry 从建议豁免改挂 M9；padd/pad.* 不豁免挂 M10 再评估（用户有 Xbox 手柄）；account.* 并入 D60；D61 扩为协议级错误码；D10/D27/D40/D43③ 永久保留（理由在 deviations.md 各行）。
+15. **M9 算力路线（2026-10-16）**：主力云 GPU（Vast.ai RTX 5090，~$0.39/h；模板 NVIDIA CUDA devel、筛 CUDA Max Good ≥12.9/驱动≥575、磁盘≥60GB、SSH 直连）；HF Jobs 备选；本 VM 无 GPU（VMware），3060 Ti Windows 机未采用。**GPU 步骤全部后置**：先 CPU 侧学仿真与训练管线，上机器时再开训练里程碑。
+16. **M9 拆分 v2（2026-10-16 用户裁决）**：原 M9a「环境+MJCF」被认为低估了仿真搭建的学习量，重拆为五里程碑并 GPU 后置：M9a 自建 MJCF（CPU）→ M9b 训练管线解剖（CPU）→ M9c 调度对齐① FallPredictor/odometry（CPU，可交错）→ M9d 云上训练（GPU）→ M9e Velocity 全链路闭环+调度对齐②。方案与挂账覆盖映射在 docs/m9-plan.md。

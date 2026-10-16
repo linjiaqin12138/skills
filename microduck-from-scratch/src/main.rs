@@ -111,11 +111,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => {
             // 故障注入开关（容错验收用）：MINIDUCK_FAKE_FAILING_READS=100 让
             // 假总线前 100 次 read 报错，模拟舵机电源未就绪。默认 0。
+            // MINIDUCK_FAKE_FAIL_AFTER=<ok>:<fail>：先放行 ok 次再连挂 fail 次
+            // （一次性），模拟中途总线抖动（D24 滑行窗验收用）。
             let failing_reads = std::env::var("MINIDUCK_FAKE_FAILING_READS")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
-            Box::new(FakeIo::failing_reads(failing_reads))
+            let fail_after = std::env::var("MINIDUCK_FAKE_FAIL_AFTER").ok().and_then(|s| {
+                let (ok, fail) = s.split_once(':')?;
+                Some((ok.parse().ok()?, fail.parse().ok()?))
+            });
+            let fake = match fail_after {
+                Some((ok, fail)) => FakeIo::failing_reads(failing_reads).fail_after(ok, fail),
+                None => FakeIo::failing_reads(failing_reads),
+            };
+            Box::new(fake)
         }
     };
 
@@ -433,10 +443,14 @@ async fn serve(
                         }
                         Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
                     },
-                    // M6：技能请求。原版语义（reference/robotd/src/main.rs:4342-4369）：
-                    // 未 enable 拒绝（"accepted 然后什么都不发生是最坏的回答"）；
-                    // 斜坡途中（还没 driving）拒绝；名字不在名单拒绝并附上名单。
-                    // 接受 = 写边沿位，仲裁（busy 拒绝等）在控制循环下一拍做。
+                    // M6：技能请求。M8-B10 D36 对齐原版（reference/robotd/src/
+                    // main.rs:4184-4219）：门口按情形拒 !enabled（:4196-4200）
+                    // 与 !homed（:4201-4204，我们的 RampUp），名字没配置过也
+                    // 拒绝（accepted:false 附名单）；fallen/Limp 照收——"a
+                    // skill on a fallen robot is the human's call"（:4189-4191，
+                    // 原版单测 :5771-5785 明确 fallen=true 仍 accepted 且入队），
+                    // 由控制循环当拍静默丢弃（:2120-2158，只留日志），所以
+                    // fallen 时的 accepted:true 不等于机器人会动。
                     "robot.do" => {
                         let skill = req.params.get("skill").and_then(|v| v.as_str());
                         let Some(name) = skill else {
@@ -450,32 +464,9 @@ async fn serve(
                             }
                             continue;
                         };
-                        let verdict = {
-                            let enabled = control.lock().expect("control mutex poisoned").enabled;
-                            if !stats.policy_ok.load(Ordering::Relaxed) {
-                                Err("the policy is not loaded".to_owned())
-                            } else if !enabled {
-                                // 原版文案指 pad 的 Start；我们的 enable 入口是 CLI。
-                                Err("the policy is not driving — run mini-duckctl enable"
-                                    .to_owned())
-                            } else if !stats.driving.load(Ordering::Relaxed) {
-                                Err("the robot is still going to its home pose; try again in a moment"
-                                    .to_owned())
-                            } else {
-                                match miniduck::scheduler::request_bit(name) {
-                                    Some(bit) if skill_names.contains(&name) => Ok(bit),
-                                    _ => Err(if skill_names.is_empty() {
-                                        "this robot has no skills configured".to_owned()
-                                    } else {
-                                        format!(
-                                            "no skill named {name:?}; this robot has {}",
-                                            skill_names.join(", ")
-                                        )
-                                    }),
-                                }
-                            }
-                        };
-                        match verdict {
+                        let enabled = control.lock().expect("control mutex poisoned").enabled;
+                        let homed = stats.homed.load(Ordering::Relaxed);
+                        match miniduck::scheduler::do_verdict(enabled, homed, name, &skill_names) {
                             Ok(bit) => {
                                 control.lock().expect("control mutex poisoned").skill_edges |= bit;
                                 ServerMessage::ok(req.id, json!({ "accepted": true, "skill": name }))

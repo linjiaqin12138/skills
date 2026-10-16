@@ -41,6 +41,41 @@ pub fn request_bit(name: &str) -> Option<u32> {
     }
 }
 
+/// robot.do 的门口裁决（M8-B10，D36），判定顺序与文案逐字对齐原版
+/// dispatch（reference/robotd/src/main.rs:4196-4217）：
+///
+/// 1. 未 enable → 拒绝（:4196-4200；原文 "the policy is not driving —
+///    press Start on the pad"，原版只有 pad 能 Start，我们没有 pad 也照抄
+///    文案——逐字对齐优先于本地化）；
+/// 2. 未 homed（斜坡回 home 进行中）→ 拒绝（:4201-4204）；
+/// 3. 名字不在名单 → 拒绝并附名单（:4205-4217，"accepted 然后什么都不
+///    发生是最坏的回答"，:4192-4195）。
+///
+/// fallen 不是入参——原版明确 "Not refused for being down. A skill on a
+/// fallen robot is the human's call"（:4189-4191；其单测 :5771-5785 断言
+/// fallen=true 仍 accepted 并入队）。fallen 软倒（我们的 Limp）期间
+/// enabled/homed 都保持 true，请求照收后由控制循环当拍静默丢弃
+///（control.rs edges_when_driving；原版 :2120-2158 只留日志）。
+pub fn do_verdict(enabled: bool, homed: bool, name: &str, known: &[&str]) -> Result<u32, String> {
+    if !enabled {
+        return Err("the policy is not driving — press Start on the pad".to_owned());
+    }
+    if !homed {
+        return Err("the robot is still going to its home pose; try again in a moment".to_owned());
+    }
+    match request_bit(name) {
+        Some(bit) if known.contains(&name) => Ok(bit),
+        _ => Err(if known.is_empty() {
+            "this robot has no skills configured".to_owned()
+        } else {
+            format!(
+                "no skill named {name:?}; this robot has {}",
+                known.join(", ")
+            )
+        }),
+    }
+}
+
 /// 一个一次性技能的静态配置。Vec 顺序就是优先级（原版注释："Order is
 /// priority, replacing the hardcoded roulade > kick precedence"，
 /// reference/robotd-params/src/lib.rs:1326）。
@@ -322,6 +357,13 @@ impl Cascade {
             *remaining_ticks = remaining_ticks.saturating_sub(1);
         }
     }
+
+    /// 忘掉活跃网选择：下一拍按换网处理（新 episode 从头开始）。
+    /// 对应原版 PolicySet 的 active=None（推理失败路径
+    /// reference/duck-control/src/policy.rs:362-365、reset :415-416）。
+    fn forget_active_net(&mut self) {
+        self.last_net = None;
+    }
 }
 
 /// 调度器 = Cascade 状态机 + 各槽位 Policy。
@@ -429,8 +471,12 @@ impl Scheduler {
     /// 清空所有已加载槽的 LSTM 状态：disable 结束 recurrent episode
     ///（原版 was_driving && !driving && !enabled 边沿的 controller.reset()，
     /// reference/robotd/src/main.rs:2791-2793）。Cascade 的窗口/坐姿锁存
-    /// 不动——它们不是 episode 记忆，且非 Driving 阶段不推进。
+    /// 不动——它们不是 episode 记忆，且非 Driving 阶段不推进；活跃网选择
+    /// 清零（原版 PolicySet::reset 的 active=None，
+    /// reference/duck-control/src/policy.rs:415-427），enable 回来的第一拍
+    /// 按换网处理（幂等：reset 已清零，再清一次无代价）。
     pub fn reset(&mut self) {
+        self.cascade.forget_active_net();
         self.walk.reset();
         if let Some(p) = &mut self.sitstand {
             p.reset();
@@ -473,6 +519,8 @@ impl Scheduler {
     /// 在 decision 选中的网络上推理。换网即 reset 新网络的 LSTM 状态
     ///（reference/duck-control/src/policy.rs:350-360）；last_action 与低通
     /// 锚点不归这里管，跨切换保留（reference/robotd/src/control.rs:211-214）。
+    /// 推理失败也 reset 该网络并忘掉活跃选择（原版 :361-365：
+    /// 失败的推理状态绝不带进下一拍，下一拍按换网处理）。
     pub fn infer(
         &mut self,
         observation: &crate::obs::Observation,
@@ -482,7 +530,12 @@ impl Scheduler {
         if decision.switched {
             policy.reset();
         }
-        policy.infer(observation)
+        let result = policy.infer(observation);
+        if result.is_err() {
+            policy.reset();
+            self.cascade.forget_active_net();
+        }
+        result
     }
 }
 
@@ -734,6 +787,52 @@ mod tests {
         assert_eq!(d.net, Net::Skill(1), "加载成功的槽照常可用");
     }
 
+    /// D36：门口裁决 gate 的是 enabled 与 homed（原版 dispatch 的两种
+    /// 情形拒绝，reference/robotd/src/main.rs:4196-4204），fallen 不是
+    /// 入参——原版单测 :5771-5785 断言 fallen=true 仍 accepted 且入队。
+    /// 我们的 Limp（fallen 软倒）期间 enabled/homed 皆 true，即下面
+    /// 第一个分支：照收，丢弃是控制循环的事（control.rs
+    /// edges_when_driving）。
+    #[test]
+    fn do_verdict_gates_on_enabled_and_homed_never_on_fallen() {
+        let known = ["ground_pick", "sit_toggle", "roulade", "kick_left"];
+        // fallen/Limp 的形态：enabled=true、homed=true → 照收。
+        for name in known {
+            assert_eq!(
+                do_verdict(true, true, name, &known),
+                Ok(request_bit(name).unwrap())
+            );
+        }
+        // 未 enable → 原版 :4200 原文；且在名字之前拒（:4192-4195），
+        // 未知名也先吃情形拒绝。
+        assert_eq!(
+            do_verdict(false, true, "kick_left", &known).unwrap_err(),
+            "the policy is not driving — press Start on the pad"
+        );
+        assert_eq!(
+            do_verdict(false, false, "no_such", &known).unwrap_err(),
+            "the policy is not driving — press Start on the pad"
+        );
+        // 斜坡途中（未 homed）→ 原版 :4202-4204 原文。
+        assert_eq!(
+            do_verdict(true, false, "kick_left", &known).unwrap_err(),
+            "the robot is still going to its home pose; try again in a moment"
+        );
+    }
+
+    #[test]
+    fn do_verdict_refuses_unknown_names_with_the_list() {
+        let known = ["ground_pick", "sit_toggle", "roulade", "kick_left"];
+        let err = do_verdict(true, true, "kick_right", &known).unwrap_err();
+        assert!(err.contains("\"kick_right\""), "{err}");
+        assert!(err.contains("roulade") && err.contains("kick_left"), "{err}");
+        // 名单为空（策略没加载，D19）：统一文案，不编造名单。
+        assert_eq!(
+            do_verdict(true, true, "kick_left", &[]).unwrap_err(),
+            "this robot has no skills configured"
+        );
+    }
+
     #[test]
     fn busy_is_exactly_skill_or_ground_pick_or_rising() {
         let mut c = cascade();
@@ -845,5 +944,45 @@ mod tests {
         s.infer(&obs, &d).unwrap();
         assert_eq!(s.sitstand.as_ref().unwrap().reset_calls, sit_resets + 1);
         assert_eq!(s.walk.reset_calls, walk_resets + 1, "旧网络不被碰");
+    }
+
+    /// 推理失败即 reset 该网络，且忘掉活跃选择——下一拍按换网处理
+    ///（原版 PolicySet::infer 失败路径，reference/duck-control/src/policy.rs:361-365）。
+    #[test]
+    fn failed_inference_resets_the_network() {
+        let Some(mut s) = load_scheduler() else { return };
+        let client = Command::default();
+
+        let d = s.step(&client);
+        assert!(d.switched);
+        let obs = crate::obs::Observation::build(
+            &crate::io::ImuData::default(),
+            &crate::model::DEFAULT_POSITION,
+            &[0.0; crate::model::NUM_JOINTS],
+            &crate::model::DEFAULT_POSITION,
+            &[0.0; crate::obs::ACTION_LEN],
+            &d.command,
+        );
+        s.infer(&obs, &d).unwrap(); // 消费掉换网 reset
+        s.advance();
+        let d = s.step(&client);
+        assert!(!d.switched);
+
+        let mut bad_vel = [0.0; crate::model::NUM_JOINTS];
+        bad_vel[0] = f64::NAN;
+        let bad_obs = crate::obs::Observation::build(
+            &crate::io::ImuData::default(),
+            &crate::model::DEFAULT_POSITION,
+            &bad_vel,
+            &crate::model::DEFAULT_POSITION,
+            &[0.0; crate::obs::ACTION_LEN],
+            &d.command,
+        );
+        let resets = s.walk.reset_calls;
+        assert!(s.infer(&bad_obs, &d).is_err(), "非有限观测必须推理失败");
+        assert_eq!(s.walk.reset_calls, resets + 1, "失败即 reset");
+
+        let d2 = s.step(&client);
+        assert!(d2.switched, "失败后下一拍按换网处理（active 已忘）");
     }
 }

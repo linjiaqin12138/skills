@@ -30,7 +30,10 @@
 //! M6：Driving 阶段的策略选择与 command 重编码由 scheduler 决定（技能 >
 //! ground_pick > sit > walk）；脚本动作在飞（busy）时抑制 Driving→Limp
 //! 转移（原版门 FallPredictor，简化见 D32）；嘴在策略写完后由 robot.mouth
-//! 意图覆写（嘴不属于任何策略）。
+//! 意图覆写（嘴不属于任何策略）。M8-B10（D36）：技能请求只在 Driving 拍
+//! 生效，非 Driving 拍当拍丢弃。RPC 门口仍按情形拒 !enabled/!homed
+//!（scheduler.rs 的 do_verdict），只有 fallen/Limp 是照收后吞在本循环——
+//! 那是本循环作为唯一丢弃点的情形。
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -47,6 +50,11 @@ use crate::safety::{Safety, SafetyConfig};
 use crate::scheduler::Scheduler;
 
 pub const TICK_PERIOD: Duration = Duration::from_millis(20);
+
+/// 读失败滑行窗：连续失败 ≤COAST_TICKS 拍用上一样本续跑（对策略不可见——
+/// 观测本来就旧一拍，训练数据正是这个年龄；60ms 覆盖一次掉读+重试+慢拍，
+/// 原版 robotd/src/main.rs:133-137）。窗口耗尽才算真瞎、跳拍。
+pub const COAST_TICKS: u64 = 3;
 
 /// 插值长度：2 秒 × 50 Hz = 100 拍。
 pub const RAMP_TICKS: u64 = 100;
@@ -75,10 +83,12 @@ pub struct Stats {
     pub achieved_millihz: AtomicU64,
     /// 策略是否加载成功（D19：加载失败进程也活着，抱持姿态报病）。
     pub policy_ok: AtomicBool,
-    /// 控制循环当前是否在 Driving 阶段。robot.do 据此拒绝"斜坡途中"的
-    /// 技能请求（对齐原版 main.rs 的 homed 检查：accepted 然后什么都不
-    /// 发生是最坏的回答）。
-    pub driving: AtomicBool,
+    /// 斜坡是否完成过——原版 homed 的对应物（reference/robotd/src/main.rs
+    /// :650-653：false 刻意合并"从没起来过"与"斜坡上"两种状态，客户端
+    /// 对两者的答案都是"等，或按 Start"）。robot.do 的门口据此拒绝
+    /// "斜坡途中"的技能请求（:4201-4204）。fallen/Limp 期间保持 true：
+    /// 跌倒不改 homed（:2760-2761 "A fall does not stop the driving"）。
+    pub homed: AtomicBool,
     /// 本拍是否处于运动中。供 `robot.safeToRestart`：走路时不允许重启。
     pub moving: AtomicBool,
     /// 本拍是否已跌倒。与 `moving` 组合判断安全重启。
@@ -98,7 +108,7 @@ impl Stats {
             last_tick_millis: AtomicU64::new(0),
             achieved_millihz: AtomicU64::new(0),
             policy_ok: AtomicBool::new(policy_ok),
-            driving: AtomicBool::new(false),
+            homed: AtomicBool::new(false),
             moving: AtomicBool::new(false),
             fallen: AtomicBool::new(false),
             started: std::time::Instant::now(),
@@ -178,8 +188,34 @@ pub fn apply_action(
     targets
 }
 
+/// 滑行窗状态（原版 robotd/src/main.rs:3189-3223 Coast 同款）。
+struct Coast {
+    last: Option<Sensors>,
+    ticks: u64,
+}
+
+impl Coast {
+    /// 喂本拍读取结果，返回本拍可用的样本：新鲜样本，或窗口内的上一样本；
+    /// None = 真瞎（窗口耗尽，或从未读到过——没有样本就没有"上一样本"）。
+    fn sample(&mut self, fresh: Option<Sensors>) -> Option<Sensors> {
+        match fresh {
+            Some(s) => {
+                self.ticks = 0;
+                self.last = Some(s.clone());
+                Some(s)
+            }
+            None if self.ticks < COAST_TICKS && self.last.is_some() => {
+                self.ticks += 1;
+                self.last.clone()
+            }
+            None => None,
+        }
+    }
+}
+
 /// 控制循环每拍成功 read 后发布的快照。读失败不发：没有新样本，
 /// watch 里留着上一帧成功的快照，而不是造一帧空数据。
+/// 例外：滑行窗内的拍照常发布（内容就是上一样本，原版 :1957-1958 注释）。
 #[derive(Debug, Clone)]
 pub struct FrameSnapshot {
     pub sensors: Sensors,
@@ -337,6 +373,32 @@ fn ramp_done_phase(enabled: bool) -> Phase {
     }
 }
 
+/// D36：技能边沿只在 Driving 拍放行；其余阶段（Held/RampUp/Limp/
+/// Stopped = policy 不在驱动）返回 None，调用方当拍丢弃。不启动、
+/// 不排队（位掩码取出时已 mem::take 清零）、不记仇——恢复 Driving
+/// 后只认新请求。原版同（reference/robotd/src/main.rs:2120-2158：
+/// enabled && Ready 之外一律 "skill request ignored: the policy is
+/// not driving"）。
+///
+/// 与 RPC 门口的分工：门口拒 !enabled/!homed（robotd :4196-4204）与
+/// 未知名；fallen/Limp 门口照收（:4189-4191），吞在**这里**——这是
+/// fallen 请求的唯一丢弃点。
+fn edges_when_driving(phase: &Phase, edges: u32) -> Option<u32> {
+    match phase {
+        Phase::Driving => Some(edges),
+        _ => None,
+    }
+}
+
+/// 原版 homed 的相位映射（robotd :650-653 与 :4201-4204 的 !homed 拒绝）。
+/// 只有 Held（从没起来过）与 RampUp（homing 进行中）算 false；
+/// Driving/Limp/Stopped 都已 homed——fallen 不改变 homed（:2760-2761
+/// "A fall does not stop the driving"）。注意 D23 的表面化：我们 Limp
+/// 恢复要重走 RampUp，恢复斜坡期间 homed 暂回 false（原版无重斜坡）。
+fn phase_homed(phase: &Phase) -> bool {
+    !matches!(phase, Phase::Held { .. } | Phase::RampUp { .. })
+}
+
 /// 启动控制任务，返回计数器和最新快照的接收端。
 /// `control` 由 RPC 层写（robot.move/enable/do/mouth/head）、循环每拍读。
 /// `scheduler` 为 None 时（D19：walk 策略加载失败不退出）永远停在 Held 抱持。
@@ -380,6 +442,7 @@ pub fn spawn(
             // 斜坡/抱持/Limp 期间保持 0；策略成功拍才更新，失败不改。
             let mut last_action = [0.0f32; ACTION_LEN];
             let mut tick: u64 = 0;
+            let mut coast = Coast { last: None, ticks: 0 };
 
             // 速率/抖动统计：每 5 秒一行，给 grep 用；同时记进 Stats 供 health。
             let mut window_start = Instant::now();
@@ -408,26 +471,37 @@ pub fn spawn(
                     window_start = Instant::now();
                 }
 
-                let sensors = match safety.read() {
-                    Ok(s) => s,
+                // D24：读失败滑行。原版 robotd/src/main.rs:1965-2005：每个失败拍都计
+                // consecutive_errors（喂 health 阈值，成功清零），但 ≤COAST_TICKS 拍
+                // 用上一样本续跑——掉一拍是总线日常，停策略一拍才是可见踉跄。
+                let fresh = match safety.read() {
+                    Ok(s) => {
+                        stats.reads.fetch_add(1, Ordering::Relaxed);
+                        stats.consecutive_read_errors.store(0, Ordering::Relaxed);
+                        Some(s)
+                    }
                     Err(_) => {
-                        // read 失败跳过本拍（D24：coast 滑行是禁止提前实现项）。
-                        stats.skipped_reads.fetch_add(1, Ordering::Relaxed);
                         stats.consecutive_read_errors.fetch_add(1, Ordering::Relaxed);
-                        tick += 1;
-                        stats.tick.store(tick, Ordering::Relaxed);
-                        stats.last_tick_millis.store(
-                            epoch.elapsed().as_millis() as u64,
-                            Ordering::Relaxed,
-                        );
-                        continue;
+                        None
                     }
                 };
-                stats.reads.fetch_add(1, Ordering::Relaxed);
-                stats.consecutive_read_errors.store(0, Ordering::Relaxed);
-
-                // 每拍顺序对齐原版文档化顺序：read → observe → gate → 策略 → apply。
-                safety.observe(&sensors, TICK_PERIOD);
+                let was_fresh = fresh.is_some();
+                let Some(sensors) = coast.sample(fresh) else {
+                    // 真瞎（滑行窗耗尽或从未读到过）：本拍没有可用样本，跳拍。
+                    stats.skipped_reads.fetch_add(1, Ordering::Relaxed);
+                    tick += 1;
+                    stats.tick.store(tick, Ordering::Relaxed);
+                    stats.last_tick_millis.store(
+                        epoch.elapsed().as_millis() as u64,
+                        Ordering::Relaxed,
+                    );
+                    continue;
+                };
+                // safety 只观察新鲜样本：滑行拍重投旧样本会让一次坏读喂三次
+                // 跌倒去抖（原版 :2000-2016 同一规则）。
+                if was_fresh {
+                    safety.observe(&sensors, TICK_PERIOD);
+                }
 
                 let (command, intent_age, enabled, edges, mouth) = {
                     let mut ctl = control.lock().expect("control mutex poisoned");
@@ -437,9 +511,9 @@ pub fn spawn(
                             .map(|t| t.elapsed())
                             .unwrap_or(Duration::MAX),
                         ctl.enabled,
-                        // 技能边沿每拍取一次清零。非 Driving 拍取到即丢弃
-                        // （原版同：policy 不在驱动时请求落不了地，只留日志）——
-                        // robot.do 在 RPC 侧已按 enabled+driving 拒绝，这里是兜底。
+                        // 技能边沿每拍取一次清零。fallen/Limp 的请求是
+                        // RPC 门口照收进来的（D36），非 Driving 拍的丢弃
+                        // 在本循环做；取出即清零 = 不排队不记仇。
                         std::mem::take(&mut ctl.skill_edges),
                         ctl.mouth,
                     )
@@ -515,12 +589,22 @@ pub fn spawn(
                     &gated,
                 );
 
-                // 非 Driving 拍取到的技能边沿：丢弃并留日志（RPC 侧已按
-                // enabled+driving 拒绝，这是兜底，对齐原版"policy 不在驱动
-                // 时请求落不了地"）。
-                if edges != 0 && !matches!(phase, Phase::Driving) {
-                    eprintln!("scheduler: skill edges {edges:#010b} dropped: not driving");
-                }
+                // D36：技能请求只在 Driving 拍生效，其余阶段当拍丢弃并
+                // 留日志（对齐原版 "the loop drops a skill request whenever
+                // the policy is not driving, and it says so only in the
+                // journal"，reference/robotd/src/main.rs:4192-4195 与
+                // :2157）。能走到这里的非 Driving 请求是 fallen/Limp 期间
+                // 门口照收的（!enabled/!homed 已在门口拒掉）；调用方拿到
+                // 的是 accepted:true，丢弃不向调用方报错。
+                let edges = match edges_when_driving(&phase, edges) {
+                    Some(e) => e,
+                    None => {
+                        if edges != 0 {
+                            eprintln!("scheduler: skill edges {edges:#010b} dropped: not driving");
+                        }
+                        0
+                    }
+                };
 
                 let mut action_out = [0.0f32; ACTION_LEN];
                 let mut obs_for_snapshot = observation;
@@ -600,8 +684,8 @@ pub fn spawn(
                     phase = p;
                 }
                 stats
-                    .driving
-                    .store(matches!(phase, Phase::Driving), Ordering::Relaxed);
+                    .homed
+                    .store(phase_homed(&phase), Ordering::Relaxed);
 
                 // safeToRestart 的判决由控制循环自己记账：走路且没倒时
                 // 不允许重启。Driving 阶段以"busy 或有 twist"为准，斜坡和
@@ -657,6 +741,32 @@ fn p99(deltas_ms: &mut [f64]) -> f64 {
 mod tests {
     use super::*;
     use crate::scheduler::{SKILLS, WALK_ACTION_SCALE, request_bit};
+
+    // ---- D24：滑行窗（对照原版 robotd/src/main.rs:6283-6316 的 Coast 单测）----
+
+    #[test]
+    fn coast_rides_out_up_to_coast_ticks_then_goes_blind() {
+        let mut coast = Coast { last: None, ticks: 0 };
+        // 从未读到过：没有"上一样本"可滑行，直接瞎。
+        assert!(coast.sample(None).is_none());
+
+        let mut walking = Sensors::default();
+        walking.positions[0] = 0.42;
+        assert!(coast.sample(Some(walking.clone())).is_some());
+        // ≤COAST_TICKS 拍用上一样本续跑，对策略不可见。
+        for drop in 1..=COAST_TICKS {
+            let s = coast.sample(None).expect("滑行窗内不许瞎");
+            assert_eq!(s.positions[0], 0.42, "drop {drop} 应重投上一样本");
+        }
+        // 窗口耗尽：真瞎。
+        assert!(coast.sample(None).is_none());
+        // 恢复后下一组失败重新获得完整滑行窗。
+        let mut fresh = Sensors::default();
+        fresh.positions[0] = 0.99;
+        assert!(coast.sample(Some(fresh)).is_some());
+        let s = coast.sample(None).expect("恢复后重新滑行");
+        assert_eq!(s.positions[0], 0.99);
+    }
 
     #[test]
     fn ramp_endpoints() {
@@ -743,6 +853,39 @@ mod tests {
         let second = std::mem::take(&mut ctl.lock().unwrap().skill_edges);
         assert_eq!(first, crate::scheduler::EDGE_SIT_TOGGLE);
         assert_eq!(second, 0, "边沿取过一次就没了");
+    }
+
+    /// D36：fallen（Phase::Limp）等非 Driving 阶段的技能请求当拍吞掉
+    /// ——RPC 层照收，这里丢弃，不启动。配合 skill_edges_are_taken_once
+    /// （取出即清零 = 不排队），恢复 Driving 后只认新请求（不记仇）。
+    /// 对齐原版 main.rs:2120-2158。
+    #[test]
+    fn skill_edges_are_dropped_unless_driving() {
+        let edges = crate::scheduler::EDGE_SIT_TOGGLE | crate::scheduler::EDGE_GROUND_PICK;
+        assert_eq!(edges_when_driving(&Phase::Driving, edges), Some(edges));
+        assert_eq!(edges_when_driving(&Phase::Limp, edges), None);
+        assert_eq!(edges_when_driving(&held(), edges), None);
+        assert_eq!(edges_when_driving(&ramp_up(), edges), None);
+        assert_eq!(edges_when_driving(&Phase::Stopped, edges), None);
+        // 起身恢复（Limp → RampUp → Driving）后新请求照常放行——
+        // 丢弃没有任何残留状态，同一函数 Driving 即放行。
+        assert_eq!(
+            edges_when_driving(&Phase::Driving, crate::scheduler::EDGE_SIT_TOGGLE),
+            Some(crate::scheduler::EDGE_SIT_TOGGLE)
+        );
+    }
+
+    /// 原版 homed 的相位映射（robotd main.rs:650-653）：只有"从没起来过"
+    ///（Held）与"homing 进行中"（RampUp）算 false。fallen/Limp 不改 homed
+    ///（:2760-2761）——这正是 Limp 中 robot.do 门口照收（homed=true）
+    /// 再由 edges_when_driving 吞掉的分工。
+    #[test]
+    fn homed_is_false_only_for_held_and_rampup() {
+        assert!(!phase_homed(&held()));
+        assert!(!phase_homed(&ramp_up()));
+        assert!(phase_homed(&Phase::Driving));
+        assert!(phase_homed(&Phase::Limp), "fallen 不改 homed");
+        assert!(phase_homed(&Phase::Stopped));
     }
 
     fn held() -> Phase {

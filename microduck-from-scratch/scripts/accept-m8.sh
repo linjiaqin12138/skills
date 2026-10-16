@@ -37,6 +37,27 @@
 #   s. robot.subscribe {hz:10, foo:1} → INVALID_PARAMS（-32602），之后推送仍在
 #      （解析失败不退订）
 #   t. 无 id 的 robot.subscribe {hz:10} → 0.3s 内只有 robot.state 推送，无响应行
+# Bite 9 断言（D24 读失败滑行 COAST_TICKS=3；FakeIo 用 env
+#   MINIDUCK_FAKE_FAIL_AFTER=<ok>:<fail> 注入一次性中途连挂）：
+#   x. 连挂 3 次（=COAST_TICKS）：全程被滑行吸收——推送不断、skill 恒 walk、
+#      恰好一段 3 帧重投上一样本、skipped_reads 恒 0、healthy 恒 true
+#   y. 连挂 4 次（>COAST_TICKS）：3 帧滑行后第 4 拍真瞎跳拍——
+#      skipped_reads 恰好 +1，恢复后 consecutive_read_errors 清零、仍 healthy
+# Bite 10 断言（D36：robot.do 只对 fallen/Limp 放开——RPC 照收、控制
+# 循环静默丢；!enabled/!homed/未知名仍在门口拒绝，对齐原版 dispatch）：
+#   z1. Driving 中 do kick_left → accepted:true 且推送 skill=kick_left
+#       （真启动），窗口结束回 walk
+#   z2. disable（Stopped）后 do kick_left → accepted:false + 原版
+#       !enabled 文案（:4200），且不启动不排队
+#   z3. 再 enable 回 Driving：先稳 0.6s skill 恒 walk（拒绝不排队不记仇），
+#       再 do kick_left → accepted:true 且真启动（恢复后照常）
+#   z4. 未知技能名 → accepted:false 附名单；缺 skill 字段 → INVALID_PARAMS
+#       （参数/名字路径不属于本偏差，行为不变）
+#   z5. 斜坡途中（RampUp=未 homed）do → accepted:false + 原版 !homed
+#       文案（:4202-4204）。时间线要求它在断言 i 之后的斜坡窗口内执行
+#   注：「Limp 中 do accepted:true 但静默丢」无端到端断言——FakeIo 无
+#   IMU/gravity 注入面，fallen 诱发不了；该路径由单测覆盖
+#   （edges_when_driving / phase_homed / do_verdict，见 z2 处注释）。
 set -u
 cd /work
 
@@ -236,6 +257,19 @@ assert res.get("reason") == "enabled — driving", f"reason 应逐字对齐原�
 wait_push(lambda p: p["enabled"] is True, "推送 enabled=true")
 print(f"i. enable on → {res['reason']!r}，推送 enabled=true  OK")
 
+# ── 断言 z5：斜坡途中（未 homed）robot.do → 拒绝，原版文案 ──
+# D36 只放开 fallen/Limp；门口仍按情形拒 !enabled/!homed（原版
+# reference/robotd/src/main.rs:4196-4204）。此刻处于 RampUp（100 拍=2s）
+# 窗口内，homed=false。时间线要求此断言只能在 i 之后、斜坡结束前跑，
+# 故编号在 z 段而位置在这里。
+send({"jsonrpc": "2.0", "id": 28, "method": "robot.do", "params": {"skill": "kick_left"}})
+r = read_until_response(28)
+res = r.get("result", {})
+assert res.get("accepted") is False, f"斜坡途中应拒绝，实际 {r}"
+assert res.get("reason") == "the robot is still going to its home pose; try again in a moment", \
+    f"reason 应逐字对齐原版 :4202-4204，实际 {res}"
+print(f"z5. RampUp 中 do → accepted:false，reason={res['reason']!r}（原版 homed 拒绝）  OK")
+
 # mouth 只在 Driving 阶段生效（D31），先等斜坡走完。可观测量选 skill 字段：
 # driving_tick 跑起来推送里才有 "walk"（Held/RampUp/Stopped 都是 null）——
 # gain 判不出（RampUp/Stopped 也用 running 增益 200）。RampUp 100 拍 = 2s。
@@ -420,14 +454,240 @@ res = r.get("result", {})
 assert res.get("model_api") == 2, r
 print("w. robot.modelApi → model_api:2  OK")
 
+# ── 断言 z1：Driving 中 robot.do kick_left → accepted 且真启动 ──
+# D36 基线：恒收语义下正常路径不受影响。kick_left 窗口 25 拍 = 0.5s
+#（src/scheduler.rs），自选一次性技能，跑完自动回 walk，不留坐姿锁存。
+send({"jsonrpc": "2.0", "id": 21, "method": "robot.do", "params": {"skill": "kick_left"}})
+r = read_until_response(21)
+res = r.get("result", {})
+assert res.get("accepted") is True, r
+assert res.get("skill") == "kick_left", r
+wait_push(lambda p: p.get("skill") == "kick_left", "技能启动（skill=kick_left）")
+wait_push(lambda p: p.get("skill") == "walk", "kick 窗口结束回 walk", budget=2.0)
+print("z1. Driving 中 do kick_left → accepted 且推送 skill=kick_left→walk  OK")
+
+# ── 断言 z2：Stopped（未 enable）中 robot.do → 拒绝，原版文案 ──
+# D36 只放开 fallen/Limp：enabled=false 仍在门口拒绝（原版
+# reference/robotd/src/main.rs:4196-4200）。「Limp 中 do accepted:true
+# 但静默丢」的端到端断言 FakeIo 做不了——FakeIo 无 IMU/gravity 注入面
+#（src/io.rs:142-187，read 恒报直立重力 [0,0,-1]），fallen 诱发不了；
+# 该路径维持单测覆盖（control.rs edges_when_driving 的 Limp 分支 +
+# phase_homed 的 Limp=true + scheduler.rs do_verdict(true,true,...) 照收）。
+send({"jsonrpc": "2.0", "id": 22, "method": "robot.enable", "params": {"on": False}})
+r = read_until_response(22)
+assert (r.get("result") or {}).get("accepted") is True, r
+wait_push(lambda p: p["enabled"] is False, "推送 enabled=false")
+send({"jsonrpc": "2.0", "id": 23, "method": "robot.do", "params": {"skill": "kick_left"}})
+r = read_until_response(23)
+res = r.get("result", {})
+assert res.get("accepted") is False, f"D36 不改 !enabled 的拒绝，实际 {r}"
+assert res.get("reason") == "the policy is not driving — press Start on the pad", \
+    f"reason 应逐字对齐原版 :4200，实际 {res}"
+# 拒绝不排队（原版 :5769 "a refusal must not queue"）：此刻无任何启动。
+frames = read_pushes(0.4)
+assert all(p.get("skill") is None for p in frames), "被拒的请求不该启动"
+print(f"z2. Stopped 中 do → accepted:false，reason={res['reason']!r}（原版 enabled 拒绝）  OK")
+
+# ── 断言 z3：恢复 Driving 后——拒绝/丢弃都不留痕，新请求照常工作 ──
+send({"jsonrpc": "2.0", "id": 24, "method": "robot.enable", "params": {"on": True}})
+r = read_until_response(24)
+assert (r.get("result") or {}).get("accepted") is True, r
+wait_push(lambda p: p.get("skill") == "walk", "1s 内恢复 Driving（skill=walk）", budget=1.0)
+# 不记仇：z2 被拒的请求不得在此补发——稳 0.6s（> kick 窗口）skill 恒 walk。
+frames = read_pushes(0.6)
+assert all(p.get("skill") == "walk" for p in frames), "被拒绝的请求不得排队补发"
+send({"jsonrpc": "2.0", "id": 25, "method": "robot.do", "params": {"skill": "kick_left"}})
+r = read_until_response(25)
+assert (r.get("result") or {}).get("accepted") is True, r
+wait_push(lambda p: p.get("skill") == "kick_left", "恢复后技能启动")
+wait_push(lambda p: p.get("skill") == "walk", "kick 窗口结束回 walk", budget=2.0)
+print("z3. 恢复 Driving：旧请求不补发，新 do accepted 且真启动  OK")
+
+# ── 断言 z4：名字/参数路径不属于本偏差——未知名仍拒绝附名单，缺字段仍 INVALID_PARAMS ──
+send({"jsonrpc": "2.0", "id": 26, "method": "robot.do", "params": {"skill": "kick_right"}})
+r = read_until_response(26)
+res = r.get("result", {})
+assert res.get("accepted") is False, r
+reason = res.get("reason", "")
+assert "kick_right" in reason and "roulade" in reason, f"拒绝要附名单: {res}"
+send({"jsonrpc": "2.0", "id": 27, "method": "robot.do", "params": {}})
+r = read_until_response(27)
+err = r.get("error") or {}
+assert err.get("code") == -32602, f"缺 skill 应回 INVALID_PARAMS，实际 {r}"
+print(f"z4. 未知名 accepted:false 附名单；缺字段 INVALID_PARAMS  OK")
+
 print()
-print("M8 断言 a–w 全部通过")
+print("M8 断言 a–w + z1–z5 全部通过")
 PY
 RC=$?
 
+# ── 断言 x/y：D24 读失败滑行（COAST_TICKS=3，reference/robotd/src/main.rs:137）──
+# 重启 daemon 注入一次性中途连挂。MINIDUCK_FAKE_FAIL_AFTER=300:k：
+# 前 300 次 read 正常（enable+斜坡 ~165 次，进入 Driving 后 ~2.8s 爆发），
+# 之后连挂 k 次。帧流在 Driving 中采 4s，覆盖爆发与恢复。
+if [ "$RC" = 0 ]; then
+  cleanup; sleep 1
+  MINIDUCK_FAKE_FAIL_AFTER=300:3 ./target/debug/miniduckd 2>>/tmp/m8-daemon.log &
+  DAEMON_PID=$!
+  sleep 1
+  [ -S /tmp/miniduckd.sock ] || { echo "FAIL: daemon 没起来（/tmp/m8-daemon.log）"; exit 1; }
+  python3 - <<'PY'
+import json, socket, time
+
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.settimeout(5)
+s.connect("/tmp/miniduckd.sock")
+f = s.makefile("rw")
+
+def send(obj):
+    f.write(json.dumps(obj) + "\n"); f.flush()
+
+def readline():
+    line = f.readline()
+    assert line, "daemon 断了连接"
+    return json.loads(line)
+
+def read_until_response(rid, budget=5.0):
+    deadline = time.time() + budget
+    while time.time() < deadline:
+        msg = readline()
+        if msg.get("id") == rid and ("result" in msg or "error" in msg):
+            return msg
+        assert msg.get("method") == "robot.state", f"等响应时混进意外帧: {msg}"
+    raise AssertionError(f"等 id={rid} 响应超时")
+
+def identical_runs(frames):
+    # 相邻帧 positions 逐位相等的最大连续段长分布。滑行拍重投上一样本，
+    # 所以 k 个滑行拍产生 k+1 帧的重复段（1 帧新鲜 + k 帧重投）；
+    # f64 精确相等——正常行走每拍位置都变，不可能出现自然重复段。
+    runs, run = [], 1
+    for a, b in zip(frames, frames[1:]):
+        if b["positions"] == a["positions"]:
+            run += 1
+        else:
+            runs.append(run); run = 1
+    runs.append(run)
+    return runs
+
+send({"jsonrpc": "2.0", "id": 1, "method": "hello"})
+read_until_response(1)
+send({"jsonrpc": "2.0", "id": 2, "method": "robot.subscribe", "params": {}})
+read_until_response(2)
+send({"jsonrpc": "2.0", "id": 3, "method": "robot.enable", "params": {"on": True}})
+read_until_response(3)
+deadline = time.time() + 8.0
+while True:
+    msg = readline()
+    assert msg.get("method") == "robot.state", msg
+    if msg["params"].get("skill") == "walk":
+        break
+    assert time.time() < deadline, "没进入 Driving"
+
+frames = []
+deadline = time.time() + 4.0
+while time.time() < deadline:
+    msg = readline()
+    assert msg.get("method") == "robot.state", msg
+    frames.append(msg["params"])
+
+runs = identical_runs(frames)
+assert 4 in runs, f"未见 4 帧连续重投段（1 新鲜 + 3 滑行），runs: max={max(runs)}"
+assert max(runs) <= 4, f"滑行窗只许 3 拍（4 帧段），出现 {max(runs)} 帧连续重复"
+assert all(p.get("skill") == "walk" for p in frames), "滑行期间策略掉线了"
+
+send({"jsonrpc": "2.0", "id": 4, "method": "robot.health"})
+r = read_until_response(4)
+res = r["result"]
+assert res["reads"] > 303, f"注入点（read 301-303）没跑过？reads={res['reads']}"
+assert res["skipped_reads"] == 0, \
+    f"≤COAST_TICKS 的连挂不许跳拍，skipped_reads={res['skipped_reads']}"
+assert res["consecutive_read_errors"] == 0, "恢复后连续错误应清零"
+assert res["healthy"] is True, res
+print(f"x. 3 连挂全程滑行：{len(frames)} 帧 skill 恒 walk，恰好 {max(runs)} 帧重投段，"
+      f"skipped_reads=0  OK")
+PY
+  RC=$?
+fi
+
+if [ "$RC" = 0 ]; then
+  cleanup; sleep 1
+  MINIDUCK_FAKE_FAIL_AFTER=300:4 ./target/debug/miniduckd 2>>/tmp/m8-daemon.log &
+  DAEMON_PID=$!
+  sleep 1
+  [ -S /tmp/miniduckd.sock ] || { echo "FAIL: daemon 没起来（/tmp/m8-daemon.log）"; exit 1; }
+  python3 - <<'PY'
+import json, socket, time
+
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.settimeout(5)
+s.connect("/tmp/miniduckd.sock")
+f = s.makefile("rw")
+
+def send(obj):
+    f.write(json.dumps(obj) + "\n"); f.flush()
+
+def readline():
+    line = f.readline()
+    assert line, "daemon 断了连接"
+    return json.loads(line)
+
+def read_until_response(rid, budget=5.0):
+    deadline = time.time() + budget
+    while time.time() < deadline:
+        msg = readline()
+        if msg.get("id") == rid and ("result" in msg or "error" in msg):
+            return msg
+        assert msg.get("method") == "robot.state", f"等响应时混进意外帧: {msg}"
+    raise AssertionError(f"等 id={rid} 响应超时")
+
+send({"jsonrpc": "2.0", "id": 1, "method": "hello"})
+read_until_response(1)
+send({"jsonrpc": "2.0", "id": 2, "method": "robot.subscribe", "params": {}})
+read_until_response(2)
+send({"jsonrpc": "2.0", "id": 3, "method": "robot.enable", "params": {"on": True}})
+read_until_response(3)
+deadline = time.time() + 8.0
+while True:
+    msg = readline()
+    assert msg.get("method") == "robot.state", msg
+    if msg["params"].get("skill") == "walk":
+        break
+    assert time.time() < deadline, "没进入 Driving"
+
+frames = []
+deadline = time.time() + 4.0
+while time.time() < deadline:
+    msg = readline()
+    assert msg.get("method") == "robot.state", msg
+    frames.append(msg["params"])
+
+runs, run = [], 1
+for a, b in zip(frames, frames[1:]):
+    if b["positions"] == a["positions"]:
+        run += 1
+    else:
+        runs.append(run); run = 1
+runs.append(run)
+assert 4 in runs, f"4 连挂应有 4 帧段（1 新鲜 + 3 滑行），runs: max={max(runs)}"
+assert max(runs) <= 4, f"滑行窗只许 3 拍（4 帧段），出现 {max(runs)} 帧连续重复"
+assert all(p.get("skill") == "walk" for p in frames), "滑行期间策略掉线了"
+
+send({"jsonrpc": "2.0", "id": 4, "method": "robot.health"})
+r = read_until_response(4)
+res = r["result"]
+assert res["reads"] > 304, f"注入点（read 301-304）没跑过？reads={res['reads']}"
+assert res["skipped_reads"] == 1, \
+    f"第 4 拍（超 COAST_TICKS）必须真瞎跳拍，skipped_reads={res['skipped_reads']}"
+assert res["consecutive_read_errors"] == 0, "恢复后连续错误应清零"
+assert res["healthy"] is True, res
+print(f"y. 4 连挂：3 帧滑行 + 第 4 拍跳拍（skipped_reads=1），恢复后仍 healthy  OK")
+PY
+  RC=$?
+fi
+
 echo
 if [ "$RC" = 0 ]; then
-    echo "M8 验收（robot.move + robot.enable + robot.subscribe + safeToRestart/modelApi 对齐，notification 统一入口）全部通过"
+    echo "M8 验收（robot.move + robot.enable + robot.subscribe + safeToRestart/modelApi 对齐 + D24 滑行 + D36 robot.do fallen/Limp 照收，notification 统一入口）全部通过"
 else
     echo "FAIL: 断言脚本退出码 $RC"
 fi

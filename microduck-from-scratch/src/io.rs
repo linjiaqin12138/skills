@@ -3,8 +3,8 @@
 //! trait 存在的理由（原版文档 §2.4）：真实总线和假总线共用一个接口，
 //! 测试和笔记本开发全程跑 FakeIo，`cargo test` 不需要硬件。M5 收敛 D12
 //! 的安全层部分：补 set_gain/set_torque/imu_ready（跌倒卸力和"滤波未收敛
-//! 不许投票"都要用到）。reboot/slow_sensors/imu_stale 等仍是 M8 的事
-//! （偏差簿 D12 残余），现在写上只是没人调用的死代码。
+//! 不许投票"都要用到）。reboot/slow_sensors/imu_stale 等挂 M10
+//! （偏差簿 D12 残余，Phase 4 裁决），现在写上只是没人调用的死代码。
 
 use crate::model::NUM_JOINTS;
 use std::fmt;
@@ -12,18 +12,44 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
-/// 总线错误。M1 只需要"读/写失败了"这一个事实（控制循环据此跳过本拍），
-/// 不分类——分类等到有调用点真的按类别分支时再加。
-#[derive(Debug, Clone)]
-pub struct IoError(pub String);
+/// 总线错误分类，粒度对齐原版 duck-control/src/io.rs:50-71（D13 收敛）：
+/// Port=传输打开/连接失败、Bus=事务级失败、ShortRead=块数/长度不对
+/// （= 有设备没应答，必须报错而不是静默补零）、Simulated=FakeIo 注入。
+#[derive(Debug)]
+pub enum IoError {
+    /// 原版是串口 open；我们的 SimIo 是 TCP，resolve/connect/clone 全归此类
+    ///（原版 sim.rs:140-167 同款映射）。
+    Port { path: String, source: std::io::Error },
+    /// 收发字节/断连/帧解析/对端拒绝/协议号不符（原版 sim.rs:220-242,:259、
+    /// bus.rs 各处 dynamixel 事务错误）。
+    Bus(String),
+    /// 帧字段长度不对（原版 bus.rs:334 等 sync_read 短读校验）。
+    ShortRead { what: &'static str, expected: usize, got: usize },
+    /// FakeIo 故障注入（原版 io.rs:266-272,308）。
+    Simulated,
+}
 
 impl fmt::Display for IoError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
+        match self {
+            IoError::Port { path, source } => write!(f, "transport {path}: {source}"),
+            IoError::Bus(msg) => write!(f, "bus transaction failed: {msg}"),
+            IoError::ShortRead { what, expected, got } => {
+                write!(f, "{what}: expected {expected}, got {got}")
+            }
+            IoError::Simulated => f.write_str("simulated failure"),
+        }
     }
 }
 
-impl std::error::Error for IoError {}
+impl std::error::Error for IoError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            IoError::Port { source, .. } => Some(source),
+            _ => None,
+        }
+    }
+}
 
 pub type Result<T> = std::result::Result<T, IoError>;
 
@@ -111,9 +137,14 @@ impl RobotIo for Box<dyn RobotIo> {
 /// 逻辑依赖跟踪延迟，加了只会让测试多一个要调的参数。
 ///
 /// `failing_reads(n)` 模拟舵机电源未就绪：前 n 次 read 报错，之后正常。
+/// `fail_after(ok, fail)` 模拟中途总线抖动：先放行 ok 次，再连挂 fail 次
+/// （一次性；D24 滑行窗验收用）。
 pub struct FakeIo {
     position: [f64; NUM_JOINTS],
     failing_reads_left: u64,
+    /// 中途故障注入：先放行 reads_ok_before_fail 次，再连挂 fail_burst_left 次。
+    reads_ok_before_fail: u64,
+    fail_burst_left: u64,
     /// 计数器公开，测试直接断言；控制循环自己的计数在 Stats 里。
     pub reads: u64,
     pub writes: u64,
@@ -137,6 +168,8 @@ impl FakeIo {
         FakeIo {
             position: [0.0; NUM_JOINTS],
             failing_reads_left: n,
+            reads_ok_before_fail: 0,
+            fail_burst_left: 0,
             reads: 0,
             writes: 0,
             gain: None,
@@ -144,6 +177,12 @@ impl FakeIo {
             gain_writes: 0,
             imu_ready: true,
         }
+    }
+
+    pub fn fail_after(mut self, ok: u64, fail: u64) -> Self {
+        self.reads_ok_before_fail = ok;
+        self.fail_burst_left = fail;
+        self
     }
 }
 
@@ -156,7 +195,7 @@ impl Default for FakeIo {
 // ---- SimIo：MuJoCo 仿真体，TCP + NDJSON（M4）----
 //
 // 第三个 RobotIo 实现（FakeIo、真实总线之外）。协议自定、形状对齐原版
-// duck-control/src/sim.rs（偏差 D4，M8 对齐帧格式）：op 标签帧，hello 握手
+// duck-control/src/sim.rs（偏差 D4，挂 M9 对齐帧格式）：op 标签帧，hello 握手
 // 带 protocol 版本号与关节数，read/write 一问一答。
 //
 // 断线语义：任何错误都丢连接、返回 Err，由控制循环下一拍重连——控制循环
@@ -188,20 +227,29 @@ impl SimIo {
             let address = self
                 .addr
                 .to_socket_addrs()
-                .map_err(|e| IoError(format!("resolve {}: {e}", self.addr)))?
-                .next()
-                .ok_or_else(|| IoError(format!("{} resolved to no address", self.addr)))?;
-            let stream = TcpStream::connect_timeout(&address, SIM_TIMEOUT)
-                .map_err(|e| IoError(format!("connect {}: {e}", self.addr)))?;
+                .and_then(|mut a| {
+                    a.next()
+                        .ok_or_else(|| std::io::Error::other("resolved to no address"))
+                })
+                .map_err(|source| IoError::Port {
+                    path: self.addr.clone(),
+                    source,
+                })?;
+            let stream =
+                TcpStream::connect_timeout(&address, SIM_TIMEOUT).map_err(|source| {
+                    IoError::Port {
+                        path: self.addr.clone(),
+                        source,
+                    }
+                })?;
             // Nagle 会把小包攒最多 ~40ms——两拍——每拍都变成超时事故，必须关。
             let _ = stream.set_nodelay(true);
             let _ = stream.set_read_timeout(Some(SIM_TIMEOUT));
             let _ = stream.set_write_timeout(Some(SIM_TIMEOUT));
-            let reader = BufReader::new(
-                stream
-                    .try_clone()
-                    .map_err(|e| IoError(format!("clone stream: {e}")))?,
-            );
+            let reader = BufReader::new(stream.try_clone().map_err(|source| IoError::Port {
+                path: self.addr.clone(),
+                source,
+            })?);
             self.link = Some((stream, reader));
 
             let hello: serde_json::Value = self.call(&serde_json::json!({
@@ -212,7 +260,7 @@ impl SimIo {
             let protocol = hello.get("protocol").and_then(|v| v.as_u64()).unwrap_or(0);
             if protocol != SIM_PROTOCOL as u64 {
                 self.link = None;
-                return Err(IoError(format!(
+                return Err(IoError::Bus(format!(
                     "simulator speaks protocol {protocol}, daemon speaks {SIM_PROTOCOL}"
                 )));
             }
@@ -224,23 +272,23 @@ impl SimIo {
     fn call(&mut self, request: &serde_json::Value) -> Result<serde_json::Value> {
         let result = (|| {
             let (writer, reader) = self.connect()?;
-            let mut line = serde_json::to_string(request)
-                .map_err(|e| IoError(e.to_string()))?;
+            let mut line =
+                serde_json::to_string(request).map_err(|e| IoError::Bus(e.to_string()))?;
             line.push('\n');
             writer
                 .write_all(line.as_bytes())
-                .map_err(|e| IoError(format!("send: {e}")))?;
+                .map_err(|e| IoError::Bus(format!("send: {e}")))?;
             let mut answer = String::new();
             let n = reader
                 .read_line(&mut answer)
-                .map_err(|e| IoError(format!("recv: {e}")))?;
+                .map_err(|e| IoError::Bus(format!("recv: {e}")))?;
             if n == 0 {
-                return Err(IoError("simulator closed the connection".into()));
+                return Err(IoError::Bus("simulator closed the connection".into()));
             }
             let value: serde_json::Value =
-                serde_json::from_str(&answer).map_err(|e| IoError(format!("bad frame: {e}")))?;
+                serde_json::from_str(&answer).map_err(|e| IoError::Bus(format!("bad frame: {e}")))?;
             if let Some(err) = value.get("error").and_then(|e| e.as_str()) {
-                return Err(IoError(format!("simulator refused: {err}")));
+                return Err(IoError::Bus(format!("simulator refused: {err}")));
             }
             Ok(value)
         })();
@@ -259,11 +307,15 @@ impl RobotIo for SimIo {
                 frame
                     .get(key)
                     .cloned()
-                    .ok_or_else(|| IoError(format!("frame missing {key}")))?,
+                    .ok_or_else(|| IoError::Bus(format!("frame missing {key}")))?,
             )
-            .map_err(|e| IoError(format!("frame {key}: {e}")))?;
+            .map_err(|e| IoError::Bus(format!("frame {key}: {e}")))?;
             if v.len() != len {
-                return Err(IoError(format!("frame {key}: {} != {len} numbers", v.len())));
+                return Err(IoError::ShortRead {
+                    what: "frame field",
+                    expected: len,
+                    got: v.len(),
+                });
             }
             Ok(v)
         };
@@ -272,7 +324,7 @@ impl RobotIo for SimIo {
         sensors.velocities.copy_from_slice(&arr("velocities", NUM_JOINTS)?);
         let imu = frame
             .get("imu")
-            .ok_or_else(|| IoError("frame missing imu".into()))?;
+            .ok_or_else(|| IoError::Bus("frame missing imu".into()))?;
         // 定长数组一律严格校验长度：长度不符是协议漂移，必须报错而不是
         // 静默补零/截断（D22 收敛：quat 此前 resize(4,0) 宽容解析，
         // copy3 此前长度不符会 panic——两处都与 positions 的严格校验不一致）。
@@ -280,11 +332,15 @@ impl RobotIo for SimIo {
             let v: Vec<f64> = serde_json::from_value(
                 imu.get(key)
                     .cloned()
-                    .ok_or_else(|| IoError(format!("frame imu missing {key}")))?,
+                    .ok_or_else(|| IoError::Bus(format!("frame imu missing {key}")))?,
             )
-            .map_err(|e| IoError(format!("frame imu {key}: {e}")))?;
+            .map_err(|e| IoError::Bus(format!("frame imu {key}: {e}")))?;
             if v.len() != 3 {
-                return Err(IoError(format!("frame imu {key}: {} != 3 numbers", v.len())));
+                return Err(IoError::ShortRead {
+                    what: "frame imu field",
+                    expected: 3,
+                    got: v.len(),
+                });
             }
             dst.copy_from_slice(&v);
             Ok(())
@@ -294,14 +350,15 @@ impl RobotIo for SimIo {
         let quat: Vec<f64> = serde_json::from_value(
             imu.get("quat")
                 .cloned()
-                .ok_or_else(|| IoError("frame imu missing quat".into()))?,
+                .ok_or_else(|| IoError::Bus("frame imu missing quat".into()))?,
         )
-        .map_err(|e| IoError(format!("frame imu quat: {e}")))?;
+        .map_err(|e| IoError::Bus(format!("frame imu quat: {e}")))?;
         if quat.len() != 4 {
-            return Err(IoError(format!(
-                "frame imu quat: {} != 4 numbers",
-                quat.len()
-            )));
+            return Err(IoError::ShortRead {
+                what: "frame imu quat",
+                expected: 4,
+                got: quat.len(),
+            });
         }
         sensors.imu.quat.copy_from_slice(&quat);
         Ok(sensors)
@@ -347,7 +404,13 @@ impl RobotIo for FakeIo {
         self.reads += 1;
         if self.failing_reads_left > 0 {
             self.failing_reads_left -= 1;
-            return Err(IoError("servo bus not powered yet".into()));
+            return Err(IoError::Simulated);
+        }
+        if self.reads_ok_before_fail > 0 {
+            self.reads_ok_before_fail -= 1;
+        } else if self.fail_burst_left > 0 {
+            self.fail_burst_left -= 1;
+            return Err(IoError::Simulated);
         }
         Ok(Sensors {
             positions: self.position,
@@ -474,6 +537,8 @@ mod tests {
                 positions: [0.0; NUM_JOINTS],
             })
             .unwrap_err();
+        // D13：对端拒绝是事务级失败（原版 sim.rs:259 → IoError::Bus）。
+        assert!(matches!(err, IoError::Bus(_)), "{err}");
         assert!(err.to_string().contains("15 numbers"), "{err}");
     }
 
@@ -488,12 +553,65 @@ mod tests {
         let (addr, _sim) = scripted_sim(vec![vec![SIM_HELLO, bad]]);
         let mut io = SimIo::new(addr);
         let err = io.read().unwrap_err();
-        assert!(err.to_string().contains("quat"), "{err}");
+        // D13：长度不对 = ShortRead（原版 bus.rs:334 等 sync_read 校验同款）。
+        assert!(
+            matches!(
+                err,
+                IoError::ShortRead {
+                    what: "frame imu quat",
+                    expected: 4,
+                    got: 3
+                }
+            ),
+            "{err}"
+        );
 
         // 长度=4 正常通过（对照组，防止校验把合法帧也拒了）。
         let (addr, _sim) = scripted_sim(vec![vec![SIM_HELLO, SIM_SENSORS]]);
         let mut io = SimIo::new(addr);
         assert_eq!(io.read().unwrap().imu.quat, [1.0, 0.0, 0.0, 0.0]);
+    }
+
+    // ---- D13：错误分类粒度对齐原版 duck-control/src/io.rs:50-71 ----
+
+    #[test]
+    fn fake_io_injected_failure_is_simulated() {
+        let mut io = FakeIo::failing_reads(1);
+        assert!(matches!(io.read().unwrap_err(), IoError::Simulated));
+        // 中途 burst 注入同样归类（D24 验收用的注入面）。
+        let mut io = FakeIo::new().fail_after(2, 2);
+        assert!(io.read().is_ok());
+        assert!(io.read().is_ok());
+        assert!(matches!(io.read().unwrap_err(), IoError::Simulated));
+        assert!(matches!(io.read().unwrap_err(), IoError::Simulated));
+        assert!(io.read().is_ok(), "burst 只挂注入的次数");
+    }
+
+    #[test]
+    fn sim_io_transport_failure_is_port() {
+        // 1 号端口必然拒绝连接：connect 错误归 Port（原版 sim.rs:155-158）。
+        let mut io = SimIo::new("127.0.0.1:1");
+        let err = io.read().unwrap_err();
+        assert!(matches!(err, IoError::Port { .. }), "{err}");
+        // 无法解析的地址也归 Port（resolve 失败同样走 Port，原版 sim.rs:140-150）。
+        let mut io = SimIo::new("not-an-address");
+        let err = io.read().unwrap_err();
+        assert!(matches!(err, IoError::Port { .. }), "{err}");
+    }
+
+    #[test]
+    fn sim_io_bad_frame_and_eof_are_bus() {
+        // 解析不了的帧 = Bus（原版 sim.rs:237-242）。
+        let (addr, _sim) = scripted_sim(vec![vec![SIM_HELLO, "not json"]]);
+        let mut io = SimIo::new(addr);
+        let err = io.read().unwrap_err();
+        assert!(matches!(err, IoError::Bus(_)), "{err}");
+
+        // 对端握手后直接断连 = Bus（n==0，"simulator closed the connection"）。
+        let (addr, _sim) = scripted_sim(vec![vec![SIM_HELLO]]);
+        let mut io = SimIo::new(addr);
+        let err = io.read().unwrap_err();
+        assert!(matches!(err, IoError::Bus(_)), "{err}");
     }
 
     #[test]

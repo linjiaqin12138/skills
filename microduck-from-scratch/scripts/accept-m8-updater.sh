@@ -173,5 +173,23 @@ print(f\"committed {r['from']} -> {r['to']}\")
 wait_health 15 || fatal "升级后 daemon 不健康"
 
 echo
+echo "===== 场景：daemon 不可达时 apply 不被 model_api 拒（D65）====="
+# 原版语义（reference/updater/src/policy.rs:1026-1039）：model_api 未知
+# （None）= 兼容，只在已知版本不匹配时才拒。杀掉 daemon 让两个预检都
+# 拿到不可达/None，apply 1.0.0 应照常走完：swap + respawn + 健康门 → committed。
+pkill -9 -x miniduckd; sleep 0.5
+upd apply 1.0.0 | python3 -c "
+import json, sys
+r = json.loads(sys.stdin.read())
+err = r.get('error') or {}
+assert 'model api' not in err.get('message', ''), f'仍被 model_api 拒: {r}'
+res = r.get('result') or {}
+assert res.get('outcome') == 'committed' and res.get('to') == '1.0.0', r
+print(f\"daemon 不可达也 committed: {res['from']} -> {res['to']}\")
+" && ok "daemon 不可达时 apply 1.0.0 不被 model_api 拒且 committed" \
+  || fail "daemon 不可达时 apply 被拒或失败"
+[ "$(current_target)" = "releases/1.0.0" ] && ok "current->1.0.0" || fail "current=$(current_target)"
+
+echo
 summary
 [ "$FAILED" = 0 ]

@@ -68,6 +68,15 @@ pub enum RecoveryVerdict {
     Rollback,
 }
 
+/// model_api 放行判定（D65，reference/updater/src/policy.rs:1026-1039）：
+/// None = 未知 → 兼容；Some(v) 只在 v != 契约版本时拒。
+fn model_api_verdict(api: Option<u32>) -> Result<(), String> {
+    match api {
+        None | Some(MODEL_API) => Ok(()),
+        Some(actual) => Err(format!("model api mismatch: expected {MODEL_API}, got {actual}")),
+    }
+}
+
 /// 一次 mutating 操作的结果：Ok(result JSON) 或 Err((rpc_code, message))。
 pub type OpResult = Result<serde_json::Value, (i32, String)>;
 
@@ -258,16 +267,12 @@ impl Engine {
             }
             SafeToRestart::Yes | SafeToRestart::Unreachable => {}
         }
-        match robot::model_api(&self.daemon_sock, robot::ROBOT_RPC_TIMEOUT).await {
-            Some(api) if api == MODEL_API => {}
-            actual => {
-                return Err(self.reject(
-                    from,
-                    version,
-                    format!("model api mismatch: expected {MODEL_API}, got {actual:?}"),
-                    peer_uid,
-                ));
-            }
+        // D65：None = 未知（daemon 不可达/应答形状不对）→ 兼容放行；只在已知
+        // 版本不匹配时才拒（reference/updater/src/policy.rs:1026-1039：未知回落
+        // 契约自身版本——控制循环没在跑就没什么会动，预检不该因此拒绝）。
+        let api = robot::model_api(&self.daemon_sock, robot::ROBOT_RPC_TIMEOUT).await;
+        if let Err(reason) = model_api_verdict(api) {
+            return Err(self.reject(from, version, reason, peer_uid));
         }
 
         // Verifying：manifest 解析 + sha256。拒绝不留任何副作用。
@@ -453,8 +458,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn recovery_verdict_truth_table() {
-        // healthy 且 boots < MAX_BOOT_ATTEMPTS → confirm
+    fn model_api_none_is_compatible() {
+        // D65：未知（None）与契约版本放行，其余版本拒。
+        assert!(model_api_verdict(None).is_ok());
+        assert!(model_api_verdict(Some(MODEL_API)).is_ok());
+        assert!(model_api_verdict(Some(MODEL_API + 1)).is_err());
+        assert!(model_api_verdict(Some(MODEL_API - 1)).is_err());
+    }
+
+    #[test]
+    fn recovery_verdict_truth_table() {        // healthy 且 boots < MAX_BOOT_ATTEMPTS → confirm
         assert_eq!(recovery_verdict(true, 0), RecoveryVerdict::Confirm);
         assert_eq!(recovery_verdict(true, 1), RecoveryVerdict::Confirm);
         // boots 预算用完，即使 healthy 也回滚（原版：预算决定何时问，

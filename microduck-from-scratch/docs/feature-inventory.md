@@ -3,7 +3,10 @@
 > **本文档是 M8 追认生成的全量功能清单**。流程上它本应在 Phase 1（侦察期）产出，作为
 > 各里程碑范围裁定的依据；实际流程是逐里程碑推进、偏差随时登记（D1–D41），到 M8 收敛
 > 验收时才补齐这份总账。生成方式：从 `reference/`（原项目浅克隆，只读）的权威定义逐项
-> 抄录对外表面，对照手搓工程逐项标状态，不许凭印象。
+> 抄录对外表面，对照手搓工程逐项标状态，不许凭印象。（2026-10-15 行号回填：换机重克隆后
+> reference 回到 daemon-v0.14.1（commit 344925c，API_VERSION=31），表内证据行号已按此
+> 检出逐项重核回填；本头部两段中的行号按规约保留 2026-10-04 旧检出原值，与表内不一致处
+> 以表内为准。）
 >
 > 权威来源：`reference/Cargo.toml`（workspace members）、`reference/duck-ipc-proto/src/lib.rs`
 > （Call 枚举 :963-1106、method 常量 :543-901、载荷 struct :2085 起）、
@@ -25,6 +28,8 @@
 | 建议豁免 | 49 |
 | **合计** | **183** |
 
+2026-10-15 Phase 4 裁决：批次归属已回填到处置列（M9=仿真与训练、M10=驱动与硬件/工程面、M11=结构与外壳）；D13/D20/D24/D36/D65 已于 Bite 9/10 收敛。
+
 口径说明：按表行计数；一行覆盖一个 RPC 方法 / 一个 CLI 命令组 / 一个配置段（键组）/
 一个 crate。混合处置的行按处置列首个类目计数，次要类目在括号内注记。缺口行
 归并为 22 条新 D（D42–D63），逐条见文末「未登记缺口汇总」；D43（M8 Bite 1/2）、
@@ -39,28 +44,28 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 |---|---|---|---|
 | robotd 进程 | reference/Cargo.toml:7；robotd/ | miniduckd（src/main.rs） | 已交付（M0–M6，milestones/m0-ipc-skeleton/acceptance.md 起；API 子集见 D1） |
 | updaterd 进程 | reference/Cargo.toml:7；updater/src/main.rs | mini-updaterd（src/bin/mini-updaterd.rs） | 已交付（M7，milestones/m7-updaterd/acceptance.md；残余 D37–D41） |
-| configd 进程 | reference/Cargo.toml:7；configd/ | 无 | 未登记缺口（D42） |
+| configd 进程 | reference/Cargo.toml:7；configd/ | 无 | 未登记缺口（D42；挂 M10） |
 | btd 进程 | reference/Cargo.toml:7；btd/ | 无 | 建议豁免（BLE 无线电栈无硬件；chorale 行为决策已登记 D31） |
 | mediad 进程 | reference/Cargo.toml:7；mediad/ | 无 | 建议豁免（相机/GStreamer/WebRTC 硬件栈） |
-| padd 进程 | reference/Cargo.toml:7；padd/ | 无 | 建议豁免（手柄 evdev 硬件输入） |
+| padd 进程 | reference/Cargo.toml:7；padd/ | 无 | 挂 M10 再评估（Phase 4 裁决：用户有 Xbox 手柄，原版 padd 正是 Xbox 开发测试设备；原豁免理由：手柄 evdev 硬件输入） |
 | tofd 进程 | reference/Cargo.toml:7；tof/Cargo.toml（[[bin]] tofd） | 无 | 建议豁免（ToF/头 IMU I²C 硬件） |
-| duck-ipc-proto crate（协议只许 serde/serde_json/semver） | duck-ipc-proto/src/lib.rs:28-30 | 协议内联 src/lib.rs（97 行迷你版） | 偏差登记（D7：M8 拆协议 crate） |
-| duck-control crate（控制/观测/模型/总线） | duck-control/ | 内联 src/{control,obs,model,io,policy,safety,scheduler}.rs | 未登记缺口（D52） |
-| robotd-params crate（配置参数面） | robotd-params/ | 无；阈值硬编码（src/main.rs:32-36 等） | 未登记缺口（D52） |
-| kinematics crate（FK/IK、robot.look/model） | kinematics/ | 无 | 未登记缺口（D55） |
-| odometry crate（接触里程计） | odometry/ | 无 | 建议豁免（估计器算法，教学主线外；state 缺 odom 字段已登记 D50） |
+| duck-ipc-proto crate（协议只许 serde/serde_json/semver） | duck-ipc-proto/src/lib.rs:28-30 | 协议内联 src/lib.rs（97 行迷你版） | 偏差登记（D7：M8 拆协议 crate；挂 M10） |
+| duck-control crate（控制/观测/模型/总线） | duck-control/ | 内联 src/{control,obs,model,io,policy,safety,scheduler}.rs | 未登记缺口（D52；挂 M10） |
+| robotd-params crate（配置参数面） | robotd-params/ | 无；阈值硬编码（src/main.rs:43-47 等） | 未登记缺口（D52；挂 M10） |
+| kinematics crate（FK/IK、robot.look/model） | kinematics/ | 无 | 未登记缺口（D55；挂 M10） |
+| odometry crate（接触里程计） | odometry/ | 无 | 挂 M9（Phase 4 裁决：纯软件估计器，与自训策略同域；state 的 odom 字段仍归 D50；原豁免理由：估计器算法，教学主线外） |
 | duck-ble crate | reference/Cargo.toml:7 | 无 | 建议豁免（BLE 库） |
 | duck-ether crate | reference/Cargo.toml:7（不在 default-members :21） | 无 | 建议豁免（传输库） |
 | duck-detect crate（+bin duck-bench） | duck-detect/Cargo.toml | 无 | 建议豁免（NPU 检测器） |
 | pet-detect crate（+bins detect/features） | pet-detect/Cargo.toml | 无 | 建议豁免（麦克风抚摸分类器） |
 | pad-imu crate | reference/Cargo.toml:7 | 无 | 建议豁免（手柄 IMU 硬件） |
-| sounds crate（声库合成） | reference/Cargo.toml:7 | 无 | 建议豁免（音频硬件/声库） |
+| sounds crate（声库合成） | reference/Cargo.toml:7 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原豁免理由：音频硬件/声库） |
 | tof crate（驱动库） | reference/Cargo.toml:7 | 无 | 建议豁免（ToF 硬件） |
 | uyvy crate（像素格式） | reference/Cargo.toml:7 | 无 | 建议豁免（相机管线） |
 | test-support crate | reference/Cargo.toml:7 | 无 | 建议豁免（原版内部测试工具） |
 | xtask crate（发布工程） | reference/Cargo.toml:7 | 无 | 建议豁免（工程工具） |
 | robotctl CLI | robotctl/src/main.rs:124 | mini-duckctl（src/bin/mini-duckctl.rs）子集 | 已交付（子集 M0–M7；逐命令对照见 §3） |
-| duckctl CLI（BLE 客户端） | duckctl/src/main.rs:889 | 无 | 建议豁免（无蓝牙栈；其方法面缺口已在 §2 逐条登记） |
+| duckctl CLI（BLE 客户端） | duckctl/src/main.rs:894 | 无 | 建议豁免（无蓝牙栈；其方法面缺口已在 §2 逐条登记） |
 
 ## 2. RPC 方法面（Call 枚举逐方法 + 通知）
 
@@ -68,114 +73,114 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 
 | 功能项 | 原项目证据 | 手搓状态 | 处置 |
 |---|---|---|---|
-| hello | :543 / :965 | miniduckd src/main.rs:215；mini-updaterd src/updater/ipc.rs:67；载荷缺 daemon_version/revision | 已交付（M0）；版本差异 D15、溯源字段缺口入 D62 |
-| update.check | :551 / :968 | ipc.rs:71；返回 {available, current} | 已交付（M7）；CheckResult 形状差异入 D61 |
-| update.apply | :552 / :969 | ipc.rs:119；参数 {version} 而非 {component, target, options} | 已交付（M7）；参数/结果形状入 D61 |
-| update.rollback | :553 / :970 | ipc.rs:138 | 已交付（M7）；形状入 D61 |
-| update.resetToGolden | :554 / :971 | 无 | 未登记缺口（D48；golden 兜底同 D37） |
-| update.select | :555 / :972 | 无 | 未登记缺口（D48） |
-| update.pin | :556 / :973 | 无 | 未登记缺口（D48） |
-| update.status | :557 / :974 | ipc.rs:95；扁平 {phase, current, previous, pending} | 已交付（M7）；ComponentStatus 形状入 D61、degraded 裁决 D41 |
-| update.listInstalled | :558 / :975 | 无 | 未登记缺口（D48） |
-| update.log | :559 / :976 | ipc.rs:113 | 已交付（M7）；LogEntry 形状入 D61 |
-| update.show | :560 / :978 | 无 | 未登记缺口（D48；transcript 本体在 D41） |
-| update.subscribe | :561 / :980 | 无 | 偏差登记（D41） |
-| update.progress 通知 | :564（Progress :3105） | 无 | 偏差登记（D41） |
-| robot.safeToRestart | :572 / :983 | main.rs:~:500 + control.rs 记账 moving/fallen（M8 Bite 4） | ~~未登记缺口（D47）~~ 已交付（M8 Bite 4；验收 milestones/m8-convergence/acceptance.md Bite 4） |
-| robot.health | :574 / :984 | main.rs:219（真实判定，M5） | 已交付（M5）；载荷字段缺口 D49 |
-| robot.modelApi | :576 / :985 | main.rs:~:507 返回 lib.rs MODEL_API=2（M8 Bite 4） | ~~未登记缺口（D47）~~ 已交付（M8 Bite 4）；updater 侧预检语义残余 D65 |
-| robot.remoteSessionActive | :578 / :986 | 无 | 建议豁免（WebRTC 会话存在性，mediad 家族；拿不准，见文末） |
-| robot.move {vx,vy,vyaw}（通知式） | :597 / :990；MoveParams :2110 | lib.rs:114 MoveParams + main.rs:266 robot.move 双路径（M8 Bite 1；robot.drive 已删） | 已交付（M8 Bite 1）；head/mouth 通知语义与统一 apply_intent 入口残余入 D43 |
-| robot.head（通知式） | :599 / :992；HeadParams :2126 | main.rs:335（请求式，参数名一致） | 已交付（M6）；连续意图通知语义差异入 D43 |
-| robot.look（凝视 IK） | :602 / :994；LookParams :2140 | 无 | 未登记缺口（D55） |
-| robot.stop | :604 / :995 | 无（deadman 500ms 兜底不等价） | 未登记缺口（D54） |
-| robot.enable {on, toggle} | :606 / :996；EnableParams :2792-2808 | robot.enable {on, toggle}（main.rs:319-340，toggle daemon 侧翻转、永不拒绝、reason 逐字对齐；robot.disable 已删） | ~~已交付（M5）；形状差异（无 toggle、多出 disable）D44~~ M8 Bite 2 已对齐 |
-| robot.init（无策略上电站立） | :624 / :998 | 无 | 未登记缺口（D53） |
-| robot.relax（卸力） | :630 / :1000 | 无（disable 的斜坡+卸 torque 相近而非同一物） | 未登记缺口（D53） |
-| robot.rebootMotors | :636 / :1002 | 无 | 偏差登记（D12 残余：RobotIo::reboot 未实现） |
-| robot.do | :647 / :1004；DoParams :2303 | main.rs:263 | 已交付（M6）；fallen 拒绝层级差异 D36 |
-| robot.pose（站姿偏移 z/roll/pitch） | :652 / :1006；PoseParams :2314 | 无 | 未登记缺口（D56） |
-| robot.mouth {open} | :655 / :1008；MouthParams :2338 | main.rs:320，参数名 {position} | 已交付（M6）；参数名差异 D57 |
-| robot.sound | :666 / :1010；SoundParams :2199 | 无 | 建议豁免（无音频硬件/声库；同 D31 理由） |
-| robot.theremin | :680 / :1012 | 无 | 偏差登记（D31 明确不实现） |
-| robot.chorale | :692 / :1015 | 无 | 偏差登记（D31） |
-| chorale.subscribe | :885 / :1018 | 无 | 偏差登记（D31） |
-| chorale.beacon | :888 / :1020 | 无 | 偏差登记（D31） |
-| chorale.heard | :891 / :1022 | 无 | 偏差登记（D31） |
-| robot.shutdown | :694 / :1024 | 无 | 未登记缺口（D58） |
-| robot.mode | :700 / :1026 | 无 | 偏差登记（D28） |
-| robot.setMode | :708 / :1028 | 无 | 偏差登记（D28/D30） |
-| robot.policies | :714 / :1030；PoliciesResult :2395 | 无 | 未登记缺口（D59） |
-| robot.model | :718 / :1032；ModelResult :3844 | 无 | 未登记缺口（D55） |
-| robot.loadPolicy | :725 / :1034 | 无 | 偏差登记（D30 热换不实现） |
-| robot.reloadPolicies | :733 / :1036 | 无 | 偏差登记（D30） |
-| policy.check | :744 / :1040 | 无 | 未登记缺口（D60；与 D39 网络 source 同源） |
-| policy.install | :746 / :1042 | 无 | 未登记缺口（D60） |
-| policy.fetch | :748 / :1044 | 无 | 未登记缺口（D60） |
-| policy.search | :750 / :1046 | 无 | 未登记缺口（D60） |
-| detector.check | :758 / :1050 | 无 | 建议豁免（检测器 NPU 硬件栈） |
-| detector.install | :760 / :1052 | 无 | 建议豁免（同上） |
-| account.login | :775 / :1056 | 无 | 建议豁免（HF OAuth 远程访问栈；拿不准，见文末） |
-| account.status | :777 / :1058 | 无 | 建议豁免（同上） |
-| account.logout | :779 / :1060 | 无 | 建议豁免（同上） |
-| robot.subscribe {hz} + SubscribeResult ack | :782 / :1061；SubscribeParams :2742、SubscribeResult :2759 | robot.subscribe（main.rs serve；hz 解析后丢弃） | 已交付（M8 Bite 3，milestones/m8-convergence/acceptance.md）；hz 逐订阅者降频仍归 D25 |
-| robot.state 通知 | :791；RobotState :3708 | main.rs:380-397 推送（50Hz，M5） | 已交付（M5）；载荷字段缺口 D50、latest-wins 语义 D25 |
-| net.status | :801 / :1063 | 无 | 未登记缺口（D42） |
-| net.scan | :803 / :1064 | 无 | 未登记缺口（D42） |
-| net.connect | :805 / :1065 | 无 | 未登记缺口（D42） |
-| net.forget | :807 / :1066 | 无 | 未登记缺口（D42） |
-| system.info | :810 / :1069 | 无 | 未登记缺口（D42） |
-| system.services | :812 / :1070 | 无 | 未登记缺口（D42） |
-| system.logs | :814 / :1072 | 无 | 未登记缺口（D42） |
-| system.setName | :816 / :1073 | 无 | 未登记缺口（D42） |
-| system.reboot | :818 / :1074 | 无 | 未登记缺口（D42） |
-| system.pairingPin | :820 / :1080 | 无 | 建议豁免（BLE 配对 PIN） |
-| system.setPairingPin | :822 / :1081 | 无 | 建议豁免（同上） |
-| system.authenticate | :824 / :1089 | 无 | 建议豁免（BLE 传输层鉴权） |
-| pad.status | :838 / :1092 | 无 | 建议豁免（手柄硬件） |
-| pad.pair | :840 / :1093 | 无 | 建议豁免（同上） |
-| pad.forget | :842 / :1094 | 无 | 建议豁免（同上） |
-| pad.bindings | :843 / :1095 | 无 | 建议豁免（手柄硬件；配置写入面属性拿不准，见文末） |
-| pad.bind | :844 / :1096 | 无 | 建议豁免（同上） |
-| robot.skills | :845 / :1097；SkillsResult :4378 | main.rs:314，{skills} 含内置两名 | 已交付（M6）；SkillsResult.built_in 字段缺口入 D59 |
-| robot.setSkill | :846 / :1098 | 无 | 未登记缺口（D59） |
-| robot.removeSkill | :847 / :1099 | 无 | 未登记缺口（D59） |
-| pad.input / pad.report | :861/:864 / :1101 | 无 | 建议豁免（padd 硬件流） |
-| tof.stream / tof.frame | :877/:894 / :1103 | 无 | 建议豁免（tofd 硬件流） |
-| head_imu.stream / head_imu.frame | :898/:901 / :1105 | 无 | 建议豁免（BMI088 硬件流） |
-| media.frame（非 Call，二进制尾帧） | :549；MediaFrameHeader :3051 | 无 | 建议豁免（mediad 相机帧） |
+| hello | :477 / :899 | miniduckd src/main.rs:374；mini-updaterd src/updater/ipc.rs:67；载荷缺 daemon_version/revision | 已交付（M0）；版本差异 D15（挂 M10）、溯源字段缺口入 D62（挂 M10） |
+| update.check | :485 / :902 | ipc.rs:71；返回 {available, current} | 已交付（M7）；CheckResult 形状差异入 D61（挂 M10） |
+| update.apply | :486 / :903 | ipc.rs:119；参数 {version} 而非 {component, target, options} | 已交付（M7）；参数/结果形状入 D61（挂 M10） |
+| update.rollback | :487 / :904 | ipc.rs:138 | 已交付（M7）；形状入 D61（挂 M10） |
+| update.resetToGolden | :488 / :905 | 无 | 未登记缺口（D48；挂 M10；golden 兜底同 D37（挂 M10）） |
+| update.select | :489 / :906 | 无 | 未登记缺口（D48；挂 M10） |
+| update.pin | :490 / :907 | 无 | 未登记缺口（D48；挂 M10） |
+| update.status | :491 / :908 | ipc.rs:95；扁平 {phase, current, previous, pending} | 已交付（M7）；ComponentStatus 形状入 D61（挂 M10）、degraded 裁决 D41（挂 M10） |
+| update.listInstalled | :492 / :909 | 无 | 未登记缺口（D48；挂 M10） |
+| update.log | :493 / :910 | ipc.rs:113 | 已交付（M7）；LogEntry 形状入 D61（挂 M10） |
+| update.show | :494 / :912 | 无 | 未登记缺口（D48；挂 M10；transcript 本体在 D41（挂 M10）） |
+| update.subscribe | :495 / :914 | 无 | 偏差登记（D41；挂 M10） |
+| update.progress 通知 | :498（Progress :3001） | 无 | 偏差登记（D41；挂 M10） |
+| robot.safeToRestart | :506 / :917 | main.rs:516 + control.rs 记账 moving/fallen（M8 Bite 4） | ~~未登记缺口（D47）~~ 已交付（M8 Bite 4；验收 milestones/m8-convergence/acceptance.md Bite 4） |
+| robot.health | :508 / :918 | main.rs:378（真实判定，M5） | 已交付（M5）；载荷字段缺口 D49（挂 M10） |
+| robot.modelApi | :510 / :919 | main.rs:521 返回 lib.rs MODEL_API=2（M8 Bite 4） | ~~未登记缺口（D47）~~ 已交付（M8 Bite 4）；updater 侧预检语义残余 D65（已收敛，Bite 9/10） |
+| robot.remoteSessionActive | :512 / :920 | 无 | 挂 M10（恒 false 补齐；原豁免理由：WebRTC 会话存在性，mediad 家族） |
+| robot.move {vx,vy,vyaw}（通知式） | :531 / :924；MoveParams :2044 | lib.rs:129 MoveParams + main.rs:348/:421 robot.move 双路径（M8 Bite 1；robot.drive 已删） | 已交付（M8 Bite 1）；head/mouth 通知语义与统一 apply_intent 入口残余入 D43（主体 Bite 1/2 已收敛；残余③ CLI move 请求式 Phase 4 裁决永久保留：教学工具定位） |
+| robot.head（通知式） | :533 / :926；HeadParams :2060 | main.rs:358/:507（请求式，参数名一致） | 已交付（M6）；连续意图通知语义差异入 D43 |
+| robot.look（凝视 IK） | :536 / :928；LookParams :2074 | 无 | 未登记缺口（D55；挂 M10） |
+| robot.stop | :538 / :929 | 无（deadman 500ms 兜底不等价） | 未登记缺口（D54；挂 M10） |
+| robot.enable {on, toggle} | :540 / :930；EnableParams :2688-2704 | robot.enable {on, toggle}（main.rs:402-416，toggle daemon 侧翻转、永不拒绝、reason 逐字对齐；robot.disable 已删） | ~~已交付（M5）；形状差异（无 toggle、多出 disable）D44~~ M8 Bite 2 已对齐 |
+| robot.init（无策略上电站立） | :558 / :932 | 无 | 未登记缺口（D53；挂 M10） |
+| robot.relax（卸力） | :564 / :934 | 无（disable 的斜坡+卸 torque 相近而非同一物） | 未登记缺口（D53；挂 M10） |
+| robot.rebootMotors | :570 / :936 | 无 | 偏差登记（D12 残余：RobotIo::reboot 未实现；挂 M10） |
+| robot.do | :581 / :938；DoParams :2237 | main.rs:440 | 已交付（M6）；D36 已收敛（Bite 10：fallen 永不入门口裁决，!enabled/!homed 拒绝逐字对齐原版） |
+| robot.pose（站姿偏移 z/roll/pitch） | :586 / :940；PoseParams :2248 | 无 | 未登记缺口（D56；挂 M10） |
+| robot.mouth {open} | :589 / :942；MouthParams :2272 | main.rs:353/:498，参数名 {position} | 已交付（M6）；参数名差异 D57（挂 M10） |
+| robot.sound | :600 / :944；SoundParams :2133 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：建议豁免，无音频硬件/声库） |
+| robot.theremin | :614 / :946 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31 明确不实现） |
+| robot.chorale | :626 / :949 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| chorale.subscribe | :819 / :952 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| chorale.beacon | :822 / :954 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| chorale.heard | :825 / :956 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| robot.shutdown | :628 / :958 | 无 | 未登记缺口（D58；挂 M10） |
+| robot.mode | :634 / :960 | 无 | 偏差登记（D28；挂 M9） |
+| robot.setMode | :642 / :962 | 无 | 偏差登记（D28/D30；挂 M9） |
+| robot.policies | :648 / :964；PoliciesResult :2329 | 无 | 未登记缺口（D59；挂 M10） |
+| robot.model | :652 / :966；ModelResult :3581 | 无 | 未登记缺口（D55；挂 M10） |
+| robot.loadPolicy | :659 / :968 | 无 | 偏差登记（D30 热换不实现；挂 M9） |
+| robot.reloadPolicies | :667 / :970 | 无 | 偏差登记（D30；挂 M9） |
+| policy.check | :678 / :974 | 无 | 未登记缺口（D60；挂 M10；与 D39（挂 M10）网络 source 同源） |
+| policy.install | :680 / :976 | 无 | 未登记缺口（D60；挂 M10） |
+| policy.fetch | :682 / :978 | 无 | 未登记缺口（D60；挂 M10） |
+| policy.search | :684 / :980 | 无 | 未登记缺口（D60；挂 M10） |
+| detector.check | :692 / :984 | 无 | 建议豁免（检测器 NPU 硬件栈） |
+| detector.install | :694 / :986 | 无 | 建议豁免（同上） |
+| account.login | :709 / :990 | 无 | 并入 D60（M10；原豁免理由：HF OAuth 远程访问栈） |
+| account.status | :711 / :992 | 无 | 并入 D60（M10） |
+| account.logout | :713 / :994 | 无 | 并入 D60（M10） |
+| robot.subscribe {hz} + SubscribeResult ack | :716 / :995；SubscribeParams :2638、SubscribeResult :2655 | robot.subscribe（main.rs serve；hz 解析后丢弃） | 已交付（M8 Bite 3，milestones/m8-convergence/acceptance.md）；hz 逐订阅者降频仍归 D25（挂 M10） |
+| robot.state 通知 | :725；RobotState :3487 | main.rs:539-566 推送（50Hz，M5） | 已交付（M5）；载荷字段缺口 D50（挂 M10）、latest-wins 语义 D25（挂 M10） |
+| net.status | :735 / :997 | 无 | 未登记缺口（D42；挂 M10） |
+| net.scan | :737 / :998 | 无 | 未登记缺口（D42；挂 M10） |
+| net.connect | :739 / :999 | 无 | 未登记缺口（D42；挂 M10） |
+| net.forget | :741 / :1000 | 无 | 未登记缺口（D42；挂 M10） |
+| system.info | :744 / :1003 | 无 | 未登记缺口（D42；挂 M10） |
+| system.services | :746 / :1004 | 无 | 未登记缺口（D42；挂 M10） |
+| system.logs | :748 / :1006 | 无 | 未登记缺口（D42；挂 M10） |
+| system.setName | :750 / :1007 | 无 | 未登记缺口（D42；挂 M10） |
+| system.reboot | :752 / :1008 | 无 | 未登记缺口（D42；挂 M10） |
+| system.pairingPin | :754 / :1014 | 无 | 建议豁免（BLE 配对 PIN） |
+| system.setPairingPin | :756 / :1015 | 无 | 建议豁免（同上） |
+| system.authenticate | :758 / :1023 | 无 | 建议豁免（BLE 传输层鉴权） |
+| pad.status | :772 / :1026 | 无 | 挂 M10 再评估（Phase 4 裁决：用户有 Xbox 手柄，原版 padd 正是 Xbox 开发测试设备；原豁免理由：手柄硬件） |
+| pad.pair | :774 / :1027 | 无 | 挂 M10 再评估（同上裁决） |
+| pad.forget | :776 / :1028 | 无 | 挂 M10 再评估（同上裁决） |
+| pad.bindings | :777 / :1029 | 无 | 挂 M10 再评估（Phase 4 裁决：用户有 Xbox 手柄，原版 padd 正是 Xbox 开发测试设备；原豁免理由：手柄硬件，配置写入面属性裁决见文末摘要） |
+| pad.bind | :778 / :1030 | 无 | 挂 M10 再评估（同上裁决） |
+| robot.skills | :779 / :1031；SkillsResult :4115 | main.rs:491，{skills} 含内置两名 | 已交付（M6）；SkillsResult.built_in 字段缺口入 D59（挂 M10） |
+| robot.setSkill | :780 / :1032 | 无 | 未登记缺口（D59；挂 M10） |
+| robot.removeSkill | :781 / :1033 | 无 | 未登记缺口（D59；挂 M10） |
+| pad.input / pad.report | :795/:798 / :1035 | 无 | 挂 M10 再评估（Phase 4 裁决：用户有 Xbox 手柄，原版 padd 正是 Xbox 开发测试设备；原豁免理由：padd 硬件流） |
+| tof.stream / tof.frame | :811/:828 / :1037 | 无 | 建议豁免（tofd 硬件流） |
+| head_imu.stream / head_imu.frame | :832/:835 / :1039 | 无 | 建议豁免（BMI088 硬件流） |
+| media.frame（非 Call，二进制尾帧） | :483；MediaFrameHeader :2947 | 无 | 建议豁免（mediad 相机帧） |
 
 ## 3. CLI 对照
 
 | 功能项 | 原项目证据 | 手搓状态 | 处置 |
 |---|---|---|---|
 | robotctl frame | robotctl/src/main.rs:126 | 无 | 建议豁免（相机帧，mediad 家族） |
-| robotctl net status/scan/connect/forget | :132、:369-402 | 无 | 未登记缺口（D42） |
-| robotctl system info/set-name/pin/set-pin/reboot | :139、:404-439 | 无 | 未登记缺口（D42；pin 两条随 BLE 豁免） |
-| robotctl robot init | :450 | 无 | 未登记缺口（D53） |
-| robotctl robot enable [--off/--toggle] | :465 | mini-duckctl enable [on\|off]（disable 子命令已删；CLI 只发表决结果，toggle 是手柄 Start 的事） | ~~已交付（M5）；toggle 缺失入 D44~~ M8 Bite 2 已对齐 |
-| robotctl robot relax | :484 | 无 | 未登记缺口（D53） |
-| robotctl robot reboot-motors | :498 | 无 | 偏差登记（D12） |
-| robotctl robot do | :514 | mini-duckctl do | 已交付（M6） |
-| robotctl robot mode | :521 | 无 | 偏差登记（D28） |
-| robotctl robot look | :535 | 无 | 未登记缺口（D55） |
-| robotctl quack | :157 | 无 | 建议豁免（音频） |
-| robotctl chorale | :168 | 无 | 偏差登记（D31） |
-| robotctl theremin | :190 | 无 | 偏差登记（D31） |
-| robotctl configure | :204 | 无 | 未登记缺口（D52 配置面连带） |
-| robotctl pad status/bindings/bind/reset/pair/forget | :228、:808-897 | 无 | 建议豁免（手柄硬件） |
-| robotctl update check/apply/rollback/status/log | :235、:1079-1196 | mini-duckctl update 同五条（mini-duckctl.rs:197-236） | 已交付（M7） |
-| robotctl update reset-to-golden/select/pin | :1156-1176 | 无 | 未登记缺口（D48） |
-| robotctl update show | :1197 | 无 | 未登记缺口（D48） |
-| robotctl update watch | :1211 | 无 | 偏差登记（D41 subscribe） |
-| robotctl account login/status/logout | :252、:898 | 无 | 建议豁免（OAuth） |
-| robotctl policy list/load/add/remove/search/check/update/reset | :272、:958-1076 | 无 | 未登记缺口（D59/D60；load/reset 热换语义 D30） |
-| robotctl duck-detector check/update | :289、:931 | 无 | 建议豁免（检测器硬件栈） |
-| robotctl monitor | :307 | mini-duckctl state [--every N]（极简替代） | 已交付（M0/M5 极简版）；ToF/IMU 网格等硬件面板豁免 |
+| robotctl net status/scan/connect/forget | :132、:364-398 | 无 | 未登记缺口（D42；挂 M10） |
+| robotctl system info/set-name/pin/set-pin/reboot | :139、:399-435 | 无 | 未登记缺口（D42；挂 M10；pin 两条随 BLE 豁免） |
+| robotctl robot init | :445 | 无 | 未登记缺口（D53；挂 M10） |
+| robotctl robot enable [--off/--toggle] | :460 | mini-duckctl enable [on\|off]（disable 子命令已删；CLI 只发表决结果，toggle 是手柄 Start 的事） | ~~已交付（M5）；toggle 缺失入 D44~~ M8 Bite 2 已对齐 |
+| robotctl robot relax | :479 | 无 | 未登记缺口（D53；挂 M10） |
+| robotctl robot reboot-motors | :493 | 无 | 偏差登记（D12；挂 M10） |
+| robotctl robot do | :509 | mini-duckctl do | 已交付（M6） |
+| robotctl robot mode | :516 | 无 | 偏差登记（D28；挂 M9） |
+| robotctl robot look | :530 | 无 | 未登记缺口（D55；挂 M10） |
+| robotctl quack | :157 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原豁免理由：音频） |
+| robotctl chorale | :168 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| robotctl theremin | :190 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| robotctl configure | :204 | 无 | 未登记缺口（D52 配置面连带；挂 M10） |
+| robotctl pad status/bindings/bind/reset/pair/forget | :228、:803-892 | 无 | 挂 M10 再评估（Phase 4 裁决：用户有 Xbox 手柄，原版 padd 正是 Xbox 开发测试设备；原豁免理由：手柄硬件） |
+| robotctl update check/apply/rollback/status/log | :235、:1074-1181 | mini-duckctl update 同五条（mini-duckctl.rs:214-254） | 已交付（M7） |
+| robotctl update reset-to-golden/select/pin | :1154-1169 | 无 | 未登记缺口（D48；挂 M10） |
+| robotctl update show | :1192 | 无 | 未登记缺口（D48；挂 M10） |
+| robotctl update watch | :1206 | 无 | 偏差登记（D41 subscribe；挂 M10） |
+| robotctl account login/status/logout | :252、:893 | 无 | 并入 D60（挂 M10；随 §2 account.* 改判，Phase 4 裁决） |
+| robotctl policy list/load/add/remove/search/check/update/reset | :272、:953-1071 | 无 | 未登记缺口（D59/D60；挂 M10；load/reset 热换语义 D30（挂 M9）） |
+| robotctl duck-detector check/update | :289、:926 | 无 | 建议豁免（检测器硬件栈） |
+| robotctl monitor | :307 | mini-duckctl state [--every N]（极简替代） | 已交付（M0/M5 极简版）；ToF/IMU 网格等硬件面板豁免；富仪表板面板挂 M10（依赖 D50+硬件） |
 | robotctl health | :333 | mini-duckctl health | 已交付（M5） |
-| robotctl version | :348 | 无 | 未登记缺口（D62） |
-| robotctl completions | :362 | 无 | 建议豁免（shell 补全工程糖） |
-| duckctl 全命令树（scan/ip/ssh/scp/open/logs/status/version/update/info/health/wifi/name/do/reboot-motors/account/policy/pad/reboot/call） | duckctl/src/main.rs:889-1342 | 无 | 建议豁免（BLE 客户端整机；其调用的方法面缺口已在 §2 逐条登记） |
+| robotctl version | :343 | 无 | 未登记缺口（D62；挂 M10） |
+| robotctl completions | :357 | 无 | 建议豁免（shell 补全工程糖） |
+| duckctl 全命令树（scan/ip/ssh/scp/open/logs/status/version/update/info/health/wifi/name/do/reboot-motors/account/policy/pad/reboot/call） | duckctl/src/main.rs:894-1325 | 无 | 建议豁免（BLE 客户端整机；其调用的方法面缺口已在 §2 逐条登记） |
 
 ## 4. 配置参数面
 
@@ -184,71 +189,71 @@ robotd.toml（reference/deploy/robotd.toml，498 行）：
 | 功能项 | 原项目证据 | 手搓状态 | 处置 |
 |---|---|---|---|
 | [bus] port | robotd.toml:22 | 无串口（FakeIo/SimIo） | 偏差登记（D2 已豁免） |
-| [bus] fast_sync_read | :33 | 无 | 偏差登记（D2） |
-| [control] hz = 50 | :48 | 50Hz 硬编码（src/control.rs） | 已交付（M1/M5） |
-| [control] cmd_alpha / head_alpha（命令 EMA 平滑） | :54-55 | 无（意图直通，无 EMA） | 未登记缺口（D46） |
-| [control] publish_velocity_and_load | :65 | 无（state 无 velocities/currents_ma） | 未登记缺口（D50 字段面） |
-| [update_gate] min_achieved_hz / stall_periods / max_consecutive_errors | :83/:93/:98 | 硬编码 src/main.rs:32-36（45Hz/500ms/10） | 已交付（M5）；配置文件面缺口入 D52 |
-| [policy] enabled | :111 | MINIDUCK_POLICY 加载失败报病不退出（D19） | 已交付（M5 语义）；配置键面无，入 D52 |
-| [policy] mode = walk/roller | :121 | 恒 walk | 偏差登记（D28） |
-| [policy] 槽路径（walk/stand/sitstand/ground_pick/kick_left/kick_right/roulade） | :139-146 | walk/sitstand/ground_pick/roulade/kick_left 已接线（scheduler.rs:352-353） | 已交付（M6 子集）；stand 槽 D33，kick_right/roller 权重未下载未接线入 D28 注记 |
-| [policy] action_scale / standing_action_scale / standing_gain_ratio / gain | :154-161 | 硬编码（walk 0.9、技能 1.0、gain 200） | 已交付（M6 数值）；standing_* D33 |
-| [policy] head_lowpass / legs_lowpass | :167-168 | src/control.rs:41-44（0.5/0.7 训练值） | 已交付（M6） |
-| [policy] ground_pick_period / action_scale / gain_ratio | :177-179 | 硬编码 200 拍 / φ=0.7 交还 | 已交付（M6） |
-| [policy] kick_duration | :182 | 硬编码窗口 | 已交付（M6） |
-| [policy] roulade_duration / action_scale / gain_ratio | :188-190 | 50 拍窗口 | 已交付（M6）；chain 重放未实现 D29 |
-| [policy] voltage_adapt / nominal_voltage | :195-196 | 无（FakeIo 无电压读数） | 未登记缺口（D63） |
-| [safety] fall_gravity_z / fall_debounce_ms | :207-208 | src/safety.rs 常量（-0.5/200ms） | 已交付（M5） |
-| [safety] deadman_ms | :215 | 500ms | 已交付（M5） |
-| [safety] gain_limp | :218 | 50 | 已交付（M5） |
-| [safety] limp_fall 全系列（9 键：开关/tilt/predict/lookahead/debounce/still/max/pose_ms/pose_gain） | :239-277 | 简化跌倒响应（fallen 直接触发 Limp） | 偏差登记（D23） |
-| [safety] battery_empty_shutdown | :282 | 无 | 未登记缺口（D63） |
-| [audio] 全段 | :284-314 | 无 | 建议豁免（无音频硬件；同 D31 理由） |
-| [theremin] 全段 | :316-358 | 无 | 偏差登记（D31） |
-| [duck_detector] 全段 | :360-390 | 无 | 建议豁免（检测器硬件栈） |
-| [head_imu] enabled | :392-408 | 无 | 建议豁免（BMI088 硬件） |
-| [chorale] accept | :410-422 | 无 | 偏差登记（D31） |
-| [media] 全段 | :424-479 | 无 | 建议豁免（mediad 硬件栈） |
-| [pad_imu_head_control] | :493-498 | 无 | 建议豁免（手柄 IMU 硬件） |
-| robotd.toml 文件本身（/etc/robot 配置面，installer 不覆盖） | :1-16 | 无配置文件；env 变量（MINIDUCK_POLICY 等）替代 | 未登记缺口（D52） |
+| [bus] fast_sync_read | ⚠ v0.14.1 未找到（出自更高版本检出） | 无 | 偏差登记（D2） |
+| [control] hz = 50 | :37 | 50Hz 硬编码（src/control.rs） | 已交付（M1/M5） |
+| [control] cmd_alpha / head_alpha（命令 EMA 平滑） | :43-44 | 无（意图直通，无 EMA） | 未登记缺口（D46；挂 M10） |
+| [control] publish_velocity_and_load | ⚠ v0.14.1 未找到（出自更高版本检出） | 无（state 无 velocities/currents_ma） | 未登记缺口（D50 字段面；挂 M10） |
+| [update_gate] min_achieved_hz / stall_periods / max_consecutive_errors | :62/:72/:77 | 硬编码 src/main.rs:43-47（45Hz/500ms/10） | 已交付（M5）；配置文件面缺口入 D52（挂 M10） |
+| [policy] enabled | :90 | MINIDUCK_POLICY 加载失败报病不退出（D19） | 已交付（M5 语义）；配置键面无，入 D52（挂 M10） |
+| [policy] mode = walk/roller | :100 | 恒 walk | 偏差登记（D28；挂 M9） |
+| [policy] 槽路径（walk/stand/sitstand/ground_pick/kick_left/kick_right/roulade） | :118-125 | walk/sitstand/ground_pick/roulade/kick_left 已接线（scheduler.rs:352-353） | 已交付（M6 子集）；stand 槽 D33（挂 M9），kick_right/roller 权重未下载未接线入 D28（挂 M9）注记 |
+| [policy] action_scale / standing_action_scale / standing_gain_ratio / gain | :133-140 | 硬编码（walk 0.9、技能 1.0、gain 200） | 已交付（M6 数值）；standing_* D33（挂 M9） |
+| [policy] head_lowpass / legs_lowpass | :146-147 | src/control.rs:54-58（0.5/0.7 训练值） | 已交付（M6） |
+| [policy] ground_pick_period / action_scale / gain_ratio | :156-158 | 硬编码 200 拍 / φ=0.7 交还 | 已交付（M6） |
+| [policy] kick_duration | :161 | 硬编码窗口 | 已交付（M6） |
+| [policy] roulade_duration / action_scale / gain_ratio | :167-169 | 50 拍窗口 | 已交付（M6）；chain 重放未实现 D29（挂 M9） |
+| [policy] voltage_adapt / nominal_voltage | :174-175 | 无（FakeIo 无电压读数） | 未登记缺口（D63；挂 M10） |
+| [safety] fall_gravity_z / fall_debounce_ms | :186-187 | src/safety.rs 常量（-0.5/200ms） | 已交付（M5） |
+| [safety] deadman_ms | :194 | 500ms | 已交付（M5） |
+| [safety] gain_limp | :197 | 50 | 已交付（M5） |
+| [safety] limp_fall 全系列（9 键：开关/tilt/predict/lookahead/debounce/still/max/pose_ms/pose_gain） | :218-256 | 简化跌倒响应（fallen 直接触发 Limp） | 偏差登记（D23；挂 M9） |
+| [safety] battery_empty_shutdown | :261 | 无 | 未登记缺口（D63；挂 M10） |
+| [audio] 全段 | :263-293 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原豁免理由：无音频硬件） |
+| [theremin] 全段 | :295-337 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| [duck_detector] 全段 | :339-369 | 无 | 建议豁免（检测器硬件栈） |
+| [head_imu] enabled | :371-387 | 无 | 建议豁免（BMI088 硬件） |
+| [chorale] accept | :389-401 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
+| [media] 全段 | :403-458 | 无 | 建议豁免（mediad 硬件栈） |
+| [pad_imu_head_control] | :460-477 | 无 | 建议豁免（手柄 IMU 硬件） |
+| robotd.toml 文件本身（/etc/robot 配置面，installer 不覆盖） | :1-16 | 无配置文件；env 变量（MINIDUCK_POLICY 等）替代 | 未登记缺口（D52；挂 M10） |
 
 updater.toml（reference/deploy/updater.toml，179 行）：
 
 | 功能项 | 原项目证据 | 手搓状态 | 处置 |
 |---|---|---|---|
-| trusted_keys_dir（minisign 信任锚） | updater.toml:16 | 无（sha256-only） | 偏差登记（D38） |
-| hw_rev（硬件版本兼容门） | :18 | 无 | 未登记缺口（D61） |
+| trusted_keys_dir（minisign 信任锚） | updater.toml:16 | 无（sha256-only） | 偏差登记（D38；挂 M10） |
+| hw_rev（硬件版本兼容门） | :18 | 无 | 未登记缺口（D61；挂 M10） |
 | state_dir | :22 | src/updater/paths.rs state/ | 已交付（M7） |
 | robot_socket | :24 | gate.rs 轮询 miniduckd socket | 已交付（M7） |
-| allow_dev_keys / allow_fault_injection | :30-31 | EXIT_AFTER_SWAP 故障注入已有；dev keys 无 | 已交付（M7 故障注入半边）；dev keys 入 D38 |
-| check_interval（周期检查定时器） | :36 | 无 | 偏差登记（D39） |
-| auto_apply | :51 | 无 | 偏差登记（D39） |
-| allow_users（+allow_uids/allow_gids 机制） | :79 | uid==0 \|\| socket owner 单点（peer.rs） | 偏差登记（D40） |
+| allow_dev_keys / allow_fault_injection | :30-31 | EXIT_AFTER_SWAP 故障注入已有；dev keys 无 | 已交付（M7 故障注入半边）；dev keys 入 D38（挂 M10） |
+| check_interval（周期检查定时器） | :36 | 无 | 偏差登记（D39；挂 M10） |
+| auto_apply | :51 | 无 | 偏差登记（D39；挂 M10） |
+| allow_users（+allow_uids/allow_gids 机制） | :79 | uid==0 \|\| socket owner 单点（peer.rs） | 偏差登记（D40；Phase 4 裁决永久保留：SO_PEERCRED 单点门，容器单用户无教学价值） |
 | [component.daemon] install_dir / keep_previous | :84-85 | install/releases + journal previous 推导 | 已交付（M7） |
-| golden | :94 | 无 | 偏差登记（D37）；方法面入 D48 |
-| source github_releases（tag/ref/staging 前缀） | :99-119 | LocalDir 单一 source | 偏差登记（D39） |
-| [component.daemon.on_apply] units 重启表 | :126-157 | spawn/kill miniduckd 替代 systemctl | 偏差登记（D37） |
+| golden | :94 | 无 | 偏差登记（D37；挂 M10）；方法面入 D48（挂 M10） |
+| source github_releases（tag/ref/staging 前缀） | :99-119 | LocalDir 单一 source | 偏差登记（D39；挂 M10） |
+| [component.daemon.on_apply] units 重启表 | :126-157 | spawn/kill miniduckd 替代 systemctl | 偏差登记（D37；挂 M10） |
 | [component.daemon.health] probe/timeout | :167-169 | gate.rs 500ms 轮询+预算 | 已交付（M7） |
-| updater.toml 文件本身（+updater.example.toml 注释参考） | updater.toml:1-10 | env 变量（MINIDUCK_UPDATER_*）替代 | 未登记缺口（D52） |
+| updater.toml 文件本身（+updater.example.toml 注释参考） | updater.toml:1-10 | env 变量（MINIDUCK_UPDATER_*）替代 | 未登记缺口（D52；挂 M10） |
 
 ## 5. 通知、载荷与协议机制面
 
 | 功能项 | 原项目证据 | 手搓状态 | 处置 |
 |---|---|---|---|
-| RobotState 帧字段全集（t / move{requested,applied,limited_by} / head[4] / policy / safety{fallen,limp,gravity,gain} / loop{hz,missed} / joints / targets / velocities / currents_ma / odom / t_ns / imu{gyro,quat} / frames / skeleton / theremin / chorale） | duck-ipc-proto/src/lib.rs:3708-3798 | {tick, positions, imu{gyro,gravity,quat}, obs, action, fallen, enabled, gain, torque, skill}（src/main.rs:380-397） | 未登记缺口（D50） |
-| HealthResult 字段全集（healthy / degraded / reason 单值 / battery / motors / cpu_temp_c / cpu_throttle / control_loop / bus / imu） | lib.rs:3432-3501 | {healthy, reason[], tick, uptime_s, reads, writes, skipped_reads, consecutive_read_errors, achieved_hz}（main.rs:171-181） | 未登记缺口（D49） |
-| SubscribeResult ack（accepted / walk / stand / unavailable / sitstand / ground_pick / skills） | lib.rs:2759-2787 | src/lib.rs SubscribeResult；stand 恒省略（D33）；无 "no policy configured" | 已交付（M8 Bite 3，milestones/m8-convergence/acceptance.md）；stand 省略入 D33 |
-| Progress 通知载荷（component/phase/percent/detail） | lib.rs:3105 | 无 | 偏差登记（D41） |
-| 应用错误码表（BUSY=1、UNKNOWN_COMPONENT=2、PREFLIGHT_FAILED=4 … PERMISSION_DENIED=14） | lib.rs:909-945 | -32001..-32004（src/updater/mod.rs） | 未登记缺口（D61） |
-| API_VERSION = 37 | lib.rs:426 | = 1（src/lib.rs:27） | 偏差登记（D15） |
-| 协议常量 JOINT_NAMES / POLICY_OBS_LEN=61 / POLICY_ACTION_LEN=14 | lib.rs:522/:435/:439 | src/model.rs 关节常量；obs 61 维（M2） | 已交付（M1/M2，milestones/m2-obs-vector/acceptance.md） |
-| Lane 连接模型（Prompt/Slow/Operation/Stream 四分通道） | lib.rs:1146-1155 | 单连接 select! 多路复用（main.rs:196-403） | 未登记缺口（D51） |
-| Service 路由与五 socket 布局 | lib.rs:1115、:467-488 | 双 socket（/tmp/miniduckd.sock、/tmp/mini-updaterd.sock） | 未登记缺口（D42 进程面连带） |
-| identity.json 发布（/run/<service>/identity.json） | lib.rs:498-511 | 无 | 未登记缺口（D62） |
-| UPDATE_MAX_SILENCE_SECONDS = 600 契约 | lib.rs:457 | 无 | 未登记缺口（D61） |
-| socket 默认路径 /run/*.sock | lib.rs:467-488 | /tmp/*.sock（main.rs:27、mini-duckctl.rs:194） | 建议豁免（容器无 systemd RuntimeDirectory；0660 鉴权语义已对齐 D8） |
-| HelloResult {daemon_version, revision} | lib.rs:3040-3047 | {service, api_version} | 未登记缺口（D62） |
-| 教学附加帧字段（obs/action/enabled/torque/skill/tick，原版无） | —（手搓新增） | src/main.rs:382-397 | 建议豁免（教程观测窗口；M8 终态裁决时保留或改名） |
+| RobotState 帧字段全集（t / move{requested,applied,limited_by} / head[4] / policy / safety{fallen,limp,gravity,gain} / loop{hz,missed} / joints / targets / velocities / currents_ma / odom / t_ns / imu{gyro,quat} / frames / skeleton / theremin / chorale） | duck-ipc-proto/src/lib.rs:3487-3572 | {tick, positions, imu{gyro,gravity,quat}, obs, action, fallen, enabled, gain, torque, skill}（src/main.rs:547-562） | 未登记缺口（D50；挂 M10） |
+| HealthResult 字段全集（healthy / degraded / reason 单值 / battery / motors / cpu_temp_c / cpu_throttle / control_loop / bus / imu） | lib.rs:3259-3318 | {healthy, reason[], tick, uptime_s, reads, writes, skipped_reads, consecutive_read_errors, achieved_hz}（main.rs:206-216） | 未登记缺口（D49；挂 M10） |
+| SubscribeResult ack（accepted / walk / stand / unavailable / sitstand / ground_pick / skills） | lib.rs:2655-2683 | src/lib.rs SubscribeResult；stand 恒省略（D33）；无 "no policy configured" | 已交付（M8 Bite 3，milestones/m8-convergence/acceptance.md）；stand 省略入 D33（挂 M9） |
+| Progress 通知载荷（component/phase/percent/detail） | lib.rs:3001 | 无 | 偏差登记（D41；挂 M10） |
+| 应用错误码表（BUSY=1、UNKNOWN_COMPONENT=2、PREFLIGHT_FAILED=4 … PERMISSION_DENIED=14） | lib.rs:843-880 | -32001..-32004（src/updater/mod.rs） | 未登记缺口（D61；挂 M10，Phase 4 裁决扩为协议级错误码） |
+| API_VERSION = 31 | lib.rs:360 | = 1（src/lib.rs:27） | 偏差登记（D15；挂 M10） |
+| 协议常量 JOINT_NAMES / POLICY_OBS_LEN=61 / POLICY_ACTION_LEN=14 | lib.rs:456/:369/:373 | src/model.rs 关节常量；obs 61 维（M2） | 已交付（M1/M2，milestones/m2-obs-vector/acceptance.md） |
+| Lane 连接模型（Prompt/Slow/Operation/Stream 四分通道） | lib.rs:1080-1089 | 单连接 select! 多路复用（main.rs:308-570） | 未登记缺口（D51；挂 M10） |
+| Service 路由与五 socket 布局 | lib.rs:1049、:402-422 | 双 socket（/tmp/miniduckd.sock、/tmp/mini-updaterd.sock） | 未登记缺口（D42 进程面连带；挂 M10） |
+| identity.json 发布（/run/<service>/identity.json） | lib.rs:424-434 | 无 | 未登记缺口（D62；挂 M10） |
+| UPDATE_MAX_SILENCE_SECONDS = 600 契约 | lib.rs:391 | 无 | 未登记缺口（D61；挂 M10） |
+| socket 默认路径 /run/*.sock | lib.rs:402-422 | /tmp/*.sock（main.rs:38、mini-duckctl.rs:11/:211） | 建议豁免（容器无 systemd RuntimeDirectory；0660 鉴权语义已对齐 D8） |
+| HelloResult {daemon_version, revision} | lib.rs:2936-2943 | {service, api_version} | 未登记缺口（D62；挂 M10） |
+| 教学附加帧字段（obs/action/enabled/torque/skill/tick，原版无） | —（手搓新增） | src/main.rs:547-562 | 建议豁免（教程观测窗口；M8 终态裁决时保留或改名）；Phase 4 裁决永久保留（观测窗口） |
 
 ## 未登记缺口汇总（预留 D42–D63）
 
@@ -286,3 +291,5 @@ updater.toml（reference/deploy/updater.toml，179 行）：
 5. **robotctl monitor**（§3）：按极简替代标了已交付，但富仪表板（LoopState/总线计数/ToF 网格）大部分依赖 D50 载荷与硬件——「已交付」的口径偏宽。
 6. **D43 的通知语义**：head/mouth/drive 连续意图的通知化归并在 D43 一条里，若 M8 认为语义差异应独立于 vy 缺失，可拆分。
 7. **错误码表归 D61**：错误码同时涉及 robotd 侧（BUSY 于 robot.do 等），D61 目前只写在 update.* 语境——裁决时可能需要扩成协议级条目。
+
+**2026-10-15 Phase 4 裁决结果**（逐条对应上七项，详见 deviations.md 底部「Phase 4 附」）：1 → odometry 改判挂 M9（纯软件估计器，与自训策略同域；state 的 odom 字段仍归 D50）；2 → robot.remoteSessionActive 改判挂 M10，恒 false 补齐方法面；3 → account.* 三条并入 D60（M10），与 policy.* 同属 Hub 网络面；4 → pad.bindings / pad.bind 随 padd 整体挂 M10 再评估（用户有 Xbox 手柄，原版 padd 正是 Xbox 开发测试设备）；5 → robotctl monitor 极简版维持已交付，富仪表板面板挂 M10（依赖 D50+硬件）；6 → D43 残余③（mini-duckctl move 请求式）Phase 4 裁决永久保留（教学工具定位），通知语义主体已随 Bite 1/2 收敛；7 → 错误码表仍归 D61，Phase 4 裁决扩为协议级条目，挂 M10。

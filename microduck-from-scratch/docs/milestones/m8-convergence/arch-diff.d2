@@ -56,26 +56,26 @@ classes: {
   }
 }
 
-title: "M8 Bite 6 相对 Bite 5 —— duck_body 接 BAM+groundcontact；control/scheduler/io 次改（踢步态 / roulade 100 拍 / push）" {
+title: "M8 Bite 10 相对 Bite 9 —— 无架构变动（无模块增删、无数据流改向、无边变化）" {
   near: top-center
   shape: text
   style.font-size: 22
   style.bold: true
 }
 
-banner: "进程边界未变。醒目=duck_body（BAM MujocoController + scene_groundcontact）；次醒目=control skip_bringup_ramp+push(0.30)、scheduler roulade 100 拍、io push_base_velocity" {
-  near: top-center
+banner: "Bite 10：无架构变动——改动发生在 scheduler / control / main（RPC 层）模块内部\n（do_verdict 门口裁决、Stats.homed + phase_homed()、robot.do 四层语义）" {
+  near: bottom-center
   shape: text
   style.font-size: 14
   style.italic: true
-  style.font-color: "#9D174D"
+  style.font-color: "#475569"
 }
 
 legend: "图例" {
   class: procbox
-  l_new: "醒目改动：duck_body BAM + scene_groundcontact（--no-bam 回退 XML PD）" { class: new }
-  l_changed: "次醒目：control / scheduler / io（踢步态、roulade 窗口、push 边）" { class: changed }
-  l_unchanged: "未动（灰化）" { class: unchanged }
+  l_new: "新增模块（本 Bite 无）" { class: new }
+  l_changed: "架构层改动（本 Bite 无；模块内部改动见底部注记）" { class: changed }
+  l_unchanged: "未动（灰化）——本 Bite 全部模块" { class: unchanged }
   l_deleted: "删除/改向（本 Bite 无）" { class: deleted }
 }
 
@@ -124,11 +124,11 @@ p_updaterd: "进程 2：mini-updaterd（更新守护进程）" {
   }
 }
 
-# ---------- 进程 3：守护进程（部分次醒目） ----------
-p_daemon: "进程 3：miniduckd（守护进程）【B6：control/scheduler/io 次改】" {
+# ---------- 进程 3：守护进程（control/scheduler/RPC 层内部改动，架构未动） ----------
+p_daemon: "进程 3：miniduckd（守护进程）【B10：control/scheduler/RPC 层内部改动】" {
   class: procbox
 
-  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\n订阅 robot.subscribe {hz}\nack=SubscribeResult（启动时组好）\nwalk/sitstand/ground_pick 文件名\n+ skills 名；hz 解析后丢弃\nrobot.state 只作推送 method\n带 id 的 robot.state\n= METHOD_NOT_FOUND\nhello / robot.health\nrobot.enable / robot.move\nrobot.do / robot.skills\nrobot.mouth / robot.head\nrobot.safeToRestart\nrobot.modelApi\n（返回 MODEL_API=2）" {
+  rpc: "RPC 层\n(main.rs serve 循环)\nJSON-RPC 2.0 NDJSON\n订阅 robot.subscribe {hz}\nack=SubscribeResult（启动时组好）\nwalk/sitstand/ground_pick 文件名\n+ skills 名；hz 解析后丢弃\nrobot.state 只作推送 method\n带 id 的 robot.state\n= METHOD_NOT_FOUND\nhello / robot.health\nrobot.enable / robot.move\nrobot.do / robot.skills\nrobot.mouth / robot.head\nrobot.safeToRestart\nrobot.modelApi\n（返回 MODEL_API=2）\n【B10 内部】robot.do 分支四层语义：\nfallen/Limp 照收；\n!enabled / !homed 拒绝" {
     class: unchanged
   }
 
@@ -140,14 +140,14 @@ p_daemon: "进程 3：miniduckd（守护进程）【B6：control/scheduler/io �
     class: unchanged
   }
 
-  loop: "控制循环 50Hz\n(control.rs)【B6 次醒目】\n--sim：skip_bringup_ramp\nenable 边沿直进 Driving\n（无 RampUp；配合 BAM 冻结）\ntwist 进入行走带(0.05..0.4)\n上升沿 push_base_velocity(0.30)\n踢步态吸引子\n其余：Held/RampUp/Driving/\nLimp/Stopped 状态机同 B5" {
-    class: changed
+  loop: "控制循环 50Hz\n(control.rs)\n【B10 内部】新增 Stats.homed\n+ phase_homed()；\nedges_when_driving 注释语义修正\n其余：COAST 滑行 / 五阶段状态机\n--sim skip_bringup_ramp\n行走带上升沿 push(0.30) 同前" {
+    class: unchanged
   }
 
-  sched: "技能调度器（scheduler.rs）【B6 次醒目】" {
-    class: changed
-    cascade: "Cascade 纯状态机\n优先级链每拍仲裁：\n技能窗口 > ground_pick\n> sit/rise > walk\n【B6】roulade 窗口\n100 拍（2.0s×50Hz）\n（原 50 拍→对齐官方）" {
-      class: changed
+  sched: "技能调度器（scheduler.rs）【B10 内部改动】" {
+    class: unchanged
+    cascade: "Cascade 纯状态机\n优先级链每拍仲裁：\n技能窗口 > ground_pick\n> sit/rise > walk\nroulade 窗口 100 拍\n（2.0s×50Hz，官方默认）\n【B10 内部】do_verdict\n门口裁决函数" {
+      class: unchanged
     }
     obs: "Obs 组装\n(obs.rs)\nobs[61] = gyro3 + gravity3\n+ pos14 + vel14\n+ last_action14 + command13\n（command 块=调度器重编码后，\n不一定是客户端原值）" {
       class: unchanged
@@ -161,26 +161,26 @@ p_daemon: "进程 3：miniduckd（守护进程）【B6：control/scheduler/io �
     class: unchanged
   }
 
-  safety: "Safety\n(safety.rs)\n拥有唯一 RobotIo 写句柄\n四条防线同前\n转发 push_base_velocity\n（本 Bite 仅转发，门控未改）" {
+  safety: "Safety\n(safety.rs)\n拥有唯一 RobotIo 写句柄\n四条防线同前\n转发 push_base_velocity" {
     class: unchanged
   }
 
-  p_io: "RobotIo（io.rs trait）【B6 次醒目】\nread / write / set_gain / set_torque\npush_base_velocity / imu_ready" {
-    class: changed
+  p_io: "RobotIo（io.rs trait）\nread / write / set_gain / set_torque\npush_base_velocity / imu_ready" {
+    class: unchanged
     fake: "FakeIo\n(io.rs)\n完美跟踪假总线\n进程内（默认）\npush=空操作" {
       class: unchanged
     }
-    sim: "SimIo\n(io.rs)【B6 次醒目】\nTCP + NDJSON op 帧\n（--sim host:port 时启用）\npush_base_velocity\n→ op=push {vx,vy}" {
-      class: changed
+    sim: "SimIo\n(io.rs)\nTCP + NDJSON op 帧\n（--sim host:port 时启用）\npush_base_velocity\n→ op=push {vx,vy}" {
+      class: unchanged
     }
   }
 }
 
-# ---------- 进程 4：仿真体（醒目） ----------
-p_sim: "进程 4：duck_body.py（MuJoCo 仿真体）【B6 醒目】" {
+# ---------- 进程 4：仿真体（未动） ----------
+p_sim: "进程 4：duck_body.py（MuJoCo 仿真体）" {
   class: procbox
-  body: "duck_body.py\n(sim/duck_body.py)【B6 醒目】\n默认 BAM：better-actuator-models\nMujocoController（M6 XL330）\n场景 scene_groundcontact.xml\ntimestep=0.005，每拍 4 子步\n--no-bam / MINIDUCK_SIM_BAM=0\n→ 回退 XML PD + scene.xml\nTCP NDJSON op 帧\nread / write / set_gain / set_torque\npush = 躯干 qvel 扰动\n（control 踢步态入口）\n模型资产：sim/assets/" {
-    class: new
+  body: "duck_body.py\n(sim/duck_body.py)\n默认 BAM：better-actuator-models\nMujocoController（M6 XL330）\n场景 scene_groundcontact.xml\ntimestep=0.005，每拍 4 子步\n--no-bam / MINIDUCK_SIM_BAM=0\n→ 回退 XML PD + scene.xml\nTCP NDJSON op 帧\nread / write / set_gain / set_torque\npush = 躯干 qvel 扰动\n（control 踢步态入口）\n模型资产：sim/assets/" {
+    class: unchanged
   }
 }
 
@@ -206,7 +206,7 @@ ort: "ONNX Runtime\nlibonnxruntime.so\n（third_party/onnxruntime，\nORT_DYLIB_
   class: unchanged
 }
 
-# ---------- 数据流 ----------
+# ---------- 数据流（全部未动，灰化） ----------
 
 # 1. CLI ↔ miniduckd RPC
 p_cli.ctl -> p_daemon.rpc: "订阅帧 robot.subscribe\n应答=策略名单 ack" {
@@ -295,9 +295,8 @@ p_daemon.shared -> p_daemon.loop: "每拍读 command/enabled/mouth\nskill_edges 
 }
 
 # 9. 控制循环 → 调度器 → Obs → 回控制循环
-p_daemon.loop -> p_daemon.sched.cascade: "edges + gated command\n→ step 选网 + 重编码\n【B6】roulade 100 拍窗口" {
-  style.stroke: "#F59E0B"
-  style.stroke-width: 2
+p_daemon.loop -> p_daemon.sched.cascade: "edges + gated command\n→ step 选网 + 重编码" {
+  style.stroke: "#94A3B8"
 }
 p_daemon.sched.cascade -> p_daemon.sched.obs: "decision.command" {
   style.stroke: "#94A3B8"
@@ -315,21 +314,18 @@ p_daemon.sched.cascade -> p_daemon.loop: "busy() 抑制 Driving→Limp\n（falle
   style.stroke-dash: 5
 }
 
-# 11. 控制循环 ↔ Safety → RobotIo → 仿真体（B6：push 踢步态次醒目）
-p_daemon.loop -> p_daemon.safety: "每拍：read → observe → gate\n→ apply(targets[15], hold, gain)\n【B6】行走带上升沿\npush_base_velocity(0.30)" {
-  style.stroke: "#F59E0B"
-  style.stroke-width: 2
+# 11. 控制循环 ↔ Safety → RobotIo → 仿真体
+p_daemon.loop -> p_daemon.safety: "每拍：read → observe → gate\n→ apply(targets[15], hold, gain)\n行走带上升沿 push_base_velocity(0.30)" {
+  style.stroke: "#94A3B8"
 }
 p_daemon.safety -> p_daemon.p_io.fake: "进程内内存读写" {
   style.stroke: "#94A3B8"
 }
-p_daemon.safety -> p_daemon.p_io.sim: "write targets[15] @50Hz\nset_gain / set_torque\n【B6】push_base_velocity" {
-  style.stroke: "#F59E0B"
-  style.stroke-width: 2
+p_daemon.safety -> p_daemon.p_io.sim: "write targets[15] @50Hz\nset_gain / set_torque\npush_base_velocity" {
+  style.stroke: "#94A3B8"
 }
-p_daemon.p_io.sim -> p_sim.body: "TCP NDJSON：hello / read / write\nset_gain / set_torque\n【B6】push {vx,vy} → BAM 躯干" {
-  style.stroke: "#DB2777"
-  style.stroke-width: 3
+p_daemon.p_io.sim -> p_sim.body: "TCP NDJSON：hello / read / write\nset_gain / set_torque\npush {vx,vy} → BAM 躯干" {
+  style.stroke: "#94A3B8"
 }
 
 # 12. watch → RPC → CLI

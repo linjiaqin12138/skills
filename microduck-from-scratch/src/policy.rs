@@ -441,6 +441,70 @@ save(model, sys.argv[1])
         assert!(out.is_file() && out.metadata().unwrap().len() > 0);
     }
 
+    /// 手写最小 (3,3) LSTM 策略（obs[1,61] → LSTM(hidden=4) → actions[1,14]
+    /// + h/c 状态回环），给原版 LSTM 加载契约（reference/duck-control/src/
+    /// policy.rs:601-611 (3,3) 分支）一个运行时测试夹具——官方 v1–v8+main 与
+    /// 7 个社区采样权重全是 1-in/1-out feedforward，没有现成 LSTM 可借（D20）。
+    /// W/R 全零：观测不进状态，状态演化只由偏置驱动（i/o/f 门偏置 +1 常开，
+    /// c 门偏置逐通道不同）→ 零观测下 c 每拍累加、动作每拍不同，
+    /// reset 清零后逐位复现第一拍——这三个可断言性质就是测试内容。
+    fn write_minimal_lstm_onnx(out: &Path) {
+        let script = r#"
+import sys
+from onnx import helper, TensorProto, save
+
+OBS, HID, ACT = 61, 4, 14
+b = [0.0] * (8 * HID)  # [Wb_i, Wb_o, Wb_f, Wb_c, Rb_*]
+for k in range(HID):
+    b[0 * HID + k] = 1.0  # i 门常开
+    b[1 * HID + k] = 1.0  # o 门常开
+    b[2 * HID + k] = 1.0  # f 门常开（状态保留）
+b[3 * HID: 4 * HID] = [0.5, -0.25, 0.125, 1.0]  # c 门偏置逐通道不同
+
+inits = [
+    helper.make_tensor("W", TensorProto.FLOAT, [1, 4 * HID, OBS], [0.0] * (4 * HID * OBS)),
+    helper.make_tensor("R", TensorProto.FLOAT, [1, 4 * HID, HID], [0.0] * (4 * HID * HID)),
+    helper.make_tensor("B", TensorProto.FLOAT, [1, 8 * HID], b),
+    helper.make_tensor("W2", TensorProto.FLOAT, [HID, ACT],
+                       [0.01 if (i + j) % 2 == 0 else -0.01
+                        for i in range(HID) for j in range(ACT)]),
+    helper.make_tensor("sx", TensorProto.INT64, [3], [1, 1, OBS]),
+    helper.make_tensor("ss", TensorProto.INT64, [3], [1, 1, HID]),
+    helper.make_tensor("sb", TensorProto.INT64, [2], [1, HID]),
+]
+graph = helper.make_graph(
+    [
+        helper.make_node("Reshape", ["obs", "sx"], ["X"]),
+        # Y 不用：契约只要 actions + h/c 回环。
+        helper.make_node("LSTM", ["X", "W", "R", "B", "", "h_in", "c_in"],
+                         ["", "Yh", "Yc"], hidden_size=HID),
+        helper.make_node("Reshape", ["Yh", "ss"], ["h_out"]),
+        helper.make_node("Reshape", ["Yc", "ss"], ["c_out"]),
+        helper.make_node("Reshape", ["h_out", "sb"], ["Hf"]),
+        helper.make_node("MatMul", ["Hf", "W2"], ["actions"]),
+    ],
+    "minimal_lstm",
+    [helper.make_tensor_value_info("obs", TensorProto.FLOAT, [1, OBS]),
+     helper.make_tensor_value_info("h_in", TensorProto.FLOAT, [1, 1, HID]),
+     helper.make_tensor_value_info("c_in", TensorProto.FLOAT, [1, 1, HID])],
+    [helper.make_tensor_value_info("actions", TensorProto.FLOAT, [1, ACT]),
+     helper.make_tensor_value_info("h_out", TensorProto.FLOAT, [1, 1, HID]),
+     helper.make_tensor_value_info("c_out", TensorProto.FLOAT, [1, 1, HID])],
+    inits,
+)
+model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 13)])
+save(model, sys.argv[1])
+"#;
+        let status = Command::new("python3")
+            .arg("-c")
+            .arg(script)
+            .arg(out)
+            .status()
+            .expect("spawn python3 to write lstm onnx");
+        assert!(status.success(), "python lstm writer failed: {status}");
+        assert!(out.is_file() && out.metadata().unwrap().len() > 0);
+    }
+
     #[test]
     fn rejects_wrong_observation_width() {
         if !ort_ready() {
@@ -463,6 +527,40 @@ save(model, sys.argv[1])
             msg.contains("61") && (msg.contains("51") || msg.contains("got")),
             "error must mention expected 61 and actual width, got: {msg}"
         );
+    }
+
+    /// D20：合成的 (3,3) LSTM 策略必须能加载、推理输出有限、状态随拍推进、
+    /// reset 清零后逐位复现第一拍。
+    #[test]
+    fn lstm_state_carries_across_ticks_and_reset_replays_first_tick() {
+        if !ort_ready() {
+            eprintln!("skip lstm fixture test: ORT dylib missing");
+            return;
+        }
+        ensure_ort_env();
+
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+        std::fs::create_dir_all(&dir).unwrap();
+        let lstm = dir.join("minimal_lstm.onnx");
+        write_minimal_lstm_onnx(&lstm);
+
+        let mut policy = Policy::load(&lstm).expect("load lstm fixture");
+        let zero = zero_observation();
+        let a1 = policy.infer(&zero).expect("tick 1");
+        assert!(a1.iter().all(|v| v.is_finite()));
+        assert!(
+            a1.iter().any(|v| v.abs() > 1e-6),
+            "夹具第一拍动作必须非零，否则状态推进无从断言"
+        );
+        let a2 = policy.infer(&zero).expect("tick 2");
+        assert!(a2.iter().all(|v| v.is_finite()));
+        assert_ne!(a1, a2, "同一观测第二拍必须不同——状态随拍推进");
+
+        let resets = policy.reset_calls;
+        policy.reset();
+        assert_eq!(policy.reset_calls, resets + 1);
+        let a3 = policy.infer(&zero).expect("post-reset infer");
+        assert_eq!(a1, a3, "reset 清零后同一观测必须逐位复现第一拍");
     }
 
     #[test]
