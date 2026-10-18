@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="500" viewBox="0 0 1000 500">
+  <rect width="1000" height="500" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #111827; }
+    .title { font-size: 24px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 600; }
+    .small { font-size: 13px; fill: #475569; }
+    .box { stroke: #64748b; stroke-width: 1.5; }
+  </style>
+  <text x="30" y="42" class="title">64 位 IDT 门描述符：16 字节</text>
+  <text x="30" y="68" class="small">64 位 handler 地址拆成三段；selector 指向处理函数所在代码段</text>
+  <g>
+    <rect x="20" y="100" width="120" height="85" fill="#dbeafe" class="box"/>
+    <rect x="140" y="100" width="120" height="85" fill="#dcfce7" class="box"/>
+    <rect x="260" y="100" width="60" height="85" fill="#e2e8f0" class="box"/>
+    <rect x="320" y="100" width="60" height="85" fill="#ddd6fe" class="box"/>
+    <rect x="380" y="100" width="120" height="85" fill="#dbeafe" class="box"/>
+    <rect x="500" y="100" width="240" height="85" fill="#dbeafe" class="box"/>
+    <rect x="740" y="100" width="240" height="85" fill="#e2e8f0" class="box"/>
+    <text x="80" y="128" text-anchor="middle" class="small">B0–B1</text><text x="80" y="158" text-anchor="middle" class="label">offset 15:0</text>
+    <text x="200" y="128" text-anchor="middle" class="small">B2–B3</text><text x="200" y="158" text-anchor="middle" class="label">selector</text>
+    <text x="290" y="128" text-anchor="middle" class="small">B4</text><text x="290" y="158" text-anchor="middle" class="label">IST</text>
+    <text x="350" y="128" text-anchor="middle" class="small">B5</text><text x="350" y="158" text-anchor="middle" class="label">type</text>
+    <text x="440" y="128" text-anchor="middle" class="small">B6–B7</text><text x="440" y="158" text-anchor="middle" class="label">offset 31:16</text>
+    <text x="620" y="128" text-anchor="middle" class="small">B8–B11</text><text x="620" y="158" text-anchor="middle" class="label">offset 63:32</text>
+    <text x="860" y="128" text-anchor="middle" class="small">B12–B15</text><text x="860" y="158" text-anchor="middle" class="label">reserved = 0</text>
+  </g>
+  <text x="30" y="235" class="label">B5 type attributes</text>
+  <g>
+    <rect x="100" y="260" width="100" height="70" fill="#dcfce7" class="box"/>
+    <rect x="200" y="260" width="100" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="300" y="260" width="100" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="400" y="260" width="100" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="500" y="260" width="400" height="70" fill="#ddd6fe" class="box"/>
+    <text x="150" y="288" text-anchor="middle" class="label">P</text><text x="150" y="312" text-anchor="middle" class="small">bit 7</text>
+    <text x="250" y="288" text-anchor="middle" class="label">DPL</text><text x="250" y="312" text-anchor="middle" class="small">bit 6</text>
+    <text x="350" y="288" text-anchor="middle" class="label">DPL</text><text x="350" y="312" text-anchor="middle" class="small">bit 5</text>
+    <text x="450" y="288" text-anchor="middle" class="label">0</text><text x="450" y="312" text-anchor="middle" class="small">bit 4</text>
+    <text x="700" y="288" text-anchor="middle" class="label">gate type：1110=interrupt，1111=trap</text><text x="700" y="312" text-anchor="middle" class="small">bits 3…0</text>
+  </g>
+  <text x="100" y="385" class="label">P=0：本项无效，CPU 不能从这里取得 handler</text>
+  <text x="100" y="420" class="small">interrupt gate 在跳转时清 IF；trap gate 不改变 IF</text>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300">
+  <rect width="900" height="300" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #111827; }
+    .title { font-size: 24px; font-weight: 700; }
+    .label { font-size: 17px; font-weight: 600; }
+    .small { font-size: 14px; fill: #475569; }
+    .box { stroke: #64748b; stroke-width: 1.5; }
+  </style>
+  <text x="30" y="45" class="title">16 位段选择子</text>
+  <text x="30" y="72" class="small">段寄存器保存的是表索引和权限，不是段的地址</text>
+  <rect x="50" y="105" width="650" height="85" fill="#dbeafe" class="box"/>
+  <rect x="700" y="105" width="70" height="85" fill="#ede9fe" class="box"/>
+  <rect x="770" y="105" width="80" height="85" fill="#dcfce7" class="box"/>
+  <text x="375" y="140" text-anchor="middle" class="label">index：GDT/LDT 行号</text>
+  <text x="375" y="168" text-anchor="middle" class="small">bits 15…3，共 13 位</text>
+  <text x="735" y="140" text-anchor="middle" class="label">TI</text>
+  <text x="735" y="168" text-anchor="middle" class="small">bit 2</text>
+  <text x="810" y="140" text-anchor="middle" class="label">RPL</text>
+  <text x="810" y="168" text-anchor="middle" class="small">bits 1…0</text>
+  <text x="50" y="235" class="label">0x08 → index=1、TI=0（GDT）、RPL=0</text>
+  <text x="50" y="265" class="small">0x10 同理对应 index=2；TI=0 查 GDT，TI=1 查 LDT</text>
+</svg>

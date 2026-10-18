@@ -2,9 +2,9 @@
 
 ## 当前位置
 - Phase: 3（逐层手搓）进行中
-- 里程碑: **M2 进行中**——Bite1（GDT 扁平接管 + IDT + CPU 异常接管）2026-10-16 通过 `make check-m2-b1`（主 agent 复跑确认），待用户确认后进入 Bite2；M1 已通过
-- 教程：M1 Bite1 `tutorial-bite1-framebuffer.html` + Bite2 `tutorial-bite2-printk-scroll.html`（m1-printk/）；**M2 Bite1 `m2-exceptions/tutorial-bite1-gdt-idt.html`**；概念 `linear-framebuffer.md` + `gdt-long-mode.md` + `idt-exception-frame.md`
-- 环境：qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`reference/limine`（v10.8.5-binary）+ `reference/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
+- 里程碑: **M2 进行中**——Bite1（GDT 扁平接管 + IDT + CPU 异常接管）2026-10-18 复跑 `make check-m2-b1` 通过，待用户确认后进入 Bite2；M1 已通过
+- 教程：M1 Bite1 `tutorial-bite1-framebuffer.html` + Bite2 `tutorial-bite2-printk-scroll.html`（m1-printk/）；**M2 Bite1 `m2-exceptions/tutorial-bite1-gdt-idt.html`**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html`
+- 环境：GNU Make 用 `~/.local/bin/make`（apt 下载后用户级解包）；qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`reference/limine`（v10.8.5-binary）+ `reference/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
 用户确认后进入 **M2 Bite2「panic 打印」**：panic_handler 接 printk!，panic!() 打印消息与位置而非静默 halt（main.rs:77 附近）。伏笔已埋：Rust `1/0` 走 panic 不走 #DE，Bite1 教程坑 2 已点到。
@@ -29,12 +29,12 @@
 - reference（只读对照）: `linux-0.11-from-scratch/reference/`（limine binary + limine-protocol；Linux-0.11 源码克隆可按需补回；`.gitignore` 忽略整个 reference/）
 - Rust 语法书（检索用，只读）: `reference/book-cn/`（若缺失可再浅克隆 rust-lang-cn/book-cn）；在线版 https://rustwiki.org/zh-CN/book/
 - 原项目构建: 待 Linux-0.11 reference 补回后 `cd reference && make && make start`
-- 最新架构图: `docs/arch/original.svg`（原项目总图）；**本工程当前架构权威图：`docs/milestones/m2-exceptions/assets/dst/arch.svg`（M2 Bite1，新增 gdt/idt 模块与异常路径）**；arch-diff：`…/m2-exceptions/assets/dst/arch-diff.svg`（M1→M2）
-- **画图工具链**：默认 fireworks（`vendor/fireworks-tech-graph/`，2026-10-12 本机网络未能 clone，M1 Bite1 **权威 SVG 暂用 d2**；fireworks 兼容 JSON 已落在 `m1-printk/assets/src/arch*.json`，工具可用后可重渲）。工作流见既有 STATE 经验；Style 1 配色沿用
+- 最新架构图: `docs/arch/original.svg`（原项目总图）；**本工程当前架构权威图：`docs/milestones/m2-exceptions/assets/dst/arch.svg`（M2 Bite1 顶层图）**；分层子图：`…/m2-exceptions/assets/dst/arch-idt.svg`；arch-diff：`…/m2-exceptions/assets/dst/arch-diff.svg`（M1→M2）
+- **画图工具链**：默认 fireworks（`skills/fireworks-tech-graph/`）。M2 Bite1 已从 JSON 产出顶层图、IDT 子图和 diff，并通过 validate / render / check 与 Chrome 目检；M1 历史 SVG 仍用 d2，Style 1 配色沿用
 - Phase 1 拆解文档: `docs/phase-1.md`
 - Phase 2 路线图: `docs/phase-2.md`
 - **功能清单: `docs/feature-inventory.md`**。计数：**42 项，已交付 1 / 未交付 41**（M0 交付 §1；M1 完结推进 §6 tty 的屏幕写显路径——framebuffer+字体+滚屏+printk! 已通并注记进度，整项（含转义序列/键盘/行规程）待 M3/M13）
-- 用户偏好: `skills/clone-from-scrach-tutor/user-prefs.md` + `docs/user-prefs.md`
+- 用户偏好: `~/.clone-from-scratch-tutor/user-prefs.md` + `docs/user-prefs.md`
 
 ## 偏差登记簿计数
 - docs/deviations.md：**16 条**——待收敛 5（D2/D3/D6/D15/D16）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）、已收敛 1（D12，M1 Bite2）
@@ -43,12 +43,13 @@
 
 | 依赖 | 状态 | 解决方式 |
 |---|---|---|
+| GNU Make | ✅ `~/.local/bin/make` 4.4.1 | apt 下载 deb，用户级解包，无 sudo |
 | Rust 工具链 | 容器镜像 `linux011-rust-toolchain`✅ | `make toolchain` |
 | Limine | `reference/limine` v10.8.5-binary✅ | tag 克隆 |
 | limine.h / PROTOCOL | `reference/limine-protocol/`✅ | 协议仓 / jsdelivr |
 | qemu-system-x86_64 | ✅ `~/.local/bin` 包装（deb 解压）；系统 apt 未装（无 sudo） | PATH 含 `~/.local/bin`；BIOS 已补 SeaBIOS |
 | hdc-0.11.img | 1MB stub（非原版镜像） | M10 前换回真镜像 |
-| fireworks-tech-graph | ❌ 2026-10-12 未能 clone | M1 暂 d2；JSON 已备 |
+| fireworks-tech-graph | ✅ `skills/fireworks-tech-graph/` | M2 已用 JSON 产出并验收三张图 |
 
 **结论：M1 全链路已通（`make build && make check-m1-b2`）。**
 

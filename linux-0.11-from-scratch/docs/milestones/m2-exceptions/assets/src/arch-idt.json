@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "text_policy": "strict",
+  "quality_profile": "showcase",
+  "width": 1700,
+  "height": 900,
+  "title": "IDT 模块内部：统一栈帧 → 打印现场 → hlt",
+  "subtitle": "顶层 arch.svg 的 idt 分层子图",
+  "containers": [
+    {
+      "id": "idt-box",
+      "x": 330,
+      "y": 160,
+      "width": 1050,
+      "height": 480,
+      "label": "idt.rs",
+      "fill": "#faf5ff",
+      "stroke": "#8b5cf6"
+    }
+  ],
+  "nodes": [
+    { "id": "main", "kind": "rect", "x": 40, "y": 220, "width": 190, "height": 70, "label": "main.rs", "sublabel": "调用初始化", "fill": "#fff7ed", "stroke": "#f97316", "flat": true },
+    { "id": "gdt", "kind": "rect", "x": 40, "y": 380, "width": 190, "height": 70, "label": "gdt", "sublabel": "代码段选择子", "fill": "#fff7ed", "stroke": "#f97316", "flat": true },
+    { "id": "table", "kind": "rect", "x": 400, "y": 300, "width": 180, "height": 70, "label": "IDT 256 项", "sublabel": "向量 0~31 有效", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "stub", "kind": "rect", "x": 650, "y": 300, "width": 180, "height": 70, "label": "异常 stub ×32", "sublabel": "统一 error code", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "common", "kind": "rect", "x": 900, "y": 300, "width": 190, "height": 70, "label": "common_exception_entry", "sublabel": "保存 15 个寄存器", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "handler", "kind": "rect", "x": 1160, "y": 300, "width": 180, "height": 70, "label": "exception_handler", "sublabel": "Rust 打印现场", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "halt", "kind": "rect", "x": 1160, "y": 480, "width": 180, "height": 70, "label": "loop { hlt }", "sublabel": "停机", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "cpu", "kind": "rect", "x": 650, "y": 710, "width": 180, "height": 70, "label": "CPU", "sublabel": "异常向量", "fill": "#eff6ff", "stroke": "#3b82f6", "flat": true },
+    { "id": "console", "kind": "rect", "x": 1460, "y": 300, "width": 180, "height": 70, "label": "console", "sublabel": "屏幕 + 串口", "fill": "#fff7ed", "stroke": "#f97316", "flat": true }
+  ],
+  "arrows": [
+    { "id": "init", "source": "main", "target": "table", "source_port": "right", "target_port": "left", "flow": "control", "label": "idt::init()" },
+    { "id": "selector", "source": "gdt", "target": "table", "source_port": "right", "target_port": "left", "flow": "data", "label": "KERNEL_CODE_SEL" },
+    { "id": "address", "source": "table", "target": "stub", "source_port": "right", "target_port": "left", "flow": "data", "label": "地址" },
+    { "id": "vector", "source": "cpu", "target": "stub", "source_port": "top", "target_port": "bottom", "flow": "control", "label": "查 IDT 后跳转" },
+    { "id": "jump", "source": "stub", "target": "common", "source_port": "right", "target_port": "left", "flow": "control", "label": "jmp" },
+    { "id": "call", "source": "common", "target": "handler", "source_port": "right", "target_port": "left", "flow": "control", "label": "帧指针" },
+    { "id": "print", "source": "handler", "target": "console", "source_port": "right", "target_port": "left", "flow": "write", "label": "printk!" },
+    { "id": "halt_path", "source": "handler", "target": "halt", "source_port": "bottom", "target_port": "top", "flow": "control", "label": "不返回" }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 810,
+  "legend_locked": true,
+  "legend": [
+    { "flow": "control", "label": "控制" },
+    { "flow": "write", "label": "写" },
+    { "flow": "data", "label": "数据" }
+  ],
+  "footer": "Style 1 · fireworks · M2 Bite1 IDT 分层子图",
+  "footer_x": 48,
+  "footer_y": 860
+}

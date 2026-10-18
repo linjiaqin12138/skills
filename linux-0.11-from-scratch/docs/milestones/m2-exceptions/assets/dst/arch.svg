@@ -1,867 +1,249 @@
-<?xml version="1.0" encoding="utf-8"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" data-d2-version="v0.7.1" preserveAspectRatio="xMinYMin meet" viewBox="0 0 6069 990"><svg class="d2-2685544362 d2-svg" width="6069" height="990" viewBox="-89 -173 6069 990"><rect x="-89.000000" y="-173.000000" width="6069.000000" height="990.000000" rx="0.000000" fill="#FFFFFF" class=" fill-N7" stroke-width="0" /><style type="text/css"><![CDATA[
-.d2-2685544362 .text {
-	font-family: "d2-2685544362-font-regular";
-}
-@font-face {
-	font-family: d2-2685544362-font-regular;
-	src: url("data:application/font-woff;base64,d09GRgABAAAAABboAAoAAAAAIoAAAguFAAAAAAAAAAAAAAAAAAAAAAAAAABPUy8yAAAA9AAAAGAAAABgXd/Vo2NtYXAAAAFUAAABDwAAAZwMwC9EZ2x5ZgAAAmQAAA8vAAAVXHVeYKxoZWFkAAARlAAAADYAAAA2G4Ue32hoZWEAABHMAAAAJAAAACQKhAYOaG10eAAAEfAAAAD2AAABMIiyDytsb2NhAAAS6AAAAJoAAACa2w7VmG1heHAAABOEAAAAIAAAACAAZAD2bmFtZQAAE6QAAAMjAAAIFAbDVU1wb3N0AAAWyAAAAB0AAAAg/9EAMgADAgkBkAAFAAACigJYAAAASwKKAlgAAAFeADIBIwAAAgsFAwMEAwICBGAAAvcAAAADAAAAAAAAAABBREJPAEAAIP//Au7/BgAAA9gBESAAAZ8AAAAAAeYClAAAACAAA3icnNDLipIBGMfh50szMzto2dFSs4OdD6aZaQc7iLSJNi0iogtoG0UUdAfRrVS06kBtuoNgFsN4Hc7wDsjHMLOdd//A+/8hkZGgKJt8wkBdVlVdQ9MZZ51zwUWXtHX19A2NTTz21DPPvfDaW++898F3/xufI0h1a52+rJPqkYlHnqT6pTcbdUxV1JQdcFBBTilWYjlmMZOP3/ErfsaPmMZSLMTX+BJ/40/8i4/xavHbfMfmL9E10nfTXfdcd82dtd+vuKqt44EtMrK2ytkmb7uCHYp22mW3PUrK9tpnYOiGiv3zFYccdkTVUcfU5m2OazrhpFNOa6WVz7vltod67huzCgAA//8BAAD//9N2RgcAeJx0WHtwG3V+//1+kqUokmOvpfVK1lvraPV+rVYrS7Jky5Jsyw/Zkp3YTqy8nNiOIU3MawIhOUoIKVCqK2HIkBByd+n0mEKPO2YSGKYvwqWhDXBQhkchDHPtuMzBXYvr65UcXnV2V1Yc6P1h787Ob7/Pz+fz/a5AA5gEADHoFJAABWgCLQAHgMas2GYrRZFylmZZkpCwFMTkk/ATrgJhf1gaiUiD6S/Sh48dgxNH0anV22LHZ2d/Xr7nHu5Plz7nQvCtz4EETAGA2lEFYKANkLxNOtTaimtkcly4yEgJHYowYTtJYms3U5d79nYE/fGB1MH80V1j+aGhvYvj5ekti6hiycWChSapcjjTtcUFD8dCHYHVlVS6swMAAEG4uoL06CwwAtBgs9uZcCRCh1oJud1O2mQyXNPaSociLCGTwWLxgYHB46XEdoO3Le1KTtOhbUl/3uyjdqtGTy/sP10MWiIGW/fdxeLhtMMW9oYAAEjIJYwqYAPAapngGhlJ1eO+cPrcM0+OD9xxxx13DKDKc2ef+evMo0eOPCTENgUA/BRVgFKoK27FaZzErfgUvJf76OuvYRBVcm/1/qa3fvY9VAGKdWcx4eSNG6iS+zTH/Ws9Xzs6Cyx/KF8+XYZkaEwmg9u3nBgcPrk1M23w6dKh9G7m0DzZpX70A/N8LWXaFGlr7767eOT7eMtfZbkvre5aLOAFVAESIWNsqoQqqwfF5yiFKkAlPqchLVeTEjk+VZJArPzmr6dfP4Qq3CXYf4PbD8cf+sVaXtdQBTSI71jxqRI0o8rqJT7tms37UYXvH43R6tZWgo5EWDWNkVg4wpJyCSmhyNZWHJuaOaoiVFIVrjqyd3iDRBo+wh4JSyVyVOF+aMvabFkbLK8ehPOeBfeT3PNw7En3god7qu7DiypALfogaLudwWisbnnLr3ulEnlhy296pVLe3szJ0EIYllYPwmceDs6FuecAEuq+F50FTd9CmgBoKhQR4GATAAcHi8d6e48VS0f7+o6W4lsD+ycm9gcmVGNPz88/NTr61Pz802P9PYeL9z7++L3Fwz2gjjOlgBXNOsaQJHaTIq/mDyRP3Hbb7i2lrVvKqNI+3jc7w30D+7pzvWzdhgVVwCZArGedmpSsN/Nmz1x8JPOX5XP3HBgqFocOoAo5mhmcxrhfQpz7Ak6murrDYm9c1RX4n+gs8AoZU6zAJSZst1OUD92KPD5vgjAhvhqwOXu3O0TuoLv7jEFz2dzpZMrx+AzpNfX72B5rqG3a3tkemVExnthmbzxgcxg2ORtd6UCo4PW2R4zWsMfsbFM6mr3dwfB4CEBgAAB+gypAzmdFMlacxH55BX52BeVzudWLYqxbqyvIhyq8hgndwWhM5H5EuJXJYE/PQrLkzLo9OedIcr8qcmQePsDdX9hmt28rwAe5Y/NHIgAKzZCgCmgEgJasw6Pk3Xcn51v0ammLAZsf/wWqcOdie2OxvTG4W+AGAQC6gSrA+q331lkgJXY7RcpkcskPH92SVWgUUqVWuW1wm0qrkipaNmZHTs7sUTRtkMpbNuxCFe4Ms59hFsJwL3cmvCDerR6Ej9r77fZ+O3eXiEn4U7gM2kA7AISNhyQbFtohp4Tm4BjJO6R4SRDE4bXO0T87g7kdrrzRYtsTmxzJyCW20VYySR7eFVL1d4+MY+YoadF0tDpv38a9HzO40jbzw00Jv3MzQKBYXYG/R1eBuqY+FCknMRqXi75EHog04JUeOm39Fok8XUTWgmPH7viOXKIQz5q7SEtKZTWG0NXXJozUiUOlu5PZ2amRPTZL1UCIvfRVV+BP4DLf9z+scbykt3TNJboXkoGszoX7jZ4sVeqxxVrbrSOqxOJIcTFhIyJqrX88Wpo1alijleeIv7oCP1rLQayZYJxi6LVisUzd0f9uOxDfxbqSFmkpI5cYBnVdCXOHiUrZc6qHDhfuSJraSq+uRjsMzmwPZyD8pejWPQAJ8f8TXAZaYL4lA56M1vpAkliFUkGie38yNcNO74WIe7lha46M643mwj9DaaqDHlV1LhZGFpNH5hp1iqHtOBbRmKA9P1QQ6mQCAKbQe+LcJhmWCdfqRNpwYX7sTKez/YSruUVvyMzOwh8lG4byWxXylKo81MNNAwAkwFu1wC/hMgiCTjBURxFjX3cRjNI4WRveNkrsQa3nktBN6VPXNMZmF8/8z+RBu7VFZ1NrqdBYUNPe+NwMRgRGQpStsWVzsDw+njgw6OpMuN2JzkhujPaPbbI2t2kHPsukzB2tUqXDYPY1SjUZNzPskjekmhlzeNCJKfUawsR2egf98KcphkkkGCbFney029qkUrULp3xCbYoAwA/Q1ZqarmGUnyoCPrFiUUIOhYZ6i57A5vhmdPW1Gat/1zR3DTozSftm7jyoVkEWAPASuojsoA8AIAP9RwAA1Wr1wyoFfiY8z4vP7wN1n0voan0+qvn5SMnx4qjk7W0/emXq8W3oKmeC4DJ3/Vf7v1d7p7oCPkRXQZNYe0G2agB5zucsblJI5XLlhlZVB4P2rZ5SYxAmpVLRF/oKLgt6g9G8xPBduiVLef1azMgllkF3NNVkH/YM9Bc9vkim6PFHMnApR/qDHmd4LfUB7nztslZDuFyrYc3H+hpm5BJyuF5EwdgtNaxx4b/gMmgC+v93btaxA5vis6nUbDyxL5Xal0gNDaWSw8M1HicWiyOLicxsaWxubqw0CwQtouHv4XKNxzejExBqpwhcvV6L+EitBXd5d3xH1NZjQ/cIUpRqtybfRC9FDY6HDxXvTpraxi9A2S1axOsFDT9a89PAsIL5OilYGpOs1wt4QmoccImi0WVFG9Jv1wXjzRcmDA5BNIxG3+oQlN1UjDXslOFybcsUs6kpnlhoXZ/TSDSrNE3mHh1cmvBFNvZJpaEkd1XEkaG6Ah+Ey8Al4Gj9rBZG9bcmtTio3wmXSacl4w4ErLTelnZNFrzDBocuYvG5TQE9mfE6CyrKwOqsXrPORmxstDLOeMFChNVal4Ew4spGK+uj0g7Bv7a6ArPoAD8HBRyTDMvSggjV8fzFcGff4Mbsgw9aXY0mVbPGr5rqg43JhpMne7hlb1AhTcqVgq2B6gp8Cy7xuLuFE1hNoj8b6iu5A/a4ja+LbVC1axqGuQ8yScoNJ7m2QUcAQJ6D8B/h0nfn+Ks/Gd+uJJRSJbFx++jzcIn7sr2PJPvaoYZrAxBsAgC+CJeADgCapWii9iJLywmSqs1v+aZnn5jsVmobpcpWZXzLE+cmexvbNkkbtao09/mC2qXRuNQLX/32UKsHx93EISEnVdUvxKNf3x+WvSW0TWiq2ahq3qBROCNNysvje5Q6pVSp2bh15BLmz74jk3ajhri3Hf4H99/mPpu1zwIbV5cDg14ep57qCvw5egQo1zoQrtFhPce+3nn77Tt33H77jmgmE41ms6oXzv/gxz/+wfkX0scee+y++x577JgQawEAeAkdFXSMH4tMJMLyIlr48zs93W2p4xn4PrOBaF69khGx1w4AfB09wudGM0lUox1VJyQvvjTu2Hkil+h0ZAx+x7bk5L6euwbborpXgju/fxfN5rwWv4eZHU/c93ABSXsBBG3VFfi36JHv4plk6sv2TRdrX5ZfDu6zuIzD0ViemhzMFGxx2tFj9GyeipZu6wrHRqI7VCwZMfm6GHuHJWWJWP2RdmOY9I4PxfIaaWMpHS16AAS66gr8B3S0tiHc9C24VFtxUn5Twn41OGN1GAej8dF80uo3enCY+h1G+IzsZKRztypijRi8hZ50XqM2QLr3b1Sb3BPZ7K6QqC2B6gp8Q+iZAwBok8nXHEm+u/XcXLJgg7nPtKG3098VDydnYtk/SoUH9D511OTN+5FphCrtCY/DPodnevdQKtnPPZ/5k33fO9tLGWlCT9+zd7N7z+7O7WFh9jurK/AqegSYgQd0CLkKXteNfaF7uKgWkvXfOJKauAiqdyNRZknWREYCRbq0y+DQGEMWehqzkDHGE3dmGqLZQMFnpwsq70jI1R1slur6QsG8c2feGvc3SZs9nW7/sBfOGbtIfzrqt4dI7koq6AzbW3Q5D5MVMdZdXQEvg0X+W3o9uu/XkaROS5IqUm8kSaOe5Oe2cBZ+jCgQBgDOAxl/BQiMV1fANXQONPAqy0ooWi6Rr7N1pxKVkNJQs3gF3lsucyferRuGwAk+hk2wjf8uZhkady59nEoJ/qAEvAwfQHLBX1ON738MP6++wp8lGCuugp8cZVlh3o9ABfqE1yVCXLIIoYbE+8lcLknHOjpiL+69fvz4pzPaHdcXF6/vABDYqyPgeu0dSugCj0lcI5sUztPJXO7F2mntzKfHj18HEJSrcxBDr/PfTATGyzCNl1+6667Tku3+VeQXa2quzoF3amcEntOY+c47f3bajzj/NxfEM7aaHfda3XnvjBAEXzgaFwFxk4PCaoj/ezymIGmaVMTiXr3DIDNYLAaZwaE/HR1iJ0LGAAzDgIGeYIeiflfQN0YHaYVUEQ7QY76gy1+LDTbW/DIiK25upMKSyYhd42uHy2oxkOY2p75Bb7HoG/TONk+iQ9EeCrUrOhKnRTeBsEKqoIOiGz4U2iCEYgzxofB+N1Z3wlF0RegbpOFGqExwvz0v2ffN02I9YvACnENX+TmhpliKJViaYAk5IacecXTsatqnCCpmm3ZFqV54wVh2+HS3LWh9jrJxC48/EgD4L4JOmvnpQjLiHy0X/nBS+CNZUq6mWXJKN7K1ZXw7wRAPaRntKH+vY7THdZbjLcevdZyKXbp06VLsVMe1a9dgw6lar8AcfBt5eI4IPwExwgDGP7x4sfvixbnLycuXk5f5cyFwFP4dwoVzYg5CAmXPmTOeM0/z/58+6n32nPfZZ73nnvWe53deYAN/D9+G7yE7GAALQAYGwJOi9kMI34RP8FMH2nyorsomtPaRNmLyOyi81Y759GnLunsIdTad0WINuISrze/i7VHVr1AByYECgAaKtTJWioU4TLnf4PLw4htu2NzkezXzqo/7nbS+c4MLcGntt6piES7xc7z6BsoDFl3kc8TWcVxrNmu1ZjPKG3Vak0mrMwIAhX3+L+BSbQdf03vhZwNL6+ZGTKFtbNcWEx9taEhKGmgPMq7+W36Crzd0w7fhPO9bzVhxG3wBupNJAMD/AQAA//8BAAD//3xdia4AAAEAAAACC4XEFkKDXw889QADA+gAAAAA2F2goQAAAADdZi82/jr+2whvA8gAAAADAAIAAAAAAAAAAQAAA9j+7wAACJj+Ov46CG8AAQAAAAAAAAAAAAAAAAAAAEx4nCzOzyqEYRzF8e85s1CaKAuGpjFmJhp/5pXeCFlIVpR6SvKo2UquQ1b21tyH9VhbcAWWeEpjrEZeFr8+/eqcOr7hlB74kOhtcp8TPU7UG9EX5Boheo+oV6Kfib4m+pbc60RvEj3JoitUfcWJS1CaYEoDcrcJ6tHxEpk+6KhFTQNWXCfQZ5+v4YveCQwJpR2CmwTXinwoOmcE3VNVoOI6B3qirAfGChPLShwp0VJiRolpJVaVaPPN7u9pjmNt/P36pKyMoIx5ZXSVMauMRmGXUd2xpURTiYYSa/+2fMkCfQIMH4u9icYPAAAA//8BAAD//6dcPzcAAAAAACwALABiAJIAsADGANoBDAEYATIBQgF0AZYBxgHoAhACVAJmAooCpgLgAxgDTAN6A6wD4AQCBG4EkAScBKgEwgTeBRAFMgVeBZIFxgXmBiYGTAZuBooGtgbmBwwHJAdOB4wHwAgACFYIbAh4CJgIpAiuCLoI1AjuCQAJEglOCYoJmgm4CegJ/AoWCiIKSgpiCm4KhAqgCq4AAAABAAAATACMAAwAZgAHAAEAAAAAAAAAAAAAAAAABAADeJyclN1OG1cUhT8H221UNRcVisgNOpdtlYzdCKIErkwJilWEU4/TH6mqNHjGP2I8M/IMUKo+QK/7Fn2LXPU5+hBVr6uzvA02qhSBELDOnL33WWevtQ+wyb9sUKs/BP5q/mC4xnZzz/ADHjWfGt7guPG34fpKTIO48ZvhJl82+oY/4n39D8Mfs1P/2fBDtupHhj/heX3T8Kcbjn8MP2KH9wtcg5f8brjGFoXhB2zyk+ENHmM1a3Ue0zbc4DO2DTfZBgZMqUiZkjHGMWLKmHPmJJSEJMyZMiIhxtGlQ0qlrxmRkGP8v18jQirmRKo4ocKREpISUTKxir8qK+etThxpNbe9DhUTIk6VcUZEhiNnTE5GwpnqVFQU7NGiRclQfAsqSgJKpqQE5MwZ06LHEccMmDClxHGkSp5ZSM6Iiksine8swndmSEJGaazOyYjF04lfouwuxzh6FIpdrXy8VuEpju+U7bnliv2KQL9uhdn6uUs2ERfqZ6qupNq5lIIT7fpzO3wrXLGHu1d/1pl8uEex/leqfMq59I+lVCYmGc5t0SGUg0L3BMeB1l1CdeR7ugx4Q493DLTu0KdPhxMGdHmt3B59HF/T44RDZXSFF3tHcswJP+L4hq5ifO3E+rNQLOEXCnN3KY5z3WNGoZ575oHumuiGd1fYz1C+5o5SOUPNkY900i/TnEWMzRWFGM7Uy6U3SutfbI6Y6S5e25t9Pw0XNnvLKb4i1wx7ty44eeUWjD6kanDLM5f6CYiIyTlVxJCcGS0qrsT7LRHnpDgO1b03mpKKznWOP+dKLkmYiUGXTHXmFPobmW9C4z5c872ztyRWvmd6dn2r+5zi1Ksbjd6pe8u90LqcrCjQMlXzFTcNxTUz7yeaqVX+oXJLvW45z+iTSPVUN7j9DjwnoM0Ou+wz0TlD7VzYG9HWO9HmFfvqwRmJokZydWIVdgl4wS67vOLFWs0OhxzQY/8OHBdZPQ54fWtnXadlFWd1/hSbtvg6nl2vXt5br8/v4MsvNFE3L2Nf2vhuX1i1G/+fEDHzXNzW6p3cE4L/AAAA//8BAAD//wdbTDAAeJxiYGYAg//nGIwYsAAAAAAA//8BAAD//y8BAgMAAAA=");
-}
-@font-face {
-	font-family: d2-2685544362-font-semibold;
-	src: url("data:application/font-woff;base64,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");
-}
-.d2-2685544362 .text-bold {
-	font-family: "d2-2685544362-font-bold";
-}
-@font-face {
-	font-family: d2-2685544362-font-bold;
-	src: url("data:application/font-woff;base64,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");
-}]]></style><style type="text/css"><![CDATA[.shape {
-  shape-rendering: geometricPrecision;
-  stroke-linejoin: round;
-}
-.connection {
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.blend {
-  mix-blend-mode: multiply;
-  opacity: 0.5;
-}
-
-		.d2-2685544362 .fill-N1{fill:#0A0F25;}
-		.d2-2685544362 .fill-N2{fill:#676C7E;}
-		.d2-2685544362 .fill-N3{fill:#9499AB;}
-		.d2-2685544362 .fill-N4{fill:#CFD2DD;}
-		.d2-2685544362 .fill-N5{fill:#DEE1EB;}
-		.d2-2685544362 .fill-N6{fill:#EEF1F8;}
-		.d2-2685544362 .fill-N7{fill:#FFFFFF;}
-		.d2-2685544362 .fill-B1{fill:#0D32B2;}
-		.d2-2685544362 .fill-B2{fill:#0D32B2;}
-		.d2-2685544362 .fill-B3{fill:#E3E9FD;}
-		.d2-2685544362 .fill-B4{fill:#E3E9FD;}
-		.d2-2685544362 .fill-B5{fill:#EDF0FD;}
-		.d2-2685544362 .fill-B6{fill:#F7F8FE;}
-		.d2-2685544362 .fill-AA2{fill:#4A6FF3;}
-		.d2-2685544362 .fill-AA4{fill:#EDF0FD;}
-		.d2-2685544362 .fill-AA5{fill:#F7F8FE;}
-		.d2-2685544362 .fill-AB4{fill:#EDF0FD;}
-		.d2-2685544362 .fill-AB5{fill:#F7F8FE;}
-		.d2-2685544362 .stroke-N1{stroke:#0A0F25;}
-		.d2-2685544362 .stroke-N2{stroke:#676C7E;}
-		.d2-2685544362 .stroke-N3{stroke:#9499AB;}
-		.d2-2685544362 .stroke-N4{stroke:#CFD2DD;}
-		.d2-2685544362 .stroke-N5{stroke:#DEE1EB;}
-		.d2-2685544362 .stroke-N6{stroke:#EEF1F8;}
-		.d2-2685544362 .stroke-N7{stroke:#FFFFFF;}
-		.d2-2685544362 .stroke-B1{stroke:#0D32B2;}
-		.d2-2685544362 .stroke-B2{stroke:#0D32B2;}
-		.d2-2685544362 .stroke-B3{stroke:#E3E9FD;}
-		.d2-2685544362 .stroke-B4{stroke:#E3E9FD;}
-		.d2-2685544362 .stroke-B5{stroke:#EDF0FD;}
-		.d2-2685544362 .stroke-B6{stroke:#F7F8FE;}
-		.d2-2685544362 .stroke-AA2{stroke:#4A6FF3;}
-		.d2-2685544362 .stroke-AA4{stroke:#EDF0FD;}
-		.d2-2685544362 .stroke-AA5{stroke:#F7F8FE;}
-		.d2-2685544362 .stroke-AB4{stroke:#EDF0FD;}
-		.d2-2685544362 .stroke-AB5{stroke:#F7F8FE;}
-		.d2-2685544362 .background-color-N1{background-color:#0A0F25;}
-		.d2-2685544362 .background-color-N2{background-color:#676C7E;}
-		.d2-2685544362 .background-color-N3{background-color:#9499AB;}
-		.d2-2685544362 .background-color-N4{background-color:#CFD2DD;}
-		.d2-2685544362 .background-color-N5{background-color:#DEE1EB;}
-		.d2-2685544362 .background-color-N6{background-color:#EEF1F8;}
-		.d2-2685544362 .background-color-N7{background-color:#FFFFFF;}
-		.d2-2685544362 .background-color-B1{background-color:#0D32B2;}
-		.d2-2685544362 .background-color-B2{background-color:#0D32B2;}
-		.d2-2685544362 .background-color-B3{background-color:#E3E9FD;}
-		.d2-2685544362 .background-color-B4{background-color:#E3E9FD;}
-		.d2-2685544362 .background-color-B5{background-color:#EDF0FD;}
-		.d2-2685544362 .background-color-B6{background-color:#F7F8FE;}
-		.d2-2685544362 .background-color-AA2{background-color:#4A6FF3;}
-		.d2-2685544362 .background-color-AA4{background-color:#EDF0FD;}
-		.d2-2685544362 .background-color-AA5{background-color:#F7F8FE;}
-		.d2-2685544362 .background-color-AB4{background-color:#EDF0FD;}
-		.d2-2685544362 .background-color-AB5{background-color:#F7F8FE;}
-		.d2-2685544362 .color-N1{color:#0A0F25;}
-		.d2-2685544362 .color-N2{color:#676C7E;}
-		.d2-2685544362 .color-N3{color:#9499AB;}
-		.d2-2685544362 .color-N4{color:#CFD2DD;}
-		.d2-2685544362 .color-N5{color:#DEE1EB;}
-		.d2-2685544362 .color-N6{color:#EEF1F8;}
-		.d2-2685544362 .color-N7{color:#FFFFFF;}
-		.d2-2685544362 .color-B1{color:#0D32B2;}
-		.d2-2685544362 .color-B2{color:#0D32B2;}
-		.d2-2685544362 .color-B3{color:#E3E9FD;}
-		.d2-2685544362 .color-B4{color:#E3E9FD;}
-		.d2-2685544362 .color-B5{color:#EDF0FD;}
-		.d2-2685544362 .color-B6{color:#F7F8FE;}
-		.d2-2685544362 .color-AA2{color:#4A6FF3;}
-		.d2-2685544362 .color-AA4{color:#EDF0FD;}
-		.d2-2685544362 .color-AA5{color:#F7F8FE;}
-		.d2-2685544362 .color-AB4{color:#EDF0FD;}
-		.d2-2685544362 .color-AB5{color:#F7F8FE;}.appendix text.text{fill:#0A0F25}.md{--color-fg-default:#0A0F25;--color-fg-muted:#676C7E;--color-fg-subtle:#9499AB;--color-canvas-default:#FFFFFF;--color-canvas-subtle:#EEF1F8;--color-border-default:#0D32B2;--color-border-muted:#0D32B2;--color-neutral-muted:#EEF1F8;--color-accent-fg:#0D32B2;--color-accent-emphasis:#0D32B2;--color-attention-subtle:#676C7E;--color-danger-fg:red;}.sketch-overlay-B1{fill:url(#streaks-darker-d2-2685544362);mix-blend-mode:lighten}.sketch-overlay-B2{fill:url(#streaks-darker-d2-2685544362);mix-blend-mode:lighten}.sketch-overlay-B3{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-B4{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-B5{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-B6{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-AA2{fill:url(#streaks-dark-d2-2685544362);mix-blend-mode:overlay}.sketch-overlay-AA4{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-AA5{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-AB4{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-AB5{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-N1{fill:url(#streaks-darker-d2-2685544362);mix-blend-mode:lighten}.sketch-overlay-N2{fill:url(#streaks-dark-d2-2685544362);mix-blend-mode:overlay}.sketch-overlay-N3{fill:url(#streaks-normal-d2-2685544362);mix-blend-mode:color-burn}.sketch-overlay-N4{fill:url(#streaks-normal-d2-2685544362);mix-blend-mode:color-burn}.sketch-overlay-N5{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-N6{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.sketch-overlay-N7{fill:url(#streaks-bright-d2-2685544362);mix-blend-mode:darken}.light-code{display: block}.dark-code{display: none}]]></style><style type="text/css">.d2-2685544362 .md em,
-.d2-2685544362 .md dfn {
-  font-family: "d2-2685544362-font-italic";
-}
-
-.d2-2685544362 .md b,
-.d2-2685544362 .md strong {
-  font-family: "d2-2685544362-font-bold";
-}
-
-.d2-2685544362 .md code,
-.d2-2685544362 .md kbd,
-.d2-2685544362 .md pre,
-.d2-2685544362 .md samp {
-  font-family: "d2-2685544362-font-mono";
-  font-size: 1em;
-}
-
-.d2-2685544362 .md {
-  tab-size: 4;
-}
-
-/* variables are provided in d2renderers/d2svg/d2svg.go */
-
-.d2-2685544362 .md {
-  -ms-text-size-adjust: 100%;
-  -webkit-text-size-adjust: 100%;
-  margin: 0;
-  background-color: transparent; /* we don't want to define the background color */
-  font-family: "d2-2685544362-font-regular";
-  font-size: 16px;
-  line-height: 1.5;
-  word-wrap: break-word;
-}
-
-.d2-2685544362 .md details,
-.d2-2685544362 .md figcaption,
-.d2-2685544362 .md figure {
-  display: block;
-}
-
-.d2-2685544362 .md summary {
-  display: list-item;
-}
-
-.d2-2685544362 .md [hidden] {
-  display: none !important;
-}
-
-.d2-2685544362 .md a {
-  background-color: transparent;
-  color: var(--color-accent-fg);
-  text-decoration: none;
-}
-
-.d2-2685544362 .md a:active,
-.d2-2685544362 .md a:hover {
-  outline-width: 0;
-}
-
-.d2-2685544362 .md abbr[title] {
-  border-bottom: none;
-  text-decoration: underline dotted;
-}
-
-.d2-2685544362 .md dfn {
-  font-style: italic;
-}
-
-.d2-2685544362 .md h1 {
-  margin: 0.67em 0;
-  padding-bottom: 0.3em;
-  font-size: 2em;
-  border-bottom: 1px solid var(--color-border-muted);
-}
-
-.d2-2685544362 .md mark {
-  background-color: var(--color-attention-subtle);
-  color: var(--color-text-primary);
-}
-
-.d2-2685544362 .md small {
-  font-size: 90%;
-}
-
-.d2-2685544362 .md sub,
-.d2-2685544362 .md sup {
-  font-size: 75%;
-  line-height: 0;
-  position: relative;
-  vertical-align: baseline;
-}
-
-.d2-2685544362 .md sub {
-  bottom: -0.25em;
-}
-
-.d2-2685544362 .md sup {
-  top: -0.5em;
-}
-
-.d2-2685544362 .md img {
-  border-style: none;
-  max-width: 100%;
-  box-sizing: content-box;
-  background-color: var(--color-canvas-default);
-}
-
-.d2-2685544362 .md figure {
-  margin: 1em 40px;
-}
-
-.d2-2685544362 .md hr {
-  box-sizing: content-box;
-  overflow: hidden;
-  background: transparent;
-  border-bottom: 1px solid var(--color-border-muted);
-  height: 0.25em;
-  padding: 0;
-  margin: 24px 0;
-  background-color: var(--color-border-default);
-  border: 0;
-}
-
-.d2-2685544362 .md input {
-  font: inherit;
-  margin: 0;
-  overflow: visible;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.d2-2685544362 .md [type="button"],
-.d2-2685544362 .md [type="reset"],
-.d2-2685544362 .md [type="submit"] {
-  -webkit-appearance: button;
-}
-
-.d2-2685544362 .md [type="button"]::-moz-focus-inner,
-.d2-2685544362 .md [type="reset"]::-moz-focus-inner,
-.d2-2685544362 .md [type="submit"]::-moz-focus-inner {
-  border-style: none;
-  padding: 0;
-}
-
-.d2-2685544362 .md [type="button"]:-moz-focusring,
-.d2-2685544362 .md [type="reset"]:-moz-focusring,
-.d2-2685544362 .md [type="submit"]:-moz-focusring {
-  outline: 1px dotted ButtonText;
-}
-
-.d2-2685544362 .md [type="checkbox"],
-.d2-2685544362 .md [type="radio"] {
-  box-sizing: border-box;
-  padding: 0;
-}
-
-.d2-2685544362 .md [type="number"]::-webkit-inner-spin-button,
-.d2-2685544362 .md [type="number"]::-webkit-outer-spin-button {
-  height: auto;
-}
-
-.d2-2685544362 .md [type="search"] {
-  -webkit-appearance: textfield;
-  outline-offset: -2px;
-}
-
-.d2-2685544362 .md [type="search"]::-webkit-search-cancel-button,
-.d2-2685544362 .md [type="search"]::-webkit-search-decoration {
-  -webkit-appearance: none;
-}
-
-.d2-2685544362 .md ::-webkit-input-placeholder {
-  color: inherit;
-  opacity: 0.54;
-}
-
-.d2-2685544362 .md ::-webkit-file-upload-button {
-  -webkit-appearance: button;
-  font: inherit;
-}
-
-.d2-2685544362 .md a:hover {
-  text-decoration: underline;
-}
-
-.d2-2685544362 .md hr::before {
-  display: table;
-  content: "";
-}
-
-.d2-2685544362 .md hr::after {
-  display: table;
-  clear: both;
-  content: "";
-}
-
-.d2-2685544362 .md table {
-  border-spacing: 0;
-  border-collapse: collapse;
-  display: block;
-  width: max-content;
-  max-width: 100%;
-  overflow: auto;
-}
-
-.d2-2685544362 .md td,
-.d2-2685544362 .md th {
-  padding: 0;
-}
-
-.d2-2685544362 .md details summary {
-  cursor: pointer;
-}
-
-.d2-2685544362 .md details:not([open]) > *:not(summary) {
-  display: none !important;
-}
-
-.d2-2685544362 .md kbd {
-  display: inline-block;
-  padding: 3px 5px;
-  color: var(--color-fg-default);
-  vertical-align: middle;
-  background-color: var(--color-canvas-subtle);
-  border: solid 1px var(--color-neutral-muted);
-  border-bottom-color: var(--color-neutral-muted);
-  border-radius: 6px;
-  box-shadow: inset 0 -1px 0 var(--color-neutral-muted);
-}
-
-.d2-2685544362 .md h1,
-.d2-2685544362 .md h2,
-.d2-2685544362 .md h3,
-.d2-2685544362 .md h4,
-.d2-2685544362 .md h5,
-.d2-2685544362 .md h6 {
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: 400;
-  line-height: 1.25;
-  font-family: "d2-2685544362-font-semibold";
-}
-
-.d2-2685544362 .md h2 {
-  padding-bottom: 0.3em;
-  font-size: 1.5em;
-  border-bottom: 1px solid var(--color-border-muted);
-}
-
-.d2-2685544362 .md h3 {
-  font-size: 1.25em;
-}
-
-.d2-2685544362 .md h4 {
-  font-size: 1em;
-}
-
-.d2-2685544362 .md h5 {
-  font-size: 0.875em;
-}
-
-.d2-2685544362 .md h6 {
-  font-size: 0.85em;
-  color: var(--color-fg-muted);
-}
-
-.d2-2685544362 .md p {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.d2-2685544362 .md blockquote {
-  margin: 0;
-  padding: 0 1em;
-  color: var(--color-fg-muted);
-  border-left: 0.25em solid var(--color-border-default);
-}
-
-.d2-2685544362 .md ul,
-.d2-2685544362 .md ol {
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-left: 2em;
-}
-
-.d2-2685544362 .md ol ol,
-.d2-2685544362 .md ul ol {
-  list-style-type: lower-roman;
-}
-
-.d2-2685544362 .md ul ul ol,
-.d2-2685544362 .md ul ol ol,
-.d2-2685544362 .md ol ul ol,
-.d2-2685544362 .md ol ol ol {
-  list-style-type: lower-alpha;
-}
-
-.d2-2685544362 .md dd {
-  margin-left: 0;
-}
-
-.d2-2685544362 .md pre {
-  margin-top: 0;
-  margin-bottom: 0;
-  word-wrap: normal;
-}
-
-.d2-2685544362 .md ::placeholder {
-  color: var(--color-fg-subtle);
-  opacity: 1;
-}
-
-.d2-2685544362 .md input::-webkit-outer-spin-button,
-.d2-2685544362 .md input::-webkit-inner-spin-button {
-  margin: 0;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.d2-2685544362 .md::before {
-  display: table;
-  content: "";
-}
-
-.d2-2685544362 .md::after {
-  display: table;
-  clear: both;
-  content: "";
-}
-
-.d2-2685544362 .md > *:first-child {
-  margin-top: 0 !important;
-}
-
-.d2-2685544362 .md > *:last-child {
-  margin-bottom: 0 !important;
-}
-
-.d2-2685544362 .md a:not([href]) {
-  color: inherit;
-  text-decoration: none;
-}
-
-.d2-2685544362 .md .absent {
-  color: var(--color-danger-fg);
-}
-
-.d2-2685544362 .md .anchor {
-  float: left;
-  padding-right: 4px;
-  margin-left: -20px;
-  line-height: 1;
-}
-
-.d2-2685544362 .md .anchor:focus {
-  outline: none;
-}
-
-.d2-2685544362 .md p,
-.d2-2685544362 .md blockquote,
-.d2-2685544362 .md ul,
-.d2-2685544362 .md ol,
-.d2-2685544362 .md dl,
-.d2-2685544362 .md table,
-.d2-2685544362 .md pre,
-.d2-2685544362 .md details {
-  margin-top: 0;
-  margin-bottom: 16px;
-}
-
-.d2-2685544362 .md blockquote > :first-child {
-  margin-top: 0;
-}
-
-.d2-2685544362 .md blockquote > :last-child {
-  margin-bottom: 0;
-}
-
-.d2-2685544362 .md sup > a::before {
-  content: "[";
-}
-
-.d2-2685544362 .md sup > a::after {
-  content: "]";
-}
-
-.d2-2685544362 .md h1:hover .anchor,
-.d2-2685544362 .md h2:hover .anchor,
-.d2-2685544362 .md h3:hover .anchor,
-.d2-2685544362 .md h4:hover .anchor,
-.d2-2685544362 .md h5:hover .anchor,
-.d2-2685544362 .md h6:hover .anchor {
-  text-decoration: none;
-}
-
-.d2-2685544362 .md h1 tt,
-.d2-2685544362 .md h1 code,
-.d2-2685544362 .md h2 tt,
-.d2-2685544362 .md h2 code,
-.d2-2685544362 .md h3 tt,
-.d2-2685544362 .md h3 code,
-.d2-2685544362 .md h4 tt,
-.d2-2685544362 .md h4 code,
-.d2-2685544362 .md h5 tt,
-.d2-2685544362 .md h5 code,
-.d2-2685544362 .md h6 tt,
-.d2-2685544362 .md h6 code {
-  padding: 0 0.2em;
-  font-size: inherit;
-}
-
-.d2-2685544362 .md ul.no-list,
-.d2-2685544362 .md ol.no-list {
-  padding: 0;
-  list-style-type: none;
-}
-
-.d2-2685544362 .md ol[type="1"] {
-  list-style-type: decimal;
-}
-
-.d2-2685544362 .md ol[type="a"] {
-  list-style-type: lower-alpha;
-}
-
-.d2-2685544362 .md ol[type="i"] {
-  list-style-type: lower-roman;
-}
-
-.d2-2685544362 .md div > ol:not([type]) {
-  list-style-type: decimal;
-}
-
-.d2-2685544362 .md ul ul,
-.d2-2685544362 .md ul ol,
-.d2-2685544362 .md ol ol,
-.d2-2685544362 .md ol ul {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.d2-2685544362 .md li > p {
-  margin-top: 16px;
-}
-
-.d2-2685544362 .md li + li {
-  margin-top: 0.25em;
-}
-
-.d2-2685544362 .md dl {
-  padding: 0;
-}
-
-.d2-2685544362 .md dl dt {
-  padding: 0;
-  margin-top: 16px;
-  font-size: 1em;
-  font-style: italic;
-  font-family: "d2-2685544362-font-semibold";
-}
-
-.d2-2685544362 .md dl dd {
-  padding: 0 16px;
-  margin-bottom: 16px;
-}
-
-.d2-2685544362 .md table th {
-  font-family: "d2-2685544362-font-semibold";
-}
-
-.d2-2685544362 .md table th,
-.d2-2685544362 .md table td {
-  padding: 6px 13px;
-  border: 1px solid var(--color-border-default);
-}
-
-.d2-2685544362 .md table tr {
-  background-color: var(--color-canvas-default);
-  border-top: 1px solid var(--color-border-muted);
-}
-
-.d2-2685544362 .md table tr:nth-child(2n) {
-  background-color: var(--color-canvas-subtle);
-}
-
-.d2-2685544362 .md table img {
-  background-color: transparent;
-}
-
-.d2-2685544362 .md img[align="right"] {
-  padding-left: 20px;
-}
-
-.d2-2685544362 .md img[align="left"] {
-  padding-right: 20px;
-}
-
-.d2-2685544362 .md span.frame {
-  display: block;
-  overflow: hidden;
-}
-
-.d2-2685544362 .md span.frame > span {
-  display: block;
-  float: left;
-  width: auto;
-  padding: 7px;
-  margin: 13px 0 0;
-  overflow: hidden;
-  border: 1px solid var(--color-border-default);
-}
-
-.d2-2685544362 .md span.frame span img {
-  display: block;
-  float: left;
-}
-
-.d2-2685544362 .md span.frame span span {
-  display: block;
-  padding: 5px 0 0;
-  clear: both;
-  color: var(--color-fg-default);
-}
-
-.d2-2685544362 .md span.align-center {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.d2-2685544362 .md span.align-center > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: center;
-}
-
-.d2-2685544362 .md span.align-center span img {
-  margin: 0 auto;
-  text-align: center;
-}
-
-.d2-2685544362 .md span.align-right {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.d2-2685544362 .md span.align-right > span {
-  display: block;
-  margin: 13px 0 0;
-  overflow: hidden;
-  text-align: right;
-}
-
-.d2-2685544362 .md span.align-right span img {
-  margin: 0;
-  text-align: right;
-}
-
-.d2-2685544362 .md span.float-left {
-  display: block;
-  float: left;
-  margin-right: 13px;
-  overflow: hidden;
-}
-
-.d2-2685544362 .md span.float-left span {
-  margin: 13px 0 0;
-}
-
-.d2-2685544362 .md span.float-right {
-  display: block;
-  float: right;
-  margin-left: 13px;
-  overflow: hidden;
-}
-
-.d2-2685544362 .md span.float-right > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: right;
-}
-
-.d2-2685544362 .md code,
-.d2-2685544362 .md tt {
-  padding: 0.2em 0.4em;
-  margin: 0;
-  font-size: 85%;
-  background-color: var(--color-neutral-muted);
-  border-radius: 6px;
-}
-
-.d2-2685544362 .md code br,
-.d2-2685544362 .md tt br {
-  display: none;
-}
-
-.d2-2685544362 .md del code {
-  text-decoration: inherit;
-}
-
-.d2-2685544362 .md pre code {
-  font-size: 100%;
-}
-
-.d2-2685544362 .md pre > code {
-  padding: 0;
-  margin: 0;
-  word-break: normal;
-  white-space: pre;
-  background: transparent;
-  border: 0;
-}
-
-.d2-2685544362 .md .highlight {
-  margin-bottom: 16px;
-}
-
-.d2-2685544362 .md .highlight pre {
-  margin-bottom: 0;
-  word-break: normal;
-}
-
-.d2-2685544362 .md .highlight pre,
-.d2-2685544362 .md pre {
-  padding: 16px;
-  overflow: auto;
-  font-size: 85%;
-  line-height: 1.45;
-  background-color: var(--color-canvas-subtle);
-  border-radius: 6px;
-}
-
-.d2-2685544362 .md pre code,
-.d2-2685544362 .md pre tt {
-  display: inline;
-  max-width: auto;
-  padding: 0;
-  margin: 0;
-  overflow: visible;
-  line-height: inherit;
-  word-wrap: normal;
-  background-color: transparent;
-  border: 0;
-}
-
-.d2-2685544362 .md .csv-data td,
-.d2-2685544362 .md .csv-data th {
-  padding: 5px;
-  overflow: hidden;
-  font-size: 12px;
-  line-height: 1;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.d2-2685544362 .md .csv-data .blob-num {
-  padding: 10px 8px 9px;
-  text-align: right;
-  background: var(--color-canvas-default);
-  border: 0;
-}
-
-.d2-2685544362 .md .csv-data tr {
-  border-top: 0;
-}
-
-.d2-2685544362 .md .csv-data th {
-  font-family: "d2-2685544362-font-semibold";
-  background: var(--color-canvas-subtle);
-  border-top: 0;
-}
-
-.d2-2685544362 .md .footnotes {
-  font-size: 12px;
-  color: var(--color-fg-muted);
-  border-top: 1px solid var(--color-border-default);
-}
-
-.d2-2685544362 .md .footnotes ol {
-  padding-left: 16px;
-}
-
-.d2-2685544362 .md .footnotes li {
-  position: relative;
-}
-
-.d2-2685544362 .md .footnotes li:target::before {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  bottom: -8px;
-  left: -24px;
-  pointer-events: none;
-  content: "";
-  border: 2px solid var(--color-accent-emphasis);
-  border-radius: 6px;
-}
-
-.d2-2685544362 .md .footnotes li:target {
-  color: var(--color-fg-default);
-}
-
-.d2-2685544362 .md .task-list-item {
-  list-style-type: none;
-}
-
-.d2-2685544362 .md .task-list-item label {
-  font-weight: 400;
-}
-
-.d2-2685544362 .md .task-list-item.enabled label {
-  cursor: pointer;
-}
-
-.d2-2685544362 .md .task-list-item + .task-list-item {
-  margin-top: 3px;
-}
-
-.d2-2685544362 .md .task-list-item .handle {
-  display: none;
-}
-
-.d2-2685544362 .md .task-list-item-checkbox {
-  margin: 0 0.2em 0.25em -1.6em;
-  vertical-align: middle;
-}
-
-.d2-2685544362 .md .contains-task-list:dir(rtl) .task-list-item-checkbox {
-  margin: 0 -1.6em 0.25em 0.2em;
-}
-</style><g class="dGl0bGU="><g class="shape" ></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2285.000000" y="-72.000000" width="1108" height="64"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1"><p><strong>M2 Bite1 架构（GDT / IDT / 异常现场打印）</strong></p>
-<p>构建：make build → kernel.iso ｜ 启动：SeaBIOS → Limine → kernel ｜ 新增：gdt 接管段寄存器、idt 接管向量 0~31，asm div 触发 #DE 验证全链路</p>
-</div></foreignObject></g></g><g class="ZG9ja2Vy ext"><g class="shape" ><rect x="12.000000" y="144.000000" width="133.000000" height="75.000000" rx="10.000000" stroke="#f97316" fill="#fff7ed" style="stroke-width:2;" /></g><text x="78.500000" y="179.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="78.500000" dy="0.000000">构建容器</tspan><tspan x="78.500000" dy="15.000000">cargo → xorriso</tspan></text></g><g class="aXNv artifact"><g class="shape" ><rect x="339.000000" y="144.000000" width="138.000000" height="75.000000" rx="10.000000" stroke="#3b82f6" fill="#eff6ff" style="stroke-width:2;" /></g><text x="408.000000" y="179.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="408.000000" dy="0.000000">kernel.iso</tspan><tspan x="408.000000" dy="15.000000">elf + limine.conf</tspan></text></g><g class="c2VhYmlvcw== ext"><g class="shape" ><rect x="682.000000" y="144.000000" width="120.000000" height="75.000000" rx="10.000000" stroke="#f97316" fill="#fff7ed" style="stroke-width:2;" /></g><text x="742.000000" y="179.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="742.000000" dy="0.000000">SeaBIOS</tspan><tspan x="742.000000" dy="15.000000">POST + 启动</tspan></text></g><g class="bGltaW5l ext"><g class="shape" ><rect x="984.000000" y="141.000000" width="155.000000" height="80.000000" rx="10.000000" stroke="#f97316" fill="#fff7ed" style="stroke-width:2;" /></g><text x="1061.500000" y="179.000000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="1061.500000" dy="0.000000">Limine</tspan><tspan x="1061.500000" dy="15.000000">El Torito + FB 协议</tspan></text></g><g class="a2VybmVs"><g class="shape" ><rect x="1456.000000" y="12.000000" width="3478.000000" height="628.000000" rx="16.000000" stroke="#8b5cf6" fill="#faf5ff" style="stroke-width:2;stroke-dasharray:8.000000,7.892511;" /></g><text x="3195.000000" y="45.000000" fill="#8b5cf6" class="text-bold" style="text-anchor:middle;font-size:28px">kernel（信任边界）</text></g><g class="Y3B1 hw"><g class="shape" ><rect x="5179.000000" y="593.000000" width="170.000000" height="75.000000" rx="10.000000" stroke="#3b82f6" fill="#eff6ff" style="stroke-width:2;" /></g><text x="5264.000000" y="628.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="5264.000000" dy="0.000000">CPU</tspan><tspan x="5264.000000" dy="15.000000">执行 div → 异常 #DE</tspan></text></g><g class="dnJhbQ== hw"><g class="shape" ><rect x="5209.000000" y="326.000000" width="110.000000" height="75.000000" rx="10.000000" stroke="#3b82f6" fill="#eff6ff" style="stroke-width:2;" /></g><text x="5264.000000" y="361.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="5264.000000" dy="0.000000">线性显存</tspan><tspan x="5264.000000" dy="15.000000">Limine FB</tspan></text></g><g class="cWVtdV9nZng= host"><g class="shape" ><rect x="5551.000000" y="326.000000" width="116.000000" height="75.000000" rx="10.000000" stroke="#f97316" fill="#fff7ed" style="stroke-width:2;" /></g><text x="5609.000000" y="361.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="5609.000000" dy="0.000000">qemu 图形</tspan><tspan x="5609.000000" dy="15.000000">screendump</tspan></text></g><g class="Y29tMQ== hw"><g class="shape" ><rect x="5214.000000" y="424.000000" width="100.000000" height="75.000000" rx="10.000000" stroke="#3b82f6" fill="#eff6ff" style="stroke-width:2;" /></g><text x="5264.000000" y="459.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="5264.000000" dy="0.000000">COM1</tspan><tspan x="5264.000000" dy="15.000000">I/O 0x3F8</tspan></text></g><g class="cWVtdV90ZXJt host"><g class="shape" ><rect x="5551.000000" y="424.000000" width="113.000000" height="75.000000" rx="10.000000" stroke="#f97316" fill="#fff7ed" style="stroke-width:2;" /></g><text x="5607.500000" y="459.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="5607.500000" dy="0.000000">qemu 终端</tspan><tspan x="5607.500000" dy="15.000000">-serial</tspan></text></g><g class="bGVnZW5k"><g class="shape" ></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2416.000000" y="692.000000" width="846" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1"><p>紫=控制/引导 · 绿=写 · 橙=数据/文本 ｜ 运行期路径：div → #DE → IDT[0] → stub → common → handler → printk! → hlt</p>
-</div></foreignObject></g></g><g class="Zm9vdGVy"><g class="shape" ></g><text x="5783.000000" y="703.000000" fill="#64748b" class="text" style="text-anchor:middle;font-size:11px">Style 1 · d2/ELK · M2 Bite1（权威 SVG）</text></g><g class="a2VybmVsLnN0YXJ0 kmod"><g class="shape" ><rect x="1506.000000" y="165.000000" width="90.000000" height="240.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="1551.000000" y="283.000000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="1551.000000" dy="0.000000">_start</tspan><tspan x="1551.000000" dy="15.000000">main.rs</tspan></text></g><g class="a2VybmVsLmxpbWluZV9mYg== kmod"><g class="shape" ><rect x="1998.000000" y="62.000000" width="114.000000" height="80.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="2055.000000" y="100.000000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="2055.000000" dy="0.000000">limine_fb</tspan><tspan x="2055.000000" dy="15.000000">请求/响应</tspan></text></g><g class="a2VybmVsLmNvbnNvbGU= kmod"><g class="shape" ><rect x="4228.000000" y="271.000000" width="157.000000" height="120.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="4306.500000" y="329.000000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="4306.500000" dy="0.000000">console</tspan><tspan x="4306.500000" dy="15.000000">fmt::Write + printk!</tspan></text></g><g class="a2VybmVsLmtmb250 kmod"><g class="shape" ><rect x="4719.000000" y="231.000000" width="107.000000" height="75.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="4772.500000" y="266.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="4772.500000" dy="0.000000">font</tspan><tspan x="4772.500000" dy="15.000000">8×16 glyph</tspan></text></g><g class="a2VybmVsLmZi kmod"><g class="shape" ><rect x="4719.000000" y="326.000000" width="165.000000" height="75.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="4801.500000" y="361.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="4801.500000" dy="0.000000">fb</tspan><tspan x="4801.500000" dy="15.000000">put_pixel + scroll_up</tspan></text></g><g class="a2VybmVsLnNlcmlhbA== kmod"><g class="shape" ><rect x="4731.000000" y="421.000000" width="129.000000" height="80.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="4795.500000" y="459.000000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="4795.500000" dy="0.000000">serial</tspan><tspan x="4795.500000" dy="15.000000">16550（M0）</tspan></text></g><g class="a2VybmVsLmdkdA== kmod"><g class="shape" ><rect x="1998.000000" y="235.000000" width="265.000000" height="88.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="2130.500000" y="270.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="2130.500000" dy="0.000000">gdt</tspan><tspan x="2130.500000" dy="14.333333">扁平 GDT：null/code 0x08/data 0x10</tspan><tspan x="2130.500000" dy="14.333333">lgdt + retfq 重载段寄存器</tspan></text></g><g class="a2VybmVsLmlkdA=="><g class="shape" ><rect x="2542.000000" y="225.000000" width="1406.000000" height="278.000000" rx="12.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;stroke-dasharray:6.000000,5.919384;" /></g><text x="3245.000000" y="254.000000" fill="#8b5cf6" class="text-bold" style="text-anchor:middle;font-size:24px">idt（idt.rs）</text></g><g class="a2VybmVsLmlkdC50YWJsZQ== kmod"><g class="shape" ><rect x="2592.000000" y="275.000000" width="201.000000" height="80.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="2692.500000" y="313.000000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="2692.500000" dy="0.000000">IDT 256 项</tspan><tspan x="2692.500000" dy="15.000000">向量 0~31 = interrupt gate</tspan></text></g><g class="a2VybmVsLmlkdC5zdHVi kmod"><g class="shape" ><rect x="2593.000000" y="375.000000" width="198.000000" height="75.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="2692.000000" y="410.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="2692.000000" dy="0.000000">异常 stub ×32</tspan><tspan x="2692.000000" dy="15.000000">压占位 err_code + vector</tspan></text></g><g class="a2VybmVsLmlkdC5jb21tb24= kmod"><g class="shape" ><rect x="2953.000000" y="375.000000" width="197.000000" height="75.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="3051.500000" y="410.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="3051.500000" dy="0.000000">common_exception_entry</tspan><tspan x="3051.500000" dy="15.000000">压 15 个通用寄存器</tspan></text></g><g class="a2VybmVsLmlkdC5oYW5kbGVy kmod"><g class="shape" ><rect x="3382.000000" y="372.000000" width="221.000000" height="80.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="3492.500000" y="410.000000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="3492.500000" dy="0.000000">exception_handler（Rust）</tspan><tspan x="3492.500000" dy="15.000000">打印异常名 + 寄存器现场</tspan></text></g><g class="a2VybmVsLmlkdC5oYWx0 kmod"><g class="shape" ><rect x="3794.000000" y="336.000000" width="104.000000" height="75.000000" rx="10.000000" stroke="#8b5cf6" fill="#ffffff" style="stroke-width:2;" /></g><text x="3846.000000" y="371.500000" fill="#111827" class="text-bold" style="text-anchor:middle;font-size:13px"><tspan x="3846.000000" dy="0.000000">loop { hlt }</tspan><tspan x="3846.000000" dy="15.000000">停机</tspan></text></g><g class="KGRvY2tlciAtJmd0OyBpc28pWzBd e_write"><marker id="mk-d2-2685544362-161933345" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#10b981" class="connection" stroke-width="2" /> </marker><path d="M 147.000000 181.630005 L 335.000000 181.630005" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="242.000000" y="186.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">make build</text></g><g class="KGlzbyAtJmd0OyBzZWFiaW9zKVswXQ== e_data"><marker id="mk-d2-2685544362-237775352" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#f97316" class="connection" stroke-width="2" /> </marker><path d="M 479.000000 181.630005 L 678.000000 181.630005" stroke="#f97316" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-237775352)" mask="url(#d2-2685544362)" /><text x="579.500000" y="186.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">qemu -cdrom</text></g><g class="KHNlYWJpb3MgLSZndDsgbGltaW5lKVswXQ== e_ctrl"><marker id="mk-d2-2685544362-1863160621" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#7c3aed" class="connection" stroke-width="2" /> </marker><path d="M 804.000000 181.630005 L 980.000000 181.630005" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="893.000000" y="186.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">El Torito</text></g><g class="a2VybmVsLihzdGFydCAtJmd0OyBsaW1pbmVfZmIpWzBd e_ctrl"><path d="M 1598.000000 199.796997 L 1626.000000 199.796997 S 1636.000000 199.796997 1636.000000 189.796997 L 1636.000000 140.666000 S 1636.000000 130.666000 1646.000000 130.666000 L 1994.000000 130.666000" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="1762.000000" y="135.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">first_framebuffer()</text></g><g class="a2VybmVsLihzdGFydCAtJmd0OyBjb25zb2xlKVswXQ== e_write"><path d="M 1598.000000 234.082993 L 1676.000000 234.082993 S 1686.000000 234.082993 1686.000000 224.082993 L 1686.000000 188.250000 S 1686.000000 178.250000 1696.000000 178.250000 L 4178.000000 178.250000 S 4188.000000 178.250000 4188.000000 188.250000 L 4188.000000 301.516998 S 4188.000000 311.516998 4198.000000 311.516998 L 4224.000000 311.516998" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="2950.500000" y="182.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">init + printk!</text></g><g class="a2VybmVsLihzdGFydCAtJmd0OyBzZXJpYWwpWzBd e_write"><path d="M 1598.000000 336.940002 L 1676.000000 336.940002 S 1686.000000 336.940002 1686.000000 346.940002 L 1686.000000 520.958008 S 1686.000000 530.958008 1696.000000 530.958008 L 4669.000000 530.958008 S 4679.000000 530.958008 4679.000000 520.958008 L 4679.000000 484.851013 S 4679.000000 474.851013 4689.000000 474.851013 L 4727.000000 474.851013" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="3094.500000" y="535.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">早期降级直写</text></g><g class="a2VybmVsLihjb25zb2xlIC0mZ3Q7IGtmb250KVswXQ== e_data"><path d="M 4387.000000 301.516998 L 4415.000000 301.516998 S 4425.000000 301.516998 4425.000000 291.516998 L 4425.000000 279.016998 S 4425.000000 269.016998 4435.000000 269.016998 L 4715.000000 269.016998" stroke="#f97316" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-237775352)" mask="url(#d2-2685544362)" /><text x="4536.000000" y="273.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">glyph(ch)</text></g><g class="a2VybmVsLihjb25zb2xlIC0mZ3Q7IGZiKVswXQ== e_write"><path d="M 4387.000000 331.516998 L 4465.000000 331.516998 S 4475.000000 331.516998 4475.000000 341.516998 L 4475.000000 354.016998 S 4475.000000 364.016998 4485.000000 364.016998 L 4715.000000 364.016998" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="4535.500000" y="368.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">put_pixel</text></g><g class="a2VybmVsLihjb25zb2xlIC0mZ3Q7IHNlcmlhbClbMF0= e_write"><path d="M 4387.000000 361.516998 L 4415.000000 361.516998 S 4425.000000 361.516998 4425.000000 371.516998 L 4425.000000 438.183990 S 4425.000000 448.183990 4435.000000 448.183990 L 4727.000000 448.183990" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="4515.000000" y="452.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">镜像字节流（双写）</text></g><g class="a2VybmVsLihzdGFydCAtJmd0OyBnZHQpWzBd e_ctrl"><path d="M 1598.000000 279.583008 L 1994.000000 279.583008" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="1797.500000" y="284.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">gdt::init()</text></g><g class="a2VybmVsLihnZHQgLSZndDsgaWR0LnRhYmxlKVswXQ== e_data"><path d="M 2265.000000 302.000000 L 2588.000000 302.000000" stroke="#f97316" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-237775352)" mask="url(#d2-2685544362)" /><text x="2428.000000" y="301.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px"><tspan x="2428.000000" dy="0.000000">KERNEL_CODE_SEL=0x08</tspan><tspan x="2428.000000" dy="12.500000">门描述符代码段</tspan></text></g><g class="a2VybmVsLihzdGFydCAtJmd0OyBpZHQudGFibGUpWzBd e_ctrl"><path d="M 1598.000000 302.653992 L 1726.000000 302.653992 S 1736.000000 302.653992 1736.000000 312.653992 L 1736.000000 341.083008 S 1736.000000 351.083008 1746.000000 351.083008 L 2487.000000 351.083008 S 2497.000000 351.083008 2497.000000 341.083008 L 2497.000000 338.665985 S 2497.000000 328.665985 2507.000000 328.665985 L 2588.000000 328.665985" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="2081.000000" y="355.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">idt::init()：填表 + lidt</text></g><g class="KGxpbWluZSAtJmd0OyBrZXJuZWwuc3RhcnQpWzBd e_ctrl"><path d="M 1141.000000 194.964005 L 1169.000000 194.964005 S 1179.000000 194.964005 1179.000000 204.964005 L 1179.000000 270.010986 S 1179.000000 280.010986 1189.000000 280.010986 L 1502.000000 280.010986" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="1280.000000" y="284.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">交付 CPU：长模式+高半区</text></g><g class="KGxpbWluZSAtJmd0OyBrZXJuZWwubGltaW5lX2ZiKVswXQ== e_data"><path d="M 1141.000000 168.296997 L 1401.000000 168.296997 S 1411.000000 168.296997 1411.000000 158.296997 L 1411.000000 87.750000 S 1411.000000 77.750000 1421.000000 77.750000 L 1994.000000 77.750000" stroke="#f97316" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-237775352)" mask="url(#d2-2685544362)" /><text x="1523.500000" y="76.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px"><tspan x="1523.500000" dy="0.000000">填写 FB response</tspan><tspan x="1523.500000" dy="12.500000">(addr/几何/mask)</tspan></text></g><g class="KGtlcm5lbC5zdGFydCAtJmd0OyBjcHUpWzBd e_ctrl"><path d="M 1598.000000 371.226013 L 1626.000000 371.226013 S 1636.000000 371.226013 1636.000000 381.226013 L 1636.000000 584.041016 S 1636.000000 594.041016 1646.000000 594.041016 L 5129.000000 594.041016 S 5139.000000 594.041016 5139.000000 604.041016 L 5139.000000 608.041016 S 5139.000000 618.041016 5149.000000 618.041016 L 5175.000000 618.041016" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="3288.000000" y="598.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">asm div（0/0）</text></g><g class="KGNwdSAtJmd0OyBrZXJuZWwuaWR0LnN0dWIpWzBd e_ctrl"><path d="M 5177.000000 643.041016 L 5149.000000 643.041016 S 5139.000000 643.041016 5139.000000 653.041016 L 5139.000000 662.541016 S 5139.000000 672.541016 5129.000000 672.541016 L 1421.000000 672.541016 S 1411.000000 672.541016 1411.000000 662.541016 L 1411.000000 477.238007 S 1411.000000 467.238007 1421.000000 467.238007 L 2487.000000 467.238007 S 2497.000000 467.238007 2497.000000 457.238007 L 2497.000000 422.833008 S 2497.000000 412.833008 2507.000000 412.833008 L 2590.000000 412.833008" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="2588.000000" y="671.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px"><tspan x="2588.000000" dy="0.000000">查 IDT 向量 0 → 跳入 stub</tspan><tspan x="2588.000000" dy="12.500000">（CS=KERNEL_CODE_SEL）</tspan></text></g><g class="a2VybmVsLmlkdC4oc3R1YiAtJmd0OyBjb21tb24pWzBd e_ctrl"><path d="M 2793.000000 412.833008 L 2949.000000 412.833008" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="2872.000000" y="417.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">jmp</text></g><g class="a2VybmVsLmlkdC4oY29tbW9uIC0mZ3Q7IGhhbmRsZXIpWzBd e_ctrl"><path d="M 3152.000000 412.833008 L 3378.000000 412.833008" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="3266.000000" y="417.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">call（rdi=栈帧）</text></g><g class="a2VybmVsLihpZHQuaGFuZGxlciAtJmd0OyBjb25zb2xlKVswXQ== e_write"><path d="M 3605.000000 426.165985 L 3633.000000 426.165985 S 3643.000000 426.165985 3643.000000 436.165985 L 3643.000000 441.583008 S 3643.000000 451.583008 3653.000000 451.583008 L 4178.000000 451.583008 S 4188.000000 451.583008 4188.000000 441.583008 L 4188.000000 361.516998 S 4188.000000 351.516998 4198.000000 351.516998 L 4224.000000 351.516998" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="3952.500000" y="456.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">printk! 双写屏幕+串口</text></g><g class="a2VybmVsLmlkdC4oaGFuZGxlciAtJmd0OyBoYWx0KVswXQ== e_ctrl"><path d="M 3605.000000 399.500000 L 3790.000000 399.500000" stroke="#7c3aed" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-1863160621)" mask="url(#d2-2685544362)" /><text x="3698.500000" y="404.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">不返回</text></g><g class="KGtlcm5lbC5mYiAtJmd0OyB2cmFtKVswXQ== e_write"><path d="M 4886.000000 364.016998 L 5205.000000 364.016998" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="5047.000000" y="368.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">RGB 像素</text></g><g class="KHZyYW0gLSZndDsgcWVtdV9nZngpWzBd e_data"><path d="M 5321.000000 364.016998 L 5547.000000 364.016998" stroke="#f97316" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-237775352)" mask="url(#d2-2685544362)" /><text x="5435.000000" y="368.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">guest→窗口</text></g><g class="KGtlcm5lbC5zZXJpYWwgLSZndDsgY29tMSlbMF0= e_write"><path d="M 4862.000000 461.516998 L 5210.000000 461.516998" stroke="#10b981" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-161933345)" mask="url(#d2-2685544362)" /><text x="5037.000000" y="466.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">写 16550</text></g><g class="KGNvbTEgLSZndDsgcWVtdV90ZXJtKVswXQ== e_data"><path d="M 5316.000000 461.516998 L 5547.000000 461.516998" stroke="#f97316" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-2685544362-237775352)" mask="url(#d2-2685544362)" /><text x="5432.500000" y="466.000000" fill="#6b7280" class="text-bold" style="text-anchor:middle;font-size:11px">文本流</text></g><mask id="d2-2685544362" maskUnits="userSpaceOnUse" x="-89" y="-173" width="6069" height="990">
-<rect x="-89" y="-173" width="6069" height="990" fill="white"></rect>
-<rect x="213.000000" y="175.000000" width="58" height="14" fill="black"></rect>
-<rect x="545.000000" y="175.000000" width="69" height="14" fill="black"></rect>
-<rect x="870.000000" y="175.000000" width="46" height="14" fill="black"></rect>
-<rect x="1714.000000" y="124.000000" width="96" height="14" fill="black"></rect>
-<rect x="2918.000000" y="171.000000" width="65" height="14" fill="black"></rect>
-<rect x="3051.000000" y="524.000000" width="87" height="14" fill="black"></rect>
-<rect x="4511.000000" y="262.000000" width="50" height="14" fill="black"></rect>
-<rect x="4510.000000" y="357.000000" width="51" height="14" fill="black"></rect>
-<rect x="4451.000000" y="441.000000" width="128" height="14" fill="black"></rect>
-<rect x="1772.000000" y="273.000000" width="51" height="14" fill="black"></rect>
-<rect x="2364.000000" y="290.000000" width="128" height="25" fill="black"></rect>
-<rect x="2022.000000" y="344.000000" width="118" height="14" fill="black"></rect>
-<rect x="1202.000000" y="273.000000" width="156" height="14" fill="black"></rect>
-<rect x="1476.000000" y="65.000000" width="95" height="25" fill="black"></rect>
-<rect x="3246.000000" y="587.000000" width="84" height="14" fill="black"></rect>
-<rect x="2516.000000" y="660.000000" width="144" height="25" fill="black"></rect>
-<rect x="2860.000000" y="406.000000" width="24" height="14" fill="black"></rect>
-<rect x="3218.000000" y="406.000000" width="96" height="14" fill="black"></rect>
-<rect x="3888.000000" y="445.000000" width="129" height="14" fill="black"></rect>
-<rect x="3676.000000" y="393.000000" width="45" height="14" fill="black"></rect>
-<rect x="5020.000000" y="357.000000" width="54" height="14" fill="black"></rect>
-<rect x="5402.000000" y="357.000000" width="66" height="14" fill="black"></rect>
-<rect x="5012.000000" y="455.000000" width="50" height="14" fill="black"></rect>
-<rect x="5410.000000" y="455.000000" width="45" height="14" fill="black"></rect>
-</mask></svg></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 1100" width="1900" height="1100" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f97316"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+    </marker>
+    <filter id="shadowSoft" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadowGlass" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 30px; font-weight: 700; fill: #111827; }
+    .subtitle { font-size: 14px; font-weight: 500; fill: #6b7280; }
+    .section { font-size: 13px; font-weight: 700; fill: #2563eb; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #64748b; }
+    .node-title { font-weight: 700; fill: #111827; }
+    .node-sub { font-weight: 500; fill: #6b7280; }
+    .node-type { font-size: 12px; font-weight: 700; fill: #64748b; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b7280; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b7280; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #64748b; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #64748b; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #111827; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1900.0" height="1100.0" fill="#ffffff"/>
+  <text x="950.0" y="56" text-anchor="middle" class="title">M2 Bite1 顶层架构：GDT + IDT 接管 CPU 异常</text>
+  <text x="950.0" y="82" text-anchor="middle" class="subtitle">顶层只画模块边界与数据流；IDT 内部见 arch-idt.svg</text>
+  <g id="kernel-box" data-graph-role="container" data-container-id="kernel-box" data-semantic-role="boundary" data-graph-bounds="560,290,1350,790">
+  <rect data-graph-role="container" x="560.0" y="290.0" width="790.0" height="500.0" rx="16.0" fill="#faf5ff" stroke="#8b5cf6" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="578.0" y="314.0" class="section">KERNEL（信任边界）</text>
+    <rect id="kernel-box-header" data-graph-role="reserved" data-reserved-kind="container-header" x="568" y="296" width="153.24" height="30" fill="none" stroke="none"/>
+  </g>
+  <path id="fb_resp" data-graph-role="edge" data-edge-id="fb_resp" data-source="limine" data-target="limine_fb" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="3" data-route-stretch="1.263" data-bridges="" d="M 500,476 L 540,476 L 540,485 L 540,630 L 690,630 L 690,590" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="init_gdt" data-graph-role="edge" data-edge-id="init_gdt" data-source="start" data-target="gdt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="4" data-route-stretch="3.013" data-bridges="" d="M 600,404 L 580,404 L 580,395 L 296,395 L 296,715 L 580,715 L 600,715" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="init_idt" data-graph-role="edge" data-edge-id="init_idt" data-source="start" data-target="idt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="8" data-route-stretch="1.222" data-bridges="" d="M 760,404 L 820,404 L 820,395 L 830,395 L 830,555 L 820,555 L 820,565 L 849.6,565 L 849.6,555 L 870,555" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="mkbuild" data-graph-role="edge" data-edge-id="mkbuild" data-source="docker" data-target="iso" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 290,130 L 420,130" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="attach" data-graph-role="edge" data-edge-id="attach" data-source="iso" data-target="seabios" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 570,170 L 570,194 L 130,194 L 130,450" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="eltorito-bridge-mask" data-graph-role="bridge-mask" data-owner="eltorito" d="M 220,485 L 291,485 A 5 5 0 0 0 301,485 L 320,485" fill="none" stroke="#ffffff" stroke-width="6.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="eltorito" data-graph-role="edge" data-edge-id="eltorito" data-source="seabios" data-target="limine" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="296,485" d="M 220,485 L 291,485 A 5 5 0 0 0 301,485 L 320,485" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="handoff-bridge-mask" data-graph-role="bridge-mask" data-owner="handoff" d="M 500,494 L 520.4,494 L 520.4,481 A 5 5 0 0 0 520.4,471 L 520.4,400 A 5 5 0 0 0 520.4,390 L 520.4,386 L 600,386" fill="none" stroke="#ffffff" stroke-width="6.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="handoff" data-graph-role="edge" data-edge-id="handoff" data-source="limine" data-target="start" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="520.4,476;520.4,395" d="M 500,494 L 520.4,494 L 520.4,481 A 5 5 0 0 0 520.4,471 L 520.4,400 A 5 5 0 0 0 520.4,390 L 520.4,386 L 600,386" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="first_fb" data-graph-role="edge" data-edge-id="first_fb" data-source="start" data-target="limine_fb" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 680,430 L 680,434 L 690,434 L 690,520" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="gdt_selector" data-graph-role="edge" data-edge-id="gdt_selector" data-source="gdt" data-target="idt" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="3" data-route-stretch="1.0" data-bridges="" d="M 780,715 L 800.4,715 L 800.4,614 L 960,614 L 960,590" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="drive_console" data-graph-role="edge" data-edge-id="drive_console" data-source="start" data-target="console" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 760,386 L 846,386 L 846,395 L 870,395" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="glyph" data-graph-role="edge" data-edge-id="glyph" data-source="console" data-target="font" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 1040,386 L 1060.4,386 L 1060.4,365 L 1130,365" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="put_pixel" data-graph-role="edge" data-edge-id="put_pixel" data-source="console" data-target="fb" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 1040,404 L 1052.2,404 L 1052.2,485 L 1130,485" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="console_serial" data-graph-role="edge" data-edge-id="console_serial" data-source="console" data-target="serial" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="4" data-route-stretch="1.919" data-bridges="" d="M 946,430 L 946,496 L 1074,496 L 1074,659.6 L 955,659.6 L 955,680" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="exception_print-bridge-mask" data-graph-role="bridge-mask" data-owner="exception_print" d="M 960,520 L 960,501 A 5 5 0 0 0 960,491 L 960,434 L 964,434 L 964,430" fill="none" stroke="#ffffff" stroke-width="6.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="exception_print" data-graph-role="edge" data-edge-id="exception_print" data-source="idt" data-target="console" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="960,496" d="M 960,520 L 960,501 A 5 5 0 0 0 960,491 L 960,434 L 964,434 L 964,430" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="exception" data-graph-role="edge" data-edge-id="exception" data-source="cpu" data-target="idt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="6" data-route-stretch="1.889" data-bridges="" d="M 1430,745 L 1409.6,745 L 1409.6,774 L 846,774 L 846,645 L 1070.4,645 L 1070.4,555 L 1050,555" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="pixels" data-graph-role="edge" data-edge-id="pixels" data-source="fb" data-target="vram" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 1290,485 L 1310.4,485 L 1310.4,425 L 1430,425" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="gfx" data-graph-role="edge" data-edge-id="gfx" data-source="vram" data-target="qemu_gfx" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1630,425 L 1690,425" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="tx" data-graph-role="edge" data-edge-id="tx" data-source="serial" data-target="com1" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 1040,715 L 1163,715 L 1163,585 L 1430,585" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="stdio" data-graph-role="edge" data-edge-id="stdio" data-source="com1" data-target="qemu_term" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1630,585 L 1690,585" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <g id="node-docker" data-graph-role="node" data-node-id="docker" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,90,290,170">
+  <rect x="40.0" y="90.0" width="250.0" height="80.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="构建容器" data-text-max-width="226.0" x="165.0" y="130.0" text-anchor="middle" class="node-title" font-size="18">构建容器</text>
+  <text data-text-role="subtitle" data-full-text="cargo + xorriso" data-text-max-width="226.0" x="165.0" y="152.0" text-anchor="middle" class="node-sub" font-size="12">cargo + xorriso</text>
+  </g>
+  <g id="node-iso" data-graph-role="node" data-node-id="iso" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="420,90,720,170">
+  <rect x="420.0" y="90.0" width="300.0" height="80.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="kernel.iso" data-text-max-width="276.0" x="570.0" y="130.0" text-anchor="middle" class="node-title" font-size="18">kernel.iso</text>
+  <text data-text-role="subtitle" data-full-text="ELF + limine.conf" data-text-max-width="276.0" x="570.0" y="152.0" text-anchor="middle" class="node-sub" font-size="12">ELF + limine.conf</text>
+  </g>
+  <g id="node-seabios" data-graph-role="node" data-node-id="seabios" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,450,220,520">
+  <rect x="40.0" y="450.0" width="180.0" height="70.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="SeaBIOS" data-text-max-width="156.0" x="130.0" y="485.0" text-anchor="middle" class="node-title" font-size="18">SeaBIOS</text>
+  <text data-text-role="subtitle" data-full-text="POST + 启动" data-text-max-width="156.0" x="130.0" y="507.0" text-anchor="middle" class="node-sub" font-size="12">POST + 启动</text>
+  </g>
+  <g id="node-limine" data-graph-role="node" data-node-id="limine" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="320,450,500,520">
+  <rect x="320.0" y="450.0" width="180.0" height="70.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Limine" data-text-max-width="156.0" x="410.0" y="485.0" text-anchor="middle" class="node-title" font-size="18">Limine</text>
+  <text data-text-role="subtitle" data-full-text="长模式 + FB 协议" data-text-max-width="156.0" x="410.0" y="507.0" text-anchor="middle" class="node-sub" font-size="12">长模式 + FB 协议</text>
+  </g>
+  <g id="node-start" data-graph-role="node" data-node-id="start" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="600,360,760,430">
+  <rect x="600.0" y="360.0" width="160.0" height="70.0" rx="10.0" fill="#ffffff" stroke="#8b5cf6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="_start" data-text-max-width="136.0" x="680.0" y="395.0" text-anchor="middle" class="node-title" font-size="18">_start</text>
+  <text data-text-role="subtitle" data-full-text="main.rs" data-text-max-width="136.0" x="680.0" y="417.0" text-anchor="middle" class="node-sub" font-size="12">main.rs</text>
+  </g>
+  <g id="node-limine_fb" data-graph-role="node" data-node-id="limine_fb" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="600,520,780,590">
+  <rect x="600.0" y="520.0" width="180.0" height="70.0" rx="10.0" fill="#ffffff" stroke="#8b5cf6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="limine_fb" data-text-max-width="156.0" x="690.0" y="555.0" text-anchor="middle" class="node-title" font-size="18">limine_fb</text>
+  <text data-text-role="subtitle" data-full-text="FB 请求 / 响应" data-text-max-width="156.0" x="690.0" y="577.0" text-anchor="middle" class="node-sub" font-size="12">FB 请求 / 响应</text>
+  </g>
+  <g id="node-gdt" data-graph-role="node" data-node-id="gdt" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="600,680,780,750">
+  <rect x="600.0" y="680.0" width="180.0" height="70.0" rx="10.0" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="gdt" data-text-max-width="156.0" x="690.0" y="715.0" text-anchor="middle" class="node-title" font-size="18">gdt</text>
+  <text data-text-role="subtitle" data-full-text="扁平 GDT" data-text-max-width="156.0" x="690.0" y="737.0" text-anchor="middle" class="node-sub" font-size="12">扁平 GDT</text>
+  </g>
+  <g id="node-console" data-graph-role="node" data-node-id="console" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="870,360,1040,430">
+  <rect x="870.0" y="360.0" width="170.0" height="70.0" rx="10.0" fill="#ffffff" stroke="#8b5cf6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="console" data-text-max-width="146.0" x="955.0" y="395.0" text-anchor="middle" class="node-title" font-size="18">console</text>
+  <text data-text-role="subtitle" data-full-text="printk!" data-text-max-width="146.0" x="955.0" y="417.0" text-anchor="middle" class="node-sub" font-size="12">printk!</text>
+  </g>
+  <g id="node-idt" data-graph-role="node" data-node-id="idt" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="870,520,1050,590">
+  <rect x="870.0" y="520.0" width="180.0" height="70.0" rx="10.0" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="idt" data-text-max-width="156.0" x="960.0" y="555.0" text-anchor="middle" class="node-title" font-size="18">idt</text>
+  <text data-text-role="subtitle" data-full-text="异常接管" data-text-max-width="156.0" x="960.0" y="577.0" text-anchor="middle" class="node-sub" font-size="12">异常接管</text>
+  </g>
+  <g id="node-serial" data-graph-role="node" data-node-id="serial" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="870,680,1040,750">
+  <rect x="870.0" y="680.0" width="170.0" height="70.0" rx="10.0" fill="#ffffff" stroke="#8b5cf6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="serial" data-text-max-width="146.0" x="955.0" y="715.0" text-anchor="middle" class="node-title" font-size="18">serial</text>
+  <text data-text-role="subtitle" data-full-text="16550" data-text-max-width="146.0" x="955.0" y="737.0" text-anchor="middle" class="node-sub" font-size="12">16550</text>
+  </g>
+  <g id="node-font" data-graph-role="node" data-node-id="font" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1130,330,1290,400">
+  <rect x="1130.0" y="330.0" width="160.0" height="70.0" rx="10.0" fill="#ffffff" stroke="#8b5cf6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="font" data-text-max-width="136.0" x="1210.0" y="365.0" text-anchor="middle" class="node-title" font-size="18">font</text>
+  <text data-text-role="subtitle" data-full-text="8×16 字形" data-text-max-width="136.0" x="1210.0" y="387.0" text-anchor="middle" class="node-sub" font-size="12">8×16 字形</text>
+  </g>
+  <g id="node-fb" data-graph-role="node" data-node-id="fb" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1130,450,1290,520">
+  <rect x="1130.0" y="450.0" width="160.0" height="70.0" rx="10.0" fill="#ffffff" stroke="#8b5cf6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="fb" data-text-max-width="136.0" x="1210.0" y="485.0" text-anchor="middle" class="node-title" font-size="18">fb</text>
+  <text data-text-role="subtitle" data-full-text="像素 + 滚屏" data-text-max-width="136.0" x="1210.0" y="507.0" text-anchor="middle" class="node-sub" font-size="12">像素 + 滚屏</text>
+  </g>
+  <g id="node-vram" data-graph-role="node" data-node-id="vram" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1430,390,1630,460">
+  <rect x="1430.0" y="390.0" width="200.0" height="70.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="线性显存" data-text-max-width="176.0" x="1530.0" y="425.0" text-anchor="middle" class="node-title" font-size="18">线性显存</text>
+  <text data-text-role="subtitle" data-full-text="Limine FB" data-text-max-width="176.0" x="1530.0" y="447.0" text-anchor="middle" class="node-sub" font-size="12">Limine FB</text>
+  </g>
+  <g id="node-qemu_gfx" data-graph-role="node" data-node-id="qemu_gfx" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1690,390,1860,460">
+  <rect x="1690.0" y="390.0" width="170.0" height="70.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="qemu 图形" data-text-max-width="146.0" x="1775.0" y="425.0" text-anchor="middle" class="node-title" font-size="18">qemu 图形</text>
+  <text data-text-role="subtitle" data-full-text="screendump" data-text-max-width="146.0" x="1775.0" y="447.0" text-anchor="middle" class="node-sub" font-size="12">screendump</text>
+  </g>
+  <g id="node-com1" data-graph-role="node" data-node-id="com1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1430,550,1630,620">
+  <rect x="1430.0" y="550.0" width="200.0" height="70.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="COM1" data-text-max-width="176.0" x="1530.0" y="585.0" text-anchor="middle" class="node-title" font-size="18">COM1</text>
+  <text data-text-role="subtitle" data-full-text="I/O 0x3F8" data-text-max-width="176.0" x="1530.0" y="607.0" text-anchor="middle" class="node-sub" font-size="12">I/O 0x3F8</text>
+  </g>
+  <g id="node-qemu_term" data-graph-role="node" data-node-id="qemu_term" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1690,550,1860,620">
+  <rect x="1690.0" y="550.0" width="170.0" height="70.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="qemu 串口" data-text-max-width="146.0" x="1775.0" y="585.0" text-anchor="middle" class="node-title" font-size="18">qemu 串口</text>
+  <text data-text-role="subtitle" data-full-text="serial.log" data-text-max-width="146.0" x="1775.0" y="607.0" text-anchor="middle" class="node-sub" font-size="12">serial.log</text>
+  </g>
+  <g id="node-cpu" data-graph-role="node" data-node-id="cpu" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1430,710,1630,780">
+  <rect x="1430.0" y="710.0" width="200.0" height="70.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="CPU" data-text-max-width="176.0" x="1530.0" y="745.0" text-anchor="middle" class="node-title" font-size="18">CPU</text>
+  <text data-text-role="subtitle" data-full-text="asm div → #DE" data-text-max-width="176.0" x="1530.0" y="767.0" text-anchor="middle" class="node-sub" font-size="12">asm div → #DE</text>
+  </g>
+  <g id="mkbuild-label" data-graph-role="label" data-owner="mkbuild" data-graph-bounds="317.64,99,392.36,119">
+  <rect x="317.64" y="99.0" width="74.72" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="355.0" y="113.0" text-anchor="middle" class="arrow-label">make build</text>
+  </g>
+  <g id="attach-label" data-graph-role="label" data-owner="attach" data-graph-bounds="306.04,163,393.96,183">
+  <rect x="306.04" y="163.0" width="87.92" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="350.0" y="177.0" text-anchor="middle" class="arrow-label">qemu -cdrom</text>
+  </g>
+  <g id="eltorito-label" data-graph-role="label" data-owner="eltorito" data-graph-bounds="224.12,458,291.88,478">
+  <rect x="224.12" y="458.0" width="67.75999999999999" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="258.0" y="472.0" text-anchor="middle" class="arrow-label">El Torito</text>
+  </g>
+  <g id="handoff-label" data-graph-role="label" data-owner="handoff" data-graph-bounds="433.32,426,517.4,446">
+  <rect x="433.32" y="426.0" width="84.08" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="475.36" y="440.0" text-anchor="middle" class="arrow-label">进入 _start</text>
+  </g>
+  <g id="fb_resp-label" data-graph-role="label" data-owner="fb_resp" data-graph-bounds="571.04,599,658.96,619">
+  <rect x="571.04" y="599.0" width="87.92" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="615.0" y="613.0" text-anchor="middle" class="arrow-label">FB response</text>
+  </g>
+  <g id="first_fb-label" data-graph-role="label" data-owner="first_fb" data-graph-bounds="561.88,463,705,483">
+  <rect x="561.88" y="463.0" width="143.12" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="633.44" y="477.0" text-anchor="middle" class="arrow-label">first_framebuffer()</text>
+  </g>
+  <g id="init_gdt-label" data-graph-role="label" data-owner="init_gdt" data-graph-bounds="256,541,292,561">
+  <rect x="256.0" y="541.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="274.0" y="555.0" text-anchor="middle" class="arrow-label">gdt</text>
+  </g>
+  <g id="init_idt-label" data-graph-role="label" data-owner="init_idt" data-graph-bounds="752.04,461,827,481">
+  <rect x="752.04" y="461.0" width="74.96000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="789.52" y="475.0" text-anchor="middle" class="arrow-label">idt::init()</text>
+  </g>
+  <g id="gdt_selector-label" data-graph-role="label" data-owner="gdt_selector" data-graph-bounds="837.2,601,923.2,621">
+  <rect x="837.2" y="601.0" width="86.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="880.2" y="615.0" text-anchor="middle" class="arrow-label">代码段选择子</text>
+  </g>
+  <g id="drive_console-label" data-graph-role="label" data-owner="drive_console" data-graph-bounds="756.16,332,849.84,352">
+  <rect x="756.16" y="332.0" width="93.68" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="803.0" y="346.0" text-anchor="middle" class="arrow-label">init + printk!</text>
+  </g>
+  <g id="glyph-label" data-graph-role="label" data-owner="glyph" data-graph-bounds="1076.2,334,1114.2,354">
+  <rect x="1076.2" y="334.0" width="38.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1095.2" y="348.0" text-anchor="middle" class="arrow-label">字形</text>
+  </g>
+  <g id="put_pixel-label" data-graph-role="label" data-owner="put_pixel" data-graph-bounds="999.2,434.5,1049.2,454.5">
+  <rect x="999.2" y="434.5" width="50.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1024.2" y="448.5" text-anchor="middle" class="arrow-label">写像素</text>
+  </g>
+  <g id="console_serial-label" data-graph-role="label" data-owner="console_serial" data-graph-bounds="1077,563.8,1139,583.8">
+  <rect x="1077.0" y="563.8" width="62.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1108.0" y="577.8" text-anchor="middle" class="arrow-label">镜像字节</text>
+  </g>
+  <g id="exception_print-label" data-graph-role="label" data-owner="exception_print" data-graph-bounds="877,463,939,483">
+  <rect x="877.0" y="463.0" width="62.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="908.0" y="477.0" text-anchor="middle" class="arrow-label">异常现场</text>
+  </g>
+  <g id="exception-label" data-graph-role="label" data-owner="exception" data-graph-bounds="1089,743,1166.6,763">
+  <rect x="1089.0" y="743.0" width="77.6" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1127.8" y="757.0" text-anchor="middle" class="arrow-label">向量 0 现场</text>
+  </g>
+  <g id="pixels-label" data-graph-role="label" data-owner="pixels" data-graph-bounds="1338.6,394,1401.8,414">
+  <rect x="1338.6" y="394.0" width="63.199999999999996" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1370.2" y="408.0" text-anchor="middle" class="arrow-label">RGB 像素</text>
+  </g>
+  <g id="gfx-label" data-graph-role="label" data-owner="gfx" data-graph-bounds="1641,394,1679,414">
+  <rect x="1641.0" y="394.0" width="38.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1660.0" y="408.0" text-anchor="middle" class="arrow-label">显示</text>
+  </g>
+  <g id="tx-label" data-graph-role="label" data-owner="tx" data-graph-bounds="1265.5,554,1327.5,574">
+  <rect x="1265.5" y="554.0" width="62.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1296.5" y="568.0" text-anchor="middle" class="arrow-label">串口字节</text>
+  </g>
+  <g id="stdio-label" data-graph-role="label" data-owner="stdio" data-graph-bounds="1635,554,1685,574">
+  <rect x="1635.0" y="554.0" width="50.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1660.0" y="568.0" text-anchor="middle" class="arrow-label">文本流</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="966" width="351.2" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="48.0" y1="980.0" x2="78.0" y2="980.0" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="88.0" y="984.0" class="legend">控制 / 引导</text>
+    <line data-graph-role="decoration" x1="179.6" y1="980.0" x2="209.6" y2="980.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="219.6" y="984.0" class="legend">写</text>
+    <line data-graph-role="decoration" x1="265.6" y1="980.0" x2="295.6" y2="980.0" stroke="#f97316" stroke-width="2.4" marker-end="url(#arrowE)"/>
+    <text data-graph-role="decoration" x="305.6" y="984.0" class="legend">数据 / 文本</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,1028,300,1044">
+  <text x="48.0" y="1040.0" class="footnote">Style 1 · fireworks · M2 Bite1 顶层权威图</text>
+  </g>
+</svg>

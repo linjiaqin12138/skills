@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520">
+  <rect width="1000" height="520" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #111827; }
+    .title { font-size: 24px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 600; }
+    .small { font-size: 13px; fill: #475569; }
+    .box { stroke: #64748b; stroke-width: 1.5; }
+  </style>
+  <text x="30" y="42" class="title">64 位段描述符：8 字节</text>
+  <text x="30" y="68" class="small">长模式忽略 base 与 limit；权限和代码类型仍由标志位决定</text>
+
+  <g>
+    <rect x="20" y="95" width="240" height="80" fill="#e2e8f0" class="box"/>
+    <rect x="260" y="95" width="240" height="80" fill="#e2e8f0" class="box"/>
+    <rect x="500" y="95" width="120" height="80" fill="#e2e8f0" class="box"/>
+    <rect x="620" y="95" width="120" height="80" fill="#ddd6fe" class="box"/>
+    <rect x="740" y="95" width="120" height="80" fill="#dbeafe" class="box"/>
+    <rect x="860" y="95" width="120" height="80" fill="#e2e8f0" class="box"/>
+    <text x="140" y="120" text-anchor="middle" class="small">B0–B1</text>
+    <text x="140" y="150" text-anchor="middle" class="label">limit 15:0</text>
+    <text x="380" y="120" text-anchor="middle" class="small">B2–B3</text>
+    <text x="380" y="150" text-anchor="middle" class="label">base 15:0</text>
+    <text x="560" y="120" text-anchor="middle" class="small">B4</text>
+    <text x="560" y="150" text-anchor="middle" class="label">base 23:16</text>
+    <text x="680" y="120" text-anchor="middle" class="small">B5</text>
+    <text x="680" y="150" text-anchor="middle" class="label">access byte</text>
+    <text x="800" y="120" text-anchor="middle" class="small">B6</text>
+    <text x="800" y="145" text-anchor="middle" class="label">flags +</text>
+    <text x="800" y="164" text-anchor="middle" class="small">limit 19:16</text>
+    <text x="920" y="120" text-anchor="middle" class="small">B7</text>
+    <text x="920" y="150" text-anchor="middle" class="label">base 31:24</text>
+  </g>
+
+  <text x="30" y="220" class="label">B5 access byte：代码段示例 0b10011011</text>
+  <g>
+    <rect x="100" y="245" width="100" height="70" fill="#dcfce7" class="box"/>
+    <rect x="200" y="245" width="100" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="300" y="245" width="100" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="400" y="245" width="100" height="70" fill="#dcfce7" class="box"/>
+    <rect x="500" y="245" width="100" height="70" fill="#dcfce7" class="box"/>
+    <rect x="600" y="245" width="100" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="700" y="245" width="100" height="70" fill="#dcfce7" class="box"/>
+    <rect x="800" y="245" width="100" height="70" fill="#fde68a" class="box"/>
+    <text x="150" y="272" text-anchor="middle" class="label">P=1</text><text x="150" y="296" text-anchor="middle" class="small">bit 7</text>
+    <text x="250" y="272" text-anchor="middle" class="label">DPL=0</text><text x="250" y="296" text-anchor="middle" class="small">bit 6</text>
+    <text x="350" y="272" text-anchor="middle" class="label">DPL=0</text><text x="350" y="296" text-anchor="middle" class="small">bit 5</text>
+    <text x="450" y="272" text-anchor="middle" class="label">S=1</text><text x="450" y="296" text-anchor="middle" class="small">bit 4</text>
+    <text x="550" y="272" text-anchor="middle" class="label">E=1</text><text x="550" y="296" text-anchor="middle" class="small">bit 3</text>
+    <text x="650" y="272" text-anchor="middle" class="label">C=0</text><text x="650" y="296" text-anchor="middle" class="small">bit 2</text>
+    <text x="750" y="272" text-anchor="middle" class="label">R=1</text><text x="750" y="296" text-anchor="middle" class="small">bit 1</text>
+    <text x="850" y="272" text-anchor="middle" class="label">A=1</text><text x="850" y="296" text-anchor="middle" class="small">bit 0</text>
+  </g>
+
+  <text x="30" y="365" class="label">B6 高 4 位：flags</text>
+  <g>
+    <rect x="260" y="390" width="120" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="380" y="390" width="120" height="70" fill="#e2e8f0" class="box"/>
+    <rect x="500" y="390" width="120" height="70" fill="#bfdbfe" class="box"/>
+    <rect x="620" y="390" width="120" height="70" fill="#e2e8f0" class="box"/>
+    <text x="320" y="420" text-anchor="middle" class="label">G</text><text x="320" y="444" text-anchor="middle" class="small">bit 55</text>
+    <text x="440" y="420" text-anchor="middle" class="label">D/B</text><text x="440" y="444" text-anchor="middle" class="small">bit 54</text>
+    <text x="560" y="420" text-anchor="middle" class="label">L=1</text><text x="560" y="444" text-anchor="middle" class="small">bit 53</text>
+    <text x="680" y="420" text-anchor="middle" class="label">AVL</text><text x="680" y="444" text-anchor="middle" class="small">bit 52</text>
+  </g>
+</svg>
