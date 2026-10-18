@@ -1,6 +1,8 @@
 # 项目级偏好（microduck-from-scratch）
 
-> 只放本项目特有的目标与约束。用户级偏好（技术背景、语言用词、通用流程）在 `skills/clone-from-scrach-tutor/user-prefs.md`。
+> 只放本项目特有的目标与约束。
+
+- **架构图分层的顶层固定为** miniduckd / mini-duckctl / mini-updaterd / duck_body.py 四进程 + install/current 资产；高发图题材：执行器动力学链、调度仲裁、IPC 握手时序。
 
 ## 总目标与路线（2026-10-04 用户裁决）
 
