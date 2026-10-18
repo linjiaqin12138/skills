@@ -803,8 +803,127 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <td>仍须指向有效描述符</td>
 </tr>
 </tbody></table></div>
-<p>CS、SS、DS 等寄存器仍要装合法选择子。无效选择子会触发 #GP。</p>
+<p>CS、SS、DS 等寄存器仍要装合法选择子。装载非法选择子时 CPU 抛哪个异常，取决于错在哪一步——并非一律是 #GP。</p>
+</div>
+<div class="am-callout am-callout--info" role="note"><div class="am-callout-title">背景卡片：#XX 是什么</div><div class="am-callout-body am-md"><p><code>#</code> 是 Intel 对 exception 的命名约定，编号 0–31。exception 指 CPU 执行指令时自己检测到的错误，与外部设备发来的硬件中断共用同一张 IDT，只是来源不同。</p>
 </div></div>
+<div class="am-md"><div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>向量</th>
+<th>缩写</th>
+<th>全称</th>
+<th>典型触发</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>#DE</td>
+<td>Divide Error</td>
+<td>除零</td>
+</tr>
+<tr>
+<td>1</td>
+<td>#DB</td>
+<td>Debug</td>
+<td>单步或调试寄存器断点</td>
+</tr>
+<tr>
+<td>3</td>
+<td>#BP</td>
+<td>Breakpoint</td>
+<td><code>int3</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>#UD</td>
+<td>Invalid Opcode</td>
+<td>非法或未启用的指令</td>
+</tr>
+<tr>
+<td>7</td>
+<td>#NM</td>
+<td>Device Not Available</td>
+<td>用了未打开的 SSE 状态</td>
+</tr>
+<tr>
+<td>8</td>
+<td>#DF</td>
+<td>Double Fault</td>
+<td>处理异常时又出异常，通常直接重启</td>
+</tr>
+<tr>
+<td>9</td>
+<td>#TS</td>
+<td>Invalid TSS</td>
+<td>任务切换时 TSS 非法</td>
+</tr>
+<tr>
+<td>10</td>
+<td>#NP</td>
+<td>Segment Not Present</td>
+<td>描述符 P=0</td>
+</tr>
+<tr>
+<td>11</td>
+<td>#SS</td>
+<td>Stack-Segment Fault</td>
+<td>栈段本身有问题</td>
+</tr>
+<tr>
+<td>12</td>
+<td>#GP</td>
+<td>General Protection</td>
+<td>段机制、特权级、指令权限的兜底错误</td>
+</tr>
+<tr>
+<td>13</td>
+<td>#PF</td>
+<td>Page Fault</td>
+<td>缺页，或页权限位不符</td>
+</tr>
+<tr>
+<td>17</td>
+<td>#AC</td>
+<td>Alignment Check</td>
+<td>未对齐访问</td>
+</tr>
+</tbody></table></div>
+<p>装段选择子出错，实际会落到这几种：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>情况</th>
+<th>例子</th>
+<th>异常</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>索引越过 GDT 限长</td>
+<td>GDT 只有 3 项，却 <code>mov ds, 0x1234</code></td>
+<td>#GP，error code 带 ID=1</td>
+</tr>
+<tr>
+<td>索引合法但 P=0</td>
+<td><code>mov ds, 0x18</code>，而该项没有 present</td>
+<td>#NP</td>
+</tr>
+<tr>
+<td>描述符类型不对</td>
+<td>把代码段选择子装进 DS</td>
+<td>#GP</td>
+</tr>
+<tr>
+<td>特权级不够</td>
+<td>CPL=0 时装 DPL=3 的选择子</td>
+<td>#GP</td>
+</tr>
+</tbody></table></div>
+<p>#GP 的 error code 低几位用来区分细节：bit 0–1 是选择子还是 IDT 索引，bit 2 是查 GDT 还是 LDT，bit 4–11 是索引本身。#TS / #NP / #SS 被单拎出来单独报告，是因为它们几乎只出现在任务切换和栈访问这两条路径上，值得更精确的诊断。</p>
+<p><strong>#PF 和 #GP 的分工</strong>：GDT 本身是一段内存，CPU 连那一页都读不到，才是 #PF；读到了但内容不对，才是 #GP 或 #NP。下面「A 位回写」那张流程图走的正是前一种。</p>
+</div>
+<div class="am-callout am-callout--warn" role="note"><div class="am-callout-title">boot 阶段的额外代价</div><div class="am-callout-body am-md"><p>重载段寄存器那几条 mov 只要有一条写错，后果就不只是一条普通的 panic。IDT 还没建好的启动早期会把它退化成 #DF，甚至三连重启。逐条重载的价值，就是让这个暴露窗口短到只剩几条指令。</p>
+</div></div></div>
 </section>
 <section class="am-panel" id="panel-C">
 <header class="am-panel-head"><span class="am-panel-id">C</span><h2>段描述符位域</h2></header>
@@ -831,7 +950,19 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <figure class="am-diagram am-seq"><svg viewBox="0 0 632 230" width="632" height="230" role="img" aria-label="时序图：内核、GDTR、数据段寄存器、栈、CS" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><line class="am-lifeline" x1="54" y1="42" x2="54" y2="226"/><g data-key="内核"><rect class="am-actor" x="12" y="8" width="84" height="34" rx="2"/><text x="54" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">内核</text></g><line class="am-lifeline" x1="219.8" y1="42" x2="219.8" y2="226"/><g data-key="GDTR"><rect class="am-actor" x="177.8" y="8" width="84" height="34" rx="2"/><text x="219.8" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">GDTR</text></g><line class="am-lifeline" x1="342.8" y1="42" x2="342.8" y2="226"/><g data-key="数据段寄存器"><rect class="am-actor" x="289.8" y="8" width="106" height="34" rx="2"/><text x="342.8" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">数据段寄存器</text></g><line class="am-lifeline" x1="465.8" y1="42" x2="465.8" y2="226"/><g data-key="栈"><rect class="am-actor" x="423.8" y="8" width="84" height="34" rx="2"/><text x="465.8" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">栈</text></g><line class="am-lifeline" x1="577.8" y1="42" x2="577.8" y2="226"/><g data-key="CS"><rect class="am-actor" x="535.8" y="8" width="84" height="34" rx="2"/><text x="577.8" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">CS</text></g><g data-step="0"><text x="136.9" y="70" text-anchor="middle">lgdt 写入新表地址和限长</text><path class="am-edge" d="M54,80 L217.8,80" marker-end="url(#am1-arrow)"/></g><g data-step="1"><text x="198.4" y="110" text-anchor="middle">mov 重载选择子</text><path class="am-edge" d="M54,120 L340.8,120" marker-end="url(#am1-arrow)"/></g><g data-step="2"><text x="259.9" y="150" text-anchor="middle">压入新 CS 选择子和下一条指令地址</text><path class="am-edge" d="M54,160 L463.8,160" marker-end="url(#am1-arrow)"/></g><g data-step="3"><text x="315.9" y="190" text-anchor="middle">retfq 弹出并切换</text><path class="am-edge" d="M54,200 L575.8,200" marker-end="url(#am1-arrow)"/></g></svg></figure>
 <div class="am-md"><p>装载段选择子时，CPU 会把描述符 A 位置 1。只读页中的描述符应预置 A=1，避免这次隐式回写。</p>
 </div>
-<figure class="am-diagram am-flow"><svg viewBox="0 0 959 170" width="959" height="170" role="img" aria-label="流程图：装载段选择子、CPU 检查 A 位、A 已为 1?、无需回写、尝试写 A=1、页面可写?、继续执行、#PF" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M120,102.5 L131.5,102.5 Q143,102.5 154.5,102.5 L166,102.5" marker-end="url(#am2-arrow)"/></g><g data-step="1"><path class="am-edge" d="M280.1,102.5 L291.6,102.5 Q303.1,102.5 314.6,102.5 L326.1,102.5" marker-end="url(#am2-arrow)"/></g><g data-step="2"><path class="am-edge" d="M425,115.1 L456.8,126.6 Q488.6,138 509.6,138 L530.5,138" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="477.9" y="129" width="21.5" height="18" rx="3"/><text x="488.6" y="138" text-anchor="middle" dominant-baseline="central">是</text></g></g><g data-step="3"><path class="am-edge" d="M425,89.9 L456.8,78.4 Q488.6,67 506,67 L523.4,67" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="477.9" y="58" width="21.5" height="18" rx="3"/><text x="488.6" y="67" text-anchor="middle" dominant-baseline="central">否</text></g></g><g data-step="4"><path class="am-edge" d="M617.7,67 L629.2,67 Q640.7,67 652.2,67 L663.7,67" marker-end="url(#am2-arrow)"/></g><g data-step="5"><path class="am-edge" d="M764.9,79.7 L797.1,91.1 Q829.3,102.5 846.7,102.5 L864.1,102.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="818.6" y="93.5" width="21.5" height="18" rx="3"/><text x="829.3" y="102.5" text-anchor="middle" dominant-baseline="central">是</text></g></g><g data-step="6"><path class="am-edge" d="M764.9,54.3 L797.1,42.9 Q829.3,31.5 850.7,31.5 L872.1,31.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="818.6" y="22.5" width="21.5" height="18" rx="3"/><text x="829.3" y="31.5" text-anchor="middle" dominant-baseline="central">否</text></g></g></g><g><g class="am-node am-node--rect" data-key="装载段选择子" data-step="0"><rect class="am-node-shape" x="14" y="85" width="106" height="35" rx="3"/><text x="67" y="102.5" text-anchor="middle" dominant-baseline="central">装载段选择子</text></g><g class="am-node am-node--rect" data-key="CPU 检查 A 位" data-step="0"><rect class="am-node-shape" x="166" y="85" width="114.1" height="35" rx="3"/><text x="223" y="102.5" text-anchor="middle" dominant-baseline="central">CPU 检查 A 位</text></g><g class="am-node am-node--diamond" data-key="A 已为 1?" data-step="1"><polygon class="am-node-shape" points="390,74.5 453.9,102.5 390,130.5 326.1,102.5"/><text x="390" y="102.5" text-anchor="middle" dominant-baseline="central">A 已为 1?</text></g><g class="am-node am-node--rect" data-key="无需回写" data-step="2"><rect class="am-node-shape" x="530.5" y="120.5" width="80" height="35" rx="3"/><text x="570.5" y="138" text-anchor="middle" dominant-baseline="central">无需回写</text></g><g class="am-node am-node--rect" data-key="尝试写 A=1" data-step="3"><rect class="am-node-shape" x="523.4" y="49.5" width="94.3" height="35" rx="3"/><text x="570.5" y="67" text-anchor="middle" dominant-baseline="central">尝试写 A=1</text></g><g class="am-node am-node--diamond" data-key="页面可写?" data-step="4"><polygon class="am-node-shape" points="729.1,39 794.6,67 729.1,95 663.7,67"/><text x="729.1" y="67" text-anchor="middle" dominant-baseline="central">页面可写?</text></g><g class="am-node am-node--rect" data-key="继续执行" data-step="5"><rect class="am-node-shape" x="864.1" y="85" width="80" height="35" rx="3"/><text x="904.1" y="102.5" text-anchor="middle" dominant-baseline="central">继续执行</text></g><g class="am-node am-node--rect" data-key="#PF" data-step="6"><rect class="am-node-shape" x="872.1" y="14" width="64" height="35" rx="3"/><text x="904.1" y="31.5" text-anchor="middle" dominant-baseline="central">#PF</text></g></g></svg></figure></div>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 959 170" width="959" height="170" role="img" aria-label="流程图：装载段选择子、CPU 检查 A 位、A 已为 1?、无需回写、尝试写 A=1、页面可写?、继续执行、#PF" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M120,102.5 L131.5,102.5 Q143,102.5 154.5,102.5 L166,102.5" marker-end="url(#am2-arrow)"/></g><g data-step="1"><path class="am-edge" d="M280.1,102.5 L291.6,102.5 Q303.1,102.5 314.6,102.5 L326.1,102.5" marker-end="url(#am2-arrow)"/></g><g data-step="2"><path class="am-edge" d="M425,115.1 L456.8,126.6 Q488.6,138 509.6,138 L530.5,138" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="477.9" y="129" width="21.5" height="18" rx="3"/><text x="488.6" y="138" text-anchor="middle" dominant-baseline="central">是</text></g></g><g data-step="3"><path class="am-edge" d="M425,89.9 L456.8,78.4 Q488.6,67 506,67 L523.4,67" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="477.9" y="58" width="21.5" height="18" rx="3"/><text x="488.6" y="67" text-anchor="middle" dominant-baseline="central">否</text></g></g><g data-step="4"><path class="am-edge" d="M617.7,67 L629.2,67 Q640.7,67 652.2,67 L663.7,67" marker-end="url(#am2-arrow)"/></g><g data-step="5"><path class="am-edge" d="M764.9,79.7 L797.1,91.1 Q829.3,102.5 846.7,102.5 L864.1,102.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="818.6" y="93.5" width="21.5" height="18" rx="3"/><text x="829.3" y="102.5" text-anchor="middle" dominant-baseline="central">是</text></g></g><g data-step="6"><path class="am-edge" d="M764.9,54.3 L797.1,42.9 Q829.3,31.5 850.7,31.5 L872.1,31.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="818.6" y="22.5" width="21.5" height="18" rx="3"/><text x="829.3" y="31.5" text-anchor="middle" dominant-baseline="central">否</text></g></g></g><g><g class="am-node am-node--rect" data-key="装载段选择子" data-step="0"><rect class="am-node-shape" x="14" y="85" width="106" height="35" rx="3"/><text x="67" y="102.5" text-anchor="middle" dominant-baseline="central">装载段选择子</text></g><g class="am-node am-node--rect" data-key="CPU 检查 A 位" data-step="0"><rect class="am-node-shape" x="166" y="85" width="114.1" height="35" rx="3"/><text x="223" y="102.5" text-anchor="middle" dominant-baseline="central">CPU 检查 A 位</text></g><g class="am-node am-node--diamond" data-key="A 已为 1?" data-step="1"><polygon class="am-node-shape" points="390,74.5 453.9,102.5 390,130.5 326.1,102.5"/><text x="390" y="102.5" text-anchor="middle" dominant-baseline="central">A 已为 1?</text></g><g class="am-node am-node--rect" data-key="无需回写" data-step="2"><rect class="am-node-shape" x="530.5" y="120.5" width="80" height="35" rx="3"/><text x="570.5" y="138" text-anchor="middle" dominant-baseline="central">无需回写</text></g><g class="am-node am-node--rect" data-key="尝试写 A=1" data-step="3"><rect class="am-node-shape" x="523.4" y="49.5" width="94.3" height="35" rx="3"/><text x="570.5" y="67" text-anchor="middle" dominant-baseline="central">尝试写 A=1</text></g><g class="am-node am-node--diamond" data-key="页面可写?" data-step="4"><polygon class="am-node-shape" points="729.1,39 794.6,67 729.1,95 663.7,67"/><text x="729.1" y="67" text-anchor="middle" dominant-baseline="central">页面可写?</text></g><g class="am-node am-node--rect" data-key="继续执行" data-step="5"><rect class="am-node-shape" x="864.1" y="85" width="80" height="35" rx="3"/><text x="904.1" y="102.5" text-anchor="middle" dominant-baseline="central">继续执行</text></g><g class="am-node am-node--rect" data-key="#PF" data-step="6"><rect class="am-node-shape" x="872.1" y="14" width="64" height="35" rx="3"/><text x="904.1" y="31.5" text-anchor="middle" dominant-baseline="central">#PF</text></g></g></svg></figure>
+<div class="am-callout am-callout--info" role="note"><div class="am-callout-title">背景卡片：为什么换 CS 只能用 retfq</div><div class="am-callout-body am-md"><p>这个形状是 8086 留下的，不是可以绕开的取巧写法。</p>
+</div></div>
+<div class="am-md"><p><strong>第一层，8086 逼出来的。</strong> 实模式下指令地址就是 <code>CS:IP</code> 这个二元组。换 CS 意味着下一条要解码的字节位置也跟着变了。所以「换 CS」在语义上不可能是「照常往下执行」。它必须与一次控制转移绑定：<code>jmp far</code> / <code>call far</code> / <code>ret far</code> / <code>iret</code> / 中断与异常入口，就这五处。</p>
+<p><strong>第二层，386 也没能改掉。</strong> 保护模式下段基址已是描述符里的显式字段，「CS 参与地址计算」的原始理由消失了，本可以补一条 <code>mov cs, r16</code>。但 CS 还承载特权级语义：装 CS 是一次安全边界操作，和几乎无副作用的 <code>mov ds</code> 不是一类指令；补进来还会让「哪些指令会改变当前特权级」这条属性判断变得含糊。Intel 选择不补，于是「CS 只随控制转移装载」被写进架构契约。</p>
+<p><strong>第三层，长模式只改了后果，没改规则。</strong> CS 不再贡献基址和限长，但选择子合法性校验和 DPL 检查一条没少。Linux 的 <code>lgdt; push %cs; push $ret; lretq</code>、GRUB、以及所有写内核启动代码的人都停在同一堵墙前，于是这个写法成了事实标准。</p>
+<p>两个容易卡住的小点：</p>
+<ul>
+<li><code>retfq</code> 里的 <code>q</code> 只指定 64 位操作数宽度，等价于 <code>lretq</code>；<code>retf</code> 的 <code>f</code> 是「强制远返回」，64 位模式下仍必须写上。</li>
+<li>用两次 push 加 <code>retfq</code>，而不是 <code>jmp far</code>：far jmp 的目标要塞 8 字节偏移加 2 字节选择子，写 immediate 很别扭，走内存操作数又多一次内存读。push 两次再 <code>retfq</code> 全程走寄存器，是最短路径。</li>
+</ul>
+<p>代价是它要借用栈：执行前栈上需要 16 字节连续可写空间。boot 代码的栈由引导程序准备好，这条通常自动满足；自己搭环境时，它往往是第一个要确认的条件。</p>
+</div></div>
 </section>
 <section class="am-panel" id="panel-F">
 <header class="am-panel-head"><span class="am-panel-id">F</span><h2>最小可运行示例</h2></header>
@@ -912,7 +1043,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-18 16:43 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-18 18:39 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -932,7 +1063,6 @@ Lead: GDT 是 CPU 查找段属性的表。长模式取消了分段隔离，但�
 长模式把内存隔离交给分页。GDT 仍回答两个问题：当前代码如何译码，当前特权级是什么。
 
 ## 为什么还需要它
-
 **长模式退役的是 base/limit 检查，不是整张 GDT。**
 
 | 机制 | 长模式中的作用 |
@@ -943,8 +1073,43 @@ Lead: GDT 是 CPU 查找段属性的表。长模式取消了分段隔离，但�
 | 描述符 DPL | 保存特权级 |
 | 段选择子 | 仍须指向有效描述符 |
 
-CS、SS、DS 等寄存器仍要装合法选择子。无效选择子会触发 #GP。
+CS、SS、DS 等寄存器仍要装合法选择子。装载非法选择子时 CPU 抛哪个异常，取决于错在哪一步——并非一律是 #GP。
 
+```callout info 背景卡片：#XX 是什么
+`#` 是 Intel 对 exception 的命名约定，编号 0–31。exception 指 CPU 执行指令时自己检测到的错误，与外部设备发来的硬件中断共用同一张 IDT，只是来源不同。
+```
+
+| 向量 | 缩写 | 全称 | 典型触发 |
+|---|---|---|---|
+| 0 | #DE | Divide Error | 除零 |
+| 1 | #DB | Debug | 单步或调试寄存器断点 |
+| 3 | #BP | Breakpoint | `int3` |
+| 6 | #UD | Invalid Opcode | 非法或未启用的指令 |
+| 7 | #NM | Device Not Available | 用了未打开的 SSE 状态 |
+| 8 | #DF | Double Fault | 处理异常时又出异常，通常直接重启 |
+| 9 | #TS | Invalid TSS | 任务切换时 TSS 非法 |
+| 10 | #NP | Segment Not Present | 描述符 P=0 |
+| 11 | #SS | Stack-Segment Fault | 栈段本身有问题 |
+| 12 | #GP | General Protection | 段机制、特权级、指令权限的兜底错误 |
+| 13 | #PF | Page Fault | 缺页，或页权限位不符 |
+| 17 | #AC | Alignment Check | 未对齐访问 |
+
+装段选择子出错，实际会落到这几种：
+
+| 情况 | 例子 | 异常 |
+|---|---|---|
+| 索引越过 GDT 限长 | GDT 只有 3 项，却 `mov ds, 0x1234` | #GP，error code 带 ID=1 |
+| 索引合法但 P=0 | `mov ds, 0x18`，而该项没有 present | #NP |
+| 描述符类型不对 | 把代码段选择子装进 DS | #GP |
+| 特权级不够 | CPL=0 时装 DPL=3 的选择子 | #GP |
+
+#GP 的 error code 低几位用来区分细节：bit 0–1 是选择子还是 IDT 索引，bit 2 是查 GDT 还是 LDT，bit 4–11 是索引本身。#TS / #NP / #SS 被单拎出来单独报告，是因为它们几乎只出现在任务切换和栈访问这两条路径上，值得更精确的诊断。
+
+**#PF 和 #GP 的分工**：GDT 本身是一段内存，CPU 连那一页都读不到，才是 #PF；读到了但内容不对，才是 #GP 或 #NP。下面「A 位回写」那张流程图走的正是前一种。
+
+```callout warn boot 阶段的额外代价
+重载段寄存器那几条 mov 只要有一条写错，后果就不只是一条普通的 panic。IDT 还没建好的启动早期会把它退化成 #DF，甚至三连重启。逐条重载的价值，就是让这个暴露窗口短到只剩几条指令。
+```
 ## 段描述符位域
 
 **真正影响长模式行为的字段集中在 access byte 和 flags。**
@@ -968,7 +1133,6 @@ flags 中的 L=1 表示 64 位代码段。D/B 位必须按代码类型设置，�
 GDT 第 0 项必须是 null 描述符。因此索引 1 对应选择子 `0x08`，索引 2 对应 `0x10`。
 
 ## 换表、换 CS 与 A 位
-
 **lgdt 只更换表地址，不会自动更新所有段寄存器。**
 
 DS、ES、FS、GS、SS 可用 `mov` 重载。CS 没有对应的 `mov` 指令，常用 `retfq` 构造远返回来切换。
@@ -992,6 +1156,22 @@ DS、ES、FS、GS、SS 可用 `mov` 重载。CS 没有对应的 `mov` 指令，�
 {页面可写?} -&gt; [#PF]: 否
 ```
 
+```callout info 背景卡片：为什么换 CS 只能用 retfq
+这个形状是 8086 留下的，不是可以绕开的取巧写法。
+```
+
+**第一层，8086 逼出来的。** 实模式下指令地址就是 `CS:IP` 这个二元组。换 CS 意味着下一条要解码的字节位置也跟着变了。所以「换 CS」在语义上不可能是「照常往下执行」。它必须与一次控制转移绑定：`jmp far` / `call far` / `ret far` / `iret` / 中断与异常入口，就这五处。
+
+**第二层，386 也没能改掉。** 保护模式下段基址已是描述符里的显式字段，「CS 参与地址计算」的原始理由消失了，本可以补一条 `mov cs, r16`。但 CS 还承载特权级语义：装 CS 是一次安全边界操作，和几乎无副作用的 `mov ds` 不是一类指令；补进来还会让「哪些指令会改变当前特权级」这条属性判断变得含糊。Intel 选择不补，于是「CS 只随控制转移装载」被写进架构契约。
+
+**第三层，长模式只改了后果，没改规则。** CS 不再贡献基址和限长，但选择子合法性校验和 DPL 检查一条没少。Linux 的 `lgdt; push %cs; push $ret; lretq`、GRUB、以及所有写内核启动代码的人都停在同一堵墙前，于是这个写法成了事实标准。
+
+两个容易卡住的小点：
+
+- `retfq` 里的 `q` 只指定 64 位操作数宽度，等价于 `lretq`；`retf` 的 `f` 是「强制远返回」，64 位模式下仍必须写上。
+- 用两次 push 加 `retfq`，而不是 `jmp far`：far jmp 的目标要塞 8 字节偏移加 2 字节选择子，写 immediate 很别扭，走内存操作数又多一次内存读。push 两次再 `retfq` 全程走寄存器，是最短路径。
+
+代价是它要借用栈：执行前栈上需要 16 字节连续可写空间。boot 代码的栈由引导程序准备好，这条通常自动满足；自己搭环境时，它往往是第一个要确认的条件。
 ## 最小可运行示例
 
 **一个长模式代码段描述符，主要是几组标志位的按位或。**
