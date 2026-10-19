@@ -3,7 +3,7 @@
 ## 当前位置
 - Phase: 3（逐层手搓）进行中
 - 里程碑: **M2 进行中**——Bite1（GDT 扁平接管 + IDT + CPU 异常接管）2026-10-18 复跑 `make check-m2-b1` 通过，待用户确认后进入 Bite2；M1 已通过
-- 教程：M1 Bite1 `tutorial-bite1-framebuffer.html` + Bite2 `tutorial-bite2-printk-scroll.html`（m1-printk/）；**M2 Bite1 `m2-exceptions/tutorial-bite1-gdt-idt.html`**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html`
+- 教程：**M0 Bite1 `m0-boot/tutorial-bite1-boot-skeleton.html` + Bite2 `m0-boot/tutorial-bite2-iso-boot.html`（2026-10-19 已迁移到草稿+am-render 工作流）**；M1 Bite1 `tutorial-bite1-framebuffer.html` + Bite2 `tutorial-bite2-printk-scroll.html`（m1-printk/，尚无草稿，HTML 为唯一产物）；**M2 Bite1 `m2-exceptions/tutorial-bite1-gdt-idt.html`**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html`
 - 环境：GNU Make 用 `~/.local/bin/make`（apt 下载后用户级解包）；qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`reference/limine`（v10.8.5-binary）+ `reference/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
@@ -16,6 +16,8 @@
 **教程/概念页工作流变更（2026-10-19，取代下条旧教训）**：草稿是唯一编辑对象，落盘为 `<页面同名>.draft.md` 与 HTML 同目录入 git；修订一律改草稿 + `bin/am-render <草稿> -o <页面>.html` 整页重渲（封装固定 `--style strict`，渲染后把内嵌图片还原为相对路径链接，`data-am-src` 保留原路径）。禁止 `am patch`、禁止手工改 HTML；验收只浏览器目检，不把 HTML 读进上下文。`src=` 代码块会跟随当前代码重渲，正文 `文件:行号` 引用须同次同步（本次已把代码领读面板的 gdt.rs 引用从 20-47/62-96 修正为 22-49/64-98，漂移源是 2026-10-19 用户加的两行 `// Q:` 注释）。
 
 **2026-10-19 提问补录**：用户问「CS 换掉后为什么能保证新 CS 下 retfq 后面就是 mov ds 那串指令」，解答已整理成条目写进 M2 Bite1「细节展开」（三个折叠面板：返回地址是链接期常量 / 长模式 CS 不改取指地址 / 换错 CS 会 #GP 而非跑错代码），草稿已改 + `am-render` 整页重渲，Bite1 状态不变（仍待用户确认）。
+
+**2026-10-19 M0 教程迁移**：M0 两篇老格式教程（无 frontmatter、mermaid、STE strict 不过）改写到当前规范并整页重渲——`tutorial.md` → `tutorial-bite1-boot-skeleton.draft.md`、`tutorial-bite2-iso-boot.md` → `tutorial-bite2-iso-boot.draft.md`（`git mv` 保留历史），各自产出同名 `.html`。迁移内容：补 frontmatter + Lead、mermaid 换 am 的 `flow`/`sequence` 组件、新增自测面板（4 题 / 5 题）与决策卡片、代码领读改 `src=` 空代码块并逐条核对当前行号（M1/M2 已演进处保留内联块并标注漂移）、STE 修到 0 warnings。顺带修 `bin/am-render` 的去内嵌 bug：它拿 `data-am-src` 只按进程 cwd 解析相对路径，导致草稿里写相对 `assets/dst/*` 的图仍留在 HTML 里（1.8MB），现在改成 cwd 找不到就回退到 HTML 所在目录；M2 页重渲验证无回归。
 
 **am patch 工具教训（2026-10-15，已被上面的草稿工作流取代）**：对旧 Bite 页面执行 `am patch` 会重读所有 `src=` 引用的**当前**代码文件——若代码已被后续 Bite 改过，旧页面的代码嵌入块和 arch.svg 会漂移成新内容，与旧正文矛盾。
 

@@ -143,7 +143,7 @@ El Torito img path :   2  /boot/limine/limine-uefi-cd.bin
 - [Limine 协议规范（limine-protocol 仓库 PROTOCOL.md）](https://github.com/Limine-Bootloader/limine-protocol/blob/trunk/PROTOCOL.md)——base revision 机制与入口时机器状态的权威定义；
 - [Limine v10.8.5 CONFIG.md](https://github.com/Limine-Bootloader/limine/blob/v10.8.5/CONFIG.md) 与 [USAGE.md](https://github.com/Limine-Bootloader/limine/blob/v10.8.5/USAGE.md)——配置文件扫描顺序、hybrid ISO 制作流程的项目 pinned 版本。
 
-项目专属逻辑（网上没有的部分）已在上文写透：`-boot d` 与我们命令行上那块硬盘的纠葛、`serial: yes` 如何造就两行日志、bios-install 的 GPT→MBR 实测（详见 [Bite 2 教程「细节展开」](../milestones/m0-boot/tutorial-bite2-iso-boot.md)）。
+项目专属逻辑（网上没有的部分）已在上文写透：`-boot d` 与我们命令行上那块硬盘的纠葛、`serial: yes` 如何造就两行日志、bios-install 的 GPT→MBR 实测（详见 [Bite 2 教程「细节展开」](../milestones/m0-boot/tutorial-bite2-iso-boot.html)）。
 
 ## 自测题
 
