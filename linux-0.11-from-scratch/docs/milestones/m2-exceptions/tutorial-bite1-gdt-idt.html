@@ -867,7 +867,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <figure class="am-codeblock" data-am-src="kernel/src/idt.rs" data-am-lines="264-302"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/idt.rs:264-302</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="264">/// 所有异常的统一出口：打印现场后停机。</span><span class="am-ln" data-n="265">/// 打印格式是 Makefile 验收断言的依据，改动需同步 check-m2-b1。</span><span class="am-ln" data-n="266">extern &quot;C&quot; fn exception_handler(frame: &amp;ExceptionFrame) -&gt; ! {</span><span class="am-ln" data-n="267">    let vector = frame.vector as usize;</span><span class="am-ln" data-n="268">    // 同特权级异常时 CPU 不自动保存 rsp，但可以从帧反推：</span><span class="am-ln" data-n="269">    // CPU 压入 rip/cs/rflags 之前的栈顶，就是 rip 字段上方三个 u64 的末尾</span><span class="am-ln am-ln--hl" data-n="270">    let exception_rsp = &amp;raw const frame.rip as u64 + 3 * size_of::&lt;u64&gt;() as u64;</span><span class="am-ln" data-n="271">    printk!(&quot;M2: EXCEPTION #{} {}\n&quot;, vector, EXCEPTION_NAMES[vector]);</span><span class="am-ln" data-n="272">    printk!(&quot;M2: error_code={:#x}\n&quot;, frame.error_code);</span><span class="am-ln" data-n="273">    printk!(</span><span class="am-ln" data-n="274">        &quot;M2: rip={:#018x} cs={:#06x} rflags={:#018x}\n&quot;,</span><span class="am-ln" data-n="275">        frame.rip, frame.cs, frame.rflags,</span><span class="am-ln" data-n="276">    );</span><span class="am-ln" data-n="277">    printk!(</span><span class="am-ln" data-n="278">        &quot;M2: rax={:#018x} rbx={:#018x} rcx={:#018x} rdx={:#018x}\n&quot;,</span><span class="am-ln" data-n="279">        frame.rax, frame.rbx, frame.rcx, frame.rdx,</span><span class="am-ln" data-n="280">    );</span><span class="am-ln" data-n="281">    printk!(</span><span class="am-ln" data-n="282">        &quot;M2: rsi={:#018x} rdi={:#018x} rbp={:#018x} rsp={:#018x}\n&quot;,</span><span class="am-ln" data-n="283">        frame.rsi, frame.rdi, frame.rbp, exception_rsp,</span><span class="am-ln" data-n="284">    );</span><span class="am-ln" data-n="285">    printk!(</span><span class="am-ln" data-n="286">        &quot;M2: r8={:#018x} r9={:#018x} r10={:#018x} r11={:#018x}\n&quot;,</span><span class="am-ln" data-n="287">        frame.r8, frame.r9, frame.r10, frame.r11,</span><span class="am-ln" data-n="288">    );</span><span class="am-ln" data-n="289">    printk!(</span><span class="am-ln" data-n="290">        &quot;M2: r12={:#018x} r13={:#018x} r14={:#018x} r15={:#018x}\n&quot;,</span><span class="am-ln" data-n="291">        frame.r12, frame.r13, frame.r14, frame.r15,</span><span class="am-ln" data-n="292">    );</span><span class="am-ln" data-n="293"></span><span class="am-ln" data-n="294">    // 本 Bite 不从异常返回：停机等待人工检查现场。</span><span class="am-ln" data-n="295">    // interrupt gate 进门时已自动清 IF，hlt 不会被可屏蔽中断唤醒</span><span class="am-ln" data-n="296">    loop {</span><span class="am-ln" data-n="297">        // SAFETY: hlt 只暂停 CPU</span><span class="am-ln" data-n="298">        unsafe {</span><span class="am-ln" data-n="299">            asm!(&quot;hlt&quot;, options(nomem, nostack));</span><span class="am-ln" data-n="300">        }</span><span class="am-ln" data-n="301">    }</span><span class="am-ln" data-n="302">}</span></code></pre></figure>
 <div class="am-md"><p><strong>main 接线与触发</strong>（<code>main.rs:52-77</code>）。Rust 除法自带除零检查，会走 panic。验收必须使用内联汇编 <code>div</code> 才能进入 IDT。</p>
 </div>
-<figure class="am-codeblock" data-am-src="kernel/src/main.rs" data-am-lines="52-77"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/main.rs:52-77</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="52">    // M2 Bite1：用自己的扁平 GDT 与 256 项 IDT 接管段与异常</span><span class="am-ln" data-n="53">    gdt::init();</span><span class="am-ln" data-n="54">    printk!(&quot;M2: gdt ok\n&quot;);</span><span class="am-ln" data-n="55">    idt::init();</span><span class="am-ln" data-n="56">    printk!(&quot;M2: idt ok\n&quot;);</span><span class="am-ln" data-n="57"></span><span class="am-ln" data-n="58">    // 验收动作：故意触发 #DE 除零异常，预期打印现场后停机（不再三连重启）</span><span class="am-ln" data-n="59">    trigger_divide_error();</span><span class="am-ln" data-n="60"></span><span class="am-ln" data-n="61">    halt();</span><span class="am-ln" data-n="62">}</span><span class="am-ln" data-n="63"></span><span class="am-ln" data-n="64">/// 用内联汇编的 div 指令真触发 #DE。</span><span class="am-ln" data-n="65">/// 注意不能写 Rust 的 `0 / 0`：除法运算符除零只走 panic!，不进 IDT</span><span class="am-ln" data-n="66">fn trigger_divide_error() {</span><span class="am-ln" data-n="67">    // SAFETY: 故意制造 0/0；div 不读内存不依赖栈，标志位本就由 div 置为未定义</span><span class="am-ln" data-n="68">    unsafe {</span><span class="am-ln" data-n="69">        asm!(</span><span class="am-ln" data-n="70">            &quot;xor edx, edx&quot;,</span><span class="am-ln" data-n="71">            &quot;xor eax, eax&quot;,</span><span class="am-ln am-ln--hl" data-n="72">            &quot;div eax&quot;,</span><span class="am-ln" data-n="73">            options(nomem, nostack),</span><span class="am-ln" data-n="74">        );</span><span class="am-ln" data-n="75">    }</span><span class="am-ln" data-n="76">    // div 必然触发异常，永远走不到这里；真走到也说明异常接管失败，halt 兜底即可</span><span class="am-ln" data-n="77">}</span></code></pre></figure></div>
+<figure class="am-codeblock" data-am-src="kernel/src/main.rs" data-am-lines="52-77"><figcaption class="am-code-head"><span class="am-code-title">kernel/src/main.rs:52-77</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="52">        printk!(&quot;M1: scroll line {:02}\n&quot;, i);</span><span class="am-ln" data-n="53">    }</span><span class="am-ln" data-n="54"></span><span class="am-ln" data-n="55">    // M2 Bite1：用自己的扁平 GDT 与 256 项 IDT 接管段与异常</span><span class="am-ln" data-n="56">    gdt::init();</span><span class="am-ln" data-n="57">    printk!(&quot;M2: gdt ok\n&quot;);</span><span class="am-ln" data-n="58">    idt::init();</span><span class="am-ln" data-n="59">    printk!(&quot;M2: idt ok\n&quot;);</span><span class="am-ln" data-n="60"></span><span class="am-ln" data-n="61">    // 双触发器二选一：两者都会停机，无法在同一次启动中共存，</span><span class="am-ln" data-n="62">    // 用 cargo feature 切换（#[cfg(feature)] 是编译期开关，未选中的分支不进二进制）。</span><span class="am-ln" data-n="63">    // 默认保持 Bite1 的 asm div → #DE 验收路径不变</span><span class="am-ln" data-n="64">    #[cfg(feature = &quot;demo-panic&quot;)]</span><span class="am-ln" data-n="65">    trigger_rust_divide_by_zero();</span><span class="am-ln" data-n="66">    #[cfg(not(feature = &quot;demo-panic&quot;))]</span><span class="am-ln" data-n="67">    trigger_divide_error();</span><span class="am-ln" data-n="68"></span><span class="am-ln" data-n="69">    halt();</span><span class="am-ln" data-n="70">}</span><span class="am-ln" data-n="71"></span><span class="am-ln am-ln--hl" data-n="72">/// Rust 层的除零：编译器插入除零检查，走 panic! 而不是 CPU 的 #DE 异常。</span><span class="am-ln" data-n="73">/// 分母经 black_box 变成编译器看不穿的运行时值：直接写 `1 / 0` 会被编译期</span><span class="am-ln" data-n="74">/// 常量求值拦下（deny lint），根本留不到运行时</span><span class="am-ln" data-n="75">#[cfg(feature = &quot;demo-panic&quot;)]</span><span class="am-ln" data-n="76">fn trigger_rust_divide_by_zero() {</span><span class="am-ln" data-n="77">    let zero = core::hint::black_box(0);</span></code></pre></figure></div>
 </section>
 <section class="am-panel" id="panel-F">
 <header class="am-panel-head"><span class="am-panel-id">F</span><h2>验收</h2></header>
@@ -1077,7 +1077,27 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 	mov	gs, ax
 	mov	ss, ax</code></pre>
 <ul><li><code>tmp</code> 是 rcx、<code>data_sel</code> 是 ax，两者没有重叠。规避这个风险的写法是 <code>tmp = earlyclobber(out(reg) _)</code>。</li></ul>
-</details></div>
+</details>
+<div class="am-md"><p><strong>换完 CS 之后，为什么能保证新 CS 下 <code>retfq</code> 的下一条就是 <code>mov ds</code> 这串指令？</strong></p>
+<p>这条保证不来自 CPU，来自两个地方叠在一起。汇编器保证 <code>2:</code> 标签就贴在 <code>retfq</code> 后面（<code>gdt.rs:86</code>）。长模式下 CS 又根本不参与取指地址的计算。压进栈的不是「某个段的某个偏移」，而是一条绝对线性地址。换 CS 只换特权级和代码模式，不动这条地址。</p>
+</div>
+<details><summary>保证一：返回地址是链接期就定死的线性地址</summary><ul>
+<li><code>lea {tmp}, [rip + 2f]</code> 里的位移量 <code>2f</code> 由汇编器在生成 <code>.s</code> 时算死，<code>2:</code> 是本块内自己定义、紧跟在 <code>retfq</code> 后面那一行的数字局部标签（<code>gdt.rs:86</code>）。两者指同一条指令，这层关系在汇编期就成立，不依赖任何运行期状态。</li>
+<li>所以「retfq 之后是谁」这个问题，答案由源码文本本身给出——只要标签没写歪、这段 asm 没被拆开重排（<code>options(nomem)</code> 已禁止编译器把内存访问跨过 asm 块搬移），release 产物里的实际字节就是：<code>retfq</code> 紧跟 <code>.Ltmp34:</code> 再跟 <code>mov ds, ax</code>。上面那份 <code>kernel.s</code> 就是证据。</li>
+<li>唯一的人为风险点是标签位置写错：把 <code>2:</code> 挪到别处汇编照样通过，只是算出的地址指向了别的指令。这类错误只能靠读代码发现。</li>
+</ul></details>
+<details><summary>保证二：长模式下 CS 不改取指地址</summary><ul>
+<li>64 位代码段的基址一律当 0、限长不检查（SDM Vol.3 6.4.2 与 9.5）。取指地址 = RIP 里那个值，直接就是线性地址，中间不加段基址。</li>
+<li><code>kernel_code()</code>（<code>gdt.rs:29-35</code>）压根没写 base 字段，描述符里那 8 个字节除了 access 与 L 位全是 0——这就是「base=0」落地的地方。</li>
+<li>把 L 位设成 0 就不一样了：32 位代码段要按 线性地址 = base + 偏移 算，base 非零就跳飞。所以 L=1 在这里不是风格选择，是这套写法成立的前提。</li>
+<li>CS 换完后还管三件与地址无关的事：CPL（特权级检查与 SS 能不能写）、L 位（后续按 64 位还是 32 位解码）、装载时的描述符合法性。都不改「从哪儿取字节」。</li>
+</ul></details>
+<details><summary>换个 CS 失败时，是报错而不是悄悄跑错代码</summary><ul>
+<li><code>retfq</code> 装 CS 时照常做选择子合法性检查与 DPL 检查：<code>0x08</code> 的 RPL=0、描述符 DPL=0、当前 CPL=0，三者相容才放行；描述符缺 P 位（不在内存 / L 位没置位）会直接 #GP。</li>
+<li>也就是说，「GDT 装错」的失败形态是这条指令就抛异常，绝不会跳到某个错误上下文里执行我们的 <code>mov</code> 串。</li>
+<li>本 Bite 的验收反过来印证了这点：能被 #DE handler 打印出 RIP 与寄存器现场，说明 CS 换成功了——新 CS 下的取指确实回到了这段代码里，handler 顺着内核栈走回来才拿到的现场。</li>
+<li>真正会让「新 CS 下取到意外指令」的只剩与 CS 无关的两件事：栈上的返回地址被写坏，或 <code>lea</code> 的偏移算错。</li>
+</ul></details></div>
 </section>
 </div>
 </div>
@@ -1097,7 +1117,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-19 18:20 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-19 19:14 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -1464,6 +1484,30 @@ CS 与 DS/ES/FS/GS/SS 之间也没有数据依赖：CS 只决定「下一条指�
 	mov	ss, ax&lt;/code&gt;&lt;/pre&gt;
 &lt;ul&gt;&lt;li&gt;&lt;code&gt;tmp&lt;/code&gt; 是 rcx、&lt;code&gt;data_sel&lt;/code&gt; 是 ax，两者没有重叠。规避这个风险的写法是 &lt;code&gt;tmp = earlyclobber(out(reg) _)&lt;/code&gt;。&lt;/li&gt;&lt;/ul&gt;
 &lt;/details&gt;
+```
+
+**换完 CS 之后，为什么能保证新 CS 下 `retfq` 的下一条就是 `mov ds` 这串指令？**
+
+这条保证不来自 CPU，来自两个地方叠在一起。汇编器保证 `2:` 标签就贴在 `retfq` 后面（`gdt.rs:86`）。长模式下 CS 又根本不参与取指地址的计算。压进栈的不是「某个段的某个偏移」，而是一条绝对线性地址。换 CS 只换特权级和代码模式，不动这条地址。
+
+```html
+&lt;details&gt;&lt;summary&gt;保证一：返回地址是链接期就定死的线性地址&lt;/summary&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;lea {tmp}, [rip + 2f]&lt;/code&gt; 里的位移量 &lt;code&gt;2f&lt;/code&gt; 由汇编器在生成 &lt;code&gt;.s&lt;/code&gt; 时算死，&lt;code&gt;2:&lt;/code&gt; 是本块内自己定义、紧跟在 &lt;code&gt;retfq&lt;/code&gt; 后面那一行的数字局部标签（&lt;code&gt;gdt.rs:86&lt;/code&gt;）。两者指同一条指令，这层关系在汇编期就成立，不依赖任何运行期状态。&lt;/li&gt;
+&lt;li&gt;所以「retfq 之后是谁」这个问题，答案由源码文本本身给出——只要标签没写歪、这段 asm 没被拆开重排（&lt;code&gt;options(nomem)&lt;/code&gt; 已禁止编译器把内存访问跨过 asm 块搬移），release 产物里的实际字节就是：&lt;code&gt;retfq&lt;/code&gt; 紧跟 &lt;code&gt;.Ltmp34:&lt;/code&gt; 再跟 &lt;code&gt;mov ds, ax&lt;/code&gt;。上面那份 &lt;code&gt;kernel.s&lt;/code&gt; 就是证据。&lt;/li&gt;
+&lt;li&gt;唯一的人为风险点是标签位置写错：把 &lt;code&gt;2:&lt;/code&gt; 挪到别处汇编照样通过，只是算出的地址指向了别的指令。这类错误只能靠读代码发现。&lt;/li&gt;
+&lt;/ul&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;保证二：长模式下 CS 不改取指地址&lt;/summary&gt;&lt;ul&gt;
+&lt;li&gt;64 位代码段的基址一律当 0、限长不检查（SDM Vol.3 6.4.2 与 9.5）。取指地址 = RIP 里那个值，直接就是线性地址，中间不加段基址。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;kernel_code()&lt;/code&gt;（&lt;code&gt;gdt.rs:29-35&lt;/code&gt;）压根没写 base 字段，描述符里那 8 个字节除了 access 与 L 位全是 0——这就是「base=0」落地的地方。&lt;/li&gt;
+&lt;li&gt;把 L 位设成 0 就不一样了：32 位代码段要按 线性地址 = base + 偏移 算，base 非零就跳飞。所以 L=1 在这里不是风格选择，是这套写法成立的前提。&lt;/li&gt;
+&lt;li&gt;CS 换完后还管三件与地址无关的事：CPL（特权级检查与 SS 能不能写）、L 位（后续按 64 位还是 32 位解码）、装载时的描述符合法性。都不改「从哪儿取字节」。&lt;/li&gt;
+&lt;/ul&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;换个 CS 失败时，是报错而不是悄悄跑错代码&lt;/summary&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;retfq&lt;/code&gt; 装 CS 时照常做选择子合法性检查与 DPL 检查：&lt;code&gt;0x08&lt;/code&gt; 的 RPL=0、描述符 DPL=0、当前 CPL=0，三者相容才放行；描述符缺 P 位（不在内存 / L 位没置位）会直接 #GP。&lt;/li&gt;
+&lt;li&gt;也就是说，「GDT 装错」的失败形态是这条指令就抛异常，绝不会跳到某个错误上下文里执行我们的 &lt;code&gt;mov&lt;/code&gt; 串。&lt;/li&gt;
+&lt;li&gt;本 Bite 的验收反过来印证了这点：能被 #DE handler 打印出 RIP 与寄存器现场，说明 CS 换成功了——新 CS 下的取指确实回到了这段代码里，handler 顺着内核栈走回来才拿到的现场。&lt;/li&gt;
+&lt;li&gt;真正会让「新 CS 下取到意外指令」的只剩与 CS 无关的两件事：栈上的返回地址被写坏，或 &lt;code&gt;lea&lt;/code&gt; 的偏移算错。&lt;/li&gt;
+&lt;/ul&gt;&lt;/details&gt;
 ```
 </textarea>
 <script>

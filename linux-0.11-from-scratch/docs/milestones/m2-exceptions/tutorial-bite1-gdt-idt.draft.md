@@ -365,3 +365,27 @@ CS 与 DS/ES/FS/GS/SS 之间也没有数据依赖：CS 只决定「下一条指�
 <ul><li><code>tmp</code> 是 rcx、<code>data_sel</code> 是 ax，两者没有重叠。规避这个风险的写法是 <code>tmp = earlyclobber(out(reg) _)</code>。</li></ul>
 </details>
 ```
+
+**换完 CS 之后，为什么能保证新 CS 下 `retfq` 的下一条就是 `mov ds` 这串指令？**
+
+这条保证不来自 CPU，来自两个地方叠在一起。汇编器保证 `2:` 标签就贴在 `retfq` 后面（`gdt.rs:86`）。长模式下 CS 又根本不参与取指地址的计算。压进栈的不是「某个段的某个偏移」，而是一条绝对线性地址。换 CS 只换特权级和代码模式，不动这条地址。
+
+```html
+<details><summary>保证一：返回地址是链接期就定死的线性地址</summary><ul>
+<li><code>lea {tmp}, [rip + 2f]</code> 里的位移量 <code>2f</code> 由汇编器在生成 <code>.s</code> 时算死，<code>2:</code> 是本块内自己定义、紧跟在 <code>retfq</code> 后面那一行的数字局部标签（<code>gdt.rs:86</code>）。两者指同一条指令，这层关系在汇编期就成立，不依赖任何运行期状态。</li>
+<li>所以「retfq 之后是谁」这个问题，答案由源码文本本身给出——只要标签没写歪、这段 asm 没被拆开重排（<code>options(nomem)</code> 已禁止编译器把内存访问跨过 asm 块搬移），release 产物里的实际字节就是：<code>retfq</code> 紧跟 <code>.Ltmp34:</code> 再跟 <code>mov ds, ax</code>。上面那份 <code>kernel.s</code> 就是证据。</li>
+<li>唯一的人为风险点是标签位置写错：把 <code>2:</code> 挪到别处汇编照样通过，只是算出的地址指向了别的指令。这类错误只能靠读代码发现。</li>
+</ul></details>
+<details><summary>保证二：长模式下 CS 不改取指地址</summary><ul>
+<li>64 位代码段的基址一律当 0、限长不检查（SDM Vol.3 6.4.2 与 9.5）。取指地址 = RIP 里那个值，直接就是线性地址，中间不加段基址。</li>
+<li><code>kernel_code()</code>（<code>gdt.rs:29-35</code>）压根没写 base 字段，描述符里那 8 个字节除了 access 与 L 位全是 0——这就是「base=0」落地的地方。</li>
+<li>把 L 位设成 0 就不一样了：32 位代码段要按 线性地址 = base + 偏移 算，base 非零就跳飞。所以 L=1 在这里不是风格选择，是这套写法成立的前提。</li>
+<li>CS 换完后还管三件与地址无关的事：CPL（特权级检查与 SS 能不能写）、L 位（后续按 64 位还是 32 位解码）、装载时的描述符合法性。都不改「从哪儿取字节」。</li>
+</ul></details>
+<details><summary>换个 CS 失败时，是报错而不是悄悄跑错代码</summary><ul>
+<li><code>retfq</code> 装 CS 时照常做选择子合法性检查与 DPL 检查：<code>0x08</code> 的 RPL=0、描述符 DPL=0、当前 CPL=0，三者相容才放行；描述符缺 P 位（不在内存 / L 位没置位）会直接 #GP。</li>
+<li>也就是说，「GDT 装错」的失败形态是这条指令就抛异常，绝不会跳到某个错误上下文里执行我们的 <code>mov</code> 串。</li>
+<li>本 Bite 的验收反过来印证了这点：能被 #DE handler 打印出 RIP 与寄存器现场，说明 CS 换成功了——新 CS 下的取指确实回到了这段代码里，handler 顺着内核栈走回来才拿到的现场。</li>
+<li>真正会让「新 CS 下取到意外指令」的只剩与 CS 无关的两件事：栈上的返回地址被写坏，或 <code>lea</code> 的偏移算错。</li>
+</ul></details>
+```
