@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="470" viewBox="0 0 1000 470">
+  <rect width="1000" height="470" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #111827; }
+    .title { font-size: 24px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 600; }
+    .small { font-size: 13px; fill: #475569; }
+    .code { font-family: 'Noto Sans Mono CJK SC', ui-monospace, 'DejaVu Sans Mono', monospace; font-size: 13px; fill: #475569; }
+    .box { stroke: #64748b; stroke-width: 1.5; }
+  </style>
+  <text x="30" y="42" class="title">GDTR：10 字节，两个字段</text>
+  <text x="30" y="68" class="small">16 位 limit 加 64 位 base；没有第三样东西</text>
+
+  <text x="20" y="104" class="label">寄存器里的样子（80 位）</text>
+  <rect x="20" y="120" width="192" height="84" fill="#fde68a" class="box"/>
+  <rect x="212" y="120" width="768" height="84" fill="#dbeafe" class="box"/>
+  <text x="116" y="152" text-anchor="middle" class="label">limit 15:0</text>
+  <text x="116" y="178" text-anchor="middle" class="small">bit 15…0</text>
+  <text x="596" y="152" text-anchor="middle" class="label">base 63:0</text>
+  <text x="596" y="178" text-anchor="middle" class="small">bit 79…16</text>
+
+  <text x="20" y="250" class="label">lgdt 读的 10 字节伪描述符（小端）</text>
+  <rect x="20" y="268" width="96" height="84" fill="#fde68a" class="box"/>
+  <rect x="116" y="268" width="96" height="84" fill="#fde68a" class="box"/>
+  <rect x="212" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <rect x="308" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <rect x="404" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <rect x="500" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <rect x="596" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <rect x="692" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <rect x="788" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <rect x="884" y="268" width="96" height="84" fill="#e2e8f0" class="box"/>
+  <text x="68" y="316" text-anchor="middle" class="small">byte 0</text>
+  <text x="164" y="316" text-anchor="middle" class="small">byte 1</text>
+  <text x="260" y="316" text-anchor="middle" class="small">byte 2</text>
+  <text x="356" y="316" text-anchor="middle" class="small">byte 3</text>
+  <text x="452" y="316" text-anchor="middle" class="small">byte 4</text>
+  <text x="548" y="316" text-anchor="middle" class="small">byte 5</text>
+  <text x="644" y="316" text-anchor="middle" class="small">byte 6</text>
+  <text x="740" y="316" text-anchor="middle" class="small">byte 7</text>
+  <text x="836" y="316" text-anchor="middle" class="small">byte 8</text>
+  <text x="932" y="316" text-anchor="middle" class="small">byte 9</text>
+
+  <text x="116" y="392" text-anchor="middle" class="label">limit</text>
+  <text x="596" y="392" text-anchor="middle" class="label">base</text>
+  <text x="500" y="424" text-anchor="middle" class="code">GDTR(Limit) := SRC[0:15]    GDTR(Base) := SRC[16:79]</text>
+  <text x="30" y="454" class="small">寄存器整体只有这 80 位；sgdt 按同样的布局反向写回内存</text>
+</svg>

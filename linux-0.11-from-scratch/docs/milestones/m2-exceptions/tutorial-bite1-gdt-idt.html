@@ -764,7 +764,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <header class="am-head"><h1>M2 Bite1 · GDT/IDT：接管 CPU 异常</h1><p class="am-sub">扁平 GDT + 256 项 IDT + 异常现场打印，除零不再三连重启</p><div class="am-head-meta"><span><b>source</b>linux-0.11-from-scratch · M2</span></div><div class="am-intro am-md"><div class="am-md"><p>Lead: 自建 GDT 接管段寄存器，再用 IDT 接管向量 0~31。故意除零后，内核打印异常名与寄存器现场并停机。<code>make check-m2-b1</code> 已通过。</p>
 </div></div></header>
 <div class="am-doc-layout">
-<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 问题</a><a href="#panel-B">B · 背景卡片：GDT 与段描述符</a><a href="#panel-C">C · 背景卡片：IDT、异常与栈帧</a><a href="#panel-D">D · 设计</a><a href="#panel-E">E · 代码领读</a><a href="#panel-F">F · 验收</a><a href="#panel-G">G · 与原版差异、常见坑与展望</a><a href="#panel-H">H · 自测</a></nav><div class="am-doc-body">
+<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 问题</a><a href="#panel-B">B · 背景卡片：GDT 与段描述符</a><a href="#panel-C">C · 背景卡片：IDT、异常与栈帧</a><a href="#panel-D">D · 设计</a><a href="#panel-E">E · 代码领读</a><a href="#panel-F">F · 验收</a><a href="#panel-G">G · 与原版差异、常见坑与展望</a><a href="#panel-H">H · 自测</a><a href="#panel-I">I · 细节展开</a></nav><div class="am-doc-body">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>问题</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>没有自己的 IDT，一次普通异常就可能变成 triple fault。</strong></p>
@@ -996,6 +996,89 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </ul>
 </div>
 <details><summary>第 4 题答案与解析</summary><p><strong>B</strong>。可修复 fault 需要恢复现场并返回保存的 RIP；当前 hlt 路径不具备这个能力。</p></details></div>
+</section>
+<section class="am-panel" id="panel-I">
+<header class="am-panel-head"><span class="am-panel-id">I</span><h2>细节展开</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>两种顺序都合法，x86 没有规定 CS 与数据段谁先换。</strong></p>
+<p>本工程把数据段 <code>mov</code> 排在 <code>retfq</code> 之后。原因是 <code>mov ss</code> 带一条特殊语义：装完 SS 之后的那条指令边界上，中断与部分调试异常被抑制。这条语义要求 <code>mov ss</code> 排在所有栈操作之后。</p>
+<p><strong>为什么顺序可以不同</strong></p>
+<p><code>lgdt</code>（<code>gdt.rs:71</code>）只往 GDTR 写表基址和限长，六个段寄存器一个都不动。往里装选择子这一步的先后由这段代码自己安排，架构不参与裁决。</p>
+<p>CS 与 DS/ES/FS/GS/SS 之间也没有数据依赖：CS 只决定「下一条指令从哪个地址取字节」，<code>mov ds</code> 不读 CS；反过来换 CS 也不看数据段当前装的是什么。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>概念页 gdt-long-mode 的排法</th>
+<th>本工程 gdt.rs:82-91 的排法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第 1 步</td>
+<td>lgdt</td>
+<td>lgdt</td>
+</tr>
+<tr>
+<td>第 2 步</td>
+<td>mov 重载数据段</td>
+<td>压入 CS 与返回地址</td>
+</tr>
+<tr>
+<td>第 3 步</td>
+<td>压入 CS 与返回地址</td>
+<td>retfq 换 CS</td>
+</tr>
+<tr>
+<td>第 4 步</td>
+<td>retfq 换 CS</td>
+<td>mov 重载数据段</td>
+</tr>
+</tbody></table></div>
+<p><a href="../../concepts/gdt-long-mode.html">GDT 与长模式</a> 的时序图画的是左边那一列，boot 代码常这么排；本工程写成右边那一列。两条路径最终把同一批选择子装进同一批段寄存器，结果一致。</p>
+</div>
+<details><summary>逐条读这七条指令：两个 push、一个 lea、一个 retfq</summary><ul>
+<li><strong>push 8</strong>（<code>gdt.rs:82</code>）：64 位模式下 <code>push imm</code> 按 64 位操作数宽度压栈，8 字节。这个槽只有低 2 字节是 CS 选择子 <code>0x0008</code>，上面 6 字节是 0；远返回读完丢弃它们，但 RSP 照样 +8。</li>
+<li><strong>lea {tmp}, [rip + 2f]</strong>（<code>gdt.rs:83</code>）：<code>2f</code> 是 GNU 汇编的数字局部标签写法，指向本块里 <code>2:</code> 处那条指令（<code>gdt.rs:86</code>），也就是 <code>retfq</code> 后面的第一条。压进栈的是「CS 换完以后该接着执行的那条指令的地址」——换 CS 之后立刻由新 CS 解码的正是这条 <code>mov ds</code>。<code>lea</code> 只算地址，不读内存也不改标志位，本块声明 <code>preserves_flags</code> 成立。</li>
+<li><strong>为什么用 lea 而不是 push $2f</strong>：<code>push $标签</code> 要求汇编器把标签编成绝对地址，而内核可以被链接到任意物理地址。RIP 相对寻址只在「相对当前指令」的意义上成立，与加载地址无关。</li>
+<li><strong>压栈顺序</strong>（<code>gdt.rs:82-84</code>）：栈从高地址向低地址长，先压的 CS 落在高地址，后压的返回地址落在低地址。<code>retfq</code> 先弹 RIP（低地址）再弹 CS（高地址），顺序天然就对。</li>
+<li><strong>retfq</strong>（<code>gdt.rs:85</code>）：64 位操作数宽度的远返回。装 CS 时 CPU 照常做选择子合法性与 DPL 检查，<code>0x08</code> 的 RPL=0、描述符 DPL=0、当前 CPL=0，检查通过。<code>f</code> 是强制远返回，64 位模式下必须写；<code>q</code> 指定操作数宽度。</li>
+<li><strong>栈账</strong>：两次 push 共 16 字节，远返回也弹掉 16 字节（8 字节 RIP 加 8 字节 CS 槽），RSP 净回到原位。实测做法是把同一串指令放进一个 freestanding 程序里执行，前后各读一次 RSP，差值为 0。</li>
+</ul></details>
+<details><summary>mov ds, 0x10 为什么必须绕一个 16 位寄存器</summary><ul>
+<li>装载段寄存器只有 <code>MOV Sreg, r/m16</code> 一种形式（opcode 8E，Intel MOV 指令文档的编码表里 Sreg 作目的只有这一条），没有 <code>mov ds, imm16</code>。同一份文档还写明 <code>MOV</code> 不能装载 CS，尝试写触发 #UD，装 CS 只能用 far JMP / CALL / RET。</li>
+<li><code>{data_sel:x}</code> 的 <code>x</code> 修饰符强制分配 16 位寄存器中转。<code>push</code> 能吃立即数、<code>mov</code> 不能，这就是 <code>gdt.rs:92-93</code> 把 <code>code_sel</code> 声明成 <code>const</code>（省一个寄存器）而 <code>data_sel</code> 声明成 <code>in(reg)</code>（必须过寄存器）的理由。</li>
+<li>FS 和 GS 是特例：长模式下它们的基址来自 <code>IA32_FS_BASE</code> 与 <code>IA32_GS_BASE</code> 两个 MSR，不来自描述符。<code>mov fs</code> / <code>mov gs</code> 换的是选择子与它缓存的段属性，基址不动——长模式把 FS/GS 留给 TLS 正是这个原因。这里换它们是为了让选择子和属性合法，基址保留引导器留下的原值。</li>
+</ul></details>
+<details><summary>mov ss 排在最后的依据：Intel MOV 指令文档原文</summary>
+<blockquote><p>Loading the SS register with a MOV instruction suppresses or inhibits some debug exceptions and inhibits interrupts on the following instruction boundary. (The inhibition ends after delivery of an exception or the execution of the next instruction.) This behavior allows a stack pointer to be loaded into the ESP register with the next instruction (MOV ESP, stack-pointer value) before an event can be delivered. … Intel recommends that software use the LSS instruction to load the SS register and ESP together.</p></blockquote>
+<ul>
+<li>这条语义服务于 32 位的换栈竞态：SS 已指向新栈、ESP 还没指向新栈顶的那一条指令边界上，不允许事件插进来。</li>
+<li>本块的 <code>push</code>、<code>push</code>、<code>retfq</code> 全靠 SS 定位栈——<code>push</code> 隐式读 SS:SP 写 SS:SP-8，远返回从 SS:SP 弹栈。所以 <code>mov ss</code> 只能排在它们之后，它是 <code>gdt.rs:91</code>，这七条指令的最后一条。</li>
+<li>本工程只换段寄存器、不换 RSP，抑制窗口一直覆盖到函数返回前的第一条指令，这段窗口内没有栈操作，副作用为零。要连栈一起换时，Intel 推荐的写法是 <code>lss</code> 一条指令同时装 SS 与 ESP。</li>
+</ul></details>
+<details><summary>原版 Linux-0.11 的顺序，以及它的一条错注释</summary><ul>
+<li>原版的 CS 确实在数据段之前就换好了，但不是在 <code>setup_gdt</code> 里换的：16 位到 32 位过渡时就已经由 <code>reference/boot/setup.s:294</code> 的 <code>ljmp $sel_cs0, $0</code> 完成。之后的 <code>setup_gdt</code>（<code>reference/boot/head.s:107-109</code>）只剩两条指令：<code>lgdt gdt_descr</code> 与 <code>ret</code>。</li>
+<li>真正的一次段寄存器重装在 <code>reference/boot/head.s:27-31</code>：<code>movl $0x10,%eax</code> 之后依次 <code>mov %ax,%ds / %es / %fs / %gs</code>，紧跟 <code>reference/boot/head.s:32</code> 的 <code>lss stack_start,%esp</code>。SS 同样排在最后，而且 SS 与 ESP 由一条指令装完。</li>
+<li><code>reference/boot/head.s:28-29</code> 的注释写着 “after changing gdt. CS was already reloaded in 'setup_gdt'”。<code>setup_gdt</code> 只有 <code>lgdt</code> 与 <code>ret</code>，没有重载 CS，CS 是 <code>setup.s:294</code> 的 <code>ljmp</code> 换的。这条注释在原版里就不准确。</li>
+</ul></details>
+<details><summary>一个尚未触发但存在的风险：out(reg) 允许与输入共用寄存器</summary><ul>
+<li><code>gdt.rs:94</code> 的 <code>tmp = out(reg) _</code>（LLVM 的 <code>=r</code>）没有 <code>earlyclobber</code> 修饰。LLVM 契约允许输出与输入分到同一个通用寄存器，<code>earlyclobber</code> 的存在意义正是禁止这种共享。</li>
+<li>本块里 <code>tmp</code> 被 <code>lea</code> 写在前（<code>gdt.rs:83</code>），<code>data_sel</code> 被 <code>mov ds, ax</code> 读在后（<code>gdt.rs:87-91</code>）。若两者分到同一寄存器，<code>lea</code> 会先把该寄存器覆盖成标签地址，后面的 <code>mov ds, ax</code> 装进去的就不是 <code>0x10</code>。</li>
+<li>当前 release 产物没有踩到。<code>kernel/target/x86_64-unknown-none/release/build/kernel/*/out/kernel.s</code> 的实际输出：</li>
+</ul>
+<pre><code>	mov	ax, 16
+	push	8
+	lea	rcx, [rip + .Ltmp34]
+	push	rcx
+	retfq
+.Ltmp34:
+	mov	ds, ax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
+	mov	ss, ax</code></pre>
+<ul><li><code>tmp</code> 是 rcx、<code>data_sel</code> 是 ax，两者没有重叠。规避这个风险的写法是 <code>tmp = earlyclobber(out(reg) _)</code>。</li></ul>
+</details></div>
+</section>
 </section>
 </div>
 </div>
@@ -1315,6 +1398,73 @@ CPU 装载段寄存器时会回写 A 位。首版 GDT 位于只读 .rodata，这
 
 ```html
 &lt;details&gt;&lt;summary&gt;第 4 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;B&lt;/strong&gt;。可修复 fault 需要恢复现场并返回保存的 RIP；当前 hlt 路径不具备这个能力。&lt;/p&gt;&lt;/details&gt;
+```
+
+## 细节展开
+
+**两种顺序都合法，x86 没有规定 CS 与数据段谁先换。**
+
+本工程把数据段 `mov` 排在 `retfq` 之后。原因是 `mov ss` 带一条特殊语义：装完 SS 之后的那条指令边界上，中断与部分调试异常被抑制。这条语义要求 `mov ss` 排在所有栈操作之后。
+
+**为什么顺序可以不同**
+
+`lgdt`（`gdt.rs:71`）只往 GDTR 写表基址和限长，六个段寄存器一个都不动。往里装选择子这一步的先后由这段代码自己安排，架构不参与裁决。
+
+CS 与 DS/ES/FS/GS/SS 之间也没有数据依赖：CS 只决定「下一条指令从哪个地址取字节」，`mov ds` 不读 CS；反过来换 CS 也不看数据段当前装的是什么。
+
+| 步骤 | 概念页 gdt-long-mode 的排法 | 本工程 gdt.rs:82-91 的排法 |
+|---|---|---|
+| 第 1 步 | lgdt | lgdt |
+| 第 2 步 | mov 重载数据段 | 压入 CS 与返回地址 |
+| 第 3 步 | 压入 CS 与返回地址 | retfq 换 CS |
+| 第 4 步 | retfq 换 CS | mov 重载数据段 |
+
+[GDT 与长模式](../../concepts/gdt-long-mode.html) 的时序图画的是左边那一列，boot 代码常这么排；本工程写成右边那一列。两条路径最终把同一批选择子装进同一批段寄存器，结果一致。
+
+```html
+&lt;details&gt;&lt;summary&gt;逐条读这七条指令：两个 push、一个 lea、一个 retfq&lt;/summary&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;push 8&lt;/strong&gt;（&lt;code&gt;gdt.rs:82&lt;/code&gt;）：64 位模式下 &lt;code&gt;push imm&lt;/code&gt; 按 64 位操作数宽度压栈，8 字节。这个槽只有低 2 字节是 CS 选择子 &lt;code&gt;0x0008&lt;/code&gt;，上面 6 字节是 0；远返回读完丢弃它们，但 RSP 照样 +8。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;lea {tmp}, [rip + 2f]&lt;/strong&gt;（&lt;code&gt;gdt.rs:83&lt;/code&gt;）：&lt;code&gt;2f&lt;/code&gt; 是 GNU 汇编的数字局部标签写法，指向本块里 &lt;code&gt;2:&lt;/code&gt; 处那条指令（&lt;code&gt;gdt.rs:86&lt;/code&gt;），也就是 &lt;code&gt;retfq&lt;/code&gt; 后面的第一条。压进栈的是「CS 换完以后该接着执行的那条指令的地址」——换 CS 之后立刻由新 CS 解码的正是这条 &lt;code&gt;mov ds&lt;/code&gt;。&lt;code&gt;lea&lt;/code&gt; 只算地址，不读内存也不改标志位，本块声明 &lt;code&gt;preserves_flags&lt;/code&gt; 成立。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;为什么用 lea 而不是 push $2f&lt;/strong&gt;：&lt;code&gt;push $标签&lt;/code&gt; 要求汇编器把标签编成绝对地址，而内核可以被链接到任意物理地址。RIP 相对寻址只在「相对当前指令」的意义上成立，与加载地址无关。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;压栈顺序&lt;/strong&gt;（&lt;code&gt;gdt.rs:82-84&lt;/code&gt;）：栈从高地址向低地址长，先压的 CS 落在高地址，后压的返回地址落在低地址。&lt;code&gt;retfq&lt;/code&gt; 先弹 RIP（低地址）再弹 CS（高地址），顺序天然就对。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;retfq&lt;/strong&gt;（&lt;code&gt;gdt.rs:85&lt;/code&gt;）：64 位操作数宽度的远返回。装 CS 时 CPU 照常做选择子合法性与 DPL 检查，&lt;code&gt;0x08&lt;/code&gt; 的 RPL=0、描述符 DPL=0、当前 CPL=0，检查通过。&lt;code&gt;f&lt;/code&gt; 是强制远返回，64 位模式下必须写；&lt;code&gt;q&lt;/code&gt; 指定操作数宽度。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;栈账&lt;/strong&gt;：两次 push 共 16 字节，远返回也弹掉 16 字节（8 字节 RIP 加 8 字节 CS 槽），RSP 净回到原位。实测做法是把同一串指令放进一个 freestanding 程序里执行，前后各读一次 RSP，差值为 0。&lt;/li&gt;
+&lt;/ul&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;mov ds, 0x10 为什么必须绕一个 16 位寄存器&lt;/summary&gt;&lt;ul&gt;
+&lt;li&gt;装载段寄存器只有 &lt;code&gt;MOV Sreg, r/m16&lt;/code&gt; 一种形式（opcode 8E，Intel MOV 指令文档的编码表里 Sreg 作目的只有这一条），没有 &lt;code&gt;mov ds, imm16&lt;/code&gt;。同一份文档还写明 &lt;code&gt;MOV&lt;/code&gt; 不能装载 CS，尝试写触发 #UD，装 CS 只能用 far JMP / CALL / RET。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;{data_sel:x}&lt;/code&gt; 的 &lt;code&gt;x&lt;/code&gt; 修饰符强制分配 16 位寄存器中转。&lt;code&gt;push&lt;/code&gt; 能吃立即数、&lt;code&gt;mov&lt;/code&gt; 不能，这就是 &lt;code&gt;gdt.rs:92-93&lt;/code&gt; 把 &lt;code&gt;code_sel&lt;/code&gt; 声明成 &lt;code&gt;const&lt;/code&gt;（省一个寄存器）而 &lt;code&gt;data_sel&lt;/code&gt; 声明成 &lt;code&gt;in(reg)&lt;/code&gt;（必须过寄存器）的理由。&lt;/li&gt;
+&lt;li&gt;FS 和 GS 是特例：长模式下它们的基址来自 &lt;code&gt;IA32_FS_BASE&lt;/code&gt; 与 &lt;code&gt;IA32_GS_BASE&lt;/code&gt; 两个 MSR，不来自描述符。&lt;code&gt;mov fs&lt;/code&gt; / &lt;code&gt;mov gs&lt;/code&gt; 换的是选择子与它缓存的段属性，基址不动——长模式把 FS/GS 留给 TLS 正是这个原因。这里换它们是为了让选择子和属性合法，基址保留引导器留下的原值。&lt;/li&gt;
+&lt;/ul&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;mov ss 排在最后的依据：Intel MOV 指令文档原文&lt;/summary&gt;
+&lt;blockquote&gt;&lt;p&gt;Loading the SS register with a MOV instruction suppresses or inhibits some debug exceptions and inhibits interrupts on the following instruction boundary. (The inhibition ends after delivery of an exception or the execution of the next instruction.) This behavior allows a stack pointer to be loaded into the ESP register with the next instruction (MOV ESP, stack-pointer value) before an event can be delivered. … Intel recommends that software use the LSS instruction to load the SS register and ESP together.&lt;/p&gt;&lt;/blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;这条语义服务于 32 位的换栈竞态：SS 已指向新栈、ESP 还没指向新栈顶的那一条指令边界上，不允许事件插进来。&lt;/li&gt;
+&lt;li&gt;本块的 &lt;code&gt;push&lt;/code&gt;、&lt;code&gt;push&lt;/code&gt;、&lt;code&gt;retfq&lt;/code&gt; 全靠 SS 定位栈——&lt;code&gt;push&lt;/code&gt; 隐式读 SS:SP 写 SS:SP-8，远返回从 SS:SP 弹栈。所以 &lt;code&gt;mov ss&lt;/code&gt; 只能排在它们之后，它是 &lt;code&gt;gdt.rs:91&lt;/code&gt;，这七条指令的最后一条。&lt;/li&gt;
+&lt;li&gt;本工程只换段寄存器、不换 RSP，抑制窗口一直覆盖到函数返回前的第一条指令，这段窗口内没有栈操作，副作用为零。要连栈一起换时，Intel 推荐的写法是 &lt;code&gt;lss&lt;/code&gt; 一条指令同时装 SS 与 ESP。&lt;/li&gt;
+&lt;/ul&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;原版 Linux-0.11 的顺序，以及它的一条错注释&lt;/summary&gt;&lt;ul&gt;
+&lt;li&gt;原版的 CS 确实在数据段之前就换好了，但不是在 &lt;code&gt;setup_gdt&lt;/code&gt; 里换的：16 位到 32 位过渡时就已经由 &lt;code&gt;reference/boot/setup.s:294&lt;/code&gt; 的 &lt;code&gt;ljmp $sel_cs0, $0&lt;/code&gt; 完成。之后的 &lt;code&gt;setup_gdt&lt;/code&gt;（&lt;code&gt;reference/boot/head.s:107-109&lt;/code&gt;）只剩两条指令：&lt;code&gt;lgdt gdt_descr&lt;/code&gt; 与 &lt;code&gt;ret&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;真正的一次段寄存器重装在 &lt;code&gt;reference/boot/head.s:27-31&lt;/code&gt;：&lt;code&gt;movl $0x10,%eax&lt;/code&gt; 之后依次 &lt;code&gt;mov %ax,%ds / %es / %fs / %gs&lt;/code&gt;，紧跟 &lt;code&gt;reference/boot/head.s:32&lt;/code&gt; 的 &lt;code&gt;lss stack_start,%esp&lt;/code&gt;。SS 同样排在最后，而且 SS 与 ESP 由一条指令装完。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;reference/boot/head.s:28-29&lt;/code&gt; 的注释写着 “after changing gdt. CS was already reloaded in &#39;setup_gdt&#39;”。&lt;code&gt;setup_gdt&lt;/code&gt; 只有 &lt;code&gt;lgdt&lt;/code&gt; 与 &lt;code&gt;ret&lt;/code&gt;，没有重载 CS，CS 是 &lt;code&gt;setup.s:294&lt;/code&gt; 的 &lt;code&gt;ljmp&lt;/code&gt; 换的。这条注释在原版里就不准确。&lt;/li&gt;
+&lt;/ul&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;一个尚未触发但存在的风险：out(reg) 允许与输入共用寄存器&lt;/summary&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;gdt.rs:94&lt;/code&gt; 的 &lt;code&gt;tmp = out(reg) _&lt;/code&gt;（LLVM 的 &lt;code&gt;=r&lt;/code&gt;）没有 &lt;code&gt;earlyclobber&lt;/code&gt; 修饰。LLVM 契约允许输出与输入分到同一个通用寄存器，&lt;code&gt;earlyclobber&lt;/code&gt; 的存在意义正是禁止这种共享。&lt;/li&gt;
+&lt;li&gt;本块里 &lt;code&gt;tmp&lt;/code&gt; 被 &lt;code&gt;lea&lt;/code&gt; 写在前（&lt;code&gt;gdt.rs:83&lt;/code&gt;），&lt;code&gt;data_sel&lt;/code&gt; 被 &lt;code&gt;mov ds, ax&lt;/code&gt; 读在后（&lt;code&gt;gdt.rs:87-91&lt;/code&gt;）。若两者分到同一寄存器，&lt;code&gt;lea&lt;/code&gt; 会先把该寄存器覆盖成标签地址，后面的 &lt;code&gt;mov ds, ax&lt;/code&gt; 装进去的就不是 &lt;code&gt;0x10&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;当前 release 产物没有踩到。&lt;code&gt;kernel/target/x86_64-unknown-none/release/build/kernel/*/out/kernel.s&lt;/code&gt; 的实际输出：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;	mov	ax, 16
+	push	8
+	lea	rcx, [rip + .Ltmp34]
+	push	rcx
+	retfq
+.Ltmp34:
+	mov	ds, ax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
+	mov	ss, ax&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;&lt;li&gt;&lt;code&gt;tmp&lt;/code&gt; 是 rcx、&lt;code&gt;data_sel&lt;/code&gt; 是 ax，两者没有重叠。规避这个风险的写法是 &lt;code&gt;tmp = earlyclobber(out(reg) _)&lt;/code&gt;。&lt;/li&gt;&lt;/ul&gt;
+&lt;/details&gt;
 ```
 </textarea>
 <script>

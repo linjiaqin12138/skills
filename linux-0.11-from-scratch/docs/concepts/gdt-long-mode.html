@@ -764,7 +764,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <header class="am-head"><h1>GDT 与长模式：分段还剩什么用</h1><p class="am-sub">看懂段描述符、选择子、lgdt 与 retfq</p><div class="am-head-meta"><span><b>source</b>x86-64 概念深读</span></div><div class="am-intro am-md"><div class="am-md"><p>Lead: GDT 是 CPU 查找段属性的表。长模式取消了分段隔离，但仍用描述符声明代码类型和特权级。</p>
 </div></div></header>
 <div class="am-doc-layout">
-<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 一句话版本</a><a href="#panel-B">B · 为什么还需要它</a><a href="#panel-C">C · 段描述符位域</a><a href="#panel-D">D · 选择子位域</a><a href="#panel-E">E · 换表、换 CS 与 A 位</a><a href="#panel-F">F · 最小可运行示例</a><a href="#panel-G">G · 公开资料</a><a href="#panel-H">H · 自测</a></nav><div class="am-doc-body">
+<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 一句话版本</a><a href="#panel-B">B · 为什么还需要它</a><a href="#panel-C">C · 段描述符位域</a><a href="#panel-D">D · 选择子位域</a><a href="#panel-E">E · GDTR 位布局与伪描述符</a><a href="#panel-F">F · 换表、换 CS 与 A 位</a><a href="#panel-G">G · 最小可运行示例</a><a href="#panel-H">H · 公开资料</a><a href="#panel-I">I · 自测</a></nav><div class="am-doc-body">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>一句话版本</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>GDT 是一张固定格式的表，每一行描述一个代码段或数据段。</strong></p>
@@ -943,7 +943,47 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div></div>
 </section>
 <section class="am-panel" id="panel-E">
-<header class="am-panel-head"><span class="am-panel-id">E</span><h2>换表、换 CS 与 A 位</h2></header>
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>GDTR 位布局与伪描述符</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>GDTR 只装两个字段：一个 16 位 limit 和一个 64 位 base，加起来正好 10 字节。</strong></p>
+<figure class="am-figure"><img data-am-src="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/gdt-long-mode/gdtr.svg" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjQ3MCIgdmlld0JveD0iMCAwIDEwMDAgNDcwIj4KICA8cmVjdCB3aWR0aD0iMTAwMCIgaGVpZ2h0PSI0NzAiIGZpbGw9IiNmOGZhZmMiLz4KICA8c3R5bGU+CiAgICB0ZXh0IHsgZm9udC1mYW1pbHk6ICdOb3RvIFNhbnMgQ0pLIFNDJywgJ1BpbmdGYW5nIFNDJywgJ01pY3Jvc29mdCBZYUhlaScsIHNhbnMtc2VyaWY7IGZpbGw6ICMxMTE4Mjc7IH0KICAgIC50aXRsZSB7IGZvbnQtc2l6ZTogMjRweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogICAgLmxhYmVsIHsgZm9udC1zaXplOiAxNXB4OyBmb250LXdlaWdodDogNjAwOyB9CiAgICAuc21hbGwgeyBmb250LXNpemU6IDEzcHg7IGZpbGw6ICM0NzU1Njk7IH0KICAgIC5jb2RlIHsgZm9udC1mYW1pbHk6ICdOb3RvIFNhbnMgTW9ubyBDSksgU0MnLCB1aS1tb25vc3BhY2UsICdEZWphVnUgU2FucyBNb25vJywgbW9ub3NwYWNlOyBmb250LXNpemU6IDEzcHg7IGZpbGw6ICM0NzU1Njk7IH0KICAgIC5ib3ggeyBzdHJva2U6ICM2NDc0OGI7IHN0cm9rZS13aWR0aDogMS41OyB9CiAgPC9zdHlsZT4KICA8dGV4dCB4PSIzMCIgeT0iNDIiIGNsYXNzPSJ0aXRsZSI+R0RUUu+8mjEwIOWtl+iKgu+8jOS4pOS4quWtl+autTwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iNjgiIGNsYXNzPSJzbWFsbCI+MTYg5L2NIGxpbWl0IOWKoCA2NCDkvY0gYmFzZe+8m+ayoeacieesrOS4ieagt+S4nOilvzwvdGV4dD4KCiAgPHRleHQgeD0iMjAiIHk9IjEwNCIgY2xhc3M9ImxhYmVsIj7lr4TlrZjlmajph4znmoTmoLflrZDvvIg4MCDkvY3vvIk8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjEyMCIgd2lkdGg9IjE5MiIgaGVpZ2h0PSI4NCIgZmlsbD0iI2ZkZTY4YSIgY2xhc3M9ImJveCIvPgogIDxyZWN0IHg9IjIxMiIgeT0iMTIwIiB3aWR0aD0iNzY4IiBoZWlnaHQ9Ijg0IiBmaWxsPSIjZGJlYWZlIiBjbGFzcz0iYm94Ii8+CiAgPHRleHQgeD0iMTE2IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+bGltaXQgMTU6MDwvdGV4dD4KICA8dGV4dCB4PSIxMTYiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5iaXQgMTXigKYwPC90ZXh0PgogIDx0ZXh0IHg9IjU5NiIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPmJhc2UgNjM6MDwvdGV4dD4KICA8dGV4dCB4PSI1OTYiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5iaXQgNznigKYxNjwvdGV4dD4KCiAgPHRleHQgeD0iMjAiIHk9IjI1MCIgY2xhc3M9ImxhYmVsIj5sZ2R0IOivu+eahCAxMCDlrZfoioLkvKrmj4/ov7DnrKbvvIjlsI/nq6/vvIk8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjI2OCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijg0IiBmaWxsPSIjZmRlNjhhIiBjbGFzcz0iYm94Ii8+CiAgPHJlY3QgeD0iMTE2IiB5PSIyNjgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI4NCIgZmlsbD0iI2ZkZTY4YSIgY2xhc3M9ImJveCIvPgogIDxyZWN0IHg9IjIxMiIgeT0iMjY4IiB3aWR0aD0iOTYiIGhlaWdodD0iODQiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz4KICA8cmVjdCB4PSIzMDgiIHk9IjI2OCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijg0IiBmaWxsPSIjZTJlOGYwIiBjbGFzcz0iYm94Ii8+CiAgPHJlY3QgeD0iNDA0IiB5PSIyNjgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI4NCIgZmlsbD0iI2UyZThmMCIgY2xhc3M9ImJveCIvPgogIDxyZWN0IHg9IjUwMCIgeT0iMjY4IiB3aWR0aD0iOTYiIGhlaWdodD0iODQiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz4KICA8cmVjdCB4PSI1OTYiIHk9IjI2OCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijg0IiBmaWxsPSIjZTJlOGYwIiBjbGFzcz0iYm94Ii8+CiAgPHJlY3QgeD0iNjkyIiB5PSIyNjgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI4NCIgZmlsbD0iI2UyZThmMCIgY2xhc3M9ImJveCIvPgogIDxyZWN0IHg9Ijc4OCIgeT0iMjY4IiB3aWR0aD0iOTYiIGhlaWdodD0iODQiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz4KICA8cmVjdCB4PSI4ODQiIHk9IjI2OCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijg0IiBmaWxsPSIjZTJlOGYwIiBjbGFzcz0iYm94Ii8+CiAgPHRleHQgeD0iNjgiIHk9IjMxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5ieXRlIDA8L3RleHQ+CiAgPHRleHQgeD0iMTY0IiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+Ynl0ZSAxPC90ZXh0PgogIDx0ZXh0IHg9IjI2MCIgeT0iMzE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic21hbGwiPmJ5dGUgMjwvdGV4dD4KICA8dGV4dCB4PSIzNTYiIHk9IjMxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5ieXRlIDM8L3RleHQ+CiAgPHRleHQgeD0iNDUyIiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+Ynl0ZSA0PC90ZXh0PgogIDx0ZXh0IHg9IjU0OCIgeT0iMzE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic21hbGwiPmJ5dGUgNTwvdGV4dD4KICA8dGV4dCB4PSI2NDQiIHk9IjMxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5ieXRlIDY8L3RleHQ+CiAgPHRleHQgeD0iNzQwIiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+Ynl0ZSA3PC90ZXh0PgogIDx0ZXh0IHg9IjgzNiIgeT0iMzE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic21hbGwiPmJ5dGUgODwvdGV4dD4KICA8dGV4dCB4PSI5MzIiIHk9IjMxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5ieXRlIDk8L3RleHQ+CgogIDx0ZXh0IHg9IjExNiIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPmxpbWl0PC90ZXh0PgogIDx0ZXh0IHg9IjU5NiIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPmJhc2U8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSI0MjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJjb2RlIj5HRFRSKExpbWl0KSA6PSBTUkNbMDoxNV0gICAgR0RUUihCYXNlKSA6PSBTUkNbMTY6NzldPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSI0NTQiIGNsYXNzPSJzbWFsbCI+5a+E5a2Y5Zmo5pW05L2T5Y+q5pyJ6L+ZIDgwIOS9je+8m3NnZHQg5oyJ5ZCM5qC355qE5biD5bGA5Y+N5ZCR5YaZ5Zue5YaF5a2YPC90ZXh0Pgo8L3N2Zz4K" alt="GDTR 的 limit 与 base 两段字段，以及 lgdt 读入的 10 字节内存伪描述符"><figcaption>GDTR 的 limit 与 base 两段字段，以及 lgdt 读入的 10 字节内存伪描述符</figcaption></figure>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>宽度</th>
+<th>内存伪描述符里的位置</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>limit</td>
+<td>16 位</td>
+<td>byte 0–1</td>
+<td>表最后一个字节相对 base 的偏移</td>
+</tr>
+<tr>
+<td>base</td>
+<td>64 位</td>
+<td>byte 2–9</td>
+<td>表第一个字节的线性地址</td>
+</tr>
+</tbody></table></div>
+<p>Intel 在 LGDT/LIDT 的指令参考里直接写死了这个切分：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code><span class="am-ln">ELSE IF 64-bit Operand Size (* In 64-bit Mode *)</span><span class="am-ln">    THEN</span><span class="am-ln">        GDTR(Limit) := SRC[0:15];</span><span class="am-ln">        GDTR(Base)  := SRC[16:79];</span></code></pre></figure>
+<div class="am-md"><p><code>SRC</code> 是那个 10 字节内存操作数，低地址的字节排在前面。所以 GDTR 整体只有 80 位——所谓「64 位 base」说的是字段宽度，不是寄存器宽度。</p>
+<p><strong>limit 是最后一个字节的偏移，不是表长。</strong> 把它加到 base 上，得到的就是最后一个有效字节的地址。GDT 有 n 项、每项 8 字节，limit = n × 8 − 1。3 项的表占 24 字节，limit 写 23，也就是 <code>0x17</code>。Intel 的原话是 GDT limit 必须写成 8N − 1。</p>
+<p><strong>limit 只有 16 位，这是硬上限。</strong> 最大 <code>0xFFFF</code> 对应 65536 字节，也就是 8192 项。Intel 明确写了长模式下描述符表最多容纳 8192 个 8 字节描述符。</p>
+<p><strong>长模式不检查段的 limit，但表 limit 仍然有效。</strong> 代码段和数据段的 base、limit 在长模式被忽略；GDTR.limit 不同，CPU 仍然拿它挡掉指向表外的选择子。</p>
+</div>
+<div class="am-callout am-callout--warn" role="note"><div class="am-callout-title">limit 写成表长，会短掉一个字节</div><div class="am-callout-body am-md"><p>3 项的表把 limit 填成 24 = 0x18，最后一项描述符的末字节就落在 limit 之外。【合理推断】访问那一个字节可能被算成越过表 limit，从而抛 #GP；Intel 只规定了 8N − 1 的写法，没有逐条描述这种偏差的后果。</p>
+</div></div>
+<div class="am-md"><p>base 是 GDT 首字节的线性地址。长模式下这个字段占满 64 位，但取的值必须是 canonical 地址。低 4GB 的任何地址都满足这个条件，GDT 一般就放在低 4GB。</p>
+<p><code>sgdt</code> 是镜像操作：按同样的 10 字节布局把 GDTR 写回内存，用来查看 CPU 读到的 GDTR。IDTR 是同一套结构（16 位 limit 加 64 位 base，一对指令是 <code>lidt</code> 和 <code>sidt</code>），本篇不展开。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>换表、换 CS 与 A 位</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>lgdt 只更换表地址，不会自动更新所有段寄存器。</strong></p>
 <p>DS、ES、FS、GS、SS 可用 <code>mov</code> 重载。CS 没有对应的 <code>mov</code> 指令，常用 <code>retfq</code> 构造远返回来切换。</p>
 </div>
@@ -964,8 +1004,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>代价是它要借用栈：执行前栈上需要 16 字节连续可写空间。boot 代码的栈由引导程序准备好，这条通常自动满足；自己搭环境时，它往往是第一个要确认的条件。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>最小可运行示例</h2></header>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>最小可运行示例</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>一个长模式代码段描述符，主要是几组标志位的按位或。</strong></p>
 <p>保存为 <code>gdt_desc.rs</code>，执行 <code>rustc gdt_desc.rs &amp;&amp; ./gdt_desc</code>：</p>
 </div>
@@ -976,8 +1016,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-md"><p><code>0b1011</code> 同时声明可执行、可读和 A=1。这里的 A=1 用来避免 CPU 回写描述符。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-G">
-<header class="am-panel-head"><span class="am-panel-id">G</span><h2>公开资料</h2></header>
+<section class="am-panel" id="panel-H">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>公开资料</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>先对照位布局，再用运行示例验证自己的理解。</strong></p>
 <ul>
 <li>OSDev Wiki：<a href="https://wiki.osdev.org/GDT">GDT</a></li>
@@ -986,8 +1026,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </ul>
 </div></div>
 </section>
-<section class="am-panel" id="panel-H">
-<header class="am-panel-head"><span class="am-panel-id">H</span><h2>自测</h2></header>
+<section class="am-panel" id="panel-I">
+<header class="am-panel-head"><span class="am-panel-id">I</span><h2>自测</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>1. 选择子 <code>0x18</code> 指向 GDT 第几项？RPL 是多少？</strong></p>
 <ul>
 <li>A. 第 2 项，RPL=3</li>
@@ -1023,7 +1063,16 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li>D. access byte 的 R 位</li>
 </ul>
 </div>
-<details><summary>第 4 题答案与解析</summary><p><strong>A</strong>。L=1 声明 64 位代码段；base 和 limit 通常被忽略。</p></details></div>
+<details><summary>第 4 题答案与解析</summary><p><strong>A</strong>。L=1 声明 64 位代码段；base 和 limit 通常被忽略。</p></details>
+<div class="am-md"><p><strong>5. GDT 建了 3 项（null、64 位代码段、数据段），limit 该填多少？</strong></p>
+<ul>
+<li>A. 24，直接写表长</li>
+<li>B. 23，也就是 <code>0x17</code></li>
+<li>C. 32，按每项 16 字节的系统描述符算</li>
+<li>D. 22，把第 0 项从表长里扣掉后再减 1</li>
+</ul>
+</div>
+<details><summary>第 5 题答案与解析</summary><p><strong>B</strong>。limit 是末字节偏移，3 × 8 − 1 = 23 = 0x17。A 多算了 1 个字节；C 错在 8 字节描述符没有 16 字节那档；D 错在第 0 项仍占 8 字节，limit 只减 1。</p></details></div>
 </section>
 </div>
 </div>
@@ -1043,7 +1092,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-18 18:39 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-19 14:15 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -1131,6 +1180,42 @@ flags 中的 L=1 表示 64 位代码段。D/B 位必须按代码类型设置，�
 计算规则是 `selector = (index &lt;&lt; 3) | (TI &lt;&lt; 2) | RPL`。
 
 GDT 第 0 项必须是 null 描述符。因此索引 1 对应选择子 `0x08`，索引 2 对应 `0x10`。
+
+## GDTR 位布局与伪描述符
+
+**GDTR 只装两个字段：一个 16 位 limit 和一个 64 位 base，加起来正好 10 字节。**
+
+![GDTR 的 limit 与 base 两段字段，以及 lgdt 读入的 10 字节内存伪描述符](/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/gdt-long-mode/gdtr.svg)
+
+| 字段 | 宽度 | 内存伪描述符里的位置 | 含义 |
+|---|---|---|---|
+| limit | 16 位 | byte 0–1 | 表最后一个字节相对 base 的偏移 |
+| base | 64 位 | byte 2–9 | 表第一个字节的线性地址 |
+
+Intel 在 LGDT/LIDT 的指令参考里直接写死了这个切分：
+
+```
+ELSE IF 64-bit Operand Size (* In 64-bit Mode *)
+    THEN
+        GDTR(Limit) := SRC[0:15];
+        GDTR(Base)  := SRC[16:79];
+```
+
+`SRC` 是那个 10 字节内存操作数，低地址的字节排在前面。所以 GDTR 整体只有 80 位——所谓「64 位 base」说的是字段宽度，不是寄存器宽度。
+
+**limit 是最后一个字节的偏移，不是表长。** 把它加到 base 上，得到的就是最后一个有效字节的地址。GDT 有 n 项、每项 8 字节，limit = n × 8 − 1。3 项的表占 24 字节，limit 写 23，也就是 `0x17`。Intel 的原话是 GDT limit 必须写成 8N − 1。
+
+**limit 只有 16 位，这是硬上限。** 最大 `0xFFFF` 对应 65536 字节，也就是 8192 项。Intel 明确写了长模式下描述符表最多容纳 8192 个 8 字节描述符。
+
+**长模式不检查段的 limit，但表 limit 仍然有效。** 代码段和数据段的 base、limit 在长模式被忽略；GDTR.limit 不同，CPU 仍然拿它挡掉指向表外的选择子。
+
+```callout warn limit 写成表长，会短掉一个字节
+3 项的表把 limit 填成 24 = 0x18，最后一项描述符的末字节就落在 limit 之外。【合理推断】访问那一个字节可能被算成越过表 limit，从而抛 #GP；Intel 只规定了 8N − 1 的写法，没有逐条描述这种偏差的后果。
+```
+
+base 是 GDT 首字节的线性地址。长模式下这个字段占满 64 位，但取的值必须是 canonical 地址。低 4GB 的任何地址都满足这个条件，GDT 一般就放在低 4GB。
+
+`sgdt` 是镜像操作：按同样的 10 字节布局把 GDTR 写回内存，用来查看 CPU 读到的 GDTR。IDTR 是同一套结构（16 位 limit 加 64 位 base，一对指令是 `lidt` 和 `sidt`），本篇不展开。
 
 ## 换表、换 CS 与 A 位
 **lgdt 只更换表地址，不会自动更新所有段寄存器。**
@@ -1253,6 +1338,17 @@ flags nibble = 0b0010
 
 ```html
 &lt;details&gt;&lt;summary&gt;第 4 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;A&lt;/strong&gt;。L=1 声明 64 位代码段；base 和 limit 通常被忽略。&lt;/p&gt;&lt;/details&gt;
+```
+
+**5. GDT 建了 3 项（null、64 位代码段、数据段），limit 该填多少？**
+
+- A. 24，直接写表长
+- B. 23，也就是 `0x17`
+- C. 32，按每项 16 字节的系统描述符算
+- D. 22，把第 0 项从表长里扣掉后再减 1
+
+```html
+&lt;details&gt;&lt;summary&gt;第 5 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;B&lt;/strong&gt;。limit 是末字节偏移，3 × 8 − 1 = 23 = 0x17。A 多算了 1 个字节；C 错在 8 字节描述符没有 16 字节那档；D 错在第 0 项仍占 8 字节，limit 只减 1。&lt;/p&gt;&lt;/details&gt;
 ```
 </textarea>
 <script>
