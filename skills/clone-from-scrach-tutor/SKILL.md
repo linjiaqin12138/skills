@@ -41,6 +41,7 @@ description: 将任意开源项目拆解为"从零手搓"交互式教程——�
 │   └── milestones/
 │       └── m<N>-<slug>/        # 每个里程碑一个文件夹，教程成书的基本单元
 │           ├── tutorial-bite<K>-<slug>.html  # 每个 Bite 一篇独立教程（answer-me-with-html 单文件 HTML；用户提问与解答记录在该篇「细节展开」面板）
+│           ├── tutorial-bite<K>-<slug>.draft.md  # 上者的源稿，唯一编辑对象，入 git；HTML 由 bin/am-render 整页重渲生成
 │           ├── acceptance.md   # 验收命令 + 实测输出 + 涉及代码文件清单
 │           └── assets/         # 图片/动画素材：tutorial 直接引用 dst/ 下的产物
 │               ├── src/        #   生成脚本与图源文件（fireworks JSON、arch.d2/json、matplotlib 脚本等）
@@ -52,7 +53,7 @@ description: 将任意开源项目拆解为"从零手搓"交互式教程——�
 - **STATE.md 必须包含**：当前 Phase / 里程碑 / Bite 编号与状态（未开始/待验收/已通过）、下一步动作一句话、偏差簿当前计数、**功能清单路径与未交付项计数**、关键路径（reference 位置、构建与验收命令、**最新架构图路径**）、用户偏好文件指针（用户级 `~/.clone-from-scratch-tutor/user-prefs.md` + 项目级 docs/user-prefs.md）。
 - **更新时机**：每个 Bite 交付后、每个 Phase 结束后、用户提出影响后续内容的疑问后，立即更新对应文档——不是收尾时补，是当场写。
 - **续传流程**：被调用时先检查当前目录是否已有 `*-from-scratch/docs/STATE.md`；有则读 STATE.md + 项目级 user-prefs.md + deviations.md + feature-inventory.md + 最近一个里程碑文件夹，从记录的状态继续，不重做已完成的工作，不重新询问已记录的偏好。
-- **提问记录**：用户的提问与解答不单独建文件，当场整理成"加粗问题 + 一段话"的条目，写进**对应 Bite 的 tutorial 页面的「细节展开」面板**（该 Bite 已交付就用 `am patch --panel "细节展开"` 重渲该面板；与问题相关的代码行号、图表交叉引用一并留在条目里）；归属跨 Bite / 跨里程碑的概念问题才写进 `docs/concepts/<slug>.html`。
+- **提问记录**：用户的提问与解答不单独建文件，当场整理成"加粗问题 + 一段话"的条目，写进**对应 Bite 的 tutorial 页面的「细节展开」面板**（改 `<页面同名>.draft.md` 草稿后用 `bin/am-render` 整页重渲——草稿是唯一编辑对象，禁止 `am patch`，细则见 writer-subagent.md「tutorial 产出格式」；与问题相关的代码行号、图表交叉引用一并留在条目里）；归属跨 Bite / 跨里程碑的概念问题才写进 `docs/concepts/<slug>.html`。
 
 ## 环境与依赖
 

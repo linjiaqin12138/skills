@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# bin/am-render — answer-me-with-html 的薄封装：渲染 + 图片去内嵌。
+#
+# 用法与 `node vendor/answer-me-with-html/scripts/am.mjs render` 完全一致，
+# 追加的 --style strict 是本项目硬约定，可显式传 --style 覆盖。
+# 渲染成功后，把输出 HTML 里被内嵌成 base64 的 <img> 还原成相对路径链接
+# （data-am-src 保留原绝对路径，不影响后续 am patch 再内嵌）。
+#
+# 为什么存在：am 没有"图片不内嵌"开关（内嵌是刻意的，保证单文件离线可开），
+# 但内嵌让 200KB 级的 HTML 里塞满单行 base64，agent 读改页面的 token 开销
+# 是草稿的十几倍。本项目页面只在 git 仓库本地打开，assets 都入库，link 够用。
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+AM="$HERE/../vendor/answer-me-with-html/scripts/am.mjs"
+
+# 默认 strict，用户显式传了 --style 则不加
+has_style=0
+out=""
+prev=""
+for a in "$@"; do
+  [ "$a" = "--style" ] && has_style=1
+  [ "$prev" = "-o" ] && out="$a"
+  prev="$a"
+done
+args=("$@")
+[ "$has_style" = 0 ] && args+=("--style" "strict")
+
+node "$AM" render "${args[@]}"
+
+# 没指定 -o 时渲染到 AM_HOME，去内嵌无意义（不在仓库内），跳过
+[ -n "$out" ] || exit 0
+
+node - "$out" <<'NODE'
+const fs = require('fs'), path = require('path');
+const f = process.argv[2];
+const dir = path.dirname(path.resolve(f));
+const html = fs.readFileSync(f, 'utf8');
+const before = Buffer.byteLength(html);
+let n = 0, skipped = 0;
+const out = html.replace(
+  /(<img\b[^>]*?\bdata-am-src="([^"]*)"\s+src=")data:[^"]*"/g,
+  (all, pre, abs) => {
+    if (!fs.existsSync(abs)) { skipped++; return all; }
+    const rel = path.relative(dir, abs);
+    n++;
+    return pre + rel + '"';
+  });
+if (n) fs.writeFileSync(f, out);
+const after = Buffer.byteLength(fs.readFileSync(f, 'utf8'));
+console.log(`am-render: 去内嵌 ${n} 张图片（${(before/1024).toFixed(0)}KB → ${(after/1024).toFixed(0)}KB）${skipped ? `，${skipped} 张源文件缺失保留内嵌` : ''}`);
+NODE

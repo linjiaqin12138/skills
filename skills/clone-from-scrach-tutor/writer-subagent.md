@@ -52,18 +52,19 @@
 tutorial 不写 markdown：你写内容草稿（扩展 Markdown，每个 `##` 一个面板），用 vendor 里的 answer-me-with-html 工具自带的 CLI 渲染成单文件 HTML。
 
 - **CLI 位置**：工作区 `vendor/answer-me-with-html/scripts/am.mjs`（即 skills 根目录平级的 `vendor/` 下；找不到就先 Glob 搜 `**/vendor/answer-me-with-html/scripts/am.mjs`）；Node 20+、零依赖。草稿格式与组件语法全文读 `vendor/answer-me-with-html/SKILL.md`，组件细节用 `node <am.mjs> help <组件名>` 查。
-- **渲染**：草稿写进临时文件，`node <am.mjs> render <草稿文件> -o docs/milestones/m<N>-<slug>/tutorial-bite<K>-<slug>.html --style strict`。**STE 一律 strict**：警告不清零就不出页，按提示改写后重渲，最多两轮；改完重渲加 `--replace <上次的 html>`，一个 Bite 只留一个页面。
+- **渲染**：草稿落盘为 `docs/milestones/m<N>-<slug>/tutorial-bite<K>-<slug>.draft.md`（与 HTML 同名加 `.draft` 后缀），渲染用薄封装 `bin/am-render <草稿> -o docs/milestones/m<N>-<slug>/tutorial-bite<K>-<slug>.html`。该封装固定 `--style strict`，并在渲染后把内嵌图片还原为相对路径链接（`data-am-src` 保留原绝对路径）。**STE 一律 strict**：警告不清零就不出页，按提示改写后重渲，最多两轮；一个 Bite 只留一个页面（`-o` 原地覆盖）。
+- **草稿是唯一编辑对象，HTML 是产物（2026-10-19 起生效的硬约定）**：草稿入 git、与 HTML 同目录同 commit；**禁止**手工改 HTML、**禁止** `am patch`（patch 会按 `src=` 重读当前代码文件，旧页面的代码嵌入块和行号会漂移成新内容、与旧正文矛盾）。后续修订一律改草稿 + `bin/am-render` 整页重渲——重渲会让 `src=` 代码块跟随当前代码，这正是期望行为；代价是草稿正文里的 `文件:行号` 引用要在同一次改动里同步核对。验收页面时不再把 HTML 读进上下文，用浏览器目检（面板非空、图在显示、动画在动）即可。
 - **面板 = 固定章节**：面板顺序即上面的章节顺序——问题 → 背景概念铺垫（每张背景卡片一个面板）→ 设计 → 代码领读 → 验收 → 与原版差异 → 常见坑与展望 → 自测 → 细节展开。每章 1~2 个面板；总面板超 8 个就合并次要章节（自测面板不可裁），禁止堆面板。
 - **组件选择**：模块关系/数据流/决策分支用 ```` ```flow ````；时序/握手用 ```` ```sequence ````（替代 mermaid 嵌文）；层级/目录用 ```` ```tree ````；多维对比用 Markdown 表格（ok/no/warn 状态列自动变徽章）；结论与坑用 ```` ```callout ````。`arch.svg` 用图片语法 `![本里程碑架构](assets/dst/arch.svg 的绝对路径)` 单独成行嵌入面板；分层子图（arch-<模块>.svg）给相对链接不内嵌。**图内只写名字和极简标签，解释放图外**。**注意：flow/sequence 不是 mermaid——节点身份就是括号内的文本本身，没有 `id[label]` / `id{label}` 写法**（写了会裂成多个节点、边接到死胡同）；菱形是 `{文本}`、高亮是 `*文本`。第一次写 flow 前必须先 `node <am.mjs> help flow` 核对语法（教训：Bite 8 用 mermaid 习惯写 `A[证据] --> D{前提}`，渲染出 6 个节点，用户看图发现不对）。
 - **代码领读**：真实代码用 ```` ```rust src=path/to/file.rs lines=18-30 hl=22 ```` 空代码块——CLI 自己读文件，不手抄，代码保证为真；路径必须在当前工作目录内，每段 10~40 行。
 - **自绘 SVG（内存分布、加载动画等组件表达不了的示意图）**：用 ```` ```svg ```` 块内嵌，**必须写 width 和 height 属性**——只写 viewBox 会被页面布局压成 0×0，整图空白。动画内嵌 SMIL（`animate` / `animateMotion`），打开页面即循环播放；自带深色底 rect，不依赖页面明暗模式。
-- **后续修订**：单章内容变化（如「细节展开」追加提问条目）用 `node <am.mjs> patch <page.html> --panel "细节展开"` 只重渲该面板；patch 从页面内嵌的 `#am-source` 读原草稿，不需要保留草稿文件。
+- **后续修订**：改 `.draft.md` 草稿后用 `bin/am-render` 整页重渲（见上一条硬约定），不用 `am patch`。
 
 ## 概念深读页面（docs/concepts/<slug>.html）
 
 概念首次出现、且背景卡片不足以让读者独立看懂时，你在对应里程碑一并产出概念深读页面（读者不在这个领域就基本接触不到的概念：IMU、四元数、插值、NDJSON 分帧、原子内存序等）。写作时按 `explain-it` 的流程来：先判断读者缺的是感知经验、背景知识还是心智模型，再选对应手段；按小白能独立读懂的标准写。
 
-- **必须用 answer-me-with-html 渲染**（`--style strict`），产出 `docs/concepts/<slug>.html`，不写 markdown 交付；后续修订用 `am patch`
+- **必须用 answer-me-with-html 渲染**（`--style strict`，经 `bin/am-render`），产出 `docs/concepts/<slug>.html`，草稿落盘 `docs/concepts/<slug>.draft.md` 入 git；后续修订改草稿整页重渲，不用 `am patch`
 - **只讲概念本身（硬标准）**：全文不提本项目——不出现项目名、不引用本项目代码行号。概念与本项目的对应关系由 tutorial 的背景卡片负责（卡片写"本项目在哪用到它"并链接概念页），概念页自己不回头
 - **该画图必须画图**：位域、内存布局、时序、状态机、空间关系这类可图形化题材必须配图——自绘 SVG 用 ```` ```svg ```` 内嵌（带 width/height，动画走 SMIL），关系/流程用 flow/sequence 组件。图内文字极简（名字+关键标注），解释放图外；发现自己在用文字描述一张图，就画成图
 - **先搜现成素材，再自制**：通用概念先上网找现成讲解（B 站、YouTube、官方文档、科普动画），链接放进页面；项目专属的代码逻辑网上没有现成讲解，自制演示动画或分帧图。命中上一条题材的，现成链接之外仍必须有自制的图
