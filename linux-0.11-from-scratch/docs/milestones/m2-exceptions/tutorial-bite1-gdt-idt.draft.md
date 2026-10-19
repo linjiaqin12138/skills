@@ -389,3 +389,286 @@ CS 与 DS/ES/FS/GS/SS 之间也没有数据依赖：CS 只决定「下一条指�
 <li>真正会让「新 CS 下取到意外指令」的只剩与 CS 无关的两件事：栈上的返回地址被写坏，或 <code>lea</code> 的偏移算错。</li>
 </ul></details>
 ```
+
+**GDT 里三段的基址全是 0，CPU 靠什么找到内核代码。**
+
+靠 RIP。长模式下段机制不参与地址翻译，那三个 base 字段不是被忽略的残留，而是这一层压根没有活干。翻译分两段，段机制是第一段，分页是第二段。第一段在长模式下被硬件阉割成恒等映射，第二段还没轮到我们做。
+
+```html
+<details><summary>第一段：段机制 → 线性地址，在长模式下被取消</summary><ul>
+<li>32 位保护模式的公式是 线性 = CS.base + 偏移，取指时硬件真会加这一下。</li>
+<li>64 位模式下这条加法没了：CS 的 base 硬件一律当 0，limit 对 64 位代码段也不检查（SDM Vol.3 6.4.2 / 9.5）。于是 线性 = RIP。</li>
+<li>所以描述符里那 4 字节 base 的规格要求变成「必须是 0」，<code>kernel_code()</code>（<code>gdt.rs:29-35</code>）干脆不写它，正好合规。</li>
+<li>反例是 L=0 的 32 位代码段：far jmp 到它时按 base + 偏移算，base 非零就跳飞。<code>gdt.rs:33</code> 那行 <code>FLAG_LONG_MODE</code> 因此不是风格选择，是这套写法成立的前提。</li>
+</ul></details>
+<details><summary>第二段：线性 → 物理，由页表做，眼下还不是我们的活</summary><ul>
+<li>真正做翻译的是分页。M2 Bite1 时我们一行页表代码都没写，跳进来的页表是 Limine 建的。</li>
+<li> Limine 交接那张时序图第二拍写的就是它：建页表、进长模式、映射高半区（<code>tutorial-bite2-iso-boot.draft.md:80</code>）。</li>
+<li>眼下 RIP = 线性 成立（长模式恒等），但 RIP = 物理 不成立：Limine 把内核镜像映射到高半区链接地址，页表项指向它加载内核时用的那批物理页。</li>
+<li>framebuffer 的指针值也不是恒等映射。实测 <code>framebuffer.address()</code> 打印为 <code>0xffff8000fd000000</code>：这是 Limine 的高半区直接映射（HHDM）视角，物理显存在 <code>0xfd000000</code>，偏移是 <code>0xffff800000000000</code>。协议规定所有指针默认带 HHDM 偏移（PROTOCOL.md「General Notes」）。</li>
+<li>「低 4GB 恒等映射」只是 base revision 0 的遗留约定，我们请求的是 revision 3，已经没有它。所以写显存靠的是 HHDM，不是恒等。</li>
+<li>实测这台机器物理内存只有 128MB（<code>Makefile:11</code> 的 <code>-m 128M</code>）。高半区那串地址只是虚拟地址空间里的一个编号，不占任何物理内存。</li>
+<li>真正吃物理内存的是被映射的页：内核镜像三个 LOAD 段合计约 115KB，加上页表本身几 KB。地址空间大小与内存大小是两件事。</li>
+<li>等自己做页表那一步，「段基址是 0」还省了事：不必为每个段另维护一份内存布局，段退化成纯权限标签。</li>
+</ul></details>
+<details><summary>那 GDT 描述符在长模式下还剩什么用</summary><ul>
+<li>合法性：P 位与 type 位决定装段寄存器时是否 #GP。</li>
+<li>CPL：<code>retfq</code> 装 <code>0x08</code> 时比 RPL / 描述符 DPL / 当前 CPL，决定特权级、SS 能否写、以后能否 iret 回用户态。</li>
+<li>L 位：唯一开关——它决定后续按 64 位还是 32 位解码指令。「这是一段 64 位代码」这句话，全靠它。</li>
+<li>FS 与 GS 是另一套：长模式下它们的基址来自 <code>IA32_FS_BASE</code> / <code>IA32_GS_BASE</code> 两个 MSR，也不来自描述符。</li>
+</ul></details>
+```
+
+**framebuffer 的指针打印出来是虚拟地址还是物理地址？相等是不是分页造成的？**
+
+实测打印的是虚拟地址：`framebuffer.address()` 在 qemu 下是 `0xffff8000fd000000`。它是 Limine 的高半区直接映射（HHDM）视角，物理显存在 `0xfd000000`。两者能对应上，确实是分页造成的——页表项是 Limine 建的，不是我们。
+
+```html
+<details><summary>协议原文：所有指针默认带 HHDM 偏移</summary><ul>
+<li>Limine 协议「General Notes」原文：所有指针指向的对象都已加上 higher half direct map 偏移。</li>
+<li>HHDM 是 Limine 建的一条巨型映射：整块物理地址空间搬到虚拟地址 <code>0xffff800000000000</code> 起。</li>
+<li>换算：打印值 <code>0xffff8000fd000000</code> = 偏移 <code>0xffff800000000000</code> + 物理地址 <code>0xfd000000</code>。</li>
+<li>想要偏移的具体值，协议里有专门的 HHDM request 可以问；我们没发，从打印值里也能读出来。</li>
+</ul></details>
+<details><summary>0xfd000000 这块「物理地址」其实不是内存</summary><ul>
+<li>机器只有 128MB RAM（<code>Makefile:11</code> 的 <code>-m 128M</code>），物理地址空间到 <code>0x8000000</code> 为止。</li>
+<li><code>0xfd000000</code> 是 qemu 把 VGA 显存放进的 PCI MMIO 空洞，在 RAM 之上。这块物理地址背后没有 DRAM，是显卡的寄存器空间。</li>
+<li>所以「物理地址」这个概念的边界不是「有没有内存条」，而是「CPU 访存总线上的一个槽位」。MMIO 槽位直通设备，DRAM 槽位进内存。</li>
+</ul></details>
+<details><summary>这对我们自己的代码意味着什么</summary><ul>
+<li>将来自己建页表时，framebuffer 的这条映射必须接过去：要么同样走 HHDM，要么单独映射一次。不建，写显存立刻 #PF。</li>
+<li>现在能写成功，靠的是 Limine 的页表还挂着。我们自己的 GDT/IDT 已经接管了 CPU，但页表还没接管。</li>
+<li>顺带一个容易踩的坑：「低 4GB 恒等映射」是 base revision 0 的遗留约定，我们请求 revision 3，它不存在。别以为物理地址 0x100000 就能当虚拟地址直接写。</li>
+</ul></details>
+```
+
+**`mov rdi, rsp` 及后面四条指令在干什么（idt.rs:149-157）。**
+
+`mov rdi, rsp` 是把"现场"打包交给 Rust 的那一下。前面 15 条 push 把通用寄存器全压进栈，压完后 RSP 正好指着 `ExceptionFrame` 的最低地址字段。把 RSP 拷进 rdi，等于把栈顶当成 `&ExceptionFrame` 传给 handler——rdi 是 C 调用约定的第一个参数寄存器。后面三条各管一件事：对齐栈、调用、兜底停机。
+
+```html
+<details><summary>为什么 RSP 直接就是 ExceptionFrame 的头</summary><ul>
+<li>push 顺序（rax 先、r15 后，<code>idt.rs:134-148</code>）与结构体字段顺序（r15 先、rax 后，<code>idt.rs:68-82</code>）互为镜像。</li>
+<li>栈向下长，最后压的 r15 地址最低。<code>#[repr(C)]</code> 保证字段按声明顺序排，最低地址就是第一个字段。</li>
+<li>两边对齐后，栈内存布局 == 结构体布局，RSP 恰好是结构体头。这是零拷贝传参：不用把现场搬进变量，直接让结构体"披"在栈上。</li>
+</ul></details>
+<details><summary>and rsp, -16 / call / hlt 三条各管什么</summary><ul>
+<li><code>and rsp, -16</code>：把 RSP 低 4 位清零，向下取整到 16 字节。调用约定要求 call 时栈 16 对齐，handler 里的 SSE 指令靠这个假设。异常可在任意对齐状态发生，这里必须自己修。</li>
+<li>handler 是 <code>-> !</code> 不返回（<code>idt.rs:266</code>），所以不用恢复 RSP，对齐是单向的。</li>
+<li><code>call {handler}</code>：<code>sym</code> 让编译器解析符号地址，call 把控制权交给 Rust 函数。</li>
+<li><code>2: / hlt / jmp 2b</code>：类型上就到不了的保险丝。万一 handler 意外返回，CPU 走这三条停机，不会跑进别人的内存。</li>
+</ul></details>
+```
+
+**`lea` 是什么指令，`2f`/`2b` 是什么语法。**
+
+`lea` = Load Effective Address。普通 `mov` 从内存取值，`lea` 只算地址本身：把操作数算出来存进寄存器，不去读那处内存。`lea rax, [rip + 2f]` 就是「rax = 标签 2 的地址」，不读它。
+
+`2f` 是 GNU 汇编器的数字局部标签。`2:` 定义一个局部标签；`f` 是 forward，往后找最近的 `2:`；`b` 是 backward，往前找。数字标签不是符号，不进符号表，同名可以反复定义，靠位置区分。
+
+```html
+<details><summary>数字标签的边界与动机</summary><ul>
+<li>同一个文件里能写多个 <code>2:</code>：gdt.rs:86 一个、idt.rs:155 一个，各自的 <code>2f</code> / <code>2b</code> 只认自己附近那个。</li>
+<li>动机是给「短命的跳转目标」起名（loop2、retry3）既费名字又污染符号表。数字标签是用完就扔的写法。</li>
+<li>历史来自 PDP-11 时代的 Unix 汇编器，GNU as 继承至今。</li>
+<li>代价是不能从远处引用：跨函数或跨大段代码的跳转，还是得用有名字的符号。</li>
+</ul></details>
+```
+
+**FS/GS 不看 GDT/LDT 的意思吗？**
+
+半对。装载分两步：装选择子时照样查 GDT，做合法性检查；真正寻址时，长模式下 FS/GS 的基址不来自描述符，来自 MSR。所以准确说法是：基址不看 GDT，合法性检查照样看。
+
+```html
+<details><summary>两步各干什么的完整画面</summary><ul>
+<li>第一步（装载）：<code>mov fs, 0x10</code> 会去 GDT 读那条描述符，查 P 位、type、DPL，把缓存份塞进 FS 的隐藏寄存器。FS/GS 一个不少。</li>
+<li>第二步（寻址）：长模式下 FS/GS 的基址来自 <code>IA32_FS_BASE</code> / <code>IA32_GS_BASE</code> 两个 MSR，描述符的 base 字段对它俩无效。</li>
+<li>证据就在我们代码里：GDT 没有 FS/GS 专属条目，<code>gdt.rs:89-90</code> 装的是普通数据段描述符。若基址来自描述符（base=0），所有 FS 访问都指到地址 0，TLS 当场挂掉。它们能工作，正因为基址走 MSR。</li>
+<li>推论：<code>mov fs</code> 换的是「哪个选择子合法」，不改基址。改基址得写 MSR（将来 TLS 的活儿）。</li>
+</ul></details>
+```
+
+**SSE 指令是什么？为什么它逼出了 `and rsp, -16`。**
+
+SSE（Streaming SIMD Extensions）是 Intel 1999 年随 Pentium III 加入的指令集扩展，操作一组 128 位寄存器 xmm0~xmm15。x86-64 把 SSE 和 SSE2 定为强制基础，编译器可以自由发射它们。即使你一行汇编没写，Rust 编译产物里也可能有 SSE。
+
+```html
+<details><summary>SSE 干什么的、和对齐的关系</summary><ul>
+<li>SIMD = 一条指令同时算多个数据：一个 xmm 寄存器装 4 个 float 或 16 个字节，一条 addps 同时加 4 对数。</li>
+<li>除了数学运算，SSE 还被编译器当搬运工用：结构体拷贝、memcpy、memcmp 这类操作常被优化成 SSE 批量读写。</li>
+<li>关键在指令分两族：movaps/movdqa 这类"对齐版"要求内存地址是 16 的倍数，不对齐直接 #GP；movups/movdqu 是"不对齐版"，慢一点但安全。</li>
+<li>编译器只在它能证明对齐时才发对齐版——它的证明就是调用约定里那句「call 时栈 16 对齐」。rsp 对齐了，函数开头用 movaps 往栈上存 xmm 就合法。</li>
+</ul></details>
+<details><summary>跟我们的 and rsp, -16 怎么接上的</summary><ul>
+<li>异常打断的是任意代码，RSP 可能是任何对齐状态。裸 asm 里没有编译器生成的序言帮我们修。</li>
+<li><code>idt.rs:152</code> 把 RSP 砍到 16 对齐后再 call，handler 入口看到的栈状态和正常调用约定一致，编译器在 handler 里发 SSE 就安全了。</li>
+<li>不修会怎样：handler 里 printk! 的格式化路径可能含编译器生成的 SSE 拷贝，遇到不对齐的栈就 #GP——在 #GP handler 里再 #GP，直接变 double fault。</li>
+<li>SSE 的后继是 AVX（256 位 ymm 寄存器）与 AVX-512；对齐要求跟着寄存器宽度涨。x86-64 基础级别只承诺到 SSE2。</li>
+</ul></details>
+```
+
+**push 的都是 8 字节寄存器，栈不是天然对齐的吗？为什么要 and rsp, -16。**
+
+对齐说的是"地址值是 16 的倍数"，不是"push 了多少字节"。而且 15 × 8 = 120，120 不是 16 的倍数——压完反而把对齐状态挪动了一次。真正的问题更根本：被打断代码的 RSP 值不受我们控制，push 只能平移，砍对齐只能靠自己。
+
+```html
+<details><summary>对齐盯的是 rsp 的数值，不是 push 的量</summary><ul>
+<li>16 字节对齐 = rsp 的低 4 位全是 0，比如 <code>0x...f0</code>。这是一条关于"地址值"的断言。</li>
+<li>push 一次减 8，只让 rsp mod 16 在 0 和 8 之间来回跳。跳几次之后对齐不对齐，取决于起点是 0 还是 8——而起点我们不知道。</li>
+<li>15 次 push 一共减 120，120 mod 16 = 8。压完 15 个寄存器后，rsp 的对齐位恰好翻转了一次。</li>
+<li>所以不能靠"凑 push 次数"来对齐：凑一次 push 是把 0 变 8、8 变 0，两个方向都可能走错。</li>
+</ul></details>
+<details><summary>真正的未知量：异常前的 rsp</summary><ul>
+<li>异常打断的是任意位置的任意代码，那时的 RSP 可能是 <code>0x...f0</code> 也可能是 <code>0x...f8</code>，我们不掌握。</li>
+<li>硬件只约定栈 8 字节对齐，16 字节是调用约定的软件约定，不是 CPU 强制。所以"入口时应该对齐"这条前提不存在。</li>
+<li>有趣的是整条路径的总位移是确定的：CPU 压 3~4 个槽 + stub 压 1~2 个 + 我们 15 个，合计 160 字节，恰好是 16 的倍数。也就是说压完后 rsp 的对齐状态和异常前完全一样——状态不变，但状态本身未知。</li>
+<li>所以唯一能做的就是把当前值砍到 16 的倍数：<code>and rsp, -16</code>。push 负责移动，and 负责落地。</li>
+</ul></details>
+```
+
+**`and rsp, -16` 如果 rsp 余 8，砍完栈顶不就指到 r14 了吗？**
+
+不会，砍的方向反了。`and rsp, -16` 是把 rsp 往**低地址**挪，而栈向下长：低地址是还没用过的空闲区，高地址才是压进去的数据。余 8 时砍掉 8 字节，rsp 落在 r15 槽位**下方**的一格空闲区，不是 r14——r14 在 r15 上方，碰不到。
+
+```svg
+<svg width="420" height="300" viewBox="0 0 420 300" xmlns="http://www.w3.org/2000/svg" font-family="monospace" font-size="12">
+  <rect width="420" height="300" fill="#1e1e28"/>
+  <text x="14" y="22" fill="#9aa4b0">↑ 高地址（先压的数据）</text>
+  <rect x="120" y="34" width="170" height="30" fill="#32323e" stroke="#667"/>
+  <text x="24" y="53" fill="#9aa4b0">CPU 压</text>
+  <text x="205" y="53" fill="#dde2ea" text-anchor="middle">rflags / cs / rip</text>
+  <rect x="120" y="64" width="170" height="30" fill="#32323e" stroke="#667"/>
+  <text x="24" y="83" fill="#9aa4b0">stub 压</text>
+  <text x="205" y="83" fill="#dde2ea" text-anchor="middle">error_code / vector</text>
+  <rect x="120" y="94" width="170" height="30" fill="#32323e" stroke="#667"/>
+  <text x="24" y="113" fill="#9aa4b0">push ×14</text>
+  <text x="205" y="113" fill="#dde2ea" text-anchor="middle">rax … r14</text>
+  <rect x="120" y="124" width="170" height="30" fill="#4a4030" stroke="#e0b040" stroke-width="1.5"/>
+  <text x="24" y="143" fill="#9aa4b0">push ×1</text>
+  <text x="205" y="143" fill="#f0d080" text-anchor="middle">r15 ← rdi 指这里</text>
+  <rect x="120" y="154" width="170" height="30" fill="none" stroke="#8899aa" stroke-dasharray="5 4"/>
+  <text x="24" y="173" fill="#9aa4b0">and 落地</text>
+  <text x="205" y="173" fill="#a9b6c4" text-anchor="middle">8 字节填充（仅 rsp≡8 时）</text>
+  <rect x="120" y="184" width="170" height="30" fill="#32323e" stroke="#667"/>
+  <text x="24" y="203" fill="#9aa4b0">call 压</text>
+  <text x="205" y="203" fill="#dde2ea" text-anchor="middle">返回地址</text>
+  <text x="300" y="143" fill="#7fa7c9">rsp（and 前）</text>
+  <text x="300" y="173" fill="#7fa7c9">rsp（and 后）</text>
+  <text x="300" y="203" fill="#7fa7c9">rsp（call 后）</text>
+  <text x="14" y="238" fill="#9aa4b0">↓ 低地址（空闲区）：往下砍永远碰不到上面的数据</text>
+  <text x="14" y="262" fill="#8b95a3">mov rdi, rsp 在 and 之前（idt.rs:149 vs 152），</text>
+  <text x="14" y="280" fill="#8b95a3">帧指针已存进 rdi，rsp 之后怎么挪都不影响 handler 读帧。</text>
+</svg>
+```
+
+```html
+<details><summary>那 8 字节填充去哪了，要不要清理</summary><ul>
+<li>它是一格死空间。<code>call</code> 会把返回地址压进 rsp−8，正好用上；r15 槽位往上原封不动。</li>
+<li>handler 类型上是 <code>-> !</code>（<code>idt.rs:266</code>），不返回，所以也不需要把这格填回来。</li>
+<li>真正依赖对齐的是 handler 自己的序言：编译器假设入口时 <code>rsp ≡ 8 (mod 16)</code>。我们 <code>and</code> 到 16 的倍数后 call 再压 8 字节，入口恰好余 8，与约定严丝合缝。</li>
+</ul></details>
+```
+
+**取整之后，r15 的值不就变了？r14 等也左移了吗？**
+
+不变，也不移。`and rsp, -16` 只改 rsp 这一个寄存器里的数值，对内存一个字节都不写。r15 的值还躺在原来那格内存里，位置和内容都没动；动的只是"rsp 指到哪儿"。
+
+```svg
+<svg width="480" height="230" viewBox="0 0 480 230" xmlns="http://www.w3.org/2000/svg" font-family="monospace" font-size="12">
+  <rect width="480" height="230" fill="#1e1e28"/>
+
+  <!-- and 前 -->
+  <text x="14" y="24" fill="#9aa4b0">and 前：push 完 15 个寄存器</text>
+  <rect x="14" y="36" width="120" height="28" fill="#2a3a4a" stroke="#7fa7c9"/>
+  <text x="74" y="54" fill="#cfe0ee" text-anchor="middle">rsp = 0x…78</text>
+  <line x1="134" y1="50" x2="236" y2="50" stroke="#7fa7c9" stroke-width="1.5"/>
+  <polygon points="236,50 228,45 228,55" fill="#7fa7c9"/>
+  <rect x="180" y="40" width="56" height="26" fill="none" stroke="#8899aa" stroke-dasharray="4 3"/>
+  <rect x="240" y="40" width="56" height="26" fill="#4a4030" stroke="#e0b040"/>
+  <text x="268" y="57" fill="#f0d080" text-anchor="middle">r15</text>
+  <rect x="300" y="40" width="56" height="26" fill="#32323e" stroke="#667"/>
+  <text x="328" y="57" fill="#dde2ea" text-anchor="middle">r14</text>
+  <rect x="360" y="40" width="56" height="26" fill="#32323e" stroke="#667"/>
+  <text x="388" y="57" fill="#dde2ea" text-anchor="middle">r13</text>
+  <text x="430" y="57" fill="#8899aa">…</text>
+  <text x="186" y="80" fill="#77828f" font-size="10">0x…70（空闲）</text>
+  <text x="252" y="80" fill="#77828f" font-size="10">0x…78</text>
+  <text x="312" y="80" fill="#77828f" font-size="10">0x…80</text>
+  <text x="372" y="80" fill="#77828f" font-size="10">0x…88</text>
+
+  <!-- and 后 -->
+  <text x="14" y="116" fill="#9aa4b0">and 后：只改 rsp 的数值，格子原地不动</text>
+  <rect x="14" y="128" width="120" height="28" fill="#2a3a4a" stroke="#7fa7c9"/>
+  <text x="74" y="146" fill="#cfe0ee" text-anchor="middle">rsp = 0x…70</text>
+  <line x1="134" y1="142" x2="206" y2="142" stroke="#7fa7c9" stroke-width="1.5"/>
+  <polygon points="206,142 198,137 198,147" fill="#7fa7c9"/>
+  <rect x="180" y="132" width="56" height="26" fill="none" stroke="#8899aa" stroke-dasharray="4 3"/>
+  <text x="208" y="149" fill="#a9b6c4" text-anchor="middle" font-size="10">填充</text>
+  <rect x="240" y="132" width="56" height="26" fill="#4a4030" stroke="#e0b040"/>
+  <text x="268" y="149" fill="#f0d080" text-anchor="middle">r15</text>
+  <rect x="300" y="132" width="56" height="26" fill="#32323e" stroke="#667"/>
+  <text x="328" y="149" fill="#dde2ea" text-anchor="middle">r14</text>
+  <rect x="360" y="132" width="56" height="26" fill="#32323e" stroke="#667"/>
+  <text x="388" y="149" fill="#dde2ea" text-anchor="middle">r13</text>
+  <text x="430" y="149" fill="#8899aa">…</text>
+
+  <!-- 结论 -->
+  <text x="14" y="196" fill="#8b95a3">内存地址从左到右递增。两行里格子的位置与内容完全相同，</text>
+  <text x="14" y="214" fill="#8b95a3">变的只有 rsp 这个寄存器里的数值（0x…78 → 0x…70）。</text>
+</svg>
+```
+
+```html
+<details><summary>rsp 是游标不是货架：为什么不存在"左移"</summary><ul>
+<li>压栈时寄存器的值被复制进内存格，之后各归各位。rsp 只记录"栈顶是哪格"，是一个游标。</li>
+<li><code>and</code> 是纯粹的寄存器运算：把 rsp 的低 4 位清零。没有访存指令执行，内存一个字节都没碰。</li>
+<li>内存格子的地址是绝对的（比如 <code>0x1234_5678</code>），不是"相对 rsp 的第几格"。所以改 rsp 不产生任何移位。</li>
+<li>handler 也不通过 rsp 读帧：帧指针早已存进 rdi（<code>idt.rs:149</code>），rsp 之后挪到哪儿都与读帧无关。</li>
+</ul></details>
+```
+
+**函数参数不是通过栈传的吗？为什么 handler 的参数在 rdi 里。**
+
+那是 32 位时代的 cdecl 约定。x86-64 的 System V 约定改成寄存器优先：前六个参数依次走 rdi、rsi、rdx、rcx、r8、r9，栈只在参数超过六个或放不下时才用上。`mov rdi, rsp` 就是把帧指针塞进第一个参数寄存器。
+
+```html
+<details><summary>32 位与 64 位的参数传递对比，以及栈什么时候还上场</summary><ul>
+<li>32 位 cdecl：参数确实全在栈上。调用方从右往左 push，被调方按 <code>[ebp+8]</code> 这样的偏移读。以前在教材里见过的就是这种。</li>
+<li>64 位 SysV：寄存器从 8 个涨到 16 个，前六个参数放寄存器，省掉一圈内存往返。栈留给第 7 个及以后的参数、按值传的大结构体、以及寄存器不够时的溢出。</li>
+<li>我们的 handler 只有一个参数，正好落在 rdi，一条 <code>mov</code> 完成交接（<code>idt.rs:149</code>）。</li>
+<li>这也是 <code>ExceptionFrame</code> 按引用传的原因：<code>extern "C" fn exception_handler(frame: &ExceptionFrame)</code>（<code>idt.rs:266</code>）里 <code>&T</code> 就是一个指针，编译后正好占一个 rdi，栈上的数据原地就是结构体，零拷贝。</li>
+<li>同一个约定在 x86-64 Linux 用户态也一样：printf 的参数同样先走 rdi~r9。这不是内核特有规矩。</li>
+</ul></details>
+```
+
+**为什么是 16 字节对齐？不对齐会怎样。**
+
+16 是 xmm 寄存器的宽度：128 位 = 16 字节。SSE 的对齐版指令一次把整个 xmm 搬进搬出内存，硬件按「单次、不跨行」实现这条通路。允许任意地址的话，一次 16 字节读写可能横跨两条缓存行甚至两个页。硬件要为这种分裂访问另开一条路，又慢又复杂。对齐版指令干脆把「地址必须是 16 的倍数」写进规格：不满足就直接 #GP，把约束变成编译器与程序员之间的契约。
+
+```html
+<details><summary>不对齐会发生什么：不是变慢，是直接 fault</summary><ul>
+<li>对齐版指令（<code>movaps</code>、<code>movdqa</code>）遇到不对齐地址，CPU 不做「拆成两次访问」的兼容处理，直接抛 #GP（向量 13）。</li>
+<li>在我们的场景里这条链特别毒：#GP 发生在 exception_handler 内部 → 异常处理中再异常 → 升级为 double fault（#DF）→ #DF handler 同样要压栈写显存，栈还是不对齐 → triple fault → qemu 整机重启。</li>
+<li>也就是说 <code>and rsp, -16</code> 省掉的不是一点性能，而是「异常处理本身变成异常源」这条死循环。</li>
+<li>对照组是 <code>movups</code>/<code>movdqu</code>：不对齐也能跑，只是跨缓存行时多一次访问。编译器只在约定保证不了对齐时才用它。</li>
+</ul></details>
+<details><summary>为什么是 ABI 约定而不是 CPU 强制</summary><ul>
+<li>CPU 只强制对齐版 SSE 指令的操作数对齐；普通的 <code>push</code>、<code>mov</code> 对 rsp 没有 16 字节要求。</li>
+<li>「栈在 call 边界 16 对齐」是 System V ABI 写死的软件约定：每个调用方负责对齐，每个被调方才敢放心发对齐版指令。</li>
+<li>ABI 停在 16 而没有跟着 AVX 涨到 32/64：约定一旦公布就成历史包袱，寄存器变宽后编译器对更宽的对齐改用动态处理（函数里自己砍 rsp）。</li>
+<li>裸 asm 是我们自己的地盘，编译器不生成序言，这条约定只能手工补上——这正是 <code>idt.rs:152</code> 存在的理由。</li>
+</ul></details>
+```
+
+**Bite1 的代码里哪里用到 SSE、需要 16 对齐？**
+
+实测答案：一条都没有。`objdump -d` 整个内核，`movaps` / `movdqa` / `movups` / `movdqu` 与 `xmm` 的命中数都是 0，连 memcpy / memset 符号都没有。`and rsp, -16` 并非现有代码逼出来的，而是守 ABI 契约的防御写法。
+
+```html
+<details><summary>验证命令与"现在没有"不等于"永远不用"</summary><ul>
+<li>验证：<code>objdump -d kernel/target/x86_64-unknown-none/debug/kernel | grep -cE 'xmm'</code>，输出 0。这覆盖 handler、printk! 的整条调用链。</li>
+<li>什么时候会突然出现：超过 16 字节的结构体按值拷贝、memcpy / memset 大对象、release 模式的向量化、将来引入浮点的格式化路径。这些全是编译器决策，一行源码不动也可能改变。</li>
+<li>因果关系是反的：不是「代码用了 SSE 所以要对齐」，而是「裸 asm 先守约定，编译器才永远安全」。遵守在前，用到在后。</li>
+<li>这次 0 命中的价值正在于此：对齐的论证是纯契约论证。哪天 grep 出非零，没有 <code>and</code> 的版本会当场 #GP，不需要等到那一天。</li>
+</ul></details>
+```

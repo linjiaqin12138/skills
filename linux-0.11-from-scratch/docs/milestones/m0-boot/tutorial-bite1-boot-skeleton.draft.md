@@ -336,6 +336,38 @@ DYN（PIE）文件里的地址全是相对值，指望运行时有个"动态加�
 
 先纠正读法：它不是"在 2GB 的地方"，而是"离天花板还剩 2GB"——2⁶⁴ − 2³¹ = `0xFFFFFFFF80000000`，从这里到地址空间顶恰好 2GB。顶楼是高半区设计决定的，下半区留给用户程序；2GB 则是 x86-64 指令集逼出来的：RIP 相对寻址用 32 位有符号偏移，射程只有 ±2GB。把整个内核塞进顶上 2GB，内核内所有地址都能用 32 位偏移表示，代码又小又快。真正的 Linux 内核就链在 `0xFFFFFFFF81000000`，同一片顶楼 2GB，Limine 按同一约定映射。
 
+**「内核代码从 `0xFFFFFFFF80000000` 开始」这句话要收紧三处。**
+
+那是链接起点，不是入口；那是虚拟地址，不是物理地址；那是高半区的下沿，不是低位。本机 debug 构建的段布局如下（`readelf -S` 实测）：
+
+| 段 | 虚拟地址 | 装什么 |
+|---|---|---|
+| .text | 0xffffffff80000000 | 代码 |
+| .rodata | 0xffffffff80015000 | 字符串、GDT 描述符表 |
+| .limine_requests | 0xffffffff8001a000 | 给 Limine 看的握手请求区 |
+| .data | 0xffffffff8001b000 | 已初始化的可写数据，含 .got |
+| .bss | 0xffffffff8001c000 | 零初始化变量 |
+
+入口 `Entry` 是 `0xffffffff80002500`，即 `_start` 所在处。它不是基址，因为 `.text` 开头还有编译期插入的桩。验收档案里 M0 那次记的是 `0xffffffff80000030`，差值来自构建配置。所以断言只能写「落在这个基址之上」，具体数值不作数。
+
+```html
+<details><summary>为什么每段都从 4KB 整数边界开始</summary><ul>
+<li>链接脚本里有三处 <code>ALIGN(CONSTANT(MAXPAGESIZE))</code>（<code>kernel/linker.ld:12</code>、<code>linker.ld:17</code>、<code>linker.ld:22</code>）。</li>
+<li>目的不是美观，是让权限不同的段落落进独立的 PT_LOAD。代码要 R+X、rodata 只要 R、data 与 bss 要 RW。</li>
+<li>两个段若共享同一个物理页，Limine 只能给这一页一个权限，两边需求冲突时它直接 PANIC。</li>
+</ul></details>
+<details><summary>虚拟地址不是物理地址：readelf -l 里那两栏别读错</summary><ul>
+<li>实测 LOAD 段是 <code>p_offset = 0x1000</code>、<code>p_vaddr = p_paddr = 0xffffffff80000000</code>。看着像"物理也在高半区"，那是误读。</li>
+<li><code>p_paddr</code> 这栏是链接器填的占位值，bare metal ELF 里没人消费它。真正把虚拟地址变成物理地址的是 Limine 建的页表项。</li>
+<li>M0 阶段 Limine 做的是 1:1 映射，所以此刻物理地址确实落在低 4GB 内。"低位"说的是物理地址，<code>0xFFFFFFFF8...</code> 说的是虚拟地址，两回事。</li>
+</ul></details>
+<details><summary>高半区下沿：上下两半怎么分的</summary><ul>
+<li>低半区 <code>0x0000_0000_0000_0000</code> 到 <code>0x7FFF_FFFF_FFFF_FFFF</code>，整块留给将来的用户进程。</li>
+<li>真空带 <code>0xFFFF_8000_0000_0000</code> 到 <code>0xFFFF_FFFF_FFFF_FFFF</code>，非规范地址，访问直接 #GP。</li>
+<li>高半区起点就是本节这个链接基址，往上到 <code>0xFFFF_FFFF_FFFF_FFFF</code> 恰好 2GB（见上文"链接地址为什么偏偏是顶上 2GB"）。</li>
+</ul></details>
+```
+
 **规范地址（canonical address）为什么是两段，中间的真空带是什么。**
 
 x86-64 只用低 48 位地址（4 级分页），规则是高 16 位复制第 47 位。第 47 位为 0 是低半区（128TB），为 1 是高半区（128TB），中间一大段是非法地址，CPU 访问直接 #GP。
