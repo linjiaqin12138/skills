@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-label="栈帧变化动画：RSP 逐格下移，依次压入 RFLAGS、CS、RIP，当前 IF 随后清零，iretq 再逐格弹出并恢复 IF" style="display:block;max-width:100%;height:auto">
+  <rect width="800" height="520" fill="#0f172a"/>
+  <defs>
+    <marker id="stack-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/>
+    </marker>
+    <marker id="push-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#60a5fa"/>
+    </marker>
+    <marker id="pop-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4ade80"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #f8fafc; }
+    .title { font-size: 22px; font-weight: 700; }
+    .box-title { font-size: 17px; font-weight: 700; }
+    .body { font-size: 14px; }
+    .small { font-size: 12px; fill: #cbd5e1; }
+    .slot-empty { fill: #1e293b; stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 6 5; }
+    .slot { stroke-width: 2; }
+    .rflags { fill: #1e3a8a; stroke: #60a5fa; }
+    .cs { fill: #164e63; stroke: #22d3ee; }
+    .rip { fill: #312e81; stroke: #a5b4fc; }
+    .if-on { fill: #166534; stroke: #4ade80; stroke-width: 2; }
+    .if-off { fill: #9a3412; stroke: #fb923c; stroke-width: 2; }
+    .phase { opacity: 0; }
+  </style>
+
+  <text x="30" y="38" class="title">interrupt gate：栈帧逐步压入，iretq 逐步弹出</text>
+  <text x="30" y="64" class="small">每格 8 字节 · 高地址在上方 · PUSH 先让 RSP 减 8</text>
+
+  <rect x="40" y="105" width="230" height="275" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <text x="155" y="140" text-anchor="middle" class="box-title">当前 RFLAGS.IF</text>
+
+  <g opacity="0">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="1;0;1" keyTimes="0;0.53;0.82"/>
+    <rect x="90" y="180" width="130" height="56" rx="28" class="if-on"/>
+    <text x="155" y="215" text-anchor="middle" class="box-title">IF = 1</text>
+  </g>
+  <g opacity="0">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.53;0.82"/>
+    <rect x="90" y="180" width="130" height="56" rx="28" class="if-off"/>
+    <text x="155" y="215" text-anchor="middle" class="box-title">IF = 0</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="1;0;1" keyTimes="0;0.53;0.82"/>
+    <text x="155" y="280" text-anchor="middle" class="small">旧 RFLAGS 尚未入栈</text>
+    <text x="155" y="302" text-anchor="middle" class="small">或已由 iretq 恢复</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.53;0.82"/>
+    <text x="155" y="280" text-anchor="middle" class="small">handler 入口</text>
+    <text x="155" y="302" text-anchor="middle" class="small">可屏蔽中断被屏蔽</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.11;0.53;0.64"/>
+    <path d="M320 105 V330" stroke="#60a5fa" stroke-width="3" marker-end="url(#push-arrow)"/>
+    <text x="320" y="352" text-anchor="middle" class="small">PUSH：RSP 下移 8</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;1;0" keyTimes="0;0.53;0.64;0.9"/>
+    <path d="M320 330 V105" stroke="#4ade80" stroke-width="3" marker-end="url(#pop-arrow)"/>
+    <text x="320" y="352" text-anchor="middle" class="small">iretq：RSP 逐格回退</text>
+  </g>
+
+  <text x="560" y="96" text-anchor="middle" class="small">栈向低地址增长 ↓</text>
+  <rect x="390" y="120" width="340" height="70" rx="4" class="slot-empty"/>
+  <rect x="390" y="190" width="340" height="70" rx="4" class="slot-empty"/>
+  <rect x="390" y="260" width="340" height="70" rx="4" class="slot-empty"/>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.11;0.12;0.82;0.83;1"/>
+    <rect x="390" y="120" width="340" height="70" rx="4" class="slot rflags"/>
+    <text x="560" y="152" text-anchor="middle" class="body">saved RFLAGS · IF = 1</text>
+    <text x="560" y="176" text-anchor="middle" class="small">栈中保存值以后不再改变</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.25;0.26;0.72;0.73;1"/>
+    <rect x="390" y="190" width="340" height="70" rx="4" class="slot cs"/>
+    <text x="560" y="222" text-anchor="middle" class="body">saved CS</text>
+    <text x="560" y="246" text-anchor="middle" class="small">返回时用于恢复 CS</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.39;0.40;0.64;0.65;1"/>
+    <rect x="390" y="260" width="340" height="70" rx="4" class="slot rip"/>
+    <text x="560" y="292" text-anchor="middle" class="body">saved RIP</text>
+    <text x="560" y="316" text-anchor="middle" class="small">handler 入口时位于 [RSP+0]</text>
+  </g>
+
+  <g>
+    <animateTransform attributeName="transform" type="translate" dur="9s" repeatCount="indefinite"
+      calcMode="linear" values="0 0;0 0;0 60;0 130;0 200;0 200;0 130;0 60;0 0"
+      keyTimes="0;0.11;0.25;0.39;0.53;0.64;0.72;0.82;1"/>
+    <line x1="755" y1="60" x2="790" y2="60" stroke="#fde68a" stroke-width="3" marker-end="url(#stack-arrow)"/>
+    <text x="750" y="48" text-anchor="end" class="small" fill="#fde68a">RSP</text>
+  </g>
+
+  <line x1="40" y1="425" x2="760" y2="425" stroke="#334155" stroke-width="1"/>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="1;0;0;0;0;0;1" keyTimes="0;0.11;0.25;0.39;0.53;0.64;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">栈尚未变化，RSP 指向空栈区。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0;0;0;0" keyTimes="0;0.11;0.25;0.39;0.53;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">1. PUSH saved RFLAGS：先保存 IF = 1；当前 IF 仍为 1。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;1;0;0;0" keyTimes="0;0.11;0.25;0.39;0.53;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">2. PUSH saved CS。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;0;1;0;0" keyTimes="0;0.11;0.25;0.39;0.53;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">3. PUSH saved RIP。保存完成后，CPU 才清当前 IF。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;0;0;1;0" keyTimes="0;0.11;0.25;0.39;0.53;0.64"/>
+    <text x="400" y="458" text-anchor="middle" class="body">handler 入口：当前 IF = 0，栈中 saved RFLAGS 仍是 IF = 1。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;0;0;0;1;0" keyTimes="0;0.11;0.25;0.39;0.53;0.64;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">iretq：先弹 RIP，再弹 CS，最后弹 RFLAGS；当前 IF 回到 1。</text>
+  </g>
+</svg>

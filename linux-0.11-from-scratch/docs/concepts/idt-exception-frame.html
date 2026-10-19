@@ -770,6 +770,9 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-panel-body"><div class="am-md"><p><strong>IDT 是一张 256 行的跳转表，向量号就是行号。</strong></p>
 <p>CPU 发生异常或收到中断时读取对应行。门描述符给出 handler 地址和代码段选择子。</p>
 <p>跳转前，CPU 把 RIP、CS、RFLAGS 等字段压栈。部分异常还会多压一个 error code。</p>
+<p>RFLAGS 是 64 位标志寄存器。</p>
+<figure class="am-figure"><img data-am-src="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/rflags-bitmap.svg" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjI3MCIgdmlld0JveD0iMCAwIDEyMDAgMjcwIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJGTEFHUyA2MyDliLAgMCDkvY3ln5/lm77vvIxJRiDkvY3kuo4gYml0IDkiPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjI3MCIgZmlsbD0iIzBmMTcyYSIvPgogIDxzdHlsZT4KICAgIHRleHQgeyBmb250LWZhbWlseTogJ05vdG8gU2FucyBDSksgU0MnLCAnUGluZ0ZhbmcgU0MnLCAnTWljcm9zb2Z0IFlhSGVpJywgc2Fucy1zZXJpZjsgZmlsbDogI2Y4ZmFmYzsgfQogICAgLnRpdGxlIHsgZm9udC1zaXplOiAyNHB4OyBmb250LXdlaWdodDogNzAwOyB9CiAgICAuc3VidGl0bGUgeyBmb250LXNpemU6IDEzcHg7IGZpbGw6ICNjYmQ1ZTE7IH0KICAgIC5iaXQgeyBmb250LWZhbWlseTogdWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIENvbnNvbGFzLCBtb25vc3BhY2U7IGZvbnQtc2l6ZTogMTJweDsgZmlsbDogI2NiZDVlMTsgfQogICAgLmZpZWxkIHsgZm9udC1zaXplOiAxNHB4OyBmb250LXdlaWdodDogNzAwOyB9CiAgICAuYm94IHsgc3Ryb2tlOiAjOTRhM2I4OyBzdHJva2Utd2lkdGg6IDE7IH0KICAgIC5yZXNlcnZlZCB7IGZpbGw6ICMzMzQxNTU7IH0KICAgIC5zeXN0ZW0geyBmaWxsOiAjMTY0ZTYzOyB9CiAgICAuc3RhdHVzIHsgZmlsbDogIzFlNDBhZjsgfQogICAgLmlvcGwgeyBmaWxsOiAjNGMxZDk1OyB9CiAgICAuaWYgeyBmaWxsOiAjZjU5ZTBiOyBzdHJva2U6ICNmZGU2OGE7IHN0cm9rZS13aWR0aDogMzsgfQogICAgLmlmLXRleHQgeyBmaWxsOiAjMTExODI3OyB9CiAgICAuaWYtbm90ZSB7IGZpbGw6ICNmZGU2OGE7IGZvbnQtc2l6ZTogMTVweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogIDwvc3R5bGU+CiAgPHRleHQgeD0iMzAiIHk9IjM4IiBjbGFzcz0idGl0bGUiPlJGTEFHUyDkvY3ln5/vvIg2Mzow77yJPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSI2NCIgY2xhc3M9InN1YnRpdGxlIj7pq5jkvY3lnKjlt6bvvIzkvY7kvY3lnKjlj7M8L3RleHQ+CgogIDxnIHRleHQtYW5jaG9yPSJtaWRkbGUiPgogICAgPHRleHQgeD0iMTE1IiB5PSI5NiIgY2xhc3M9ImJpdCI+NjM6MjI8L3RleHQ+CiAgICA8dGV4dCB4PSIyNDIuNSIgeT0iOTYiIGNsYXNzPSJiaXQiPjIxPC90ZXh0PgogICAgPHRleHQgeD0iMjkwIiB5PSI5NiIgY2xhc3M9ImJpdCI+MjA8L3RleHQ+CiAgICA8dGV4dCB4PSIzNDAiIHk9Ijk2IiBjbGFzcz0iYml0Ij4xOTwvdGV4dD4KICAgIDx0ZXh0IHg9IjM4Ny41IiB5PSI5NiIgY2xhc3M9ImJpdCI+MTg8L3RleHQ+CiAgICA8dGV4dCB4PSI0MzIuNSIgeT0iOTYiIGNsYXNzPSJiaXQiPjE3PC90ZXh0PgogICAgPHRleHQgeD0iNDc3LjUiIHk9Ijk2IiBjbGFzcz0iYml0Ij4xNjwvdGV4dD4KICAgIDx0ZXh0IHg9IjUyMCIgeT0iOTYiIGNsYXNzPSJiaXQiPjE1PC90ZXh0PgogICAgPHRleHQgeD0iNTYyLjUiIHk9Ijk2IiBjbGFzcz0iYml0Ij4xNDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iOTYiIGNsYXNzPSJiaXQiPjEzOjEyPC90ZXh0PgogICAgPHRleHQgeD0iNjc3LjUiIHk9Ijk2IiBjbGFzcz0iYml0Ij4xMTwvdGV4dD4KICAgIDx0ZXh0IHg9IjcyMi41IiB5PSI5NiIgY2xhc3M9ImJpdCI+MTA8L3RleHQ+CiAgICA8dGV4dCB4PSI3NzIuNSIgeT0iOTYiIGNsYXNzPSJiaXQiPjk8L3RleHQ+CiAgICA8dGV4dCB4PSI4MjIuNSIgeT0iOTYiIGNsYXNzPSJiaXQiPjg8L3RleHQ+CiAgICA8dGV4dCB4PSI4NjcuNSIgeT0iOTYiIGNsYXNzPSJiaXQiPjc8L3RleHQ+CiAgICA8dGV4dCB4PSI5MTIuNSIgeT0iOTYiIGNsYXNzPSJiaXQiPjY8L3RleHQ+CiAgICA8dGV4dCB4PSI5NTUiIHk9Ijk2IiBjbGFzcz0iYml0Ij41PC90ZXh0PgogICAgPHRleHQgeD0iOTk3LjUiIHk9Ijk2IiBjbGFzcz0iYml0Ij40PC90ZXh0PgogICAgPHRleHQgeD0iMTA0MCIgeT0iOTYiIGNsYXNzPSJiaXQiPjM8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDgyLjUiIHk9Ijk2IiBjbGFzcz0iYml0Ij4yPC90ZXh0PgogICAgPHRleHQgeD0iMTEyNSIgeT0iOTYiIGNsYXNzPSJiaXQiPjE8L3RleHQ+CiAgICA8dGV4dCB4PSIxMTY3LjUiIHk9Ijk2IiBjbGFzcz0iYml0Ij4wPC90ZXh0PgogIDwvZz4KCiAgPHJlY3QgeD0iMTAiIHk9IjEwOCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI3NCIgY2xhc3M9ImJveCByZXNlcnZlZCIvPgogIDxyZWN0IHg9IjIyMCIgeT0iMTA4IiB3aWR0aD0iNDUiIGhlaWdodD0iNzQiIGNsYXNzPSJib3ggc3lzdGVtIi8+CiAgPHJlY3QgeD0iMjY1IiB5PSIxMDgiIHdpZHRoPSI1MCIgaGVpZ2h0PSI3NCIgY2xhc3M9ImJveCBzeXN0ZW0iLz4KICA8cmVjdCB4PSIzMTUiIHk9IjEwOCIgd2lkdGg9IjUwIiBoZWlnaHQ9Ijc0IiBjbGFzcz0iYm94IHN5c3RlbSIvPgogIDxyZWN0IHg9IjM2NSIgeT0iMTA4IiB3aWR0aD0iNDUiIGhlaWdodD0iNzQiIGNsYXNzPSJib3ggc3lzdGVtIi8+CiAgPHJlY3QgeD0iNDEwIiB5PSIxMDgiIHdpZHRoPSI0NSIgaGVpZ2h0PSI3NCIgY2xhc3M9ImJveCBzeXN0ZW0iLz4KICA8cmVjdCB4PSI0NTUiIHk9IjEwOCIgd2lkdGg9IjQ1IiBoZWlnaHQ9Ijc0IiBjbGFzcz0iYm94IHN5c3RlbSIvPgogIDxyZWN0IHg9IjUwMCIgeT0iMTA4IiB3aWR0aD0iNDAiIGhlaWdodD0iNzQiIGNsYXNzPSJib3ggcmVzZXJ2ZWQiLz4KICA8cmVjdCB4PSI1NDAiIHk9IjEwOCIgd2lkdGg9IjQ1IiBoZWlnaHQ9Ijc0IiBjbGFzcz0iYm94IHN5c3RlbSIvPgogIDxyZWN0IHg9IjU4NSIgeT0iMTA4IiB3aWR0aD0iNzAiIGhlaWdodD0iNzQiIGNsYXNzPSJib3ggaW9wbCIvPgogIDxyZWN0IHg9IjY1NSIgeT0iMTA4IiB3aWR0aD0iNDUiIGhlaWdodD0iNzQiIGNsYXNzPSJib3ggc3RhdHVzIi8+CiAgPHJlY3QgeD0iNzAwIiB5PSIxMDgiIHdpZHRoPSI0NSIgaGVpZ2h0PSI3NCIgY2xhc3M9ImJveCBzdGF0dXMiLz4KICA8cmVjdCB4PSI3NDUiIHk9IjEwOCIgd2lkdGg9IjU1IiBoZWlnaHQ9Ijc0IiBjbGFzcz0iaWYiLz4KICA8cmVjdCB4PSI4MDAiIHk9IjEwOCIgd2lkdGg9IjQ1IiBoZWlnaHQ9Ijc0IiBjbGFzcz0iYm94IHN5c3RlbSIvPgogIDxyZWN0IHg9Ijg0NSIgeT0iMTA4IiB3aWR0aD0iNDUiIGhlaWdodD0iNzQiIGNsYXNzPSJib3ggc3RhdHVzIi8+CiAgPHJlY3QgeD0iODkwIiB5PSIxMDgiIHdpZHRoPSI0NSIgaGVpZ2h0PSI3NCIgY2xhc3M9ImJveCBzdGF0dXMiLz4KICA8cmVjdCB4PSI5MzUiIHk9IjEwOCIgd2lkdGg9IjQwIiBoZWlnaHQ9Ijc0IiBjbGFzcz0iYm94IHJlc2VydmVkIi8+CiAgPHJlY3QgeD0iOTc1IiB5PSIxMDgiIHdpZHRoPSI0NSIgaGVpZ2h0PSI3NCIgY2xhc3M9ImJveCBzdGF0dXMiLz4KICA8cmVjdCB4PSIxMDIwIiB5PSIxMDgiIHdpZHRoPSI0MCIgaGVpZ2h0PSI3NCIgY2xhc3M9ImJveCByZXNlcnZlZCIvPgogIDxyZWN0IHg9IjEwNjAiIHk9IjEwOCIgd2lkdGg9IjQ1IiBoZWlnaHQ9Ijc0IiBjbGFzcz0iYm94IHN0YXR1cyIvPgogIDxyZWN0IHg9IjExMDUiIHk9IjEwOCIgd2lkdGg9IjQwIiBoZWlnaHQ9Ijc0IiBjbGFzcz0iYm94IHJlc2VydmVkIi8+CiAgPHJlY3QgeD0iMTE0NSIgeT0iMTA4IiB3aWR0aD0iNDUiIGhlaWdodD0iNzQiIGNsYXNzPSJib3ggc3RhdHVzIi8+CgogIDxnIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJmaWVsZCI+CiAgICA8dGV4dCB4PSIxMTUiIHk9IjE1MiI+5L+d55WZPC90ZXh0PgogICAgPHRleHQgeD0iMjQyLjUiIHk9IjE1MiI+SUQ8L3RleHQ+CiAgICA8dGV4dCB4PSIyOTAiIHk9IjE1MiI+VklQPC90ZXh0PgogICAgPHRleHQgeD0iMzQwIiB5PSIxNTIiPlZJRjwvdGV4dD4KICAgIDx0ZXh0IHg9IjM4Ny41IiB5PSIxNTIiPkFDPC90ZXh0PgogICAgPHRleHQgeD0iNDMyLjUiIHk9IjE1MiI+Vk08L3RleHQ+CiAgICA8dGV4dCB4PSI0NzcuNSIgeT0iMTUyIj5SRjwvdGV4dD4KICAgIDx0ZXh0IHg9IjUyMCIgeT0iMTUyIj4wPC90ZXh0PgogICAgPHRleHQgeD0iNTYyLjUiIHk9IjE1MiI+TlQ8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjE1MiI+SU9QTDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY3Ny41IiB5PSIxNTIiPk9GPC90ZXh0PgogICAgPHRleHQgeD0iNzIyLjUiIHk9IjE1MiI+REY8L3RleHQ+CiAgICA8dGV4dCB4PSI3NzIuNSIgeT0iMTUyIiBjbGFzcz0iaWYtdGV4dCI+SUY8L3RleHQ+CiAgICA8dGV4dCB4PSI4MjIuNSIgeT0iMTUyIj5URjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg2Ny41IiB5PSIxNTIiPlNGPC90ZXh0PgogICAgPHRleHQgeD0iOTEyLjUiIHk9IjE1MiI+WkY8L3RleHQ+CiAgICA8dGV4dCB4PSI5NTUiIHk9IjE1MiI+MDwvdGV4dD4KICAgIDx0ZXh0IHg9Ijk5Ny41IiB5PSIxNTIiPkFGPC90ZXh0PgogICAgPHRleHQgeD0iMTA0MCIgeT0iMTUyIj4wPC90ZXh0PgogICAgPHRleHQgeD0iMTA4Mi41IiB5PSIxNTIiPlBGPC90ZXh0PgogICAgPHRleHQgeD0iMTEyNSIgeT0iMTUyIj4xPC90ZXh0PgogICAgPHRleHQgeD0iMTE2Ny41IiB5PSIxNTIiPkNGPC90ZXh0PgogIDwvZz4KCiAgPGxpbmUgeDE9Ijc3Mi41IiB5MT0iMTg0IiB4Mj0iNzcyLjUiIHkyPSIyMDciIHN0cm9rZT0iI2ZkZTY4YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzcyLjUiIHk9IjIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImlmLW5vdGUiPklGID0gYml0IDk8L3RleHQ+Cjwvc3ZnPgo=" alt="RFLAGS 位域：63:22 保留区至 CF"><figcaption>RFLAGS 位域：63:22 保留区至 CF</figcaption></figure>
+<p><code>IOPL</code> 占两位。图中 <code>0</code> 表示保留位读取为 0。bit 1 是保留位，但读取为 1。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-B">
@@ -810,25 +813,202 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <header class="am-panel-head"><span class="am-panel-id">C</span><h2>门描述符位域</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>P、gate type、selector 和 offset 决定能否跳转以及跳到哪里。</strong></p>
 <figure class="am-figure"><img data-am-src="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/gate-descriptor.svg" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDEwMDAgNTAwIj4KICA8cmVjdCB3aWR0aD0iMTAwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNmOGZhZmMiLz4KICA8c3R5bGU+CiAgICB0ZXh0IHsgZm9udC1mYW1pbHk6ICdOb3RvIFNhbnMgQ0pLIFNDJywgJ1BpbmdGYW5nIFNDJywgJ01pY3Jvc29mdCBZYUhlaScsIHNhbnMtc2VyaWY7IGZpbGw6ICMxMTE4Mjc7IH0KICAgIC50aXRsZSB7IGZvbnQtc2l6ZTogMjRweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogICAgLmxhYmVsIHsgZm9udC1zaXplOiAxNXB4OyBmb250LXdlaWdodDogNjAwOyB9CiAgICAuc21hbGwgeyBmb250LXNpemU6IDEzcHg7IGZpbGw6ICM0NzU1Njk7IH0KICAgIC5ib3ggeyBzdHJva2U6ICM2NDc0OGI7IHN0cm9rZS13aWR0aDogMS41OyB9CiAgPC9zdHlsZT4KICA8dGV4dCB4PSIzMCIgeT0iNDIiIGNsYXNzPSJ0aXRsZSI+NjQg5L2NIElEVCDpl6jmj4/ov7DnrKbvvJoxNiDlrZfoioI8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjY4IiBjbGFzcz0ic21hbGwiPjY0IOS9jSBoYW5kbGVyIOWcsOWdgOaLhuaIkOS4ieaute+8m3NlbGVjdG9yIOaMh+WQkeWkhOeQhuWHveaVsOaJgOWcqOS7o+eggeautTwvdGV4dD4KICA8Zz4KICAgIDxyZWN0IHg9IjIwIiB5PSIxMDAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODUiIGZpbGw9IiNkYmVhZmUiIGNsYXNzPSJib3giLz4KICAgIDxyZWN0IHg9IjE0MCIgeT0iMTAwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9Ijg1IiBmaWxsPSIjZGNmY2U3IiBjbGFzcz0iYm94Ii8+CiAgICA8cmVjdCB4PSIyNjAiIHk9IjEwMCIgd2lkdGg9IjYwIiBoZWlnaHQ9Ijg1IiBmaWxsPSIjZTJlOGYwIiBjbGFzcz0iYm94Ii8+CiAgICA8cmVjdCB4PSIzMjAiIHk9IjEwMCIgd2lkdGg9IjYwIiBoZWlnaHQ9Ijg1IiBmaWxsPSIjZGRkNmZlIiBjbGFzcz0iYm94Ii8+CiAgICA8cmVjdCB4PSIzODAiIHk9IjEwMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI4NSIgZmlsbD0iI2RiZWFmZSIgY2xhc3M9ImJveCIvPgogICAgPHJlY3QgeD0iNTAwIiB5PSIxMDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iODUiIGZpbGw9IiNkYmVhZmUiIGNsYXNzPSJib3giLz4KICAgIDxyZWN0IHg9Ijc0MCIgeT0iMTAwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9Ijg1IiBmaWxsPSIjZTJlOGYwIiBjbGFzcz0iYm94Ii8+CiAgICA8dGV4dCB4PSI4MCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic21hbGwiPkIw4oCTQjE8L3RleHQ+PHRleHQgeD0iODAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5vZmZzZXQgMTU6MDwvdGV4dD4KICAgIDx0ZXh0IHg9IjIwMCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic21hbGwiPkIy4oCTQjM8L3RleHQ+PHRleHQgeD0iMjAwIiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+c2VsZWN0b3I8L3RleHQ+CiAgICA8dGV4dCB4PSIyOTAiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5CNDwvdGV4dD48dGV4dCB4PSIyOTAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5JU1Q8L3RleHQ+CiAgICA8dGV4dCB4PSIzNTAiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5CNTwvdGV4dD48dGV4dCB4PSIzNTAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj50eXBlPC90ZXh0PgogICAgPHRleHQgeD0iNDQwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+QjbigJNCNzwvdGV4dD48dGV4dCB4PSI0NDAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5vZmZzZXQgMzE6MTY8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5COOKAk0IxMTwvdGV4dD48dGV4dCB4PSI2MjAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5vZmZzZXQgNjM6MzI8L3RleHQ+CiAgICA8dGV4dCB4PSI4NjAiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5CMTLigJNCMTU8L3RleHQ+PHRleHQgeD0iODYwIiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+cmVzZXJ2ZWQgPSAwPC90ZXh0PgogIDwvZz4KICA8dGV4dCB4PSIzMCIgeT0iMjM1IiBjbGFzcz0ibGFiZWwiPkI1IHR5cGUgYXR0cmlidXRlczwvdGV4dD4KICA8Zz4KICAgIDxyZWN0IHg9IjEwMCIgeT0iMjYwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjZGNmY2U3IiBjbGFzcz0iYm94Ii8+CiAgICA8cmVjdCB4PSIyMDAiIHk9IjI2MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI3MCIgZmlsbD0iI2UyZThmMCIgY2xhc3M9ImJveCIvPgogICAgPHJlY3QgeD0iMzAwIiB5PSIyNjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzAiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz4KICAgIDxyZWN0IHg9IjQwMCIgeT0iMjYwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjZTJlOGYwIiBjbGFzcz0iYm94Ii8+CiAgICA8cmVjdCB4PSI1MDAiIHk9IjI2MCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI3MCIgZmlsbD0iI2RkZDZmZSIgY2xhc3M9ImJveCIvPgogICAgPHRleHQgeD0iMTUwIiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+UDwvdGV4dD48dGV4dCB4PSIxNTAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5iaXQgNzwvdGV4dD4KICAgIDx0ZXh0IHg9IjI1MCIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPkRQTDwvdGV4dD48dGV4dCB4PSIyNTAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5iaXQgNjwvdGV4dD4KICAgIDx0ZXh0IHg9IjM1MCIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPkRQTDwvdGV4dD48dGV4dCB4PSIzNTAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5iaXQgNTwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ1MCIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPjA8L3RleHQ+PHRleHQgeD0iNDUwIiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+Yml0IDQ8L3RleHQ+CiAgICA8dGV4dCB4PSI3MDAiIHk9IjI4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5nYXRlIHR5cGXvvJoxMTEwPWludGVycnVwdO+8jDExMTE9dHJhcDwvdGV4dD48dGV4dCB4PSI3MDAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9InNtYWxsIj5iaXRzIDPigKYwPC90ZXh0PgogIDwvZz4KICA8dGV4dCB4PSIxMDAiIHk9IjM4NSIgY2xhc3M9ImxhYmVsIj5QPTDvvJrmnKzpobnml6DmlYjvvIxDUFUg5LiN6IO95LuO6L+Z6YeM5Y+W5b6XIGhhbmRsZXI8L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSI0MjAiIGNsYXNzPSJzbWFsbCI+aW50ZXJydXB0IGdhdGUg5Zyo6Lez6L2s5pe25riFIElG77ybdHJhcCBnYXRlIOS4jeaUueWPmCBJRjwvdGV4dD4KPC9zdmc+Cg==" alt="64 位 IDT 门描述符与 type attributes 位域"><figcaption>64 位 IDT 门描述符与 type attributes 位域</figcaption></figure>
-<p>P=0 表示本项无效。interrupt gate 会在进门时清 IF，trap gate 不改变 IF。</p>
-<p>IST 可为 handler 选择独立栈。普通异常处理可先把 IST 置 0，高风险异常再评估独立栈。</p>
+<p>P=0 表示本项无效。</p>
+</div>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-label="栈帧变化动画：RSP 逐格下移，依次压入 RFLAGS、CS、RIP，当前 IF 随后清零，iretq 再逐格弹出并恢复 IF" style="display:block;max-width:100%;height:auto">
+  <rect width="800" height="520" fill="#0f172a"/>
+  <defs>
+    <marker id="stack-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/>
+    </marker>
+    <marker id="push-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#60a5fa"/>
+    </marker>
+    <marker id="pop-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4ade80"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #f8fafc; }
+    .title { font-size: 22px; font-weight: 700; }
+    .box-title { font-size: 17px; font-weight: 700; }
+    .body { font-size: 14px; }
+    .small { font-size: 12px; fill: #cbd5e1; }
+    .slot-empty { fill: #1e293b; stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 6 5; }
+    .slot { stroke-width: 2; }
+    .rflags { fill: #1e3a8a; stroke: #60a5fa; }
+    .cs { fill: #164e63; stroke: #22d3ee; }
+    .rip { fill: #312e81; stroke: #a5b4fc; }
+    .if-on { fill: #166534; stroke: #4ade80; stroke-width: 2; }
+    .if-off { fill: #9a3412; stroke: #fb923c; stroke-width: 2; }
+    .phase { opacity: 0; }
+  </style>
+
+  <text x="30" y="38" class="title">interrupt gate：栈帧逐步压入，iretq 逐步弹出</text>
+  <text x="30" y="64" class="small">每格 8 字节 · 高地址在上方 · PUSH 先让 RSP 减 8</text>
+
+  <rect x="40" y="105" width="230" height="275" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <text x="155" y="140" text-anchor="middle" class="box-title">当前 RFLAGS.IF</text>
+
+  <g opacity="0">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="1;0;1" keyTimes="0;0.53;0.82"/>
+    <rect x="90" y="180" width="130" height="56" rx="28" class="if-on"/>
+    <text x="155" y="215" text-anchor="middle" class="box-title">IF = 1</text>
+  </g>
+  <g opacity="0">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.53;0.82"/>
+    <rect x="90" y="180" width="130" height="56" rx="28" class="if-off"/>
+    <text x="155" y="215" text-anchor="middle" class="box-title">IF = 0</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="1;0;1" keyTimes="0;0.53;0.82"/>
+    <text x="155" y="280" text-anchor="middle" class="small">旧 RFLAGS 尚未入栈</text>
+    <text x="155" y="302" text-anchor="middle" class="small">或已由 iretq 恢复</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.53;0.82"/>
+    <text x="155" y="280" text-anchor="middle" class="small">handler 入口</text>
+    <text x="155" y="302" text-anchor="middle" class="small">可屏蔽中断被屏蔽</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.11;0.53;0.64"/>
+    <path d="M320 105 V330" stroke="#60a5fa" stroke-width="3" marker-end="url(#push-arrow)"/>
+    <text x="320" y="352" text-anchor="middle" class="small">PUSH：RSP 下移 8</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;1;0" keyTimes="0;0.53;0.64;0.9"/>
+    <path d="M320 330 V105" stroke="#4ade80" stroke-width="3" marker-end="url(#pop-arrow)"/>
+    <text x="320" y="352" text-anchor="middle" class="small">iretq：RSP 逐格回退</text>
+  </g>
+
+  <text x="560" y="96" text-anchor="middle" class="small">栈向低地址增长 ↓</text>
+  <rect x="390" y="120" width="340" height="70" rx="4" class="slot-empty"/>
+  <rect x="390" y="190" width="340" height="70" rx="4" class="slot-empty"/>
+  <rect x="390" y="260" width="340" height="70" rx="4" class="slot-empty"/>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.11;0.12;0.82;0.83;1"/>
+    <rect x="390" y="120" width="340" height="70" rx="4" class="slot rflags"/>
+    <text x="560" y="152" text-anchor="middle" class="body">saved RFLAGS · IF = 1</text>
+    <text x="560" y="176" text-anchor="middle" class="small">栈中保存值以后不再改变</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.25;0.26;0.72;0.73;1"/>
+    <rect x="390" y="190" width="340" height="70" rx="4" class="slot cs"/>
+    <text x="560" y="222" text-anchor="middle" class="body">saved CS</text>
+    <text x="560" y="246" text-anchor="middle" class="small">返回时用于恢复 CS</text>
+  </g>
+
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.39;0.40;0.64;0.65;1"/>
+    <rect x="390" y="260" width="340" height="70" rx="4" class="slot rip"/>
+    <text x="560" y="292" text-anchor="middle" class="body">saved RIP</text>
+    <text x="560" y="316" text-anchor="middle" class="small">handler 入口时位于 [RSP+0]</text>
+  </g>
+
+  <g>
+    <animateTransform attributeName="transform" type="translate" dur="9s" repeatCount="indefinite"
+      calcMode="linear" values="0 0;0 0;0 60;0 130;0 200;0 200;0 130;0 60;0 0"
+      keyTimes="0;0.11;0.25;0.39;0.53;0.64;0.72;0.82;1"/>
+    <line x1="755" y1="60" x2="790" y2="60" stroke="#fde68a" stroke-width="3" marker-end="url(#stack-arrow)"/>
+    <text x="750" y="48" text-anchor="end" class="small" fill="#fde68a">RSP</text>
+  </g>
+
+  <line x1="40" y1="425" x2="760" y2="425" stroke="#334155" stroke-width="1"/>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="1;0;0;0;0;0;1" keyTimes="0;0.11;0.25;0.39;0.53;0.64;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">栈尚未变化，RSP 指向空栈区。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;1;0;0;0;0" keyTimes="0;0.11;0.25;0.39;0.53;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">1. PUSH saved RFLAGS：先保存 IF = 1；当前 IF 仍为 1。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;1;0;0;0" keyTimes="0;0.11;0.25;0.39;0.53;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">2. PUSH saved CS。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;0;1;0;0" keyTimes="0;0.11;0.25;0.39;0.53;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">3. PUSH saved RIP。保存完成后，CPU 才清当前 IF。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;0;0;1;0" keyTimes="0;0.11;0.25;0.39;0.53;0.64"/>
+    <text x="400" y="458" text-anchor="middle" class="body">handler 入口：当前 IF = 0，栈中 saved RFLAGS 仍是 IF = 1。</text>
+  </g>
+  <g class="phase">
+    <animate attributeName="opacity" dur="9s" repeatCount="indefinite" calcMode="discrete" values="0;0;0;0;0;1;0" keyTimes="0;0.11;0.25;0.39;0.53;0.64;0.9"/>
+    <text x="400" y="458" text-anchor="middle" class="body">iretq：先弹 RIP，再弹 CS，最后弹 RFLAGS；当前 IF 回到 1。</text>
+  </g>
+</svg>
+<div class="am-md"><p><strong>IF 是 RFLAGS.bit9，不是独立寄存器。</strong></p>
+<ul>
+<li>IF 只控制可屏蔽外部中断，不屏蔽 NMI 或异常。</li>
+<li>interrupt gate 先把旧 RFLAGS 压栈，再清当前 IF。栈中保存进门前 IF，<code>iretq</code> 可恢复它。</li>
+<li>trap gate 保持 IF 原值，不强制置 1。</li>
+</ul>
+<p><strong>IST 是 3 位索引，不是栈地址。</strong></p>
+<p>0 表示不用 IST；1～7 分别选择当前 TSS.IST1～TSS.IST7。TSS.ISTn 保存专用栈的初始 RSP。</p>
+<p>操作系统按 handler 的栈可靠性选择：</p>
+<ul>
+<li>普通异常通常取 0。</li>
+<li>双重故障等“当前栈可能已不可信”的 handler，应评估独立栈。</li>
+<li>NMI、MC、DB 按各自上下文设计。</li>
+</ul>
+<p>非零 IST 在同特权级也会切栈。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-D">
 <header class="am-panel-head"><span class="am-panel-id">D</span><h2>异常栈帧</h2></header>
-<div class="am-panel-body"><div class="am-md"><p><strong>是否切换特权级、是否有 error code，会改变栈帧布局。</strong></p>
-<figure class="am-figure"><img data-am-src="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/exception-frames.svg" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAwIiBoZWlnaHQ9IjU2MCIgdmlld0JveD0iMCAwIDExMDAgNTYwIj4KICA8cmVjdCB3aWR0aD0iMTEwMCIgaGVpZ2h0PSI1NjAiIGZpbGw9IiNmOGZhZmMiLz4KICA8c3R5bGU+CiAgICB0ZXh0IHsgZm9udC1mYW1pbHk6ICdOb3RvIFNhbnMgQ0pLIFNDJywgJ1BpbmdGYW5nIFNDJywgJ01pY3Jvc29mdCBZYUhlaScsIHNhbnMtc2VyaWY7IGZpbGw6ICMxMTE4Mjc7IH0KICAgIC50aXRsZSB7IGZvbnQtc2l6ZTogMjRweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogICAgLmxhYmVsIHsgZm9udC1zaXplOiAxNXB4OyBmb250LXdlaWdodDogNjAwOyB9CiAgICAuc21hbGwgeyBmb250LXNpemU6IDEzcHg7IGZpbGw6ICM0NzU1Njk7IH0KICAgIC5ib3ggeyBzdHJva2U6ICM2NDc0OGI7IHN0cm9rZS13aWR0aDogMS41OyB9CiAgPC9zdHlsZT4KICA8dGV4dCB4PSIzMCIgeT0iNDIiIGNsYXNzPSJ0aXRsZSI+Q1BVIOiHquWKqOS/neWtmOeahOW8guW4uOagiOW4pzwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iNjgiIGNsYXNzPSJzbWFsbCI+5q+P5qC8IDgg5a2X6IqC77yb5YGP56e755u45a+5IGhhbmRsZXIg5YWl5Y+j55qEIFJTUO+8jOmrmOWcsOWdgOWcqOS4iuaWuTwvdGV4dD4KCiAgPHRleHQgeD0iMTgwIiB5PSIxMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+5ZCM54m55p2D57qnIMK3IOaXoCBlcnJvciBjb2RlPC90ZXh0PgogIDxyZWN0IHg9IjUwIiB5PSIxNDAiIHdpZHRoPSIyNjAiIGhlaWdodD0iNTUiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz48dGV4dCB4PSIxODAiIHk9IjE3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5SRkxBR1MgwrcgKzE2PC90ZXh0PgogIDxyZWN0IHg9IjUwIiB5PSIxOTUiIHdpZHRoPSIyNjAiIGhlaWdodD0iNTUiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz48dGV4dCB4PSIxODAiIHk9IjIyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5DUyDCtyArODwvdGV4dD4KICA8cmVjdCB4PSI1MCIgeT0iMjUwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjYmZkYmZlIiBjbGFzcz0iYm94Ii8+PHRleHQgeD0iMTgwIiB5PSIyODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+UklQIMK3ICswIOKGkCBSU1A8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+ZmF1bHQg55qEIFJJUCDmjIflkJHniq/plJnmjIfku6Q8L3RleHQ+CgogIDx0ZXh0IHg9IjU1MCIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPuWQjOeJueadg+e6pyDCtyDmnIkgZXJyb3IgY29kZTwvdGV4dD4KICA8cmVjdCB4PSI0MjAiIHk9IjE0MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI1NSIgZmlsbD0iI2UyZThmMCIgY2xhc3M9ImJveCIvPjx0ZXh0IHg9IjU1MCIgeT0iMTc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPlJGTEFHUyDCtyArMjQ8L3RleHQ+CiAgPHJlY3QgeD0iNDIwIiB5PSIxOTUiIHdpZHRoPSIyNjAiIGhlaWdodD0iNTUiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz48dGV4dCB4PSI1NTAiIHk9IjIyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5DUyDCtyArMTY8L3RleHQ+CiAgPHJlY3QgeD0iNDIwIiB5PSIyNTAiIHdpZHRoPSIyNjAiIGhlaWdodD0iNTUiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz48dGV4dCB4PSI1NTAiIHk9IjI4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5SSVAgwrcgKzg8L3RleHQ+CiAgPHJlY3QgeD0iNDIwIiB5PSIzMDUiIHdpZHRoPSIyNjAiIGhlaWdodD0iNTUiIGZpbGw9IiNmZGU2OGEiIGNsYXNzPSJib3giLz48dGV4dCB4PSI1NTAiIHk9IjMzOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5lcnJvciBjb2RlIMK3ICswIOKGkCBSU1A8L3RleHQ+CiAgPHRleHQgeD0iNTUwIiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+5YWl5Y+j5Y+v6KGl5Y2g5L2NIDDvvIznu5/kuIDkuKTnp43luIPlsYA8L3RleHQ+CgogIDx0ZXh0IHg9IjkwMCIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPueJueadg+e6p+WIh+aNoiDCtyDmnIkgZXJyb3IgY29kZTwvdGV4dD4KICA8cmVjdCB4PSI3NzAiIHk9IjE0MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI0NSIgZmlsbD0iI2RjZmNlNyIgY2xhc3M9ImJveCIvPjx0ZXh0IHg9IjkwMCIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPuaXpyBTUyDCtyArNDA8L3RleHQ+CiAgPHJlY3QgeD0iNzcwIiB5PSIxODUiIHdpZHRoPSIyNjAiIGhlaWdodD0iNDUiIGZpbGw9IiNkY2ZjZTciIGNsYXNzPSJib3giLz48dGV4dCB4PSI5MDAiIHk9IjIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj7ml6cgUlNQIMK3ICszMjwvdGV4dD4KICA8cmVjdCB4PSI3NzAiIHk9IjIzMCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI0NSIgZmlsbD0iI2UyZThmMCIgY2xhc3M9ImJveCIvPjx0ZXh0IHg9IjkwMCIgeT0iMjU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPlJGTEFHUyDCtyArMjQ8L3RleHQ+CiAgPHJlY3QgeD0iNzcwIiB5PSIyNzUiIHdpZHRoPSIyNjAiIGhlaWdodD0iNDUiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz48dGV4dCB4PSI5MDAiIHk9IjMwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5DUyDCtyArMTY8L3RleHQ+CiAgPHJlY3QgeD0iNzcwIiB5PSIzMjAiIHdpZHRoPSIyNjAiIGhlaWdodD0iNDUiIGZpbGw9IiNlMmU4ZjAiIGNsYXNzPSJib3giLz48dGV4dCB4PSI5MDAiIHk9IjM0OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5SSVAgwrcgKzg8L3RleHQ+CiAgPHJlY3QgeD0iNzcwIiB5PSIzNjUiIHdpZHRoPSIyNjAiIGhlaWdodD0iNDUiIGZpbGw9IiNmZGU2OGEiIGNsYXNzPSJib3giLz48dGV4dCB4PSI5MDAiIHk9IjM5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5lcnJvciBjb2RlIMK3ICswIOKGkCBSU1A8L3RleHQ+CiAgPHRleHQgeD0iOTAwIiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzbWFsbCI+5Y+q5pyJ54m55p2D57qn5YiH5o2i5omN5L+d5a2Y5penIFNTL1JTUDwvdGV4dD4KCiAgPHRleHQgeD0iMzAiIHk9IjUxNSIgY2xhc3M9InNtYWxsIj5oYW5kbGVyIOWFiOivu+WPlui/meS6m+Wtl+aute+8jOWGjeWGs+WumuaBouWkjeaJp+ihjOaIluWBnOacuu+8m+i/lOWbnuaXtuS9v+eUqCBpcmV0cTwvdGV4dD4KPC9zdmc+Cg==" alt="三种异常栈帧及相对 RSP 的字节偏移"><figcaption>三种异常栈帧及相对 RSP 的字节偏移</figcaption></figure>
-<p>同一特权级不会自动保存旧 SS/RSP。特权级切换会多保存这两项，并切换到目标栈。</p>
-<p>向量 8、10～14、17、21 由 CPU 压入 error code。其它异常没有该字段。</p>
-<p>公共 handler 常让无 error code 的入口补压 0。这样所有入口都能共用一种结构体布局。</p>
+<div class="am-panel-body"><div class="am-md"><p><strong>是否有 error code、是否切栈，共同决定异常栈帧。</strong></p>
+<figure class="am-figure"><img data-am-src="/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/exception-frames.svg" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjU3MCIgdmlld0JveD0iMCAwIDEyMDAgNTcwIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IuS4ieenjeW8guW4uOWFpeWPo+agiOW4p++8jOS7pSBSU1Ag5Yqg5a2X6IqC5YGP56e75qCH6K6w5q+P5LiqIDgg5a2X6IqC5qe95L2NIj4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1NzAiIGZpbGw9IiMwZjE3MmEiLz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9InJzcC1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNmZGU2OGEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8c3R5bGU+CiAgICB0ZXh0IHsgZm9udC1mYW1pbHk6ICdOb3RvIFNhbnMgQ0pLIFNDJywgJ1BpbmdGYW5nIFNDJywgJ01pY3Jvc29mdCBZYUhlaScsIHNhbnMtc2VyaWY7IGZpbGw6ICNmOGZhZmM7IH0KICAgIC50aXRsZSB7IGZvbnQtc2l6ZTogMjRweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogICAgLnN1YnRpdGxlIHsgZm9udC1zaXplOiAxM3B4OyBmaWxsOiAjY2JkNWUxOyB9CiAgICAuaGVhZGluZyB7IGZvbnQtc2l6ZTogMTZweDsgZm9udC13ZWlnaHQ6IDcwMDsgfQogICAgLm9mZnNldCB7IGZvbnQtZmFtaWx5OiB1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgQ29uc29sYXMsIG1vbm9zcGFjZTsgZm9udC1zaXplOiAxNHB4OyBmaWxsOiAjZTJlOGYwOyB9CiAgICAuZmllbGQgeyBmb250LXNpemU6IDE1cHg7IGZvbnQtd2VpZ2h0OiA3MDA7IH0KICAgIC5zbG90IHsgc3Ryb2tlOiAjOTRhM2I4OyBzdHJva2Utd2lkdGg6IDE7IH0KICAgIC5kaXZpZGVyIHsgc3Ryb2tlOiAjOTRhM2I4OyBzdHJva2Utd2lkdGg6IDE7IH0KICAgIC5zYXZlZCB7IGZpbGw6ICMxZTNhOGE7IH0KICAgIC5lcnJvciB7IGZpbGw6ICM5YTM0MTI7IH0KICAgIC5vbGQtc3RhY2sgeyBmaWxsOiAjMTQ1MzJkOyB9CiAgICAucG9pbnRlciB7IHN0cm9rZTogI2ZkZTY4YTsgc3Ryb2tlLXdpZHRoOiAyOyB9CiAgICAucG9pbnRlci1sYWJlbCB7IGZpbGw6ICNmZGU2OGE7IGZvbnQtc2l6ZTogMTNweDsgfQogIDwvc3R5bGU+CiAgPHRleHQgeD0iMzAiIHk9IjM4IiBjbGFzcz0idGl0bGUiPkNQVSDoh6rliqjkv53lrZjnmoTlvILluLjmoIjluKc8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjY1IiBjbGFzcz0ic3VidGl0bGUiPuavj+agvCA4IOWtl+iKgiDCtyDpq5jlnLDlnYDlnKjkuIrmlrkgwrcgUFVTSO+8mlJTUCDlhYjlh48gOO+8jOWGjeWGmSBbUlNQXTwvdGV4dD4KCiAgPGcgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImhlYWRpbmciPgogICAgPHRleHQgeD0iMjAwIiB5PSIxMDAiPuS4jeWIh+agiCDCtyDml6AgZXJyb3IgY29kZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iMTAwIj7kuI3liIfmoIggwrcg5pyJIGVycm9yIGNvZGU8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDAwIiB5PSIxMDAiPuWIh+agiCDCtyDmnIkgZXJyb3IgY29kZTwvdGV4dD4KICA8L2c+CgogIDxnPgogICAgPHJlY3QgeD0iNDAiIHk9IjMwMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3Qgc2F2ZWQiLz4KICAgIDxsaW5lIHgxPSIxNjAiIHkxPSIzMDAiIHgyPSIxNjAiIHkyPSIzNTYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI1NSIgeT0iMzM1IiBjbGFzcz0ib2Zmc2V0Ij5bUlNQKzE2XTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI2MCIgeT0iMzM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iZmllbGQiPnNhdmVkIFJGTEFHUzwvdGV4dD4KICAgIDxyZWN0IHg9IjQwIiB5PSIzNjAiIHdpZHRoPSIzMjAiIGhlaWdodD0iNTYiIGNsYXNzPSJzbG90IHNhdmVkIi8+CiAgICA8bGluZSB4MT0iMTYwIiB5MT0iMzYwIiB4Mj0iMTYwIiB5Mj0iNDE2IiBjbGFzcz0iZGl2aWRlciIvPgogICAgPHRleHQgeD0iNTUiIHk9IjM5NSIgY2xhc3M9Im9mZnNldCI+W1JTUCs4XTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI2MCIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iZmllbGQiPnNhdmVkIENTPC90ZXh0PgogICAgPHJlY3QgeD0iNDAiIHk9IjQyMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3Qgc2F2ZWQiLz4KICAgIDxsaW5lIHgxPSIxNjAiIHkxPSI0MjAiIHgyPSIxNjAiIHkyPSI0NzYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI1NSIgeT0iNDU1IiBjbGFzcz0ib2Zmc2V0Ij5bUlNQKzBdPC90ZXh0PgogICAgPHRleHQgeD0iMjYwIiB5PSI0NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJmaWVsZCI+c2F2ZWQgUklQPC90ZXh0PgogIDwvZz4KCiAgPGc+CiAgICA8cmVjdCB4PSI0NDAiIHk9IjI0MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3Qgc2F2ZWQiLz4KICAgIDxsaW5lIHgxPSI1NjAiIHkxPSIyNDAiIHgyPSI1NjAiIHkyPSIyOTYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI0NTUiIHk9IjI3NSIgY2xhc3M9Im9mZnNldCI+W1JTUCsyNF08L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImZpZWxkIj5zYXZlZCBSRkxBR1M8L3RleHQ+CiAgICA8cmVjdCB4PSI0NDAiIHk9IjMwMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3Qgc2F2ZWQiLz4KICAgIDxsaW5lIHgxPSI1NjAiIHkxPSIzMDAiIHgyPSI1NjAiIHkyPSIzNTYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI0NTUiIHk9IjMzNSIgY2xhc3M9Im9mZnNldCI+W1JTUCsxNl08L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjMzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImZpZWxkIj5zYXZlZCBDUzwvdGV4dD4KICAgIDxyZWN0IHg9IjQ0MCIgeT0iMzYwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU2IiBjbGFzcz0ic2xvdCBzYXZlZCIvPgogICAgPGxpbmUgeDE9IjU2MCIgeTE9IjM2MCIgeDI9IjU2MCIgeTI9IjQxNiIgY2xhc3M9ImRpdmlkZXIiLz4KICAgIDx0ZXh0IHg9IjQ1NSIgeT0iMzk1IiBjbGFzcz0ib2Zmc2V0Ij5bUlNQKzhdPC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJmaWVsZCI+c2F2ZWQgUklQPC90ZXh0PgogICAgPHJlY3QgeD0iNDQwIiB5PSI0MjAiIHdpZHRoPSIzMjAiIGhlaWdodD0iNTYiIGNsYXNzPSJzbG90IGVycm9yIi8+CiAgICA8bGluZSB4MT0iNTYwIiB5MT0iNDIwIiB4Mj0iNTYwIiB5Mj0iNDc2IiBjbGFzcz0iZGl2aWRlciIvPgogICAgPHRleHQgeD0iNDU1IiB5PSI0NTUiIGNsYXNzPSJvZmZzZXQiPltSU1ArMF08L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjQ1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImZpZWxkIj5lcnJvciBjb2RlPC90ZXh0PgogIDwvZz4KCiAgPGc+CiAgICA8cmVjdCB4PSI4NDAiIHk9IjEyMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3Qgb2xkLXN0YWNrIi8+CiAgICA8bGluZSB4MT0iOTYwIiB5MT0iMTIwIiB4Mj0iOTYwIiB5Mj0iMTc2IiBjbGFzcz0iZGl2aWRlciIvPgogICAgPHRleHQgeD0iODU1IiB5PSIxNTUiIGNsYXNzPSJvZmZzZXQiPltSU1ArNDBdPC90ZXh0PgogICAgPHRleHQgeD0iMTA2MCIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iZmllbGQiPm9sZCBTUzwvdGV4dD4KICAgIDxyZWN0IHg9Ijg0MCIgeT0iMTgwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU2IiBjbGFzcz0ic2xvdCBvbGQtc3RhY2siLz4KICAgIDxsaW5lIHgxPSI5NjAiIHkxPSIxODAiIHgyPSI5NjAiIHkyPSIyMzYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI4NTUiIHk9IjIxNSIgY2xhc3M9Im9mZnNldCI+W1JTUCszMl08L3RleHQ+CiAgICA8dGV4dCB4PSIxMDYwIiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJmaWVsZCI+b2xkIFJTUDwvdGV4dD4KICAgIDxyZWN0IHg9Ijg0MCIgeT0iMjQwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU2IiBjbGFzcz0ic2xvdCBzYXZlZCIvPgogICAgPGxpbmUgeDE9Ijk2MCIgeTE9IjI0MCIgeDI9Ijk2MCIgeTI9IjI5NiIgY2xhc3M9ImRpdmlkZXIiLz4KICAgIDx0ZXh0IHg9Ijg1NSIgeT0iMjc1IiBjbGFzcz0ib2Zmc2V0Ij5bUlNQKzI0XTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNjAiIHk9IjI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImZpZWxkIj5zYXZlZCBSRkxBR1M8L3RleHQ+CiAgICA8cmVjdCB4PSI4NDAiIHk9IjMwMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3Qgc2F2ZWQiLz4KICAgIDxsaW5lIHgxPSI5NjAiIHkxPSIzMDAiIHgyPSI5NjAiIHkyPSIzNTYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI4NTUiIHk9IjMzNSIgY2xhc3M9Im9mZnNldCI+W1JTUCsxNl08L3RleHQ+CiAgICA8dGV4dCB4PSIxMDYwIiB5PSIzMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJmaWVsZCI+c2F2ZWQgQ1M8L3RleHQ+CiAgICA8cmVjdCB4PSI4NDAiIHk9IjM2MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3Qgc2F2ZWQiLz4KICAgIDxsaW5lIHgxPSI5NjAiIHkxPSIzNjAiIHgyPSI5NjAiIHkyPSI0MTYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI4NTUiIHk9IjM5NSIgY2xhc3M9Im9mZnNldCI+W1JTUCs4XTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNjAiIHk9IjM5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImZpZWxkIj5zYXZlZCBSSVA8L3RleHQ+CiAgICA8cmVjdCB4PSI4NDAiIHk9IjQyMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NiIgY2xhc3M9InNsb3QgZXJyb3IiLz4KICAgIDxsaW5lIHgxPSI5NjAiIHkxPSI0MjAiIHgyPSI5NjAiIHkyPSI0NzYiIGNsYXNzPSJkaXZpZGVyIi8+CiAgICA8dGV4dCB4PSI4NTUiIHk9IjQ1NSIgY2xhc3M9Im9mZnNldCI+W1JTUCswXTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNjAiIHk9IjQ1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImZpZWxkIj5lcnJvciBjb2RlPC90ZXh0PgogIDwvZz4KCiAgPGc+CiAgICA8bGluZSB4MT0iMjAwIiB5MT0iNTEwIiB4Mj0iMjAwIiB5Mj0iNDg0IiBjbGFzcz0icG9pbnRlciIgbWFya2VyLWVuZD0idXJsKCNyc3AtYXJyb3cpIi8+CiAgICA8bGluZSB4MT0iNjAwIiB5MT0iNTEwIiB4Mj0iNjAwIiB5Mj0iNDg0IiBjbGFzcz0icG9pbnRlciIgbWFya2VyLWVuZD0idXJsKCNyc3AtYXJyb3cpIi8+CiAgICA8bGluZSB4MT0iMTAwMCIgeTE9IjUxMCIgeDI9IjEwMDAiIHkyPSI0ODQiIGNsYXNzPSJwb2ludGVyIiBtYXJrZXItZW5kPSJ1cmwoI3JzcC1hcnJvdykiLz4KICAgIDx0ZXh0IHg9IjIwMCIgeT0iNTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0icG9pbnRlci1sYWJlbCI+aGFuZGxlciDlhaXlj6MgUlNQPC90ZXh0PgogICAgPHRleHQgeD0iNjAwIiB5PSI1NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJwb2ludGVyLWxhYmVsIj5oYW5kbGVyIOWFpeWPoyBSU1A8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDAwIiB5PSI1NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJwb2ludGVyLWxhYmVsIj5oYW5kbGVyIOWFpeWPoyBSU1A8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K" alt="三种异常栈帧，使用 RSP 加字节偏移标出槽位"><figcaption>三种异常栈帧，使用 RSP 加字节偏移标出槽位</figcaption></figure>
+<p><code>[RSP+0]</code> 表示当前 RSP 指向的内存槽位。<code>+0</code> 是字节偏移，不是槽内数值 0。每格 8 字节，高地址在上方。</p>
+<p><strong>x86 栈向低地址增长。</strong> PUSH 先让 RSP 减 8，再把新值写入 <code>[RSP]</code>。后压入的数据地址更低，POP 反向进行。</p>
+</div>
+<details><summary>为什么 x86 的栈向下增长？</summary><p>这是 x86 ISA 的历史约定，不是速度或安全性上的必然。其他架构不一定这样设计。</p><p>一种常见布局是栈放在地址空间高端向下增长，堆和数据从低端向上使用。中间的空闲区由两侧共享，不必为栈和堆各划固定容量。</p></details>
+<div class="am-md"><p>CPU 依次压入 RFLAGS、CS、RIP。向量有 error code 时，CPU 最后压入它。</p>
+<p>只有切栈才额外保存旧 RSP 和旧 SS。特权级变化或非零 IST 都会切栈。同特权级使用非零 IST 也会保存这两项。</p>
+<p><strong>CPU 不在运行时猜 error code。</strong> ISA 按向量表规定自动压栈。向量 8、10～14、17、21 带 error code；其它异常、外部中断和软件中断不带。</p>
+<p>公共 handler 是多个向量共用的软件代码。判断依据是向量号和入口路径，不是门描述符里的某个标志位。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>向量类别</th>
+<th>CPU 进门时</th>
+<th>入口 stub</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>8、10～14、17、21</td>
+<td>压真实 error code</td>
+<td>不补</td>
+</tr>
+<tr>
+<td>其它异常</td>
+<td>不压</td>
+<td>补压 dummy 0</td>
+</tr>
+<tr>
+<td>外部中断、软件中断</td>
+<td>不压</td>
+<td>需要统一布局时补压 dummy 0</td>
+</tr>
+</tbody></table></div>
+<p><strong>真实 error code 可能为 0。</strong> 不能靠 <code>[RSP]</code> 的值判断有没有 error code。入口 stub 可再压一个向量号，让公共 handler 知道来源。</p>
+<p>这样所有入口共用一种结构体布局。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-E">
 <header class="am-panel-head"><span class="am-panel-id">E</span><h2>跳转、升级与返回</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>handler 可以恢复执行，也可以只报告现场后停机。</strong></p>
 </div>
-<figure class="am-diagram am-seq"><svg viewBox="0 0 706 334" width="706" height="334" role="img" aria-label="时序图：CPU、IDT、栈、handler" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><line class="am-lifeline" x1="54" y1="42" x2="54" y2="330"/><g data-key="CPU"><rect class="am-actor" x="12" y="8" width="84" height="34" rx="2"/><text x="54" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">CPU</text></g><line class="am-lifeline" x1="248.9" y1="42" x2="248.9" y2="330"/><g data-key="IDT"><rect class="am-actor" x="206.9" y="8" width="84" height="34" rx="2"/><text x="248.9" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">IDT</text></g><line class="am-lifeline" x1="360.9" y1="42" x2="360.9" y2="330"/><g data-key="栈"><rect class="am-actor" x="318.9" y="8" width="84" height="34" rx="2"/><text x="360.9" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">栈</text></g><line class="am-lifeline" x1="472.9" y1="42" x2="472.9" y2="330"/><g data-key="handler"><rect class="am-actor" x="430.9" y="8" width="84" height="34" rx="2"/><text x="472.9" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">handler</text></g><g data-step="0"><text x="151.5" y="70" text-anchor="middle">按向量号读取门描述符</text><path class="am-edge" d="M54,80 L246.9,80" marker-end="url(#am1-arrow)"/></g><g data-step="1"><text x="151.5" y="110" text-anchor="middle">返回 offset、selector 和 type</text><path class="am-edge" d="M248.9,120 L56,120" marker-end="url(#am1-arrow)"/></g><g data-step="2"><text x="207.5" y="150" text-anchor="middle">保存 RIP、CS、RFLAGS 和可选 error</text><text x="207.5" y="166" text-anchor="middle">code</text><path class="am-edge" d="M54,176 L358.9,176" marker-end="url(#am1-arrow)"/></g><g data-step="3"><text x="263.5" y="206" text-anchor="middle">跳转</text><path class="am-edge" d="M54,216 L470.9,216" marker-end="url(#am1-arrow)"/></g><g data-step="4"><text x="512.9" y="244" dominant-baseline="central">修复问题或读取现场</text><path class="am-edge" d="M472.9,240 H502.9 V260 H474.9" marker-end="url(#am1-arrow)"/></g><g data-step="5"><text x="263.5" y="294" text-anchor="middle">可选：iretq 恢复执行</text><path class="am-edge" d="M472.9,304 L56,304" marker-end="url(#am1-arrow)"/></g></svg></figure>
-<div class="am-md"><p>fault 修复后，<code>iretq</code> 从保存的 RIP 继续。返回前要移除入口附加数据和 error code。</p>
+<figure class="am-diagram am-seq"><svg viewBox="0 0 706 334" width="706" height="334" role="img" aria-label="时序图：CPU、IDT、栈、handler" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><line class="am-lifeline" x1="54" y1="42" x2="54" y2="330"/><g data-key="CPU"><rect class="am-actor" x="12" y="8" width="84" height="34" rx="2"/><text x="54" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">CPU</text></g><line class="am-lifeline" x1="248.9" y1="42" x2="248.9" y2="330"/><g data-key="IDT"><rect class="am-actor" x="206.9" y="8" width="84" height="34" rx="2"/><text x="248.9" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">IDT</text></g><line class="am-lifeline" x1="360.9" y1="42" x2="360.9" y2="330"/><g data-key="栈"><rect class="am-actor" x="318.9" y="8" width="84" height="34" rx="2"/><text x="360.9" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">栈</text></g><line class="am-lifeline" x1="472.9" y1="42" x2="472.9" y2="330"/><g data-key="handler"><rect class="am-actor" x="430.9" y="8" width="84" height="34" rx="2"/><text x="472.9" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">handler</text></g><g data-step="0"><text x="151.5" y="70" text-anchor="middle">按向量号读取门描述符</text><path class="am-edge" d="M54,80 L246.9,80" marker-end="url(#am1-arrow)"/></g><g data-step="1"><text x="151.5" y="110" text-anchor="middle">返回 offset、selector 和 type</text><path class="am-edge" d="M248.9,120 L56,120" marker-end="url(#am1-arrow)"/></g><g data-step="2"><text x="207.5" y="150" text-anchor="middle">保存 RFLAGS、CS、RIP 和可选 error</text><text x="207.5" y="166" text-anchor="middle">code</text><path class="am-edge" d="M54,176 L358.9,176" marker-end="url(#am1-arrow)"/></g><g data-step="3"><text x="263.5" y="206" text-anchor="middle">跳转</text><path class="am-edge" d="M54,216 L470.9,216" marker-end="url(#am1-arrow)"/></g><g data-step="4"><text x="512.9" y="244" dominant-baseline="central">修复问题或读取现场</text><path class="am-edge" d="M472.9,240 H502.9 V260 H474.9" marker-end="url(#am1-arrow)"/></g><g data-step="5"><text x="263.5" y="294" text-anchor="middle">可选：iretq 恢复执行</text><path class="am-edge" d="M472.9,304 L56,304" marker-end="url(#am1-arrow)"/></g></svg></figure>
+<div class="am-md"><p>fault 修复后，<code>iretq</code> 从保存的 RIP 继续。</p>
+<p>真实 error code 由 CPU 自动压栈。dummy 0 由软件入口 stub 手动压栈。</p>
+<p><strong>自动压栈不等于 <code>iretq</code> 自动出栈。</strong> <code>iretq</code> 不会自动弹出真实 error code，也不会弹出 dummy 0。</p>
+<p>软件返回前按布局恢复 RSP。典型情况先跳过 8 字节，再执行 <code>iretq</code>。若还有附加数据，按实际布局处理。</p>
 <p>查表失败或 handler 再次出错会让异常升级。连续升级会导致 triple fault 和 CPU 复位。</p>
 </div>
 <figure class="am-diagram am-flow"><svg viewBox="0 0 683 63" width="683" height="63" role="img" aria-label="流程图：原始异常、处理失败、double fault、再次失败、triple fault / 复位" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M94,31.5 L105.5,31.5 Q117,31.5 128.5,31.5 L140,31.5" marker-end="url(#am2-arrow)"/></g><g data-step="0"><path class="am-edge" d="M220,31.5 L231.5,31.5 Q243,31.5 254.5,31.5 L266,31.5" marker-end="url(#am2-arrow)"/></g><g data-step="0"><path class="am-edge" d="M365.5,31.5 L377,31.5 Q388.5,31.5 400,31.5 L411.5,31.5" marker-end="url(#am2-arrow)"/></g><g data-step="0"><path class="am-edge" d="M491.5,31.5 L503,31.5 Q514.5,31.5 526,31.5 L537.5,31.5" marker-end="url(#am2-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="原始异常" data-step="0"><rect class="am-node-shape" x="14" y="14" width="80" height="35" rx="3"/><text x="54" y="31.5" text-anchor="middle" dominant-baseline="central">原始异常</text></g><g class="am-node am-node--rect" data-key="处理失败" data-step="0"><rect class="am-node-shape" x="140" y="14" width="80" height="35" rx="3"/><text x="180" y="31.5" text-anchor="middle" dominant-baseline="central">处理失败</text></g><g class="am-node am-node--rect" data-key="double fault" data-step="0"><rect class="am-node-shape" x="266" y="14" width="99.5" height="35" rx="3"/><text x="315.8" y="31.5" text-anchor="middle" dominant-baseline="central">double fault</text></g><g class="am-node am-node--rect" data-key="再次失败" data-step="0"><rect class="am-node-shape" x="411.5" y="14" width="80" height="35" rx="3"/><text x="451.5" y="31.5" text-anchor="middle" dominant-baseline="central">再次失败</text></g><g class="am-node am-node--rect" data-key="triple fault / 复位" data-step="0"><rect class="am-node-shape" x="537.5" y="14" width="131.2" height="35" rx="3"/><text x="603.1" y="31.5" text-anchor="middle" dominant-baseline="central">triple fault / 复位</text></g></g></svg></figure></div>
@@ -876,7 +1056,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </ul>
 </div>
 <details><summary>第 2 题答案与解析</summary><p><strong>A</strong>。特权级切换需要记录返回时的栈，因此多保存旧 SS/RSP。</p></details>
-<div class="am-md"><p><strong>3. handler 需要让可屏蔽中断继续嵌套响应，哪种门更直接？</strong></p>
+<div class="am-md"><p><strong>3. handler 尚未执行完时，要允许另一个可屏蔽中断抢占它，哪种门更直接？</strong></p>
 <ul>
 <li>A. interrupt gate，因为它清 IF</li>
 <li>B. trap gate，因为它保留 IF</li>
@@ -884,7 +1064,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li>D. P=0 的门</li>
 </ul>
 </div>
-<details><summary>第 3 题答案与解析</summary><p><strong>B</strong>。trap gate 不改变 IF；interrupt gate 会清 IF。</p></details>
+<details><summary>第 3 题答案与解析</summary><p><strong>B</strong>。trap gate 保留 IF。若进门前 IF=1，handler 中仍可响应可屏蔽中断。interrupt gate 进门清 IF，但可在安全保存现场后执行 <code>sti</code>。trap gate 不强制开 IF，也不控制 NMI。</p></details>
 <div class="am-md"><p><strong>4. fault 的问题已经修复，想重试原指令，应选择什么？</strong></p>
 <ul>
 <li>A. 直接 ret</li>
@@ -893,7 +1073,16 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li>D. 把 P 位清零</li>
 </ul>
 </div>
-<details><summary>第 4 题答案与解析</summary><p><strong>C</strong>。fault 保存的 RIP 指向原指令，`iretq` 可恢复执行。</p></details></div>
+<details><summary>第 4 题答案与解析</summary><p><strong>C</strong>。fault 保存的 RIP 指向原指令，<code>iretq</code> 可恢复执行。</p></details>
+<div class="am-md"><p><strong>5. 公共 handler 读到 error code 槽位的值为 0，能否断定它是软件补的 dummy 0？</strong></p>
+<ul>
+<li>A. 能，真实 error code 一定大于 0</li>
+<li>B. 能，CPU 从不压入数值 0</li>
+<li>C. 不能，真实 error code 可能为 0，要按向量和入口判断</li>
+<li>D. 能，只要门是 interrupt gate</li>
+</ul>
+</div>
+<details><summary>第 5 题答案与解析</summary><p><strong>C</strong>。真实 error code 可能为 0。公共 handler 只有结合向量号或入口路径，才能区分真实 0 与 dummy 0。</p></details></div>
 </section>
 </div>
 </div>
@@ -913,7 +1102,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-18 16:43 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-19 11:24 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -932,6 +1121,11 @@ CPU 发生异常或收到中断时读取对应行。门描述符给出 handler �
 
 跳转前，CPU 把 RIP、CS、RFLAGS 等字段压栈。部分异常还会多压一个 error code。
 
+RFLAGS 是 64 位标志寄存器。
+
+![RFLAGS 位域：63:22 保留区至 CF](/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/rflags-bitmap.svg)
+
+`IOPL` 占两位。图中 `0` 表示保留位读取为 0。bit 1 是保留位，但读取为 1。
 ## 异常与中断
 
 **三种来源共用 IDT，但触发时机不同。**
@@ -950,22 +1144,187 @@ CPU 发生异常或收到中断时读取对应行。门描述符给出 handler �
 
 ![64 位 IDT 门描述符与 type attributes 位域](/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/gate-descriptor.svg)
 
-P=0 表示本项无效。interrupt gate 会在进门时清 IF，trap gate 不改变 IF。
+P=0 表示本项无效。
 
-IST 可为 handler 选择独立栈。普通异常处理可先把 IST 置 0，高风险异常再评估独立栈。
+```svg
+&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;800&quot; height=&quot;520&quot; viewBox=&quot;0 0 800 520&quot; role=&quot;img&quot; aria-label=&quot;栈帧变化动画：RSP 逐格下移，依次压入 RFLAGS、CS、RIP，当前 IF 随后清零，iretq 再逐格弹出并恢复 IF&quot; style=&quot;display:block;max-width:100%;height:auto&quot;&gt;
+  &lt;rect width=&quot;800&quot; height=&quot;520&quot; fill=&quot;#0f172a&quot;/&gt;
+  &lt;defs&gt;
+    &lt;marker id=&quot;stack-arrow&quot; viewBox=&quot;0 0 10 10&quot; refX=&quot;8&quot; refY=&quot;5&quot; markerWidth=&quot;7&quot; markerHeight=&quot;7&quot; orient=&quot;auto&quot;&gt;
+      &lt;path d=&quot;M0,0 L10,5 L0,10 z&quot; fill=&quot;#cbd5e1&quot;/&gt;
+    &lt;/marker&gt;
+    &lt;marker id=&quot;push-arrow&quot; viewBox=&quot;0 0 10 10&quot; refX=&quot;8&quot; refY=&quot;5&quot; markerWidth=&quot;7&quot; markerHeight=&quot;7&quot; orient=&quot;auto&quot;&gt;
+      &lt;path d=&quot;M0,0 L10,5 L0,10 z&quot; fill=&quot;#60a5fa&quot;/&gt;
+    &lt;/marker&gt;
+    &lt;marker id=&quot;pop-arrow&quot; viewBox=&quot;0 0 10 10&quot; refX=&quot;8&quot; refY=&quot;5&quot; markerWidth=&quot;7&quot; markerHeight=&quot;7&quot; orient=&quot;auto&quot;&gt;
+      &lt;path d=&quot;M0,0 L10,5 L0,10 z&quot; fill=&quot;#4ade80&quot;/&gt;
+    &lt;/marker&gt;
+  &lt;/defs&gt;
+  &lt;style&gt;
+    text { font-family: &#39;Noto Sans CJK SC&#39;, &#39;PingFang SC&#39;, &#39;Microsoft YaHei&#39;, sans-serif; fill: #f8fafc; }
+    .title { font-size: 22px; font-weight: 700; }
+    .box-title { font-size: 17px; font-weight: 700; }
+    .body { font-size: 14px; }
+    .small { font-size: 12px; fill: #cbd5e1; }
+    .slot-empty { fill: #1e293b; stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 6 5; }
+    .slot { stroke-width: 2; }
+    .rflags { fill: #1e3a8a; stroke: #60a5fa; }
+    .cs { fill: #164e63; stroke: #22d3ee; }
+    .rip { fill: #312e81; stroke: #a5b4fc; }
+    .if-on { fill: #166534; stroke: #4ade80; stroke-width: 2; }
+    .if-off { fill: #9a3412; stroke: #fb923c; stroke-width: 2; }
+    .phase { opacity: 0; }
+  &lt;/style&gt;
 
+  &lt;text x=&quot;30&quot; y=&quot;38&quot; class=&quot;title&quot;&gt;interrupt gate：栈帧逐步压入，iretq 逐步弹出&lt;/text&gt;
+  &lt;text x=&quot;30&quot; y=&quot;64&quot; class=&quot;small&quot;&gt;每格 8 字节 · 高地址在上方 · PUSH 先让 RSP 减 8&lt;/text&gt;
+
+  &lt;rect x=&quot;40&quot; y=&quot;105&quot; width=&quot;230&quot; height=&quot;275&quot; rx=&quot;6&quot; fill=&quot;#1e293b&quot; stroke=&quot;#64748b&quot; stroke-width=&quot;1.5&quot;/&gt;
+  &lt;text x=&quot;155&quot; y=&quot;140&quot; text-anchor=&quot;middle&quot; class=&quot;box-title&quot;&gt;当前 RFLAGS.IF&lt;/text&gt;
+
+  &lt;g opacity=&quot;0&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;1;0;1&quot; keyTimes=&quot;0;0.53;0.82&quot;/&gt;
+    &lt;rect x=&quot;90&quot; y=&quot;180&quot; width=&quot;130&quot; height=&quot;56&quot; rx=&quot;28&quot; class=&quot;if-on&quot;/&gt;
+    &lt;text x=&quot;155&quot; y=&quot;215&quot; text-anchor=&quot;middle&quot; class=&quot;box-title&quot;&gt;IF = 1&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g opacity=&quot;0&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;1;0&quot; keyTimes=&quot;0;0.53;0.82&quot;/&gt;
+    &lt;rect x=&quot;90&quot; y=&quot;180&quot; width=&quot;130&quot; height=&quot;56&quot; rx=&quot;28&quot; class=&quot;if-off&quot;/&gt;
+    &lt;text x=&quot;155&quot; y=&quot;215&quot; text-anchor=&quot;middle&quot; class=&quot;box-title&quot;&gt;IF = 0&lt;/text&gt;
+  &lt;/g&gt;
+
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;1;0;1&quot; keyTimes=&quot;0;0.53;0.82&quot;/&gt;
+    &lt;text x=&quot;155&quot; y=&quot;280&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;旧 RFLAGS 尚未入栈&lt;/text&gt;
+    &lt;text x=&quot;155&quot; y=&quot;302&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;或已由 iretq 恢复&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;1;0&quot; keyTimes=&quot;0;0.53;0.82&quot;/&gt;
+    &lt;text x=&quot;155&quot; y=&quot;280&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;handler 入口&lt;/text&gt;
+    &lt;text x=&quot;155&quot; y=&quot;302&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;可屏蔽中断被屏蔽&lt;/text&gt;
+  &lt;/g&gt;
+
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;1;0;0&quot; keyTimes=&quot;0;0.11;0.53;0.64&quot;/&gt;
+    &lt;path d=&quot;M320 105 V330&quot; stroke=&quot;#60a5fa&quot; stroke-width=&quot;3&quot; marker-end=&quot;url(#push-arrow)&quot;/&gt;
+    &lt;text x=&quot;320&quot; y=&quot;352&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;PUSH：RSP 下移 8&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;0;1;0&quot; keyTimes=&quot;0;0.53;0.64;0.9&quot;/&gt;
+    &lt;path d=&quot;M320 330 V105&quot; stroke=&quot;#4ade80&quot; stroke-width=&quot;3&quot; marker-end=&quot;url(#pop-arrow)&quot;/&gt;
+    &lt;text x=&quot;320&quot; y=&quot;352&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;iretq：RSP 逐格回退&lt;/text&gt;
+  &lt;/g&gt;
+
+  &lt;text x=&quot;560&quot; y=&quot;96&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;栈向低地址增长 ↓&lt;/text&gt;
+  &lt;rect x=&quot;390&quot; y=&quot;120&quot; width=&quot;340&quot; height=&quot;70&quot; rx=&quot;4&quot; class=&quot;slot-empty&quot;/&gt;
+  &lt;rect x=&quot;390&quot; y=&quot;190&quot; width=&quot;340&quot; height=&quot;70&quot; rx=&quot;4&quot; class=&quot;slot-empty&quot;/&gt;
+  &lt;rect x=&quot;390&quot; y=&quot;260&quot; width=&quot;340&quot; height=&quot;70&quot; rx=&quot;4&quot; class=&quot;slot-empty&quot;/&gt;
+
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;linear&quot; values=&quot;0;0;1;1;0;0&quot; keyTimes=&quot;0;0.11;0.12;0.82;0.83;1&quot;/&gt;
+    &lt;rect x=&quot;390&quot; y=&quot;120&quot; width=&quot;340&quot; height=&quot;70&quot; rx=&quot;4&quot; class=&quot;slot rflags&quot;/&gt;
+    &lt;text x=&quot;560&quot; y=&quot;152&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;saved RFLAGS · IF = 1&lt;/text&gt;
+    &lt;text x=&quot;560&quot; y=&quot;176&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;栈中保存值以后不再改变&lt;/text&gt;
+  &lt;/g&gt;
+
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;linear&quot; values=&quot;0;0;1;1;0;0&quot; keyTimes=&quot;0;0.25;0.26;0.72;0.73;1&quot;/&gt;
+    &lt;rect x=&quot;390&quot; y=&quot;190&quot; width=&quot;340&quot; height=&quot;70&quot; rx=&quot;4&quot; class=&quot;slot cs&quot;/&gt;
+    &lt;text x=&quot;560&quot; y=&quot;222&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;saved CS&lt;/text&gt;
+    &lt;text x=&quot;560&quot; y=&quot;246&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;返回时用于恢复 CS&lt;/text&gt;
+  &lt;/g&gt;
+
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;linear&quot; values=&quot;0;0;1;1;0;0&quot; keyTimes=&quot;0;0.39;0.40;0.64;0.65;1&quot;/&gt;
+    &lt;rect x=&quot;390&quot; y=&quot;260&quot; width=&quot;340&quot; height=&quot;70&quot; rx=&quot;4&quot; class=&quot;slot rip&quot;/&gt;
+    &lt;text x=&quot;560&quot; y=&quot;292&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;saved RIP&lt;/text&gt;
+    &lt;text x=&quot;560&quot; y=&quot;316&quot; text-anchor=&quot;middle&quot; class=&quot;small&quot;&gt;handler 入口时位于 [RSP+0]&lt;/text&gt;
+  &lt;/g&gt;
+
+  &lt;g&gt;
+    &lt;animateTransform attributeName=&quot;transform&quot; type=&quot;translate&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot;
+      calcMode=&quot;linear&quot; values=&quot;0 0;0 0;0 60;0 130;0 200;0 200;0 130;0 60;0 0&quot;
+      keyTimes=&quot;0;0.11;0.25;0.39;0.53;0.64;0.72;0.82;1&quot;/&gt;
+    &lt;line x1=&quot;755&quot; y1=&quot;60&quot; x2=&quot;790&quot; y2=&quot;60&quot; stroke=&quot;#fde68a&quot; stroke-width=&quot;3&quot; marker-end=&quot;url(#stack-arrow)&quot;/&gt;
+    &lt;text x=&quot;750&quot; y=&quot;48&quot; text-anchor=&quot;end&quot; class=&quot;small&quot; fill=&quot;#fde68a&quot;&gt;RSP&lt;/text&gt;
+  &lt;/g&gt;
+
+  &lt;line x1=&quot;40&quot; y1=&quot;425&quot; x2=&quot;760&quot; y2=&quot;425&quot; stroke=&quot;#334155&quot; stroke-width=&quot;1&quot;/&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;1;0;0;0;0;0;1&quot; keyTimes=&quot;0;0.11;0.25;0.39;0.53;0.64;0.9&quot;/&gt;
+    &lt;text x=&quot;400&quot; y=&quot;458&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;栈尚未变化，RSP 指向空栈区。&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;1;0;0;0;0&quot; keyTimes=&quot;0;0.11;0.25;0.39;0.53;0.9&quot;/&gt;
+    &lt;text x=&quot;400&quot; y=&quot;458&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;1. PUSH saved RFLAGS：先保存 IF = 1；当前 IF 仍为 1。&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;0;1;0;0;0&quot; keyTimes=&quot;0;0.11;0.25;0.39;0.53;0.9&quot;/&gt;
+    &lt;text x=&quot;400&quot; y=&quot;458&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;2. PUSH saved CS。&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;0;0;1;0;0&quot; keyTimes=&quot;0;0.11;0.25;0.39;0.53;0.9&quot;/&gt;
+    &lt;text x=&quot;400&quot; y=&quot;458&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;3. PUSH saved RIP。保存完成后，CPU 才清当前 IF。&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;0;0;0;1;0&quot; keyTimes=&quot;0;0.11;0.25;0.39;0.53;0.64&quot;/&gt;
+    &lt;text x=&quot;400&quot; y=&quot;458&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;handler 入口：当前 IF = 0，栈中 saved RFLAGS 仍是 IF = 1。&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;g class=&quot;phase&quot;&gt;
+    &lt;animate attributeName=&quot;opacity&quot; dur=&quot;9s&quot; repeatCount=&quot;indefinite&quot; calcMode=&quot;discrete&quot; values=&quot;0;0;0;0;0;1;0&quot; keyTimes=&quot;0;0.11;0.25;0.39;0.53;0.64;0.9&quot;/&gt;
+    &lt;text x=&quot;400&quot; y=&quot;458&quot; text-anchor=&quot;middle&quot; class=&quot;body&quot;&gt;iretq：先弹 RIP，再弹 CS，最后弹 RFLAGS；当前 IF 回到 1。&lt;/text&gt;
+  &lt;/g&gt;
+&lt;/svg&gt;
+```
+
+**IF 是 RFLAGS.bit9，不是独立寄存器。**
+
+- IF 只控制可屏蔽外部中断，不屏蔽 NMI 或异常。
+- interrupt gate 先把旧 RFLAGS 压栈，再清当前 IF。栈中保存进门前 IF，`iretq` 可恢复它。
+- trap gate 保持 IF 原值，不强制置 1。
+
+**IST 是 3 位索引，不是栈地址。**
+
+0 表示不用 IST；1～7 分别选择当前 TSS.IST1～TSS.IST7。TSS.ISTn 保存专用栈的初始 RSP。
+
+操作系统按 handler 的栈可靠性选择：
+
+- 普通异常通常取 0。
+- 双重故障等“当前栈可能已不可信”的 handler，应评估独立栈。
+- NMI、MC、DB 按各自上下文设计。
+
+非零 IST 在同特权级也会切栈。
 ## 异常栈帧
 
-**是否切换特权级、是否有 error code，会改变栈帧布局。**
+**是否有 error code、是否切栈，共同决定异常栈帧。**
 
-![三种异常栈帧及相对 RSP 的字节偏移](/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/exception-frames.svg)
+![三种异常栈帧，使用 RSP 加字节偏移标出槽位](/home/jqlin/Project/skills/linux-0.11-from-scratch/docs/concepts/assets/idt-exception-frame/exception-frames.svg)
 
-同一特权级不会自动保存旧 SS/RSP。特权级切换会多保存这两项，并切换到目标栈。
+`[RSP+0]` 表示当前 RSP 指向的内存槽位。`+0` 是字节偏移，不是槽内数值 0。每格 8 字节，高地址在上方。
 
-向量 8、10～14、17、21 由 CPU 压入 error code。其它异常没有该字段。
+**x86 栈向低地址增长。** PUSH 先让 RSP 减 8，再把新值写入 `[RSP]`。后压入的数据地址更低，POP 反向进行。
 
-公共 handler 常让无 error code 的入口补压 0。这样所有入口都能共用一种结构体布局。
+```html
+&lt;details&gt;&lt;summary&gt;为什么 x86 的栈向下增长？&lt;/summary&gt;&lt;p&gt;这是 x86 ISA 的历史约定，不是速度或安全性上的必然。其他架构不一定这样设计。&lt;/p&gt;&lt;p&gt;一种常见布局是栈放在地址空间高端向下增长，堆和数据从低端向上使用。中间的空闲区由两侧共享，不必为栈和堆各划固定容量。&lt;/p&gt;&lt;/details&gt;
+```
 
+CPU 依次压入 RFLAGS、CS、RIP。向量有 error code 时，CPU 最后压入它。
+
+只有切栈才额外保存旧 RSP 和旧 SS。特权级变化或非零 IST 都会切栈。同特权级使用非零 IST 也会保存这两项。
+
+**CPU 不在运行时猜 error code。** ISA 按向量表规定自动压栈。向量 8、10～14、17、21 带 error code；其它异常、外部中断和软件中断不带。
+
+公共 handler 是多个向量共用的软件代码。判断依据是向量号和入口路径，不是门描述符里的某个标志位。
+
+| 向量类别 | CPU 进门时 | 入口 stub |
+|---|---|---|
+| 8、10～14、17、21 | 压真实 error code | 不补 |
+| 其它异常 | 不压 | 补压 dummy 0 |
+| 外部中断、软件中断 | 不压 | 需要统一布局时补压 dummy 0 |
+
+**真实 error code 可能为 0。** 不能靠 `[RSP]` 的值判断有没有 error code。入口 stub 可再压一个向量号，让公共 handler 知道来源。
+
+这样所有入口共用一种结构体布局。
 ## 跳转、升级与返回
 
 **handler 可以恢复执行，也可以只报告现场后停机。**
@@ -973,20 +1332,25 @@ IST 可为 handler 选择独立栈。普通异常处理可先把 IST 置 0，高
 ```sequence
 CPU -&gt; IDT: 按向量号读取门描述符
 IDT -&gt; CPU: 返回 offset、selector 和 type
-CPU -&gt; 栈: 保存 RIP、CS、RFLAGS 和可选 error code
+CPU -&gt; 栈: 保存 RFLAGS、CS、RIP 和可选 error code
 CPU -&gt; handler: 跳转
 handler -&gt; handler: 修复问题或读取现场
 handler -&gt; CPU: 可选：iretq 恢复执行
 ```
 
-fault 修复后，`iretq` 从保存的 RIP 继续。返回前要移除入口附加数据和 error code。
+fault 修复后，`iretq` 从保存的 RIP 继续。
+
+真实 error code 由 CPU 自动压栈。dummy 0 由软件入口 stub 手动压栈。
+
+**自动压栈不等于 `iretq` 自动出栈。** `iretq` 不会自动弹出真实 error code，也不会弹出 dummy 0。
+
+软件返回前按布局恢复 RSP。典型情况先跳过 8 字节，再执行 `iretq`。若还有附加数据，按实际布局处理。
 
 查表失败或 handler 再次出错会让异常升级。连续升级会导致 triple fault 和 CPU 复位。
 
 ```flow LR
 [原始异常] -&gt; [处理失败] -&gt; [double fault] -&gt; [再次失败] -&gt; [triple fault / 复位]
 ```
-
 ## 最小可运行示例
 
 **用户态信号也能暴露 CPU 异常产生的寄存器现场。**
@@ -1064,7 +1428,7 @@ rip=0x55a2e9d052c3  rax=0x1  rdx=0
 &lt;details&gt;&lt;summary&gt;第 2 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;A&lt;/strong&gt;。特权级切换需要记录返回时的栈，因此多保存旧 SS/RSP。&lt;/p&gt;&lt;/details&gt;
 ```
 
-**3. handler 需要让可屏蔽中断继续嵌套响应，哪种门更直接？**
+**3. handler 尚未执行完时，要允许另一个可屏蔽中断抢占它，哪种门更直接？**
 
 - A. interrupt gate，因为它清 IF
 - B. trap gate，因为它保留 IF
@@ -1072,7 +1436,7 @@ rip=0x55a2e9d052c3  rax=0x1  rdx=0
 - D. P=0 的门
 
 ```html
-&lt;details&gt;&lt;summary&gt;第 3 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;B&lt;/strong&gt;。trap gate 不改变 IF；interrupt gate 会清 IF。&lt;/p&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;第 3 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;B&lt;/strong&gt;。trap gate 保留 IF。若进门前 IF=1，handler 中仍可响应可屏蔽中断。interrupt gate 进门清 IF，但可在安全保存现场后执行 &lt;code&gt;sti&lt;/code&gt;。trap gate 不强制开 IF，也不控制 NMI。&lt;/p&gt;&lt;/details&gt;
 ```
 
 **4. fault 的问题已经修复，想重试原指令，应选择什么？**
@@ -1083,9 +1447,19 @@ rip=0x55a2e9d052c3  rax=0x1  rdx=0
 - D. 把 P 位清零
 
 ```html
-&lt;details&gt;&lt;summary&gt;第 4 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;C&lt;/strong&gt;。fault 保存的 RIP 指向原指令，`iretq` 可恢复执行。&lt;/p&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;第 4 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;C&lt;/strong&gt;。fault 保存的 RIP 指向原指令，&lt;code&gt;iretq&lt;/code&gt; 可恢复执行。&lt;/p&gt;&lt;/details&gt;
 ```
-</textarea>
+
+**5. 公共 handler 读到 error code 槽位的值为 0，能否断定它是软件补的 dummy 0？**
+
+- A. 能，真实 error code 一定大于 0
+- B. 能，CPU 从不压入数值 0
+- C. 不能，真实 error code 可能为 0，要按向量和入口判断
+- D. 能，只要门是 interrupt gate
+
+```html
+&lt;details&gt;&lt;summary&gt;第 5 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;C&lt;/strong&gt;。真实 error code 可能为 0。公共 handler 只有结合向量号或入口路径，才能区分真实 0 与 dummy 0。&lt;/p&gt;&lt;/details&gt;
+```</textarea>
 <script>
 (() => {
   const root = document.documentElement;

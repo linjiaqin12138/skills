@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="270" viewBox="0 0 1200 270" role="img" aria-label="RFLAGS 63 到 0 位域图，IF 位于 bit 9">
+  <rect width="1200" height="270" fill="#0f172a"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #f8fafc; }
+    .title { font-size: 24px; font-weight: 700; }
+    .subtitle { font-size: 13px; fill: #cbd5e1; }
+    .bit { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #cbd5e1; }
+    .field { font-size: 14px; font-weight: 700; }
+    .box { stroke: #94a3b8; stroke-width: 1; }
+    .reserved { fill: #334155; }
+    .system { fill: #164e63; }
+    .status { fill: #1e40af; }
+    .iopl { fill: #4c1d95; }
+    .if { fill: #f59e0b; stroke: #fde68a; stroke-width: 3; }
+    .if-text { fill: #111827; }
+    .if-note { fill: #fde68a; font-size: 15px; font-weight: 700; }
+  </style>
+  <text x="30" y="38" class="title">RFLAGS 位域（63:0）</text>
+  <text x="30" y="64" class="subtitle">高位在左，低位在右</text>
+
+  <g text-anchor="middle">
+    <text x="115" y="96" class="bit">63:22</text>
+    <text x="242.5" y="96" class="bit">21</text>
+    <text x="290" y="96" class="bit">20</text>
+    <text x="340" y="96" class="bit">19</text>
+    <text x="387.5" y="96" class="bit">18</text>
+    <text x="432.5" y="96" class="bit">17</text>
+    <text x="477.5" y="96" class="bit">16</text>
+    <text x="520" y="96" class="bit">15</text>
+    <text x="562.5" y="96" class="bit">14</text>
+    <text x="620" y="96" class="bit">13:12</text>
+    <text x="677.5" y="96" class="bit">11</text>
+    <text x="722.5" y="96" class="bit">10</text>
+    <text x="772.5" y="96" class="bit">9</text>
+    <text x="822.5" y="96" class="bit">8</text>
+    <text x="867.5" y="96" class="bit">7</text>
+    <text x="912.5" y="96" class="bit">6</text>
+    <text x="955" y="96" class="bit">5</text>
+    <text x="997.5" y="96" class="bit">4</text>
+    <text x="1040" y="96" class="bit">3</text>
+    <text x="1082.5" y="96" class="bit">2</text>
+    <text x="1125" y="96" class="bit">1</text>
+    <text x="1167.5" y="96" class="bit">0</text>
+  </g>
+
+  <rect x="10" y="108" width="210" height="74" class="box reserved"/>
+  <rect x="220" y="108" width="45" height="74" class="box system"/>
+  <rect x="265" y="108" width="50" height="74" class="box system"/>
+  <rect x="315" y="108" width="50" height="74" class="box system"/>
+  <rect x="365" y="108" width="45" height="74" class="box system"/>
+  <rect x="410" y="108" width="45" height="74" class="box system"/>
+  <rect x="455" y="108" width="45" height="74" class="box system"/>
+  <rect x="500" y="108" width="40" height="74" class="box reserved"/>
+  <rect x="540" y="108" width="45" height="74" class="box system"/>
+  <rect x="585" y="108" width="70" height="74" class="box iopl"/>
+  <rect x="655" y="108" width="45" height="74" class="box status"/>
+  <rect x="700" y="108" width="45" height="74" class="box status"/>
+  <rect x="745" y="108" width="55" height="74" class="if"/>
+  <rect x="800" y="108" width="45" height="74" class="box system"/>
+  <rect x="845" y="108" width="45" height="74" class="box status"/>
+  <rect x="890" y="108" width="45" height="74" class="box status"/>
+  <rect x="935" y="108" width="40" height="74" class="box reserved"/>
+  <rect x="975" y="108" width="45" height="74" class="box status"/>
+  <rect x="1020" y="108" width="40" height="74" class="box reserved"/>
+  <rect x="1060" y="108" width="45" height="74" class="box status"/>
+  <rect x="1105" y="108" width="40" height="74" class="box reserved"/>
+  <rect x="1145" y="108" width="45" height="74" class="box status"/>
+
+  <g text-anchor="middle" class="field">
+    <text x="115" y="152">保留</text>
+    <text x="242.5" y="152">ID</text>
+    <text x="290" y="152">VIP</text>
+    <text x="340" y="152">VIF</text>
+    <text x="387.5" y="152">AC</text>
+    <text x="432.5" y="152">VM</text>
+    <text x="477.5" y="152">RF</text>
+    <text x="520" y="152">0</text>
+    <text x="562.5" y="152">NT</text>
+    <text x="620" y="152">IOPL</text>
+    <text x="677.5" y="152">OF</text>
+    <text x="722.5" y="152">DF</text>
+    <text x="772.5" y="152" class="if-text">IF</text>
+    <text x="822.5" y="152">TF</text>
+    <text x="867.5" y="152">SF</text>
+    <text x="912.5" y="152">ZF</text>
+    <text x="955" y="152">0</text>
+    <text x="997.5" y="152">AF</text>
+    <text x="1040" y="152">0</text>
+    <text x="1082.5" y="152">PF</text>
+    <text x="1125" y="152">1</text>
+    <text x="1167.5" y="152">CF</text>
+  </g>
+
+  <line x1="772.5" y1="184" x2="772.5" y2="207" stroke="#fde68a" stroke-width="2"/>
+  <text x="772.5" y="234" text-anchor="middle" class="if-note">IF = bit 9</text>
+</svg>
