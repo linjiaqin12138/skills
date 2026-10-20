@@ -167,6 +167,22 @@ Agent 路径：需 `FELO_API_KEY` **且** 确认存在「文档→视频」开�
 
 依赖不满足（API key、manim、ffmpeg、LaTeX）时 **停并写 BLOCKED**，不盲目降级硬撑——否则对比结论失真。
 
+### 补充（2026-10-20）：不装 manim 也能出片
+
+上面说 manim 链路「依赖重」——但真正想解决的问题只是「把一张静态图讲成动画」。本机实测了一条**零 LaTeX、零 GPU、零 pip 包**的路径：
+
+1. 动画写成一个自包含 HTML（`<canvas>` + 手写投影，页面暴露 `window.seek(t)`：给定秒数立刻画出该帧，纯函数式，不依赖 rAF 时钟 → 逐帧抓图是确定性、可复现的）。
+2. 用 headless Chromium 的 **CDP**（`Target.attachToTarget` + `Runtime.evaluate` + `Page.captureScreenshot`）逐帧截图；Chrome 二进制可从 `~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome` 或本仓库 `vendor/browsers/` 取。
+3. `ffmpeg -framerate 30 -i f%05d.jpg -c:v libx264 -pix_fmt yuv420p` 合成 mp4。
+
+实测：1600×900 / 30fps / 92 秒 = 2760 帧，**CPU 单进程约 4 分钟**，产物 3.3 MB。中文用 `Noto Sans CJK SC` 直接 `fillText`，不用 LaTeX。
+
+脚本原型（页面约定 `window.seek(t)` + 可选 `window.__duration`；`--fps/--width/--height/--duration/--keep-frames`）**已随当时的产物一并删除**——需要时按上面三步重写即可，单文件约 200 行。
+
+**取舍**：manim 强在「数学公式变形动画」（LaTeX 排版、方程逐项变形）；canvas 路径强在「自定义 3D 场景 + 中文标注 + 精确数值联动」，且不绑 LaTeX 生态。讲惯量张量这种「矩阵 + 坐标轴 + 真实数值」的题材，canvas 路径更省事。
+
+**踩坑**：`MathTex` 塞中文会炸（见上）；canvas 路径里 `dot3` 这类函数名容易和向量点积重名，ES module 之前会直接 `Identifier already declared` 白屏——写完先用 `node --check` 过一遍。
+
 ---
 
 ## 对比与选用建议
