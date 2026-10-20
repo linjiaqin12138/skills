@@ -35,6 +35,34 @@ docker compose up -d
 
 `docker compose down` 只删容器和网络，不删 `cargo-home`。要连依赖缓存一起清掉，用 `docker compose down -v`。
 
+## 仿真跑哪：容器 vs 宿主机
+
+规则：**跟仿真界面无关的一律容器内跑，只有需要人眼看着的（viewer 交互）才上宿主机。**
+
+| 事情 | 在哪跑 | 命令 |
+|---|---|---|
+| 数据提取（`m9a_extract_official.py`） | 容器 | `docker compose exec -T rust /opt/sim-venv/bin/python scripts/m9a_extract_official.py` |
+| 验收脚本（`accept-*.sh`） | 容器 | `docker compose exec rust bash scripts/accept-m9a-bite1.sh` |
+| 编译模型、数值断言 | 容器 | 同上，`/opt/sim-venv/bin/python`（mujoco 3.16） |
+| viewer 看模型 / 交互推鸭子 | 宿主机 | `.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/scene_handmade.xml` |
+
+`accept-*.sh` 自带解释器探测：在容器内自动用 `/opt/sim-venv/bin/python`；宿主机上没有容器时才回落到仓内 `.venv/bin/python`；两处都没有就报错退出，不要静默用错环境。
+
+## 宿主机 viewer 环境（唯一的宿主机 Python 环境）
+
+位置：仓库根 `.venv/`（已 gitignore）。**只为 viewer 交互而存在**，验收与数据提取不要用它。
+
+建法（2026-10-20 实测，uv 装 Python 3.12.15）：
+
+```bash
+cd ~/Project/skills/microduck-from-scratch
+uv venv --python 3.12 .venv
+VIRTUAL_ENV=$PWD/.venv uv pip install "mujoco==3.16.0" onnx onnxruntime pillow \
+  "better-actuator-models @ git+https://github.com/Rhoban/bam@62bd8ce"
+```
+
+两个约束：`better-actuator-models`（BAM）不支持 Python ≥3.13，系统 3.14 用不了，所以钉 3.12；`.venv` 在仓库里但**不进镜像**（镜像里的 `/opt/sim-venv` 是另一份）。
+
 ## 交互式仿真（noVNC 远程桌面）
 
 `--view-port` 的 MJPEG 网页只能看不能碰。想在浏览器里用鼠标直接把鸭子推倒，用 noVNC 栈：容器里跑 Xvfb 虚拟显示器 + MuJoCo 原生 viewer，x11vnc/websockify 把桌面桥进浏览器。

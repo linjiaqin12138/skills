@@ -847,18 +847,50 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div></div>
 </section>
 <section class="am-panel am-span-wide" id="panel-D" style="grid-column: span 3">
-<header class="am-panel-head"><span class="am-panel-id">D</span><h2>设计：惯量是数据，碰撞才讲形状，视觉只管好看</h2></header>
+<header class="am-panel-head"><span class="am-panel-id">D</span><h2>搭建实操：从空白文件到能跑的模型</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>结论一句话：<strong>MJCF 不是代码，没有「构建」这一步——它是数据文件，「搭建」是一个五步循环</strong>。改完 XML 任何一处，都走一遍同一圈，任何一步红了就回第 2 步：</p>
+</div>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 701 153" width="701" height="153" role="img" aria-label="流程图：提取数据、手写 XML、编译验证、眼睛验收、行为验收" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M94,70.3 L105.5,70.3 Q117,70.3 128.5,70.3 L140,70.3" marker-end="url(#am1-arrow)"/></g><g data-step="0"><path class="am-edge" d="M226.8,84.3 L247,90.9 Q267.3,97.5 287.5,101.8 L307.8,106.2" marker-end="url(#am1-arrow)"/></g><g data-step="0"><path class="am-edge" d="M387.8,114.8 L410.9,114.8 Q434,114.8 457.1,107.4 L480.3,100.1" marker-end="url(#am1-arrow)"/></g><g data-step="0"><path class="am-edge" d="M560.3,87.5 L571.8,87.5 Q583.3,87.5 594.8,83.3 L606.3,79.2" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M307.8,122 L287.5,125.6 Q267.3,129.3 237.8,108.5 L208.3,87.8" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="250.8" y="120.3" width="33" height="18" rx="3"/><text x="267.3" y="129.3" text-anchor="middle" dominant-baseline="central">报错</text></g></g><g data-step="2"><path class="am-edge" d="M480.3,74.9 L457.1,67.6 Q434,60.3 390.9,60.3 Q347.8,60.3 307.5,60.3 Q267.3,60.3 247,62.7 L226.8,65.1" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="319.8" y="51.3" width="56" height="18" rx="3"/><text x="347.8" y="60.3" text-anchor="middle" dominant-baseline="central">看着不对</text></g></g><g data-step="3"><path class="am-edge" d="M619.9,47.3 L601.6,35.1 Q583.3,23 551.8,23 Q520.3,23 477.1,23 Q434,23 390.9,23 Q347.8,23 307.5,23 Q267.3,23 240.9,37.9 L214.4,52.8" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="411.8" y="14" width="44.5" height="18" rx="3"/><text x="434" y="23" text-anchor="middle" dominant-baseline="central">断言红</text></g></g></g><g><g class="am-node am-node--rect" data-key="提取数据" data-step="0"><rect class="am-node-shape" x="14" y="52.8" width="80" height="35" rx="3"/><text x="54" y="70.3" text-anchor="middle" dominant-baseline="central">提取数据</text></g><g class="am-node am-node--rect" data-key="手写 XML" data-step="0"><rect class="am-node-shape" x="140" y="52.8" width="86.8" height="35" rx="3"/><text x="183.4" y="70.3" text-anchor="middle" dominant-baseline="central">手写 XML</text></g><g class="am-node am-node--rect" data-key="编译验证" data-step="0"><rect class="am-node-shape" x="307.8" y="97.3" width="80" height="35" rx="3"/><text x="347.8" y="114.8" text-anchor="middle" dominant-baseline="central">编译验证</text></g><g class="am-node am-node--rect" data-key="眼睛验收" data-step="0"><rect class="am-node-shape" x="480.3" y="70" width="80" height="35" rx="3"/><text x="520.3" y="87.5" text-anchor="middle" dominant-baseline="central">眼睛验收</text></g><g class="am-node am-node--rect" data-key="行为验收" data-step="0"><rect class="am-node-shape" x="606.3" y="47.3" width="80" height="35" rx="3"/><text x="646.3" y="64.8" text-anchor="middle" dominant-baseline="central">行为验收</text></g></g></svg></figure>
+<div class="am-md"><p>先说清五步各在哪台机器上跑：<strong>提取、编译、行为验收在容器里，只有第 4 步眼睛验收在宿主机</strong>。宿主机那份 Python 环境只为 viewer 而建，别拿它跑验收。</p>
+<p><strong>第 1 步 · 从官方模型提取数据。</strong> 自建模型里每个数字都要有出处，出处就是官方模型的编译输出（无头计算，容器内跑）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">docker compose exec -T rust /opt/sim-venv/bin/python scripts/m9a_extract_official.py</span></code></pre></figure>
+<div class="am-md"><p>脚本打印官方关节树、逐 body 质量/质心/惯量、碰撞网格 AABB 尺寸，共 172 行。截取躯干两行：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">trunk_base: mass=0.199224 ipos=[-2.26332e-02 -2.70828e-05  2.80064e-03] inertia=[1.45931614e-04 1.40798872e-04 9.85265141e-05] iquat=[0.66486572 0.2383807  0.23501207 0.66775561]</span><span class="am-ln">=&gt; trunk_base COLL-union lo=[-0.0469 -0.0273 -0.0442] hi=[-0.013   0.0273  0.0396] size=[0.0339 0.0546 0.0838]</span></code></pre></figure>
+<div class="am-md"><p><code>mass</code> <code>ipos</code> <code>inertia</code> <code>iquat</code> 四个数抄进 <code>&lt;inertial&gt;</code> 的四个字段，就是决策卡片 1 的「直写官方编译值」；碰撞 box 的 <code>size</code> 取 COLL-union 行打印值，就是决策卡片 2 的「包围盒」。这一步不抓错，但它是唯一「对」的数据源——手抖抄错一个数字，后面 B 组对账会红。</p>
+<p><strong>第 2 步 · 手写 XML。</strong> 纯文本编辑，无命令。骨架 + 逐 body 填四个惯量数 + box 尺寸 + 视觉 geom 行，具体写法见「代码领读」。</p>
+<p><strong>第 3 步 · 编译验证。</strong> MJCF 的「编译」就是把 XML 交给物理引擎建模型——语法错、网格路径错、引用不存在的名字，全在这一步报：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">docker compose exec -T rust /opt/sim-venv/bin/python -c &quot;import mujoco; m = mujoco.MjModel.from_xml_path(&#39;sim/assets/scene_handmade.xml&#39;); print(&#39;body =&#39;, m.nbody, &#39; 关节 =&#39;, m.njnt, &#39; 执行器 =&#39;, m.nu)&quot;</span></code></pre></figure>
+<div class="am-md"><p>实测输出：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">body = 16  关节 = 15  执行器 = 14</span></code></pre></figure>
+<div class="am-md"><p>比「15 刚体 14 关节」各多 1：worldbody 是引擎自带的世界根，躯干的 freejoint 本身也算一个关节。数字对不上，说明树结构写岔了。</p>
+<p><strong>第 4 步 · 眼睛验收。</strong> 编译过 ≠ 长得对。viewer 打开宿主机原生窗口，鼠标可直接拖拽推鸭子：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/scene_handmade.xml</span></code></pre></figure>
+<div class="am-md"><p><code>.venv</code> 是仓库根的宿主机环境，只装 viewer 需要的东西（建法见 <code>docs/dev-container.md</code>「宿主机 viewer 环境」，里面也解释了为什么验收不跑它）。</p>
+<p>本章「坑 5」的 8 处四元数符号抄错、右腿板件悬空，就是这步肉眼抓到的——位姿写错编译不报错，只有眼睛看得见。</p>
+<p><strong>第 5 步 · 行为验收。</strong> 眼睛只能看姿势对不对，物理对不对靠断言（同样在容器里跑）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">docker compose exec rust bash scripts/accept-m9a-bite1.sh</span></code></pre></figure>
+<div class="am-md"><p>A 结构 / B 惯量 / C 贴地 / D 穿透四组，断言明细见「验收」一节。任何一组红，回第 2 步改 XML，重新走圈。</p>
+</div></div>
+</section>
+<section class="am-panel am-span-wide" id="panel-E" style="grid-column: span 3">
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>设计：惯量是数据，碰撞才讲形状，视觉只管好看</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>设计结论一句话：<strong>惯量直写官方编译值，碰撞取包围盒，视觉照抄官方 STL</strong>。数据、形状、外观三件事各管各的，互不污染。数据流水线：</p>
 </div>
-<figure class="am-diagram am-flow"><svg viewBox="0 0 1445 151" width="1445" height="151" role="img" aria-label="流程图：官方 robot_groundcontact.xml、m9a_extract_official.py、duck_handmade.xml、scene_handmade.xml、accept_m9a_bite1.py" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M190.7,90.8 L235.6,105 Q280.5,119.3 318.9,119.3 L357.4,119.3" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="227.5" y="110.3" width="105.9" height="18" rx="3"/><text x="280.5" y="119.3" text-anchor="middle" dominant-baseline="central">编译，读 mjModel</text></g></g><g data-step="1"><path class="am-edge" d="M528.7,119.3 L569.5,119.3 Q610.3,119.3 651.2,112.2 L692,105.2" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="552.7" y="110.3" width="115.3" height="18" rx="3"/><text x="610.3" y="119.3" text-anchor="middle" dominant-baseline="central">惯量值 + 包围盒尺寸</text></g></g><g data-step="2"><path class="am-edge" d="M203.5,64.8 L242,64.8 Q280.5,64.8 361.7,64.8 Q443,64.8 526.7,64.8 Q610.3,64.8 651.2,71.8 L692,78.8" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="385.5" y="55.8" width="115.1" height="18" rx="3"/><text x="443" y="64.8" text-anchor="middle" dominant-baseline="central">视觉 geom 逐字照抄</text></g></g><g data-step="3"><path class="am-edge" d="M845.3,92 L879.2,92 Q913.1,92 947,92 L980.8,92" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="869.3" y="83" width="87.5" height="18" rx="3"/><text x="913.1" y="92" text-anchor="middle" dominant-baseline="central">include 进场景</text></g></g><g data-step="4"><path class="am-edge" d="M1141.4,92 L1174.3,92 Q1207.2,92 1240.1,85.8 L1273,79.6" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="1165.4" y="83" width="83.6" height="18" rx="3"/><text x="1207.2" y="92" text-anchor="middle" dominant-baseline="central">A-D 四组断言</text></g></g><g data-step="5"><path class="am-edge am-edge--dashed" d="M203.5,41.7 L242,32.4 Q280.5,23 361.7,23 Q443,23 526.7,23 Q610.3,23 689.5,23 Q768.7,23 840.9,23 Q913.1,23 987.1,23 Q1061.1,23 1134.2,23 Q1207.2,23 1249.3,35.1 L1291.3,47.3" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="740.7" y="14" width="56" height="18" rx="3"/><text x="768.7" y="23" text-anchor="middle" dominant-baseline="central">对照基准</text></g></g></g><g><g class="am-node am-node--round" data-key="官方 robot_groundcontact.xml" data-step="0"><rect class="am-node-shape" x="14" y="38.8" width="189.5" height="52" rx="26"/><text x="108.8" y="56.3" text-anchor="middle" dominant-baseline="central">官方</text><text x="108.8" y="73.3" text-anchor="middle" dominant-baseline="central">robot_groundcontact.xml</text></g><g class="am-node am-node--rect" data-key="m9a_extract_official.py" data-step="0"><rect class="am-node-shape" x="357.4" y="101.8" width="171.3" height="35" rx="3"/><text x="443" y="119.3" text-anchor="middle" dominant-baseline="central">m9a_extract_official.py</text></g><g class="am-node am-node--rect" data-key="duck_handmade.xml" data-step="1"><rect class="am-node-shape" x="692" y="74.5" width="153.3" height="35" rx="3"/><text x="768.7" y="92" text-anchor="middle" dominant-baseline="central">duck_handmade.xml</text></g><g class="am-node am-node--rect" data-key="scene_handmade.xml" data-step="3"><rect class="am-node-shape" x="980.8" y="74.5" width="160.6" height="35" rx="3"/><text x="1061.1" y="92" text-anchor="middle" dominant-baseline="central">scene_handmade.xml</text></g><g class="am-node am-node--rect" data-key="accept_m9a_bite1.py" data-step="4"><rect class="am-node-shape" x="1273" y="47.3" width="157.7" height="35" rx="3"/><text x="1351.9" y="64.8" text-anchor="middle" dominant-baseline="central">accept_m9a_bite1.py</text></g></g></svg></figure>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 1445 151" width="1445" height="151" role="img" aria-label="流程图：官方 robot_groundcontact.xml、m9a_extract_official.py、duck_handmade.xml、scene_handmade.xml、accept_m9a_bite1.py" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M190.7,90.8 L235.6,105 Q280.5,119.3 318.9,119.3 L357.4,119.3" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="227.5" y="110.3" width="105.9" height="18" rx="3"/><text x="280.5" y="119.3" text-anchor="middle" dominant-baseline="central">编译，读 mjModel</text></g></g><g data-step="1"><path class="am-edge" d="M528.7,119.3 L569.5,119.3 Q610.3,119.3 651.2,112.2 L692,105.2" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="552.7" y="110.3" width="115.3" height="18" rx="3"/><text x="610.3" y="119.3" text-anchor="middle" dominant-baseline="central">惯量值 + 包围盒尺寸</text></g></g><g data-step="2"><path class="am-edge" d="M203.5,64.8 L242,64.8 Q280.5,64.8 361.7,64.8 Q443,64.8 526.7,64.8 Q610.3,64.8 651.2,71.8 L692,78.8" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="385.5" y="55.8" width="115.1" height="18" rx="3"/><text x="443" y="64.8" text-anchor="middle" dominant-baseline="central">视觉 geom 逐字照抄</text></g></g><g data-step="3"><path class="am-edge" d="M845.3,92 L879.2,92 Q913.1,92 947,92 L980.8,92" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="869.3" y="83" width="87.5" height="18" rx="3"/><text x="913.1" y="92" text-anchor="middle" dominant-baseline="central">include 进场景</text></g></g><g data-step="4"><path class="am-edge" d="M1141.4,92 L1174.3,92 Q1207.2,92 1240.1,85.8 L1273,79.6" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="1165.4" y="83" width="83.6" height="18" rx="3"/><text x="1207.2" y="92" text-anchor="middle" dominant-baseline="central">A-D 四组断言</text></g></g><g data-step="5"><path class="am-edge am-edge--dashed" d="M203.5,41.7 L242,32.4 Q280.5,23 361.7,23 Q443,23 526.7,23 Q610.3,23 689.5,23 Q768.7,23 840.9,23 Q913.1,23 987.1,23 Q1061.1,23 1134.2,23 Q1207.2,23 1249.3,35.1 L1291.3,47.3" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="740.7" y="14" width="56" height="18" rx="3"/><text x="768.7" y="23" text-anchor="middle" dominant-baseline="central">对照基准</text></g></g></g><g><g class="am-node am-node--round" data-key="官方 robot_groundcontact.xml" data-step="0"><rect class="am-node-shape" x="14" y="38.8" width="189.5" height="52" rx="26"/><text x="108.8" y="56.3" text-anchor="middle" dominant-baseline="central">官方</text><text x="108.8" y="73.3" text-anchor="middle" dominant-baseline="central">robot_groundcontact.xml</text></g><g class="am-node am-node--rect" data-key="m9a_extract_official.py" data-step="0"><rect class="am-node-shape" x="357.4" y="101.8" width="171.3" height="35" rx="3"/><text x="443" y="119.3" text-anchor="middle" dominant-baseline="central">m9a_extract_official.py</text></g><g class="am-node am-node--rect" data-key="duck_handmade.xml" data-step="1"><rect class="am-node-shape" x="692" y="74.5" width="153.3" height="35" rx="3"/><text x="768.7" y="92" text-anchor="middle" dominant-baseline="central">duck_handmade.xml</text></g><g class="am-node am-node--rect" data-key="scene_handmade.xml" data-step="3"><rect class="am-node-shape" x="980.8" y="74.5" width="160.6" height="35" rx="3"/><text x="1061.1" y="92" text-anchor="middle" dominant-baseline="central">scene_handmade.xml</text></g><g class="am-node am-node--rect" data-key="accept_m9a_bite1.py" data-step="4"><rect class="am-node-shape" x="1273" y="47.3" width="157.7" height="35" rx="3"/><text x="1351.9" y="64.8" text-anchor="middle" dominant-baseline="central">accept_m9a_bite1.py</text></g></g></svg></figure>
 <div class="am-md"><p>关节树与官方逐位对齐（trunk_base 三分叉，共 15 刚体 14 关节）：</p>
 </div>
 <div class="am-tree"><div class="am-tree-root"><div class="am-tree-box am-tree-box--root" data-key="trunk_base" data-step="0">trunk_base<small>躯干，挂 freejoint + imu site</small></div></div><div class="am-tree-cols" style="--n: 3"><div class="am-tree-col"><div class="am-tree-box" data-key="yaw2roll" data-step="1">yaw2roll<small>left_hip_yaw</small></div><ul class="am-tree-list"><li data-key="hip_l" data-step="2"><span class="am-tree-label">hip_l</span><span class="am-tree-sub">left_hip_roll</span><ul><li data-key="upper_leg_left" data-step="3"><span class="am-tree-label">upper_leg_left</span><span class="am-tree-sub">left_hip_pitch</span><ul><li data-key="leg" data-step="4"><span class="am-tree-label">leg</span><span class="am-tree-sub">left_knee</span><ul><li data-key="ankle_left" data-step="5"><span class="am-tree-label">ankle_left</span><span class="am-tree-sub">left_ankle</span></li></ul></li></ul></li></ul></li></ul></div><div class="am-tree-col"><div class="am-tree-box" data-key="neck" data-step="6">neck<small>neck_pitch</small></div><ul class="am-tree-list"><li data-key="neck_pitch" data-step="7"><span class="am-tree-label">neck_pitch</span><span class="am-tree-sub">挂 head_pitch（官方命名如此）</span><ul><li data-key="yaw_roll_motion" data-step="8"><span class="am-tree-label">yaw_roll_motion</span><span class="am-tree-sub">head_yaw</span><ul><li data-key="jaw_soft" data-step="9"><span class="am-tree-label">jaw_soft</span><span class="am-tree-sub">head_roll</span></li></ul></li></ul></li></ul></div><div class="am-tree-col"><div class="am-tree-box" data-key="bearing_roll" data-step="10">bearing_roll<small>right_hip_yaw</small></div><ul class="am-tree-list"><li data-key="hip_l_2" data-step="11"><span class="am-tree-label">hip_l_2</span><span class="am-tree-sub">right_hip_roll</span><ul><li data-key="upper_leg_right" data-step="12"><span class="am-tree-label">upper_leg_right</span><span class="am-tree-sub">right_hip_pitch</span><ul><li data-key="leg_2" data-step="13"><span class="am-tree-label">leg_2</span><span class="am-tree-sub">right_knee</span><ul><li data-key="ankle_right" data-step="14"><span class="am-tree-label">ankle_right</span><span class="am-tree-sub">right_ankle</span></li></ul></li></ul></li></ul></li></ul></div></div></div>
 <div class="am-md"><p><strong>契约先行</strong>：<code>duck_body.py</code> 不改一个字，但它点名依赖四个名字——STAND keyframe、<code>imu_gyro</code> 传感器、<code>imu</code> site、14 个关节名同序（<code>sim/duck_body.py:58-64</code>、<code>:171-173</code>）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-E">
-<header class="am-panel-head"><span class="am-panel-id">E</span><h2>决策：数据、形状、外观各管各的</h2></header>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>决策：数据、形状、外观各管各的</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>【决策卡片 1】惯量从哪来：直写官方编译值，不让引擎从几何体算</strong></p>
 <ul>
 <li><strong>决策点</strong>：每个 body 的质量/质心/惯量主轴怎么定。</li>
@@ -887,8 +919,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </ul>
 </div></div>
 </section>
-<section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>代码领读</h2></header>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>代码领读</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>顺序跟着「设计」走：参数默认值 → 躯干（惯量直写 + 契约 + 视觉网格）→ 腿链 → 执行器 → 场景存档 → 验收探针。</p>
 <p>关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值。视觉/碰撞两类几何的分离也写在这几行里：visual 类是 mesh 不进接触，collision 类是 box：</p>
 </div>
@@ -915,11 +947,11 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div>
 <figure class="am-codeblock" data-am-src="sim/accept_m9a_bite1.py" data-am-lines="105-131"><figcaption class="am-code-head"><span class="am-code-title">sim/accept_m9a_bite1.py:105-131</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="python"><span class="am-ln" data-n="105">    # 视觉网格位姿对账：编译后 geom pos/quat 与官方逐位比对（防照抄转写回归，</span><span class="am-ln" data-n="106">    # 2026-10-20 曾抓出 8 处 quat 符号抄错——肉眼在 XML 里几乎不可见）</span><span class="am-ln" data-n="107">    def mesh_geom_table(m):</span><span class="am-ln" data-n="108">        tbl = {}</span><span class="am-ln" data-n="109">        for g in range(m.ngeom):</span><span class="am-ln" data-n="110">            if m.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:</span><span class="am-ln" data-n="111">                continue</span><span class="am-ln" data-n="112">            body = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[g])</span><span class="am-ln" data-n="113">            mesh = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_MESH, m.geom_dataid[g])</span><span class="am-ln" data-n="114">            tbl.setdefault((body, mesh), []).append(g)</span><span class="am-ln" data-n="115">        return tbl</span><span class="am-ln" data-n="116"></span><span class="am-ln" data-n="117">    off_tbl = mesh_geom_table(off)</span><span class="am-ln" data-n="118">    vis_worst = 0.0</span><span class="am-ln" data-n="119">    for g in range(new.ngeom):</span><span class="am-ln" data-n="120">        if new.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:</span><span class="am-ln" data-n="121">            continue</span><span class="am-ln" data-n="122">        body = mujoco.mj_id2name(new, mujoco.mjtObj.mjOBJ_BODY, new.geom_bodyid[g])</span><span class="am-ln" data-n="123">        mesh = mujoco.mj_id2name(new, mujoco.mjtObj.mjOBJ_MESH, new.geom_dataid[g])</span><span class="am-ln" data-n="124">        cands = off_tbl.get((body, mesh), [])</span><span class="am-ln" data-n="125">        best = min(</span><span class="am-ln" data-n="126">            max(np.abs(new.geom_pos[g] - off.geom_pos[og]).max(),</span><span class="am-ln" data-n="127">                min(np.abs(new.geom_quat[g] - off.geom_quat[og]).max(),</span><span class="am-ln" data-n="128">                    np.abs(new.geom_quat[g] + off.geom_quat[og]).max()))</span><span class="am-ln" data-n="129">            for og in cands) if cands else np.inf</span><span class="am-ln" data-n="130">        vis_worst = max(vis_worst, best)</span><span class="am-ln am-ln--hl" data-n="131">    check(vis_worst &lt;= 1e-5, &quot;视觉网格位姿与官方编译值对账&quot;, f&quot;最差 {vis_worst:.2e}&quot;)</span></code></pre></figure></div>
 </section>
-<section class="am-panel" id="panel-G">
-<header class="am-panel-head"><span class="am-panel-id">G</span><h2>验收</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>入口命令（SIM_PYTHON 默认宿主机 venv，容器内换 <code>/opt/sim-venv/bin/python</code>）：</p>
+<section class="am-panel" id="panel-H">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>验收</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>入口命令（容器内跑；脚本在容器内自动用 <code>/opt/sim-venv/bin/python</code>，在宿主机则回落到仓内 <code>.venv/bin/python</code>）：</p>
 </div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">bash scripts/accept-m9a-bite1.sh</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">docker compose exec rust bash scripts/accept-m9a-bite1.sh</span></code></pre></figure>
 <div class="am-md"><p>四组断言，2026-10-20 宿主机实测（mujoco 3.16.0，视觉修订后复跑，全绿）：</p>
 <div class="am-table-wrap"><table>
 <thead>
@@ -954,8 +986,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>回归：本 Bite 不动 duck_body.py 与 Rust 侧，旧验收不受影响。视觉修订（决策卡片 3）只加 contype=0/conaffinity=0 的 geom，B/C/D 组数值与修订前逐位一致。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-H">
-<header class="am-panel-head"><span class="am-panel-id">H</span><h2>与原版差异 · 常见坑与展望</h2></header>
+<section class="am-panel" id="panel-I">
+<header class="am-panel-head"><span class="am-panel-id">I</span><h2>与原版差异 · 常见坑与展望</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>偏差簿变动：</p>
 <div class="am-table-wrap"><table>
 <thead>
@@ -1007,8 +1039,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>展望：Bite 2 把 BAM 参数与 microduck_constants 对账，自建模型接 velstand 站立 + vx=0.8 走 10s 前移 ≥2.0m；Bite 3 仿真协议面对齐官方 duck-body。</p>
 </div></div>
 </section>
-<section class="am-panel am-span-wide" id="panel-I" style="grid-column: span 2">
-<header class="am-panel-head"><span class="am-panel-id">I</span><h2>自测</h2></header>
+<section class="am-panel" id="panel-J">
+<header class="am-panel-head"><span class="am-panel-id">J</span><h2>自测</h2></header>
 <div class="am-panel-body"><details>
 <summary><b>1.</b> 你给某个 body 的碰撞盒调大了 2mm，忘了同步它的 &lt;inertial&gt;。模型行为会怎样？（A）惯量自动按新盒子重算　（B）惯量保持原值——它是直写的数据，与几何无关　（C）编译报错　（D）质量变成盒子的体积乘以密度</summary>
 <p><b>答案：B。</b>显式 &lt;inertial&gt; 存在时 MuJoCo 不从几何算惯量（这正是决策卡片 1 的设计）。代价也在这里：形状与惯量从此是两份要手工同步的数据，A 和 D 描述的是没写 &lt;inertial&gt; 时的行为。</p>
@@ -1034,6 +1066,15 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p><b>答案：B。</b>文本级断言在视觉挂 STL 后必然变红，但模型并没有变坏——锁错了层。编译后检查「接触几何类型集合 == {box}」在两种视觉方案下都正确。D 错在放弃验证：碰撞层回退成网格正是要防的回归。</p>
 </details></div>
 </section>
+<section class="am-panel" id="panel-K">
+<header class="am-panel-head"><span class="am-panel-id">K</span><h2>细节展开</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>读者提问记录，一段一条，默认折叠。</p>
+</div>
+<details>
+<summary><b>这一章没有构建命令，我到底学了什么？</b></summary>
+<p>本章原本教的是「为什么这么搭」：三个设计决策（惯量直写官方编译值、碰撞包围盒、视觉照抄官方 STL）加一套验收方法——搭建动作当时全部发生在后台，一个命令都没写，这是本章的缺口。现已补入「搭建实操：从空白文件到能跑的模型」一节，把操作循环补全。关键是先建立一条认知：MJCF 是数据文件不是代码，没有「构建」这一步；搭建 = 提取数据 → 写 XML → 编译验证 → viewer 目检 → 行为验收的五步循环，每改一处走一圈。另外加了练习 Bite，让你从空白文件亲手搭一条 2 关节腿链，把这五步亲手走一遍。</p>
+</details></div>
+</section>
 </div>
 </div>
 </main>
@@ -1052,7 +1093,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-20 14:38 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-20 16:20 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: sheet
 title: M9a Bite 1：自建 MJCF 身体模型（第 18 章）
@@ -1153,6 +1194,68 @@ keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复�
 - **本项目在哪用**：`duck_handmade.xml` 每个 body 一个 `&lt;inertial mass=... pos=... quat=... diaginertia=...&gt;`，四个字段分别对应质量、质心、主轴朝向、3 个主惯量。
 
 这张卡是压缩版。卡片看不懂就先去读深读页 [惯量张量](../../concepts/inertia-tensor.html)，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。
+
+## 搭建实操：从空白文件到能跑的模型
+
+结论一句话：**MJCF 不是代码，没有「构建」这一步——它是数据文件，「搭建」是一个五步循环**。改完 XML 任何一处，都走一遍同一圈，任何一步红了就回第 2 步：
+
+```flow LR
+[提取数据] -&gt; [手写 XML] -&gt; [编译验证] -&gt; [眼睛验收] -&gt; [行为验收]
+[编译验证] -&gt; [手写 XML]: 报错
+[眼睛验收] -&gt; [手写 XML]: 看着不对
+[行为验收] -&gt; [手写 XML]: 断言红
+```
+
+先说清五步各在哪台机器上跑：**提取、编译、行为验收在容器里，只有第 4 步眼睛验收在宿主机**。宿主机那份 Python 环境只为 viewer 而建，别拿它跑验收。
+
+**第 1 步 · 从官方模型提取数据。** 自建模型里每个数字都要有出处，出处就是官方模型的编译输出（无头计算，容器内跑）：
+
+```bash
+docker compose exec -T rust /opt/sim-venv/bin/python scripts/m9a_extract_official.py
+```
+
+脚本打印官方关节树、逐 body 质量/质心/惯量、碰撞网格 AABB 尺寸，共 172 行。截取躯干两行：
+
+```text
+trunk_base: mass=0.199224 ipos=[-2.26332e-02 -2.70828e-05  2.80064e-03] inertia=[1.45931614e-04 1.40798872e-04 9.85265141e-05] iquat=[0.66486572 0.2383807  0.23501207 0.66775561]
+=&gt; trunk_base COLL-union lo=[-0.0469 -0.0273 -0.0442] hi=[-0.013   0.0273  0.0396] size=[0.0339 0.0546 0.0838]
+```
+
+`mass` `ipos` `inertia` `iquat` 四个数抄进 `&lt;inertial&gt;` 的四个字段，就是决策卡片 1 的「直写官方编译值」；碰撞 box 的 `size` 取 COLL-union 行打印值，就是决策卡片 2 的「包围盒」。这一步不抓错，但它是唯一「对」的数据源——手抖抄错一个数字，后面 B 组对账会红。
+
+**第 2 步 · 手写 XML。** 纯文本编辑，无命令。骨架 + 逐 body 填四个惯量数 + box 尺寸 + 视觉 geom 行，具体写法见「代码领读」。
+
+**第 3 步 · 编译验证。** MJCF 的「编译」就是把 XML 交给物理引擎建模型——语法错、网格路径错、引用不存在的名字，全在这一步报：
+
+```bash
+docker compose exec -T rust /opt/sim-venv/bin/python -c &quot;import mujoco; m = mujoco.MjModel.from_xml_path(&#39;sim/assets/scene_handmade.xml&#39;); print(&#39;body =&#39;, m.nbody, &#39; 关节 =&#39;, m.njnt, &#39; 执行器 =&#39;, m.nu)&quot;
+```
+
+实测输出：
+
+```text
+body = 16  关节 = 15  执行器 = 14
+```
+
+比「15 刚体 14 关节」各多 1：worldbody 是引擎自带的世界根，躯干的 freejoint 本身也算一个关节。数字对不上，说明树结构写岔了。
+
+**第 4 步 · 眼睛验收。** 编译过 ≠ 长得对。viewer 打开宿主机原生窗口，鼠标可直接拖拽推鸭子：
+
+```bash
+.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/scene_handmade.xml
+```
+
+`.venv` 是仓库根的宿主机环境，只装 viewer 需要的东西（建法见 `docs/dev-container.md`「宿主机 viewer 环境」，里面也解释了为什么验收不跑它）。
+
+本章「坑 5」的 8 处四元数符号抄错、右腿板件悬空，就是这步肉眼抓到的——位姿写错编译不报错，只有眼睛看得见。
+
+**第 5 步 · 行为验收。** 眼睛只能看姿势对不对，物理对不对靠断言（同样在容器里跑）：
+
+```bash
+docker compose exec rust bash scripts/accept-m9a-bite1.sh
+```
+
+A 结构 / B 惯量 / C 贴地 / D 穿透四组，断言明细见「验收」一节。任何一组红，回第 2 步改 XML，重新走圈。
 
 ## 设计：惯量是数据，碰撞才讲形状，视觉只管好看
 
@@ -1265,10 +1368,10 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 ## 验收
 
-入口命令（SIM_PYTHON 默认宿主机 venv，容器内换 `/opt/sim-venv/bin/python`）：
+入口命令（容器内跑；脚本在容器内自动用 `/opt/sim-venv/bin/python`，在宿主机则回落到仓内 `.venv/bin/python`）：
 
 ```bash
-bash scripts/accept-m9a-bite1.sh
+docker compose exec rust bash scripts/accept-m9a-bite1.sh
 ```
 
 四组断言，2026-10-20 宿主机实测（mujoco 3.16.0，视觉修订后复跑，全绿）：
@@ -1337,6 +1440,17 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 &lt;details&gt;
 &lt;summary&gt;&lt;b&gt;6.&lt;/b&gt; 视觉修订后验收 A 组为什么不断言「XML 里没有 &amp;lt;mesh&amp;gt;」了？（A）mesh 加载太慢，验收跳过　（B）那条断言锁的是实现痕迹；真实意图是「碰撞必须是 box」，编译后枚举碰撞 geom 类型才是对准意图的断言　（C）MuJoCo 不支持文本检查　（D）视觉网格不影响物理，所以什么都不用验&lt;/summary&gt;
 &lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;文本级断言在视觉挂 STL 后必然变红，但模型并没有变坏——锁错了层。编译后检查「接触几何类型集合 == {box}」在两种视觉方案下都正确。D 错在放弃验证：碰撞层回退成网格正是要防的回归。&lt;/p&gt;
+&lt;/details&gt;
+```
+
+## 细节展开
+
+读者提问记录，一段一条，默认折叠。
+
+```html
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;这一章没有构建命令，我到底学了什么？&lt;/b&gt;&lt;/summary&gt;
+&lt;p&gt;本章原本教的是「为什么这么搭」：三个设计决策（惯量直写官方编译值、碰撞包围盒、视觉照抄官方 STL）加一套验收方法——搭建动作当时全部发生在后台，一个命令都没写，这是本章的缺口。现已补入「搭建实操：从空白文件到能跑的模型」一节，把操作循环补全。关键是先建立一条认知：MJCF 是数据文件不是代码，没有「构建」这一步；搭建 = 提取数据 → 写 XML → 编译验证 → viewer 目检 → 行为验收的五步循环，每改一处走一圈。另外加了练习 Bite，让你从空白文件亲手搭一条 2 关节腿链，把这五步亲手走一遍。&lt;/p&gt;
 &lt;/details&gt;
 ```
 </textarea>

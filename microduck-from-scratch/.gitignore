@@ -1,7 +1,9 @@
 /target
+/.venv
 /reference
 /.tmp-official
 /policies/*.onnx
 /third_party/
 /tests/fixtures/*.onnx
 __pycache__/
+MUJOCO_LOG.TXT

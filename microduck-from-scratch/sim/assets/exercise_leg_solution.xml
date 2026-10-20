@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- M9a 动手练习「手搓一条 2 关节腿链」参考解答。
+
+     这是参考答案，不是你的作业文件——作业写在 sim/assets/exercise_leg.xml。
+     验收：bash scripts/accept-m9a-leg-exercise.sh           （验你的作业）
+           bash scripts/accept-m9a-leg-exercise.sh --solution（验本文件）
+
+     与 duck_handmade.xml 的对照教学点：
+     - duck_handmade 的碰撞几何是包围盒（假形状），惯量必须显式 <inertial>
+       直写官方编译值；
+     - 本练习里 box 就是腿的真实形状，一个 <inertial> 都不写——惯量让引擎
+       从 density × 几何自动算。什么时候该写 <inertial>，看几何真不真。
+
+     参数量级依据：
+     - 尺寸：大腿/小腿各 5cm，对齐鸭子官方腿段长度量级
+       （robot_groundcontact 编译值腿段质心间距约 5cm）；
+     - 质量：density=1000 kg/m³（= MuJoCo 默认值，≈ 水/塑料量级），引擎算得
+       大腿 ~13g、小腿 ~7g，与鸭子腿段官方质量 10~30g 同量级；
+     - damping=0.02 N·m·s/rad：鸭子官方关节 damping=0.053，练习取同量级
+       偏小值——摆动几秒内收敛，又不至于僵到执行器拖不动；
+     - kp=5：整条腿水平举起的重力矩 ≈ 0.02kg × 9.81 × 0.05m ≈ 0.01 N·m，
+       kp=5 时稳态误差 ≈ 0.002 rad，远低于验收阈值 0.1 rad；
+     - forcerange=±0.3 N·m：约 30 倍重力矩余量，又小到改大动作时能看到
+       力矩饱和（破坏实验素材）。 -->
+<mujoco model="exercise_leg_solution">
+  <compiler angle="radian" autolimits="true" />
+
+  <worldbody>
+    <geom name="floor" type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1" />
+    <!-- 静态挂载点：无关节的 body，编译后不产生 DOF（仍计入 nbody） -->
+    <body name="mount" pos="0 0 0.15">
+      <geom name="mount_visual" type="box" size="0.01 0.01 0.01"
+            contype="0" conaffinity="0" rgba="0.5 0.5 0.5 1" />
+      <body name="thigh" pos="0 0 0">
+        <joint name="hip_pitch" type="hinge" axis="0 1 0" damping="0.02" />
+        <geom name="thigh_box" type="box" pos="0 0 -0.025"
+              size="0.008 0.008 0.025" density="1000" rgba="0.2 0.6 1 1" />
+        <body name="shank" pos="0 0 -0.05">
+          <joint name="knee" type="hinge" axis="0 1 0" damping="0.02"
+                 range="-1.4 0.05" />
+          <geom name="shank_box" type="box" pos="0 0 -0.025"
+                size="0.006 0.006 0.025" density="1000" rgba="1 0.4 0.2 1" />
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- ctrl 序 = 声明序：ctrl[0]=hip、ctrl[1]=knee，下游按此顺序读写 -->
+    <position name="hip_pitch_servo" joint="hip_pitch" kp="5" forcerange="-0.3 0.3" />
+    <position name="knee_servo" joint="knee" kp="5" forcerange="-0.3 0.3" />
+  </actuator>
+
+  <keyframe>
+    <key name="STRAIGHT" qpos="0 0" />
+  </keyframe>
+</mujoco>

@@ -1,0 +1,2574 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="blueprint" data-mode="auto" data-style="strict">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="Answer me with HTML 0.5.0">
+<title>M9a 动手练习：手搓一条 2 关节腿链（第 19 章）</title>
+<style>
+html[data-theme="blueprint"], html[data-theme="blueprint"][data-mode="light"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 0px;
+  --shadow: none;
+  --bw: 1.5px;
+  --head-font: var(--font-sans);
+  --bg: #f6f6f3;
+  --paper: #ffffff;
+  --ink: #16181d;
+  --ink-2: #4b5260;
+  --ink-3: #8b929e;
+  --line: #1d2026;
+  --line-2: #d6dae1;
+  --fill: #f3f5f8;
+  --accent: #1d5fbf;
+  --accent-bg: #e4ecf8;
+  --ok: #1d5fbf;
+  --ok-bg: #e4ecf8;
+  --err: #c62828;
+  --err-bg: #fbeaea;
+  --warn: #a8620a;
+  --warn-bg: #fdf3e2;
+  --head-bg: #16181d;
+  --head-fg: #ffffff;
+}
+html[data-theme="blueprint"][data-mode="dark"] {
+  --bg: #081322;
+  --paper: #0d1c31;
+  --ink: #e6edf7;
+  --ink-2: #a9b8cc;
+  --ink-3: #6b7f99;
+  --line: #c9d6e8;
+  --line-2: #23385a;
+  --fill: #12253f;
+  --accent: #6ea8ff;
+  --accent-bg: #16305a;
+  --ok: #6ea8ff;
+  --ok-bg: #16305a;
+  --err: #ff7070;
+  --err-bg: #3b1620;
+  --warn: #f0b14a;
+  --warn-bg: #3a2a10;
+  --head-bg: #e6edf7;
+  --head-fg: #081322;
+}
+@media (prefers-color-scheme: dark) {
+html[data-theme="blueprint"][data-mode="auto"] {
+  --bg: #081322;
+  --paper: #0d1c31;
+  --ink: #e6edf7;
+  --ink-2: #a9b8cc;
+  --ink-3: #6b7f99;
+  --line: #c9d6e8;
+  --line-2: #23385a;
+  --fill: #12253f;
+  --accent: #6ea8ff;
+  --accent-bg: #16305a;
+  --ok: #6ea8ff;
+  --ok-bg: #16305a;
+  --err: #ff7070;
+  --err-bg: #3b1620;
+  --warn: #f0b14a;
+  --warn-bg: #3a2a10;
+  --head-bg: #e6edf7;
+  --head-fg: #081322;
+}
+}
+
+html[data-theme="shadcn"], html[data-theme="shadcn"][data-mode="light"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 8px;
+  --shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --bw: 1px;
+  --head-font: var(--font-sans);
+  --bg: #fafafa;
+  --paper: #ffffff;
+  --ink: #09090b;
+  --ink-2: #71717a;
+  --ink-3: #a1a1aa;
+  --line: #e4e4e7;
+  --line-2: #f0f0f2;
+  --fill: #f4f4f5;
+  --accent: #2563eb;
+  --accent-bg: #eff6ff;
+  --ok: #16a34a;
+  --ok-bg: #f0fdf4;
+  --err: #dc2626;
+  --err-bg: #fef2f2;
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --head-bg: #18181b;
+  --head-fg: #fafafa;
+}
+html[data-theme="shadcn"][data-mode="dark"] {
+  --bg: #09090b;
+  --paper: #121215;
+  --ink: #fafafa;
+  --ink-2: #a1a1aa;
+  --ink-3: #71717a;
+  --line: #27272a;
+  --line-2: #1c1c1f;
+  --fill: #18181b;
+  --accent: #60a5fa;
+  --accent-bg: #172554;
+  --ok: #4ade80;
+  --ok-bg: #052e16;
+  --err: #f87171;
+  --err-bg: #450a0a;
+  --warn: #fbbf24;
+  --warn-bg: #451a03;
+  --head-bg: #fafafa;
+  --head-fg: #18181b;
+}
+@media (prefers-color-scheme: dark) {
+html[data-theme="shadcn"][data-mode="auto"] {
+  --bg: #09090b;
+  --paper: #121215;
+  --ink: #fafafa;
+  --ink-2: #a1a1aa;
+  --ink-3: #71717a;
+  --line: #27272a;
+  --line-2: #1c1c1f;
+  --fill: #18181b;
+  --accent: #60a5fa;
+  --accent-bg: #172554;
+  --ok: #4ade80;
+  --ok-bg: #052e16;
+  --err: #f87171;
+  --err-bg: #450a0a;
+  --warn: #fbbf24;
+  --warn-bg: #451a03;
+  --head-bg: #fafafa;
+  --head-fg: #18181b;
+}
+}
+
+html[data-theme="paper"], html[data-theme="paper"][data-mode="light"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  --radius: 2px;
+  --shadow: none;
+  --bw: 1px;
+  --head-font: var(--font-serif);
+  --bg: #f5f2ea;
+  --paper: #fdfbf6;
+  --ink: #1f1c17;
+  --ink-2: #57514a;
+  --ink-3: #8c867b;
+  --line: #cbc3b4;
+  --line-2: #e5dfd3;
+  --fill: #f3eee4;
+  --accent: #8c2f1e;
+  --accent-bg: #f5e5df;
+  --ok: #2e6a3b;
+  --ok-bg: #e4efe5;
+  --err: #a3251b;
+  --err-bg: #f7e3e0;
+  --warn: #7f5300;
+  --warn-bg: #f6ecd6;
+  --head-bg: #1f1c17;
+  --head-fg: #fdfbf6;
+}
+html[data-theme="paper"][data-mode="dark"] {
+  --bg: #15130f;
+  --paper: #1c1a15;
+  --ink: #ebe5d8;
+  --ink-2: #b5ad9e;
+  --ink-3: #7b7467;
+  --line: #4a443a;
+  --line-2: #2d2a24;
+  --fill: #242119;
+  --accent: #e59a7d;
+  --accent-bg: #3a2219;
+  --ok: #8cc79a;
+  --ok-bg: #1c3122;
+  --err: #f0928a;
+  --err-bg: #3a1d1a;
+  --warn: #e3b866;
+  --warn-bg: #352a13;
+  --head-bg: #ebe5d8;
+  --head-fg: #15130f;
+}
+@media (prefers-color-scheme: dark) {
+html[data-theme="paper"][data-mode="auto"] {
+  --bg: #15130f;
+  --paper: #1c1a15;
+  --ink: #ebe5d8;
+  --ink-2: #b5ad9e;
+  --ink-3: #7b7467;
+  --line: #4a443a;
+  --line-2: #2d2a24;
+  --fill: #242119;
+  --accent: #e59a7d;
+  --accent-bg: #3a2219;
+  --ok: #8cc79a;
+  --ok-bg: #1c3122;
+  --err: #f0928a;
+  --err-bg: #3a1d1a;
+  --warn: #e3b866;
+  --warn-bg: #352a13;
+  --head-bg: #ebe5d8;
+  --head-fg: #15130f;
+}
+}
+
+html:lang(zh-Hant)[data-theme][data-mode], html:lang(zh-TW)[data-theme][data-mode], html:lang(zh-HK)[data-theme][data-mode], html:lang(zh-MO)[data-theme][data-mode] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Heiti TC", "Microsoft JhengHei", "Noto Sans CJK TC", "Noto Sans TC", "PingFang SC", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html:lang(ja)[data-theme][data-mode] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans CJK JP", "Noto Sans JP", "PingFang SC", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html:lang(he)[data-theme][data-mode] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Hebrew", "Arial Hebrew", Arial, Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* Answer me with HTML base — uses theme variables only, never hard-coded colors (theme tokens and decorations: themes/<name>.js). Exception: the var() fallbacks of diagrams (flow / sequence) equal the blueprint light tokens, guarded by a test. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-sans); font-size: 14px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+code, pre, kbd { font-family: var(--font-mono); }
+
+/* ── Toolbar ─────────────────────────────── */
+.am-toolbar {
+  position: fixed; top: 12px; inset-inline-end: 12px; z-index: 10; display: flex; gap: 6px;
+}
+.am-btn {
+  font: 12px/1 var(--font-sans); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding: 7px 10px; cursor: pointer;
+}
+.am-btn:hover { border-color: var(--ink-3); }
+.am-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Theme and mode lists: a label and a native select inside one button-like box */
+.am-pick {
+  display: flex; align-items: center; gap: 6px; font: 12px/1 var(--font-sans); color: var(--ink-2); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding-block: 0; padding-inline: 10px 4px;
+}
+.am-pick:hover { border-color: var(--ink-3); }
+.am-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.am-pick select {
+  font: inherit; color: var(--ink); background: transparent; border: 0; padding: 6px 2px; cursor: pointer; outline: none;
+}
+.am-pick option { color: var(--ink); background: var(--paper); }
+
+/* ── Header ───────────────────────────────── */
+.am-head { margin: 0 0 20px; padding-inline-end: 300px; }
+.am-head h1 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -0.01em; }
+.am-sub { margin: 4px 0 0; color: var(--ink-2); }
+.am-head-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+.am-head-meta b { font-family: var(--font-mono); font-weight: 400; color: var(--ink-3); margin-inline-end: 6px; }
+.am-intro { margin-top: 12px; max-width: 80ch; }
+
+/* ── sheet template ────────────────────────── */
+.am-sheet { max-width: 1680px; margin: 0 auto; padding: 32px 28px 40px; }
+.am-frame { position: relative; }
+.am-grid {
+  display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 20px; align-items: start;
+}
+.am-ruler { display: none; }
+.am-ruler span { flex: 1; display: flex; align-items: center; justify-content: center; }
+.am-ruler--top, .am-ruler--bottom { left: 18px; right: 18px; height: 18px; }
+.am-ruler--top { top: 0; }
+.am-ruler--bottom { bottom: 0; }
+.am-ruler--left, .am-ruler--right { top: 18px; bottom: 18px; width: 18px; flex-direction: column; }
+.am-ruler--left { left: 0; }
+.am-ruler--right { right: 0; }
+.am-ruler--top span + span, .am-ruler--bottom span + span { border-inline-start: 1px solid var(--line); }
+.am-ruler--left span + span, .am-ruler--right span + span { border-top: 1px solid var(--line); }
+
+/* ── Panels ───────────────────────────────── */
+.am-panel {
+  background: var(--paper); border: var(--bw) solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); min-width: 0; overflow: hidden;
+}
+.am-panel-head {
+  display: flex; align-items: stretch; gap: 0; border-bottom: var(--bw) solid var(--line); min-height: 34px;
+}
+.am-panel-id {
+  display: flex; align-items: center; justify-content: center; min-width: 34px; padding: 0 8px;
+  background: var(--head-bg); color: var(--head-fg); font-weight: 600; font-size: 14px;
+}
+.am-panel-head h2 { margin: 0; padding: 7px 12px; font-size: 15px; font-weight: 600; flex: 1; display: flex; align-items: center; }
+.am-panel-meta { align-self: center; padding: 0 12px; font: 11px/1.3 var(--font-mono); color: var(--ink-2); text-align: end; }
+.am-panel-body { padding: 14px 16px 16px; }
+.am-panel-body > * + * { margin-top: 12px; }
+
+/* ── Markdown body ───────────────────────── */
+.am-md > :first-child { margin-top: 0; }
+.am-md > :last-child { margin-bottom: 0; }
+.am-md p { margin: 0 0 8px; }
+.am-md ul, .am-md ol { margin: 0 0 8px; padding-inline-start: 20px; }
+.am-md li + li { margin-top: 3px; }
+.am-md h3, .am-md h4 { margin: 14px 0 6px; font-size: 13px; }
+.am-md a { color: var(--accent); }
+.am-md blockquote { margin: 0 0 8px; padding: 2px 12px; border-inline-start: 3px solid var(--line-2); color: var(--ink-2); }
+.am-md :not(pre) > code { font-size: 0.9em; background: var(--fill); padding: 1px 5px; border-radius: 4px; }
+.am-md hr { border: 0; border-top: 1px solid var(--line-2); margin: 12px 0; }
+.am-md table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.am-md th {
+  text-align: start; font: 11px/1.3 var(--font-mono); color: var(--ink-2); font-weight: 400;
+  padding: 6px 10px; border-bottom: 1px solid var(--line-2);
+}
+/* th { text-align: start } outranks the align attribute from Markdown alignment, so restore right and center columns explicitly. */
+.am-md th[align="right"] { text-align: right; }
+.am-md th[align="center"] { text-align: center; }
+.am-md td { padding: 7px 10px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.am-md tbody tr:nth-child(even) td { background: var(--fill); }
+.am-table-wrap { overflow-x: auto; }
+/* Images scale down to the panel and never past 70% of the window height, keeping their shape. */
+.am-md img { max-width: 100%; max-height: 70vh; height: auto; }
+.am-figure { margin: 0; text-align: center; }
+.am-figure img { display: block; margin: 0 auto; border: 1px solid var(--line-2); border-radius: var(--radius); }
+.am-figure figcaption { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--ink-2); }
+.am-code {
+  margin: 0; padding: 12px 14px; background: var(--fill); border: 1px solid var(--line-2);
+  border-radius: var(--radius); overflow-x: auto; font-size: 12.5px; line-height: 1.5;
+}
+/* Ask: a decision the reader makes; the suggested option starts selected */
+.am-ask { margin: 10px 0; padding: 10px 12px 8px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--fill); min-width: 0; }
+/* The question floats inside the box, so a long question wraps like text instead of riding on the border */
+.am-ask-q { float: left; width: 100%; padding: 0; margin-bottom: 4px; font-weight: 600; }
+/* Two columns: the control, then the label, tag and note, which wrap under the label and never under the control */
+.am-ask-opt { clear: both; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: baseline; padding: 5px 2px; cursor: pointer; }
+.am-ask-opt input { margin: 0; accent-color: var(--accent); position: relative; top: 2px; }
+.am-ask-tag { display: inline-block; font-size: 11px; line-height: 1.5; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 6px; white-space: nowrap; }
+.am-ask-note { display: block; color: var(--ink-2); }
+/* Comment box under each panel, and the Reply sheet */
+.am-comment-btn {
+  display: flex; flex-shrink: 0; align-self: center; margin-block: 0; margin-inline: auto 6px; color: var(--ink-3); background: transparent;
+  border: 1px solid transparent; border-radius: var(--radius); padding: 3px; cursor: pointer;
+}
+.am-panel-meta + .am-comment-btn { margin-inline-start: 0; }
+.am-panel:hover .am-comment-btn, .am-comment-btn:focus-visible, .am-comment-btn[aria-expanded="true"] { border-color: var(--line-2); color: var(--ink-2); }
+.am-panel .am-comment-btn.am-comment-btn--on { color: var(--accent); border-color: var(--accent); }
+.am-panel--bare { position: relative; }
+.am-panel--bare > .am-comment-btn { position: absolute; top: 4px; inset-inline-end: 0; }
+.am-comment { padding: 0 14px 12px; }
+.am-comment textarea, .am-reply textarea {
+  width: 100%; font: 13px/1.5 var(--font-sans); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding: 8px 10px; resize: vertical;
+}
+.am-comment textarea:focus-visible, .am-reply textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.am-btn--reply { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.am-btn--reply:hover { opacity: .88; }
+.am-reply {
+  width: min(640px, calc(100vw - 32px)); padding: 16px; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.25);
+}
+.am-reply::backdrop { background: rgba(0,0,0,.35); }
+.am-reply-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 10px; }
+.am-reply-head span { color: var(--ink-2); font-size: 13px; }
+.am-reply textarea { font-family: var(--font-mono); font-size: 12.5px; }
+.am-reply-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.am-reply .am-btn:disabled { opacity: .5; cursor: default; }
+/* Code block: a header (title or path:lines, language, copy), then one span per line; numbered blocks show the line number in a gutter */
+.am-codeblock { margin: 10px 0; min-width: 0; }
+.am-codeblock .am-code { border-top-left-radius: 0; border-top-right-radius: 0; padding: 10px 0; }
+.am-code-head {
+  display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 12px; font: 12px/1.3 var(--font-sans); color: var(--ink-2);
+  background: var(--paper); border: 1px solid var(--line-2); border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0;
+}
+.am-code-title { font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.am-code-lang { margin-left: auto; color: var(--ink-3); text-transform: lowercase; }
+.am-code-copy { font: 12px/1 var(--font-sans); color: var(--ink-2); background: transparent; border: 1px solid var(--line-2); border-radius: var(--radius); padding: 4px 8px; cursor: pointer; margin-left: auto; }
+.am-code-lang + .am-code-copy { margin-left: 0; }
+.am-code-copy:hover { border-color: var(--ink-3); color: var(--ink); }
+.am-code-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.am-code code { display: block; min-width: max-content; }
+.am-ln { display: block; padding: 0 14px; min-height: 1.5em; white-space: pre; }
+.am-ln--hl { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }
+.am-code--num .am-ln::before {
+  content: attr(data-n); display: inline-block; width: 3.5ch; margin-right: 12px; text-align: right; color: var(--ink-3);
+  user-select: none; -webkit-user-select: none;
+}
+
+/* ── Status badges ok / no / warn ──────────────── */
+.am-status { white-space: nowrap; font-weight: 500; }
+.am-status--ok { color: var(--ok); }
+.am-status--no { color: var(--err); }
+.am-status--warn { color: var(--warn); }
+.am-status-icon { display: inline-block; width: 1.1em; font-weight: 700; }
+
+/* ── callout ─────────────────────────────── */
+.am-callout {
+  border: 1px solid var(--line-2); border-inline-start: 3px solid var(--accent); background: var(--accent-bg);
+  padding: 10px 14px; border-radius: var(--radius);
+}
+.am-callout--ok { border-inline-start-color: var(--ok); background: var(--ok-bg); }
+.am-callout--warn { border-inline-start-color: var(--warn); background: var(--warn-bg); }
+.am-callout--err { border-inline-start-color: var(--err); background: var(--err-bg); }
+.am-callout-title { font-weight: 600; margin-bottom: 4px; }
+
+/* ── kv title block ─────────────────────────── */
+.am-kv {
+  display: grid; grid-template-columns: repeat(var(--kv-cols, 2), minmax(0, 1fr)); margin: 0;
+  border-top: var(--bw) solid var(--line); border-inline-start: var(--bw) solid var(--line);
+}
+.am-kv-cell { border-inline-end: var(--bw) solid var(--line); border-bottom: var(--bw) solid var(--line); padding: 6px 10px 8px; min-width: 0; }
+.am-kv-cell--wide { grid-column: 1 / -1; }
+.am-kv dt { font: 11px/1.4 var(--font-mono); color: var(--ink-2); }
+.am-kv dd { margin: 2px 0 0; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.am-kv-cell--wide dd { font-size: 17px; font-weight: 600; }
+
+/* ── timeline ────────────────────────────── */
+.am-timeline { list-style: none; margin: 0; padding: 0; }
+.am-timeline--h { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); padding-top: 4px; }
+.am-timeline--h li { position: relative; text-align: center; padding: 0 6px; }
+.am-timeline--h li::before {
+  content: ""; position: absolute; top: 31px; left: 0; right: 0; border-top: var(--bw) solid var(--line);
+}
+.am-timeline--h li:first-child::before { inset-inline-start: 50%; }
+.am-timeline--h li:last-child::before { inset-inline-end: 50%; }
+.am-tl-when { display: block; font-size: 15px; font-weight: 500; height: 24px; }
+.am-tl-dot {
+  position: relative; display: block; width: 11px; height: 11px; margin: 2px auto 8px;
+  border: var(--bw) solid var(--line); border-radius: 50%; background: var(--paper);
+}
+.am-tl-item--hi .am-tl-dot { background: var(--accent); border-color: var(--accent); }
+.am-tl-title { display: block; font-size: 12.5px; font-weight: 500; }
+.am-tl-text { display: block; font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+.am-timeline--v li { position: relative; padding: 0 0 14px; padding-inline-start: 22px; }
+.am-timeline--v li::before { content: ""; position: absolute; inset-inline-start: 5px; top: 6px; bottom: -6px; border-inline-start: var(--bw) solid var(--line-2); }
+.am-timeline--v li:last-child::before { display: none; }
+.am-timeline--v .am-tl-dot { position: absolute; inset-inline-start: 0; top: 4px; margin: 0; }
+.am-timeline--v .am-tl-when { display: inline; height: auto; font: 12px var(--font-mono); color: var(--ink-2); margin-inline-end: 8px; }
+.am-timeline--v .am-tl-title { display: inline; font-size: 14px; }
+.am-timeline--v .am-tl-text { margin-top: 2px; }
+/* .am-tl-wrap is the container (src/components/timeline.js): a horizontal timeline answers to the width it has, not to the width of the window, since a
+   sheet puts panels two or three to a row. Below 560 px (about 90 px for each of the six items a timeline has by default) its dates
+   wrap and the dots cover them, so it lays out like timeline v: line and dots at the start, text beside them. */
+.am-tl-wrap { container-type: inline-size; }
+@container (max-width: 560px) {
+  .am-timeline--h { display: block; padding-top: 0; }
+  .am-timeline--h li { text-align: start; padding: 0 0 14px; padding-inline-start: 22px; }
+  .am-timeline--h li::before, .am-timeline--h li:first-child::before {
+    top: 6px; bottom: -6px; inset-inline-start: 5px; inset-inline-end: auto; border-top: 0; border-inline-start: var(--bw) solid var(--line-2);
+  }
+  .am-timeline--h li:last-child::before { display: none; }
+  .am-timeline--h .am-tl-dot { position: absolute; inset-inline-start: 0; top: 4px; margin: 0; }
+  .am-timeline--h .am-tl-when { display: inline; height: auto; font: 12px var(--font-mono); color: var(--ink-2); margin-inline-end: 8px; }
+  .am-timeline--h .am-tl-title { display: inline; font-size: 14px; }
+  .am-timeline--h .am-tl-text { margin-top: 2px; }
+}
+
+/* ── annot sentence notes ──────────────────────── */
+.am-annot + .am-annot { border-top: 1px solid var(--line-2); padding-top: 12px; }
+.am-annot-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.am-annot-meta { font: 11px var(--font-mono); font-weight: 400; color: var(--ink-2); }
+.am-annot-scroll { overflow-x: auto; }
+.am-annot-line {
+  position: relative; display: inline-block; white-space: pre; font: 14px/1.6 var(--font-mono);
+  padding-bottom: calc(var(--rows, 0) * 17px + 14px);
+}
+.am-annot-line--wrap { display: block; white-space: normal; padding-bottom: 10px; }
+.am-annot-line--wrap .am-seg { white-space: nowrap; }
+.am-seg { position: relative; }
+.am-seg::after {
+  content: ""; position: absolute; left: 1px; right: 1px; top: calc(100% + 1px); height: 5px;
+  border: 1px solid var(--accent); border-top: 0;
+}
+.am-seg-n {
+  position: absolute; inset-inline-start: 0; top: calc(100% + 8px + var(--row, 0) * 17px);
+  font: 11px/16px var(--font-sans); color: var(--accent); white-space: nowrap;
+}
+.am-seg--err { color: var(--err); }
+.am-seg--err::after { border-color: var(--err); }
+.am-seg--err .am-seg-n { color: var(--err); }
+.am-annot-caption { font-size: 12px; color: var(--ink-2); }
+
+/* ── limits bars ───────────────────────── */
+.am-lim + .am-lim { margin-top: 14px; }
+.am-lim-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 4px; }
+.am-lim-val { font: 12px var(--font-mono); color: var(--accent); white-space: nowrap; }
+.am-lim-track { position: relative; height: 12px; border: 1px solid var(--line-2); background: var(--fill); border-radius: calc(var(--radius) / 2); }
+.am-lim-fill { position: absolute; inset-inline-start: 0; top: 0; bottom: 0; background: var(--accent-bg); border-inline-end: 1px solid var(--accent); }
+.am-lim-mark { position: absolute; top: -4px; bottom: -4px; border-left: 2px solid var(--accent); }
+.am-lim.is-over .am-lim-fill { background: var(--err-bg); border-inline-end-color: var(--err); }
+.am-lim.is-over .am-lim-val { color: var(--err); }
+.am-lim-ticks { position: relative; height: 16px; font: 10px/16px var(--font-mono); color: var(--ink-3); }
+.am-lim-ticks span { position: absolute; transform: translateX(-50%); }
+.am-lim-ticks span:first-child { transform: none; }
+.am-lim-note { font-size: 11px; color: var(--ink-2); margin-inline-start: 6px; }
+
+/* ── tree ─────────────────────────── */
+.am-tree { font-size: 13px; }
+.am-tree-root { display: flex; justify-content: center; position: relative; padding-bottom: 18px; }
+.am-tree-root::after { content: ""; position: absolute; bottom: 0; left: 50%; height: 18px; border-left: var(--bw) solid var(--line); }
+.am-tree-root--solo { padding-bottom: 12px; }
+.am-tree-root--solo::after { display: none; }
+.am-tree-box {
+  border: var(--bw) solid var(--line); background: var(--paper); padding: 6px 14px; text-align: center;
+  border-radius: var(--radius); font-weight: 600;
+}
+.am-tree-box small { display: block; font-weight: 400; color: var(--ink-2); font-size: 12px; }
+.am-tree-box--root { background: var(--accent-bg); font-size: 15px; padding: 8px 28px; }
+.am-tree-cols { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); }
+.am-tree-col { position: relative; padding: 18px 8px 0; min-width: 0; }
+.am-tree-col::before { content: ""; position: absolute; top: 0; left: 0; right: 0; border-top: var(--bw) solid var(--line); }
+.am-tree-col:first-child::before { inset-inline-start: 50%; }
+.am-tree-col:last-child::before { inset-inline-end: 50%; }
+.am-tree-col::after { content: ""; position: absolute; top: 0; left: 50%; height: 18px; border-left: var(--bw) solid var(--line); }
+.am-tree-list, .am-tree-list ul { list-style: none; margin: 0; padding: 0; }
+.am-tree-col > .am-tree-list { margin: 8px 0 0; margin-inline-start: 14px; }
+.am-tree-list ul { margin-inline-start: 16px; }
+.am-tree-list li { position: relative; padding: 3px 0; padding-inline-start: 18px; }
+.am-tree-list li::before { content: ""; position: absolute; inset-inline-start: 0; top: 0.95em; width: 12px; border-top: 1px solid var(--ink-3); }
+.am-tree-list li::after { content: ""; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; border-inline-start: 1px solid var(--ink-3); }
+.am-tree-list li:last-child::after { bottom: auto; height: 0.95em; }
+.am-tree-tag { font: 11px var(--font-mono); color: var(--ink-3); margin-inline-end: 4px; }
+.am-tree code { font: 12px var(--font-mono); }
+.am-tree-sub { display: block; font-size: 11.5px; color: var(--ink-2); }
+.am-tree-hi > .am-tree-label { color: var(--accent); font-weight: 600; }
+
+/* ── Diagrams (flow / sequence) ───────────────── */
+.am-diagram { margin: 0; overflow-x: auto; text-align: center; }
+/* Embedded previews can lose html[data-theme]; the fallbacks keep diagrams readable, and defined theme variables still win. */
+.am-diagram svg { max-width: 100%; height: auto; font-family: var(--font-sans, sans-serif); }
+.am-diagram text { fill: var(--ink, #16181d); font-size: 13px; }
+.am-node-shape { fill: var(--paper, #ffffff); stroke: var(--line, #1d2026); stroke-width: var(--bw, 1.5px); }
+.am-node--hi .am-node-shape { fill: var(--accent-bg, #e4ecf8); stroke: var(--accent, #1d5fbf); }
+.am-node--hi text { fill: var(--accent, #1d5fbf); font-weight: 600; }
+.am-edge { fill: none; stroke: var(--ink-2, #4b5260); stroke-width: 1.3; }
+.am-edge--dashed { stroke-dasharray: 5 4; }
+.am-arrow { fill: var(--ink-2, #4b5260); }
+.am-edge-label rect { fill: var(--paper, #ffffff); }
+.am-diagram .am-edge-label text { fill: var(--accent, #1d5fbf); font-size: 11.5px; }
+.am-cluster { fill: var(--fill, #f3f5f8); stroke: var(--line-2, #d6dae1); stroke-width: 1; stroke-dasharray: 4 3; }
+.am-diagram .am-cluster-label { fill: var(--ink-2, #4b5260); font: 11px var(--font-mono, monospace); }
+.am-lifeline { stroke: var(--ink-3, #8b929e); stroke-width: 1; stroke-dasharray: 4 4; }
+.am-actor { fill: var(--paper, #ffffff); stroke: var(--line, #1d2026); stroke-width: var(--bw, 1.5px); }
+.am-note { fill: var(--warn-bg, #fdf3e2); stroke: var(--warn, #a8620a); stroke-width: 1; }
+.am-diagram .am-step { fill: var(--ink-3, #8b929e); font: 10px var(--font-mono, monospace); }
+
+.am-diagram-expand {
+  /* In flow and sticky: it sits at the end edge (right on a left-to-right page) and stays in view when the diagram scrolls sideways.
+     It takes its own row above the drawing, so it never covers a node at the top-right corner of the drawing. */
+  position: sticky; inset-inline-start: calc(100% - 36px); z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0; margin: 0 0 4px; margin-inline: auto 8px;
+  color: var(--ink-2); background: var(--paper);
+  border: var(--bw, 1px) solid var(--line-2); border-radius: var(--radius);
+  cursor: pointer; opacity: 0.72;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+}
+.am-diagram:hover .am-diagram-expand,
+.am-diagram-expand:focus-visible { opacity: 1; }
+.am-diagram-expand:hover {
+  opacity: 1; color: var(--ink); border-color: var(--accent); background: var(--fill);
+}
+.am-diagram-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── Diagram Lightbox and Pan-Zoom Viewer ─────────── */
+.am-lightbox {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column;
+  touch-action: none;
+}
+.am-lightbox[hidden] { display: none !important; }
+
+.am-lightbox-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.am-lightbox-header {
+  position: absolute; top: 12px; left: 24px; right: 24px; height: 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 10; pointer-events: none;
+}
+.am-lightbox-title {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: rgba(255, 255, 255, 0.92);
+  font: 13px/1 var(--font-sans, sans-serif); font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw;
+}
+.am-lightbox-title svg { stroke: rgba(255, 255, 255, 0.85); flex-shrink: 0; }
+.am-lightbox-actions {
+  display: flex; align-items: center; gap: 8px; pointer-events: auto;
+}
+.am-lightbox-close {
+  width: 32px; height: 32px;
+  background: var(--paper);
+  border: var(--bw, 1px) solid var(--line-2);
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 15px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: background 0.15s, color 0.15s, transform 0.15s, border-color 0.15s;
+}
+.am-lightbox-close:hover {
+  color: var(--accent); border-color: var(--accent); background: var(--fill); transform: scale(1.05);
+}
+.am-lightbox-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.am-lightbox-stage {
+  position: absolute;
+  top: 54px; bottom: 20px; left: 24px; right: 24px;
+  background: var(--paper);
+  border: var(--bw, 1px) solid var(--line-2);
+  border-radius: max(var(--radius), 14px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.am-lightbox-stage.am-panning { cursor: grabbing; }
+
+.am-lightbox-canvas {
+  position: absolute; left: 0; top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
+}
+.am-lightbox-canvas svg {
+  max-width: none !important;
+  max-height: none !important;
+  display: block;
+  font-family: var(--font-sans, sans-serif);
+}
+
+/* ── doc template ────────────────────────── */
+.am-doc { max-width: 1120px; margin: 0 auto; padding: 40px 28px 64px; }
+.am-doc-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; align-items: start; }
+.am-doc-layout--notoc { grid-template-columns: minmax(0, 1fr); max-width: 860px; }
+.am-toc { position: sticky; top: 24px; font-size: 13px; }
+.am-toc a { display: block; color: var(--ink-2); text-decoration: none; padding: 4px 0; padding-inline-start: 10px; border-inline-start: 2px solid var(--line-2); }
+.am-toc a:hover { color: var(--ink); border-inline-start-color: var(--accent); }
+.am-doc-body > .am-panel + .am-panel { margin-top: 20px; }
+
+/* ── Responsive and print ─────────────────────────── */
+@media (max-width: 1100px) {
+  .am-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .am-grid > .am-panel { grid-column: auto !important; }
+  .am-grid > .am-panel.am-span-wide { grid-column: 1 / -1 !important; }
+}
+@media (max-width: 760px) {
+  .am-sheet, .am-doc { padding: 56px 12px 24px; }
+  .am-head { padding-inline-end: 0; }
+  .am-grid { grid-template-columns: minmax(0, 1fr); }
+  .am-grid > .am-panel.am-span-wide { grid-column: auto !important; }
+  .am-doc-layout { grid-template-columns: minmax(0, 1fr); }
+  .am-toc { position: static; }
+  .am-tree-cols { grid-template-columns: minmax(0, 1fr); }
+  /* Tables and diagrams keep their size: the wrapper scrolls horizontally when they overflow. A cell is never narrower than about
+     two short words, so a phone does not stack them one per line. On wider screens the sheet layout (src/runtime/layout-dom.js)
+     gives a table panel the width its columns read well at. */
+  .am-md th, .am-md td { min-width: 8em; }
+  .am-diagram svg { max-width: none; }
+  .am-lightbox-header { top: 8px; left: 12px; right: 12px; }
+  .am-lightbox-stage { top: 46px; bottom: 12px; left: 12px; right: 12px; border-radius: max(var(--radius), 10px); }
+}
+.am-colophon { text-align: center; padding: 0 0 28px; font: 11px var(--font-mono); color: var(--ink-3); }
+.am-colophon a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+@media print {
+  .am-toolbar, .am-diagram-expand, .am-lightbox, .am-code-copy, .am-comment-btn, .am-comment, .am-reply { display: none !important; }
+  body { background: var(--paper); }
+  .am-panel { break-inside: avoid; box-shadow: none; }
+}
+/* Printed on paper narrower than three columns, the two-column grid left a hole beside every panel next to a full-width one
+   (a wide table, a wide diagram): one panel per row instead. */
+@media print and (max-width: 1100px) {
+  .am-grid { grid-template-columns: minmax(0, 1fr); }
+  .am-grid > .am-panel { grid-column: auto !important; }
+}
+.am-panel--bare { border: 0; background: transparent; box-shadow: none; }
+.am-panel--bare > .am-panel-body { padding: 0; }
+.am-panel--bare .am-kv { background: var(--paper); }
+
+/* Remark mode: block marks with a note, collected into the Reply copy (src/runtime/remark.js). Each kind borrows a status colour of
+   the theme, so a mark reads in light and dark mode on every theme. */
+.am-btn--remark.is-on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.am-remark-hover { outline: 1px dashed var(--ink-3); outline-offset: 2px; cursor: pointer; }
+:is(.am-mark, .am-remark-kind)[data-kind="suggestion"] { --mark: var(--warn); --mark-bg: var(--warn-bg); }
+:is(.am-mark, .am-remark-kind)[data-kind="keep"] { --mark: var(--ok); --mark-bg: var(--ok-bg); }
+:is(.am-mark, .am-remark-kind)[data-kind="question"] { --mark: var(--accent); --mark-bg: var(--accent-bg); }
+:is(.am-mark, .am-remark-kind)[data-kind="concern"] { --mark: var(--err); --mark-bg: var(--err-bg); }
+.am-mark { border-inline-start: 3px solid var(--mark); padding-inline-start: 10px; background: var(--mark-bg); border-radius: 1px; }
+/* The note chip sits inside the marked block (a table takes it as its caption, a list item puts it before its sub-list), so lists and
+   grids keep their children. */
+.am-mark-note {
+  display: block; margin-block-start: 4px; font: 12px/1.5 var(--font-sans); letter-spacing: normal; text-transform: none;
+  color: var(--ink-2); white-space: pre-wrap; caption-side: bottom; text-align: start;
+}
+.am-mark-note b { color: var(--ink); font-weight: 600; }
+caption.am-mark-note { display: table-caption; }
+/* Table rows have their own backgrounds, so a tint on the table would show on every other row only: the bar marks a table. */
+table.am-mark { background: none; }
+.am-remark-pop {
+  position: absolute; z-index: 40; width: min(264px, calc(100vw - 16px)); padding: 8px; display: grid; gap: 6px;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line-2); border-radius: var(--radius); box-shadow: 0 6px 24px rgba(0, 0, 0, .14);
+}
+.am-remark-pop[hidden] { display: none; }
+.am-remark-kinds { display: flex; gap: 6px; flex-wrap: wrap; }
+.am-remark-kind { font: 12px/1 var(--font-sans); color: var(--ink-2); background: var(--paper); border: 1px solid var(--line-2); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.am-remark-kind:hover { border-color: var(--ink-3); }
+.am-remark-kind[aria-pressed="true"] { color: var(--ink); border-color: var(--mark); background: var(--mark-bg); }
+.am-remark-kind:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.am-remark-pop textarea { font: 13px/1.5 var(--font-sans); color: var(--ink); background: var(--paper); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 6px 8px; resize: vertical; }
+.am-remark-actions { display: flex; gap: 6px; }
+.am-remark-actions .am-btn:disabled { opacity: .5; cursor: default; }
+@media print { .am-remark-pop { display: none !important; } }
+
+
+html[data-theme="blueprint"] .am-frame { border: 1px solid var(--line); padding: 30px; }
+html[data-theme="blueprint"] .am-frame::before {
+  content: ""; position: absolute; inset: 18px; border: 1px solid var(--line); pointer-events: none;
+}
+html[data-theme="blueprint"] .am-ruler {
+  display: flex; position: absolute; font: 10px/1 var(--font-mono); color: var(--ink-3);
+}
+@media (max-width: 760px) {
+  html[data-theme="blueprint"] .am-frame { padding: 0; border: 0; }
+  html[data-theme="blueprint"] .am-frame::before, html[data-theme="blueprint"] .am-ruler { display: none; }
+}
+
+html[data-theme="shadcn"] .am-panel-id { border-radius: 6px; min-width: 24px; height: 24px; margin: 9px 0 9px 14px; font-size: 12px; }
+html[data-theme="shadcn"] .am-panel-head { border-bottom-width: 1px; }
+html[data-theme="shadcn"] .am-kv { border-color: var(--line); border-radius: var(--radius); overflow: hidden; }
+
+html[data-theme="paper"]:lang(zh-Hant)[data-mode], html[data-theme="paper"]:lang(zh-TW)[data-mode], html[data-theme="paper"]:lang(zh-HK)[data-mode], html[data-theme="paper"]:lang(zh-MO)[data-mode] { --font-serif: "Iowan Old Style", Palatino, Georgia, "Songti TC", "PMingLiU", "MingLiU", "Noto Serif CJK TC", "Noto Serif TC", "Source Han Serif TC", "Songti SC", serif; }
+html[data-theme="paper"]:lang(ja)[data-mode] { --font-serif: "Iowan Old Style", Palatino, Georgia, "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif CJK JP", "Noto Serif JP", "Songti SC", serif; }
+html[data-theme="paper"]:lang(he)[data-mode] { --font-serif: "Iowan Old Style", Palatino, Georgia, "Noto Serif Hebrew", "Frank Ruehl CLM", David, "Times New Roman", serif; }
+html[data-theme="paper"] .am-head h1, html[data-theme="paper"] .am-panel-head h2, html[data-theme="paper"] .am-md, html[data-theme="paper"] .am-intro, html[data-theme="paper"] .am-callout { font-family: var(--font-serif); }
+html[data-theme="paper"] .am-head h1 { font-weight: 600; letter-spacing: 0; }
+html[data-theme="paper"] .am-md p, html[data-theme="paper"] .am-md li, html[data-theme="paper"] .am-md blockquote, html[data-theme="paper"] .am-intro { font-size: 15.5px; line-height: 1.75; }
+html[data-theme="paper"] .am-md p { margin-bottom: 12px; }
+html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
+</style>
+</head>
+<body>
+<div class="am-toolbar" data-am-root-lang="zh-CN" data-am-root-theme="blueprint" data-am-root-mode="auto" data-am-root-style="strict">
+<label class="am-pick">主题<select data-am="theme"><option value="blueprint" selected>图纸</option><option value="shadcn">卡片</option><option value="paper">纸张</option></select></label>
+<label class="am-pick">明暗<select data-am="mode"><option value="auto" selected>跟随系统</option><option value="light">亮</option><option value="dark">暗</option></select></label>
+<button class="am-btn am-btn--reply" type="button" data-am="reply" data-ui="{&quot;button&quot;:&quot;回复&quot;,&quot;comment&quot;:&quot;评论&quot;,&quot;commentHint&quot;:&quot;对这个面板的意见&quot;,&quot;title&quot;:&quot;你的回复&quot;,&quot;hint&quot;:&quot;复制后粘贴到对话里。&quot;,&quot;copy&quot;:&quot;复制回复&quot;,&quot;close&quot;:&quot;关闭&quot;,&quot;suggested&quot;:&quot;建议&quot;,&quot;empty&quot;:&quot;先选择选项，或在面板上写评论。&quot;,&quot;decisions&quot;:&quot;决定&quot;,&quot;comments&quot;:&quot;评论&quot;,&quot;confirmed&quot;:&quot;确认了建议&quot;,&quot;untouched&quot;:&quot;未作答，保留建议&quot;,&quot;was&quot;:&quot;原为&quot;,&quot;typed&quot;:&quot;以 \&quot;&gt;\&quot; 开头的行是读者输入的文字。&quot;,&quot;done&quot;:&quot;已复制 ✓&quot;,&quot;remarks&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">回复</button>
+<button class="am-btn am-btn--remark" type="button" data-am="remark" data-ui="{&quot;button&quot;:&quot;标注&quot;,&quot;hint&quot;:&quot;批注（可选）&quot;,&quot;save&quot;:&quot;保存&quot;,&quot;remove&quot;:&quot;删除&quot;,&quot;section&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">标注</button>
+<button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
+</div>
+<main class="am-sheet">
+<header class="am-head"><h1>M9a 动手练习：手搓一条 2 关节腿链（第 19 章）</h1><p class="am-sub">从空白文件写到能跑的 MJCF：契约、三组验收、六个破坏实验</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 19 章</span></div><div class="am-intro am-md"><div class="am-md"><p>交付一个文件：<code>sim/assets/exercise_leg.xml</code>——一条 2 关节腿链。</p>
+<p>验收脚本替你查三组断言：结构、执行器跟踪、keyframe 还原。全绿才算过。</p>
+<p>写完这一个文件，第 18 章那套五步循环你就亲手走了一遍。</p>
+</div>
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="430" viewBox="0 0 620 430" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="620" height="430" fill="#11151c"/>
+  <text x="150" y="30" fill="#e8ecf2" font-size="15" text-anchor="middle" font-weight="600">STRAIGHT</text>
+  <text x="150" y="48" fill="#8b97a8" font-size="11" text-anchor="middle">qpos = 0 0</text>
+  <text x="410" y="30" fill="#e8ecf2" font-size="15" text-anchor="middle" font-weight="600">跟踪目标</text>
+  <text x="410" y="48" fill="#8b97a8" font-size="11" text-anchor="middle">hip +0.5 / knee -0.5</text>
+
+  <line x1="30" y1="340" x2="590" y2="340" stroke="#5b6472" stroke-width="2"/>
+  <g stroke="#39404c" stroke-width="1">
+    <line x1="30" y1="340" x2="44" y2="352"/><line x1="70" y1="340" x2="84" y2="352"/>
+    <line x1="110" y1="340" x2="124" y2="352"/><line x1="150" y1="340" x2="164" y2="352"/>
+    <line x1="190" y1="340" x2="204" y2="352"/><line x1="230" y1="340" x2="244" y2="352"/>
+    <line x1="270" y1="340" x2="284" y2="352"/><line x1="310" y1="340" x2="324" y2="352"/>
+    <line x1="350" y1="340" x2="364" y2="352"/><line x1="390" y1="340" x2="404" y2="352"/>
+    <line x1="430" y1="340" x2="444" y2="352"/><line x1="470" y1="340" x2="484" y2="352"/>
+    <line x1="510" y1="340" x2="524" y2="352"/><line x1="550" y1="340" x2="564" y2="352"/>
+  </g>
+  <text x="588" y="358" fill="#8b97a8" font-size="11" text-anchor="end">地板 plane</text>
+
+  <rect x="142" y="62" width="16" height="16" fill="#8a8f99" stroke="#0b0e13"/>
+  <rect x="135.5" y="70" width="29" height="90" fill="#3f7fd0" stroke="#0b0e13"/>
+  <rect x="139" y="160" width="22" height="90" fill="#e08a4a" stroke="#0b0e13"/>
+  <circle cx="150" cy="70" r="5" fill="#11151c" stroke="#e8ecf2" stroke-width="1.5"/>
+  <circle cx="150" cy="70" r="1.6" fill="#e8ecf2"/>
+  <circle cx="150" cy="160" r="5" fill="#11151c" stroke="#e8ecf2" stroke-width="1.5"/>
+  <circle cx="150" cy="160" r="1.6" fill="#e8ecf2"/>
+  <text x="172" y="66" fill="#e8ecf2" font-size="11">hip_pitch</text>
+  <text x="172" y="156" fill="#e8ecf2" font-size="11">knee</text>
+  <text x="170" y="120" fill="#8b97a8" font-size="10">5 cm</text>
+  <line x1="150" y1="250" x2="150" y2="340" stroke="#4c5563" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="142" y="300" fill="#8b97a8" font-size="10" text-anchor="end">离地 5 cm</text>
+
+  <rect x="402" y="62" width="16" height="16" fill="#8a8f99" stroke="#0b0e13"/>
+  <rect x="395.5" y="70" width="29" height="90" fill="#3f7fd0" stroke="#0b0e13" transform="rotate(28.6479 410 70)"/>
+  <rect x="355.9" y="149" width="22" height="90" fill="#e08a4a" stroke="#0b0e13"/>
+  <circle cx="410" cy="70" r="5" fill="#11151c" stroke="#e8ecf2" stroke-width="1.5"/>
+  <circle cx="410" cy="70" r="1.6" fill="#e8ecf2"/>
+  <circle cx="366.9" cy="149" r="5" fill="#11151c" stroke="#e8ecf2" stroke-width="1.5"/>
+  <circle cx="366.9" cy="149" r="1.6" fill="#e8ecf2"/>
+  <line x1="410" y1="70" x2="410" y2="340" stroke="#39404c" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="430" y="96" fill="#e8ecf2" font-size="11">0.5 rad = 28.6°</text>
+  <text x="430" y="112" fill="#8b97a8" font-size="10">大腿倒向 -x</text>
+  <text x="346" y="195" fill="#8b97a8" font-size="10" text-anchor="end">小腿仍竖直</text>
+
+  <rect x="40" y="382" width="13" height="13" fill="#3f7fd0" stroke="#0b0e13"/>
+  <text x="60" y="393" fill="#c8d0dc" font-size="11">thigh 大腿</text>
+  <rect x="165" y="382" width="13" height="13" fill="#e08a4a" stroke="#0b0e13"/>
+  <text x="185" y="393" fill="#c8d0dc" font-size="11">shank 小腿</text>
+  <rect x="290" y="382" width="13" height="13" fill="#8a8f99" stroke="#0b0e13"/>
+  <text x="310" y="393" fill="#c8d0dc" font-size="11">mount 挂载点</text>
+  <circle cx="440" cy="388" r="6" fill="none" stroke="#8b97a8" stroke-width="1.2"/>
+  <circle cx="440" cy="388" r="1.8" fill="#8b97a8"/>
+  <text x="452" y="393" fill="#c8d0dc" font-size="11">转轴 = y 轴（指向纸外）</text>
+</svg></div></header>
+<div class="am-frame">
+<div class="am-ruler am-ruler--top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div><div class="am-ruler am-ruler--right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
+<div class="am-grid" style="--cols: 3">
+<section class="am-panel am-span-wide" id="panel-A" style="grid-column: span 3">
+<header class="am-panel-head"><span class="am-panel-id">A</span><h2>任务书：一个文件，一条腿</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>交付物就一个文件</strong>：<code>sim/assets/exercise_leg.xml</code>，一条 2 关节腿链，悬空挂在挂载点上。</p>
+<p>先看它长什么样。左边是 <code>STRAIGHT</code> 存档姿势，qpos 全 0。右边是 B 组要它追到的角度：大腿转 +0.5 rad，小腿转 -0.5 rad。两者抵消，小腿在世界系里仍竖直。</p>
+<p>契约一共七条。这七条是验收脚本逐条检查的东西，也是下游代码读这个模型时依赖的接口。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>契约</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>关节名</td>
+<td><code>hip_pitch</code>（大腿）、<code>knee</code>（小腿）</td>
+</tr>
+<tr>
+<td>关节类型</td>
+<td>两个都是 <code>hinge</code>，轴都是 <code>0 1 0</code></td>
+</tr>
+<tr>
+<td>ctrl 序</td>
+<td><code>ctrl[0]</code> 管 hip，<code>ctrl[1]</code> 管 knee（声明顺序即下标顺序）</td>
+</tr>
+<tr>
+<td>qpos 序</td>
+<td><code>qpos[0]</code> 是 hip_pitch，<code>qpos[1]</code> 是 knee（body 嵌套顺序即关节顺序）</td>
+</tr>
+<tr>
+<td>几何</td>
+<td>每个动力 body 一个 <code>box</code> geom，不用 mesh</td>
+</tr>
+<tr>
+<td>地板</td>
+<td>worldbody 下必须有一块 <code>plane</code></td>
+</tr>
+<tr>
+<td>存档</td>
+<td>keyframe 名字 <code>STRAIGHT</code>，qpos 全 0</td>
+</tr>
+</tbody></table></div>
+<p>body 嵌套层级就是身体的连接关系，缩进即关节链：</p>
+</div>
+<div class="am-tree"><div class="am-tree-root am-tree-root--solo"><div class="am-tree-box am-tree-box--root" data-key="worldbody" data-step="0">worldbody</div></div><ul class="am-tree-list"><li data-key="floor" data-step="1"><span class="am-tree-label">floor</span><span class="am-tree-sub">地板，plane</span></li><li data-key="mount" data-step="2"><span class="am-tree-label">mount</span><span class="am-tree-sub">静态挂载点，body 里不写 joint</span><ul><li data-key="thigh" data-step="3"><span class="am-tree-label">thigh</span><span class="am-tree-sub">大腿，joint hip_pitch</span><ul><li data-key="thigh_box" data-step="4"><span class="am-tree-label">thigh_box</span><span class="am-tree-sub">box geom，1.6cm 见方 × 5cm 长</span></li><li data-key="shank" data-step="5"><span class="am-tree-label">shank</span><span class="am-tree-sub">小腿，joint knee</span><ul><li data-key="shank_box" data-step="6"><span class="am-tree-label">shank_box</span><span class="am-tree-sub">box geom，1.2cm 见方 × 5cm 长</span></li></ul></li></ul></li></ul></li></ul></div>
+<div class="am-md"><p>从下面这段骨架开始写。标 <code>TODO</code> 的字段自己定，其余照抄：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title">exercise_leg.xml 骨架</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="xml"><span class="am-ln">&lt;mujoco model=&quot;exercise_leg&quot;&gt;</span><span class="am-ln">  &lt;compiler angle=&quot;radian&quot; autolimits=&quot;true&quot; /&gt;</span><span class="am-ln"></span><span class="am-ln">  &lt;worldbody&gt;</span><span class="am-ln">    &lt;geom name=&quot;floor&quot; type=&quot;plane&quot; size=&quot;2 2 0.1&quot; /&gt;</span><span class="am-ln">    &lt;body name=&quot;mount&quot; pos=&quot;0 0 TODO_MOUNT_HEIGHT&quot;&gt;</span><span class="am-ln">      &lt;body name=&quot;thigh&quot; pos=&quot;0 0 0&quot;&gt;</span><span class="am-ln">        &lt;joint name=&quot;hip_pitch&quot; type=&quot;hinge&quot; axis=&quot;0 1 0&quot;</span><span class="am-ln">               damping=&quot;TODO_DAMPING&quot; /&gt;</span><span class="am-ln">        &lt;geom name=&quot;thigh_box&quot; type=&quot;box&quot; pos=&quot;0 0 TODO_THIGH_CENTER&quot;</span><span class="am-ln">              size=&quot;TODO_W TODO_W TODO_HALF_LEN&quot; density=&quot;TODO_DENSITY&quot; /&gt;</span><span class="am-ln">        &lt;body name=&quot;shank&quot; pos=&quot;0 0 TODO_SHANK_OFFSET&quot;&gt;</span><span class="am-ln">          &lt;joint name=&quot;knee&quot; type=&quot;hinge&quot; axis=&quot;0 1 0&quot; damping=&quot;TODO_DAMPING&quot;</span><span class="am-ln">                 range=&quot;TODO_RANGE&quot; /&gt;</span><span class="am-ln">          &lt;geom name=&quot;shank_box&quot; type=&quot;box&quot; pos=&quot;0 0 TODO_SHANK_CENTER&quot;</span><span class="am-ln">                size=&quot;TODO_W TODO_W TODO_HALF_LEN&quot; density=&quot;TODO_DENSITY&quot; /&gt;</span><span class="am-ln">        &lt;/body&gt;</span><span class="am-ln">      &lt;/body&gt;</span><span class="am-ln">    &lt;/body&gt;</span><span class="am-ln">  &lt;/worldbody&gt;</span><span class="am-ln"></span><span class="am-ln">  &lt;actuator&gt;</span><span class="am-ln">    &lt;position name=&quot;hip_pitch_servo&quot; joint=&quot;hip_pitch&quot;</span><span class="am-ln">              kp=&quot;TODO_KP&quot; forcerange=&quot;TODO_FR&quot; /&gt;</span><span class="am-ln">    &lt;position name=&quot;knee_servo&quot; joint=&quot;knee&quot;</span><span class="am-ln">              kp=&quot;TODO_KP&quot; forcerange=&quot;TODO_FR&quot; /&gt;</span><span class="am-ln">  &lt;/actuator&gt;</span><span class="am-ln"></span><span class="am-ln">  &lt;keyframe&gt;</span><span class="am-ln">    &lt;key name=&quot;STRAIGHT&quot; qpos=&quot;0 0&quot; /&gt;</span><span class="am-ln">  &lt;/keyframe&gt;</span><span class="am-ln">&lt;/mujoco&gt;</span></code></pre></figure>
+<div class="am-md"><p><code>TODO</code> 处的取值有个舒适区。下表的「建议」栏来自本次验收实测，参考解答的取值在第三栏。你可以照抄，也可以挑别的。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>量</th>
+<th>建议</th>
+<th>参考解答</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>关节阻尼 damping</td>
+<td>0.01 ~ 0.1</td>
+<td>0.02</td>
+<td>写 0 会数值发散</td>
+</tr>
+<tr>
+<td>位置伺服 kp</td>
+<td>1 ~ 20</td>
+<td>5</td>
+<td>稳态误差 ≈ 重力矩 / kp</td>
+</tr>
+<tr>
+<td>力矩上限 forcerange</td>
+<td>±0.05 ~ ±0.3</td>
+<td>±0.3</td>
+<td>要大于重力矩（约 0.01 N·m）</td>
+</tr>
+<tr>
+<td>大腿</td>
+<td>长 5cm、见方 1.6cm</td>
+<td>同左</td>
+<td>几何即真实形状</td>
+</tr>
+<tr>
+<td>小腿</td>
+<td>长 5cm、见方 1.2cm</td>
+<td>同左</td>
+<td></td>
+</tr>
+<tr>
+<td>密度 density</td>
+<td>200 ~ 5000</td>
+<td>1000</td>
+<td>整档实测全过</td>
+</tr>
+<tr>
+<td>挂载高度</td>
+<td>0.15 ~ 0.20m</td>
+<td>0.15</td>
+<td>要高于整条腿长，留出离地间隙</td>
+</tr>
+</tbody></table></div>
+<p>box 的 <code>size</code> 写半长。见方 1.6cm 写 <code>0.008</code>，长 5cm 写 <code>0.025</code>。</p>
+<p>写完走一遍<a href="tutorial-bite1-handmade-mjcf.html#panel-D">第 18 章的五步循环</a>：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。</p>
+</div></div>
+</section>
+<section class="am-panel am-span-wide" id="panel-B" style="grid-column: span 2">
+<header class="am-panel-head"><span class="am-panel-id">B</span><h2>怎么跑：验收在容器，眼睛在宿主机</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>两个动作，两个地方。</strong> 验收脚本在容器里跑，viewer 在宿主机跑。</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln"># 验收（容器内）</span><span class="am-ln">docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh              # 你的作业</span><span class="am-ln">docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh --solution   # 参考解答</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln"># 看它甩（宿主机）</span><span class="am-ln">.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/exercise_leg.xml</span></code></pre></figure>
+<div class="am-md"><p>仓库根的 <code>.venv</code> 只为 viewer 而建，验收别在宿主机跑。脚本自带解释器探测：容器内用 <code>/opt/sim-venv/bin/python</code>，宿主机回落仓内 <code>.venv/bin/python</code>，两个都没有就报错退出。</p>
+<p>退出码告诉你现在处在哪一步：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>退出码</th>
+<th>含义</th>
+<th>屏幕上</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>三组断言全绿</td>
+<td>末行「腿链练习验收 PASS（作业）：结构 / 跟踪 / keyframe 全绿」</td>
+</tr>
+<tr>
+<td>1</td>
+<td>编译失败或断言红</td>
+<td>逐条 <code>[FAIL]</code>，每条下面跟一行「→ 怎么办」</td>
+</tr>
+<tr>
+<td>2</td>
+<td>作业文件还没建</td>
+<td>「找不到文件 …/sim/assets/exercise_leg.xml」+「还没创建作业文件……」</td>
+</tr>
+</tbody></table></div>
+<p>一轮的顺序是这样，红了按提示回改，改完再跑：</p>
+</div>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 575 205" width="575" height="205" role="img" aria-label="流程图：写 exercise_leg.xml、容器内跑验收、宿主机 viewer 目检、照「→ 怎么办」改、先建文件" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M163.7,102.5 L175.2,102.5 Q186.7,102.5 198.2,102.5 L209.7,102.5" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M288.4,120 L327.6,146.8 Q366.9,173.5 392.5,173.5 L418.1,173.5" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="339.7" y="164.5" width="54.4" height="18" rx="3"/><text x="366.9" y="173.5" text-anchor="middle" dominant-baseline="central">退出码 0</text></g></g><g data-step="2"><path class="am-edge" d="M315.7,102.5 L341.3,102.5 Q366.9,102.5 395.5,102.5 L424.1,102.5" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="339.7" y="93.5" width="54.4" height="18" rx="3"/><text x="366.9" y="102.5" text-anchor="middle" dominant-baseline="central">退出码 1</text></g></g><g data-step="3"><path class="am-edge" d="M288.4,85 L327.6,58.3 Q366.9,31.5 408,31.5 L449.1,31.5" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="339.7" y="22.5" width="54.4" height="18" rx="3"/><text x="366.9" y="31.5" text-anchor="middle" dominant-baseline="central">退出码 2</text></g></g></g><g><g class="am-node am-node--rect" data-key="写 exercise_leg.xml" data-step="0"><rect class="am-node-shape" x="14" y="85" width="149.7" height="35" rx="3"/><text x="88.8" y="102.5" text-anchor="middle" dominant-baseline="central">写 exercise_leg.xml</text></g><g class="am-node am-node--rect" data-key="容器内跑验收" data-step="0"><rect class="am-node-shape" x="209.7" y="85" width="106" height="35" rx="3"/><text x="262.7" y="102.5" text-anchor="middle" dominant-baseline="central">容器内跑验收</text></g><g class="am-node am-node--rect" data-key="宿主机 viewer 目检" data-step="1"><rect class="am-node-shape" x="418.1" y="156" width="142.1" height="35" rx="3"/><text x="489.1" y="173.5" text-anchor="middle" dominant-baseline="central">宿主机 viewer 目检</text></g><g class="am-node am-node--rect" data-key="照「→ 怎么办」改" data-step="2"><rect class="am-node-shape" x="424.1" y="85" width="130.2" height="35" rx="3"/><text x="489.1" y="102.5" text-anchor="middle" dominant-baseline="central">照「→ 怎么办」改</text></g><g class="am-node am-node--rect" data-key="先建文件" data-step="3"><rect class="am-node-shape" x="449.1" y="14" width="80" height="35" rx="3"/><text x="489.1" y="31.5" text-anchor="middle" dominant-baseline="central">先建文件</text></g></g></svg></figure></div>
+</section>
+<section class="am-panel" id="panel-C">
+<header class="am-panel-head"><span class="am-panel-id">C</span><h2>验收标准：三组断言各管什么</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>全绿的意思是：结构对、腿听话、存档准。</strong> 三组一共 21 条断言，A 组 17 条、B 组 3 条、C 组 1 条，下面按组归纳。</p>
+<p>A 组（结构）检查模型长成契约写的样子：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>断言</th>
+<th>通过意味着什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A1</td>
+<td>两个动力 body 叫 thigh / shank，shank 嵌在 thigh 里</td>
+<td>关节链的连接关系对：膝关节连的是大腿和小腿</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>关节名、类型、轴、ctrl 序、qpos 序、nu=2、碰撞 geom 全 box、有地板</td>
+<td>下游按数组下标读写动作，下标错就张冠李戴；碰撞全 box 保证几何即实形</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>knee 的限位覆盖目标角 -0.5 rad，存在 STRAIGHT keyframe</td>
+<td>关节声明的区间装得下验收要的角度，存档姿势在位</td>
+</tr>
+</tbody></table></div>
+<p>B 组（执行器跟踪）检查腿真的听话：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>断言</th>
+<th>通过意味着什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>B1</td>
+<td>2s 后 qpos 全是有限数</td>
+<td>仿真没有数值爆炸</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>hip 到 +0.5 ±0.1 rad、knee 到 -0.5 ±0.1 rad</td>
+<td>执行器把关节拉到了指令角。参考解答实测 +0.4994（误差 0.0006）和 -0.5000（误差 0.0000）</td>
+</tr>
+</tbody></table></div>
+<p>C 组（keyframe）检查存档姿势能精确复位：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>断言</th>
+<th>通过意味着什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C1</td>
+<td>扰动 qpos 后回 STRAIGHT，qpos 逐位一致</td>
+<td>起始状态可复现，训练与回放才对得上</td>
+</tr>
+</tbody></table></div>
+<p>阈值 ±0.1 rad 定得很宽。它只抓三类坏：执行器没接上、方向反了、力矩被掐死。你的参数随便选，只要落进上一张表的舒适区就行。</p>
+</div></div>
+</section>
+<section class="am-panel am-span-wide" id="panel-D" style="grid-column: span 3">
+<header class="am-panel-head"><span class="am-panel-id">D</span><h2>对照点：这次为什么不用手写惯量</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>练习里一个 <code>&lt;inertial&gt;</code> 都不写，第 18 章的 <code>duck_handmade.xml</code> 却每个 body 都有。</strong> 差别只有一个：几何是不是真的形状。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>第 18 章 duck_handmade.xml</th>
+<th>本练习 exercise_leg.xml</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>碰撞几何</td>
+<td>官方网格的包围盒，假的</td>
+<td>一个 box 就是腿的实形，真的</td>
+</tr>
+<tr>
+<td>惯量来源</td>
+<td>直写官方编译值</td>
+<td>引擎按 density × 几何自己算</td>
+</tr>
+<tr>
+<td>为什么</td>
+<td>从假几何算惯量，得到的是假惯量</td>
+<td>几何即实形，算出来的就对了</td>
+</tr>
+<tr>
+<td>质量</td>
+<td>官方值，逐位对账</td>
+<td>density=1000 时大腿 12.8g、小腿 7.2g</td>
+</tr>
+</tbody></table></div>
+<p>判据一句话：<strong>几何真不真，决定惯量能不能交给引擎算。</strong></p>
+<p>这也是 A 组那条「碰撞 geom 全 box」的意义所在。换成 mesh 或者随便什么形状，你就没法用「几何即实形」这条理由省掉惯量了。</p>
+</div></div>
+</section>
+<section class="am-panel am-span-wide" id="panel-E" style="grid-column: span 3">
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>破坏实验：改一个数，看系统怎么坏</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>每个实验改一个数、跑一条命令、看一个现象。</strong> 下面六组数字都是容器内实测的（mujoco 3.16.0），不是推测。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>实验</th>
+<th>改哪个数</th>
+<th>跑哪条命令</th>
+<th>预期现象（含实测）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 阻尼放大 10 倍</td>
+<td><code>damping</code> 0.02 → 0.2</td>
+<td>验收 + viewer</td>
+<td>验收照样全绿（退出码 0），腿却变肉。阶跃到 0.45 rad 从 17 步（0.034s）变成 152 步（0.304s），过冲 +0.0103 rad 消失；自由摆动停稳从 16.6s 变成 30s 仍未停</td>
+</tr>
+<tr>
+<td>2 阻尼写 0</td>
+<td><code>damping</code> = 0</td>
+<td>验收</td>
+<td>MuJoCo 报 &quot;The simulation is unstable&quot;，数据被重置回初始态。hip 和 knee 都停在 +0.0000，误差 0.5000，B 组红 2 项，退出码 1</td>
+</tr>
+<tr>
+<td>3 力矩掐死</td>
+<td><code>forcerange</code> ±0.3 → ±0.001</td>
+<td>验收</td>
+<td>hip 只到 +0.0743（误差 0.4257），knee -0.0985。B 组红 2 项，退出码 1</td>
+</tr>
+<tr>
+<td>4 ctrl 序写反</td>
+<td>两个 <code>&lt;position&gt;</code> 换行</td>
+<td>验收</td>
+<td>A 组红「ctrl 序 = hip 后 knee，实际 [&#39;knee&#39;,&#39;hip_pitch&#39;]」；hip 收到 -0.4994、knee 收到 +0.4921，共 3 项红，退出码 1</td>
+</tr>
+<tr>
+<td>5 删掉 knee 执行器</td>
+<td>删掉 knee 那行 <code>&lt;position&gt;</code></td>
+<td>验收</td>
+<td>A 组红「nu=2 实际 nu=1」，B 组红「跟踪实验可运行」，共 2 项红，退出码 1</td>
+</tr>
+<tr>
+<td>6 限位收太紧</td>
+<td>knee <code>range</code> -1.4 0.05 → -0.2 0.05</td>
+<td>验收</td>
+<td>A 组红「knee 限位覆盖跟踪目标 -0.5 rad」，B 组却绿（knee 实测 -0.4947）。退出码 1</td>
+</tr>
+</tbody></table></div>
+<p>实验 6 挖出一条反直觉的事：<strong>限位是软约束，伺服器能把它压穿。</strong> 同一条限位（-1.4 rad），执行力矩越大，越压不住它：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>forcerange</th>
+<th>±0.3</th>
+<th>±0.1</th>
+<th>±0.05</th>
+<th>±0.02</th>
+<th>±0.01</th>
+<th>±0.005</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>knee 最终角（命令 -2.0）</td>
+<td>-1.9891</td>
+<td>-1.9891</td>
+<td>-1.9362</td>
+<td>-1.5849</td>
+<td>-0.9762</td>
+<td>-0.4924</td>
+</tr>
+</tbody></table></div>
+<p>力矩掉到小于 ±0.01 时，伺服器干脆拉不动腿了，关节停在半路。限位写不写、限在哪里，管的是「声明」；关节实际停在哪里，管的是「力矩余量」。</p>
+<p>还有一个角度单位坑：MJCF 的 <code>range</code> 默认按角度解析。不写 <code>angle=&quot;radian&quot;</code>，<code>-1.4</code> 会被当成 -1.4 度，编译后是 -0.0244 rad。此时 A 组红「knee 限位覆盖跟踪目标 -0.5 rad」，退出码 1。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>自测</h2></header>
+<div class="am-panel-body"><details>
+<summary><b>1.</b> 你把 knee 的 range 从 -1.4 0.05 收到 -0.2 0.05，验收 A 组红了、B 组却绿。为什么？（A）range 只是注释，不影响物理　（B）限位是软约束，kp=5 的伺服器把关节压过了限位；声明的区间与实际停不停得住是两件事　（C）B 组的 ±0.1 阈值太松　（D）MuJoCo 根本不读 range 属性</summary>
+<p><b>答案：B。</b>实测 range=-0.2 0.05 时 knee 仍然到了 -0.4947 rad，越过限位 0.29 rad。range 是约束求解器里的软约束，力矩够大就压得穿。C 把两组断言的职责搞反了，D 与实测矛盾：把 range 改错单位时 A 组立刻变红。</p>
+</details>
+<details>
+<summary><b>2.</b> 参考解答一个 &lt;inertial&gt; 都不写，第 18 章的 duck_handmade.xml 每个 body 都有。差别在哪？（A）练习的盒子更小　（B）练习里 box 就是腿的实形，惯量可由 density 算出；第 18 章的 box 是包围盒，几何是假的，惯量必须直写官方值　（C）第 18 章的作者偷懒　（D）两章的 MuJoCo 版本不同</summary>
+<p><b>答案：B。</b>判据是「几何真不真」。第 18 章的碰撞盒是官方网格的包围盒，从假几何算惯量只会得到假惯量，所以直写编译值；练习里每个 box 就是腿的实形，density=1000 时引擎算出的 thigh 12.8g、shank 7.2g 就是对的。</p>
+</details>
+<details>
+<summary><b>3.</b> 你把两个 &lt;position&gt; 的声明顺序换了。模型照样编译，viewer 照样能动，真正坏掉的是哪一层？（A）渲染　（B）ctrl 数组下标与关节的对应关系：ctrl[0] 管到 knee 去了　（C）质量与惯量　（D）地板的高度</summary>
+<p><b>答案：B。</b>实测 ctrl 序写反后 hip 收到 -0.4994、knee 收到 +0.4921，指令与动作整体对调。MJCF 的声明顺序就是数组下标顺序，这类错编译期不报错，只有靠断言或肉眼发现。</p>
+</details>
+<details>
+<summary><b>4.</b> damping 从 0.02 调到 0.2，验收全绿，但腿明显变肉。哪个说法对？（A）阻尼只影响渲染　（B）阻尼消耗的能量变少，同样的扰动要更久才停；验收只看 2s 末的角度，抓不到这个差别　（C）阻尼改变了刚体质量　（D）阻尼会改写关节限位</summary>
+<p><b>答案：B。</b>实测阶跃到 0.45 rad 从 17 步变成 152 步，自由摆动停稳从 16.6s 变成 30s 仍未停，而 2s 末的落点两者都到 +0.4994。这条就是「验收只覆盖它断言的那几件事」。</p>
+</details>
+<details>
+<summary><b>5.</b> 作业文件还没建就跑了验收，退出码 2、屏幕提示「还没创建作业文件」。改到 XML 语法写错时，退出码是多少？（A）0　（B）1　（C）2　（D）3</summary>
+<p><b>答案：B。</b>退出码 2 专指「作业文件不存在」。XML 编译失败走 1，脚本先打印报错行号再提示常见原因：标签没闭合、属性名拼错、MuJoCo 3.x 下写了 range 却忘了 autolimits。</p>
+</details></div>
+</section>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>参考解答：卡住时的对照清单</h2></header>
+<div class="am-panel-body"><details>
+<summary><b>卡住了再看：对照 <code>sim/assets/exercise_leg_solution.xml</code>，先自己查这五处</b></summary>
+<p>1. 关节嵌套层级：<code>shank</code> 要写在 <code>thigh</code> 内部，不是平级。</p>
+<p>2. ctrl 声明顺序：<code>&lt;actuator&gt;</code> 里 hip 的 <code>&lt;position&gt;</code> 写在 knee 前面。</p>
+<p>3. knee 的 range 要覆盖跟踪目标 -0.5 rad。</p>
+<p>4. kp 与 forcerange 的量级：kp 取个位数，forcerange 要大于重力矩（约 0.01 N·m）。</p>
+<p>5. keyframe 的 qpos 个数 = 关节数，也就是 2 个。</p>
+</details></div>
+</section>
+<section class="am-panel" id="panel-H">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>细节展开</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在<a href="tutorial-bite1-handmade-mjcf.html#panel-K">第 18 章的细节展开</a>，不重复记在这里。</p>
+</div>
+<details>
+<summary><b>常见卡点：三条验收抓不住的坑</b></summary>
+<p>验收只断言它写下来的那几件事。这三处它抓不住，得靠自己守。</p>
+<p>一、阻尼放大十倍，验收照样全绿，因为 B 组只看 2s 末的角度。要看差别，跑上面的实验 1。</p>
+<p>二、限位收太紧，A 组红、B 组绿。要看软约束的完整行为，看 forcerange 扫描那张表。</p>
+<p>三、knee 干脆不写 range，A 组也放行。那条断言的语义是「限位区间要覆盖目标角」，关节没有区间时它没有可判的东西。关节能折多深，是你的契约，不是脚本替你守的。</p>
+</details></div>
+</section>
+</div>
+</div>
+</main>
+<div class="am-lightbox" hidden aria-modal="true" role="dialog" aria-label="图表查看" data-expand="展开查看图表">
+<div class="am-lightbox-backdrop"></div>
+<div class="am-lightbox-header">
+<div class="am-lightbox-title">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+<span class="am-lightbox-title-text"></span>
+</div>
+<div class="am-lightbox-actions">
+<button class="am-lightbox-close" data-action="close" title="关闭" aria-label="关闭">✕</button>
+</div>
+</div>
+<div class="am-lightbox-stage">
+<div class="am-lightbox-canvas am-diagram"></div>
+</div>
+</div>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-20 16:34 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<textarea id="am-source" hidden readonly aria-hidden="true">---
+template: sheet
+title: M9a 动手练习：手搓一条 2 关节腿链（第 19 章）
+subtitle: 从空白文件写到能跑的 MJCF：契约、三组验收、六个破坏实验
+source: clone-from-scratch-tutor · 第 19 章
+---
+
+交付一个文件：`sim/assets/exercise_leg.xml`——一条 2 关节腿链。
+
+验收脚本替你查三组断言：结构、执行器跟踪、keyframe 还原。全绿才算过。
+
+写完这一个文件，第 18 章那套五步循环你就亲手走了一遍。
+
+```svg
+&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;620&quot; height=&quot;430&quot; viewBox=&quot;0 0 620 430&quot; font-family=&quot;system-ui, -apple-system, sans-serif&quot;&gt;
+  &lt;rect width=&quot;620&quot; height=&quot;430&quot; fill=&quot;#11151c&quot;/&gt;
+  &lt;text x=&quot;150&quot; y=&quot;30&quot; fill=&quot;#e8ecf2&quot; font-size=&quot;15&quot; text-anchor=&quot;middle&quot; font-weight=&quot;600&quot;&gt;STRAIGHT&lt;/text&gt;
+  &lt;text x=&quot;150&quot; y=&quot;48&quot; fill=&quot;#8b97a8&quot; font-size=&quot;11&quot; text-anchor=&quot;middle&quot;&gt;qpos = 0 0&lt;/text&gt;
+  &lt;text x=&quot;410&quot; y=&quot;30&quot; fill=&quot;#e8ecf2&quot; font-size=&quot;15&quot; text-anchor=&quot;middle&quot; font-weight=&quot;600&quot;&gt;跟踪目标&lt;/text&gt;
+  &lt;text x=&quot;410&quot; y=&quot;48&quot; fill=&quot;#8b97a8&quot; font-size=&quot;11&quot; text-anchor=&quot;middle&quot;&gt;hip +0.5 / knee -0.5&lt;/text&gt;
+
+  &lt;line x1=&quot;30&quot; y1=&quot;340&quot; x2=&quot;590&quot; y2=&quot;340&quot; stroke=&quot;#5b6472&quot; stroke-width=&quot;2&quot;/&gt;
+  &lt;g stroke=&quot;#39404c&quot; stroke-width=&quot;1&quot;&gt;
+    &lt;line x1=&quot;30&quot; y1=&quot;340&quot; x2=&quot;44&quot; y2=&quot;352&quot;/&gt;&lt;line x1=&quot;70&quot; y1=&quot;340&quot; x2=&quot;84&quot; y2=&quot;352&quot;/&gt;
+    &lt;line x1=&quot;110&quot; y1=&quot;340&quot; x2=&quot;124&quot; y2=&quot;352&quot;/&gt;&lt;line x1=&quot;150&quot; y1=&quot;340&quot; x2=&quot;164&quot; y2=&quot;352&quot;/&gt;
+    &lt;line x1=&quot;190&quot; y1=&quot;340&quot; x2=&quot;204&quot; y2=&quot;352&quot;/&gt;&lt;line x1=&quot;230&quot; y1=&quot;340&quot; x2=&quot;244&quot; y2=&quot;352&quot;/&gt;
+    &lt;line x1=&quot;270&quot; y1=&quot;340&quot; x2=&quot;284&quot; y2=&quot;352&quot;/&gt;&lt;line x1=&quot;310&quot; y1=&quot;340&quot; x2=&quot;324&quot; y2=&quot;352&quot;/&gt;
+    &lt;line x1=&quot;350&quot; y1=&quot;340&quot; x2=&quot;364&quot; y2=&quot;352&quot;/&gt;&lt;line x1=&quot;390&quot; y1=&quot;340&quot; x2=&quot;404&quot; y2=&quot;352&quot;/&gt;
+    &lt;line x1=&quot;430&quot; y1=&quot;340&quot; x2=&quot;444&quot; y2=&quot;352&quot;/&gt;&lt;line x1=&quot;470&quot; y1=&quot;340&quot; x2=&quot;484&quot; y2=&quot;352&quot;/&gt;
+    &lt;line x1=&quot;510&quot; y1=&quot;340&quot; x2=&quot;524&quot; y2=&quot;352&quot;/&gt;&lt;line x1=&quot;550&quot; y1=&quot;340&quot; x2=&quot;564&quot; y2=&quot;352&quot;/&gt;
+  &lt;/g&gt;
+  &lt;text x=&quot;588&quot; y=&quot;358&quot; fill=&quot;#8b97a8&quot; font-size=&quot;11&quot; text-anchor=&quot;end&quot;&gt;地板 plane&lt;/text&gt;
+
+  &lt;rect x=&quot;142&quot; y=&quot;62&quot; width=&quot;16&quot; height=&quot;16&quot; fill=&quot;#8a8f99&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;rect x=&quot;135.5&quot; y=&quot;70&quot; width=&quot;29&quot; height=&quot;90&quot; fill=&quot;#3f7fd0&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;rect x=&quot;139&quot; y=&quot;160&quot; width=&quot;22&quot; height=&quot;90&quot; fill=&quot;#e08a4a&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;circle cx=&quot;150&quot; cy=&quot;70&quot; r=&quot;5&quot; fill=&quot;#11151c&quot; stroke=&quot;#e8ecf2&quot; stroke-width=&quot;1.5&quot;/&gt;
+  &lt;circle cx=&quot;150&quot; cy=&quot;70&quot; r=&quot;1.6&quot; fill=&quot;#e8ecf2&quot;/&gt;
+  &lt;circle cx=&quot;150&quot; cy=&quot;160&quot; r=&quot;5&quot; fill=&quot;#11151c&quot; stroke=&quot;#e8ecf2&quot; stroke-width=&quot;1.5&quot;/&gt;
+  &lt;circle cx=&quot;150&quot; cy=&quot;160&quot; r=&quot;1.6&quot; fill=&quot;#e8ecf2&quot;/&gt;
+  &lt;text x=&quot;172&quot; y=&quot;66&quot; fill=&quot;#e8ecf2&quot; font-size=&quot;11&quot;&gt;hip_pitch&lt;/text&gt;
+  &lt;text x=&quot;172&quot; y=&quot;156&quot; fill=&quot;#e8ecf2&quot; font-size=&quot;11&quot;&gt;knee&lt;/text&gt;
+  &lt;text x=&quot;170&quot; y=&quot;120&quot; fill=&quot;#8b97a8&quot; font-size=&quot;10&quot;&gt;5 cm&lt;/text&gt;
+  &lt;line x1=&quot;150&quot; y1=&quot;250&quot; x2=&quot;150&quot; y2=&quot;340&quot; stroke=&quot;#4c5563&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;3 3&quot;/&gt;
+  &lt;text x=&quot;142&quot; y=&quot;300&quot; fill=&quot;#8b97a8&quot; font-size=&quot;10&quot; text-anchor=&quot;end&quot;&gt;离地 5 cm&lt;/text&gt;
+
+  &lt;rect x=&quot;402&quot; y=&quot;62&quot; width=&quot;16&quot; height=&quot;16&quot; fill=&quot;#8a8f99&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;rect x=&quot;395.5&quot; y=&quot;70&quot; width=&quot;29&quot; height=&quot;90&quot; fill=&quot;#3f7fd0&quot; stroke=&quot;#0b0e13&quot; transform=&quot;rotate(28.6479 410 70)&quot;/&gt;
+  &lt;rect x=&quot;355.9&quot; y=&quot;149&quot; width=&quot;22&quot; height=&quot;90&quot; fill=&quot;#e08a4a&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;circle cx=&quot;410&quot; cy=&quot;70&quot; r=&quot;5&quot; fill=&quot;#11151c&quot; stroke=&quot;#e8ecf2&quot; stroke-width=&quot;1.5&quot;/&gt;
+  &lt;circle cx=&quot;410&quot; cy=&quot;70&quot; r=&quot;1.6&quot; fill=&quot;#e8ecf2&quot;/&gt;
+  &lt;circle cx=&quot;366.9&quot; cy=&quot;149&quot; r=&quot;5&quot; fill=&quot;#11151c&quot; stroke=&quot;#e8ecf2&quot; stroke-width=&quot;1.5&quot;/&gt;
+  &lt;circle cx=&quot;366.9&quot; cy=&quot;149&quot; r=&quot;1.6&quot; fill=&quot;#e8ecf2&quot;/&gt;
+  &lt;line x1=&quot;410&quot; y1=&quot;70&quot; x2=&quot;410&quot; y2=&quot;340&quot; stroke=&quot;#39404c&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;3 3&quot;/&gt;
+  &lt;text x=&quot;430&quot; y=&quot;96&quot; fill=&quot;#e8ecf2&quot; font-size=&quot;11&quot;&gt;0.5 rad = 28.6°&lt;/text&gt;
+  &lt;text x=&quot;430&quot; y=&quot;112&quot; fill=&quot;#8b97a8&quot; font-size=&quot;10&quot;&gt;大腿倒向 -x&lt;/text&gt;
+  &lt;text x=&quot;346&quot; y=&quot;195&quot; fill=&quot;#8b97a8&quot; font-size=&quot;10&quot; text-anchor=&quot;end&quot;&gt;小腿仍竖直&lt;/text&gt;
+
+  &lt;rect x=&quot;40&quot; y=&quot;382&quot; width=&quot;13&quot; height=&quot;13&quot; fill=&quot;#3f7fd0&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;text x=&quot;60&quot; y=&quot;393&quot; fill=&quot;#c8d0dc&quot; font-size=&quot;11&quot;&gt;thigh 大腿&lt;/text&gt;
+  &lt;rect x=&quot;165&quot; y=&quot;382&quot; width=&quot;13&quot; height=&quot;13&quot; fill=&quot;#e08a4a&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;text x=&quot;185&quot; y=&quot;393&quot; fill=&quot;#c8d0dc&quot; font-size=&quot;11&quot;&gt;shank 小腿&lt;/text&gt;
+  &lt;rect x=&quot;290&quot; y=&quot;382&quot; width=&quot;13&quot; height=&quot;13&quot; fill=&quot;#8a8f99&quot; stroke=&quot;#0b0e13&quot;/&gt;
+  &lt;text x=&quot;310&quot; y=&quot;393&quot; fill=&quot;#c8d0dc&quot; font-size=&quot;11&quot;&gt;mount 挂载点&lt;/text&gt;
+  &lt;circle cx=&quot;440&quot; cy=&quot;388&quot; r=&quot;6&quot; fill=&quot;none&quot; stroke=&quot;#8b97a8&quot; stroke-width=&quot;1.2&quot;/&gt;
+  &lt;circle cx=&quot;440&quot; cy=&quot;388&quot; r=&quot;1.8&quot; fill=&quot;#8b97a8&quot;/&gt;
+  &lt;text x=&quot;452&quot; y=&quot;393&quot; fill=&quot;#c8d0dc&quot; font-size=&quot;11&quot;&gt;转轴 = y 轴（指向纸外）&lt;/text&gt;
+&lt;/svg&gt;
+```
+
+## 任务书：一个文件，一条腿
+
+**交付物就一个文件**：`sim/assets/exercise_leg.xml`，一条 2 关节腿链，悬空挂在挂载点上。
+
+先看它长什么样。左边是 `STRAIGHT` 存档姿势，qpos 全 0。右边是 B 组要它追到的角度：大腿转 +0.5 rad，小腿转 -0.5 rad。两者抵消，小腿在世界系里仍竖直。
+
+契约一共七条。这七条是验收脚本逐条检查的东西，也是下游代码读这个模型时依赖的接口。
+
+| 契约 | 约定 |
+|---|---|
+| 关节名 | `hip_pitch`（大腿）、`knee`（小腿） |
+| 关节类型 | 两个都是 `hinge`，轴都是 `0 1 0` |
+| ctrl 序 | `ctrl[0]` 管 hip，`ctrl[1]` 管 knee（声明顺序即下标顺序） |
+| qpos 序 | `qpos[0]` 是 hip_pitch，`qpos[1]` 是 knee（body 嵌套顺序即关节顺序） |
+| 几何 | 每个动力 body 一个 `box` geom，不用 mesh |
+| 地板 | worldbody 下必须有一块 `plane` |
+| 存档 | keyframe 名字 `STRAIGHT`，qpos 全 0 |
+
+body 嵌套层级就是身体的连接关系，缩进即关节链：
+
+```tree list
+worldbody
+  floor | 地板，plane
+  mount | 静态挂载点，body 里不写 joint
+    thigh | 大腿，joint hip_pitch
+      thigh_box | box geom，1.6cm 见方 × 5cm 长
+      shank | 小腿，joint knee
+        shank_box | box geom，1.2cm 见方 × 5cm 长
+```
+
+从下面这段骨架开始写。标 `TODO` 的字段自己定，其余照抄：
+
+```xml title=&quot;exercise_leg.xml 骨架&quot;
+&lt;mujoco model=&quot;exercise_leg&quot;&gt;
+  &lt;compiler angle=&quot;radian&quot; autolimits=&quot;true&quot; /&gt;
+
+  &lt;worldbody&gt;
+    &lt;geom name=&quot;floor&quot; type=&quot;plane&quot; size=&quot;2 2 0.1&quot; /&gt;
+    &lt;body name=&quot;mount&quot; pos=&quot;0 0 TODO_MOUNT_HEIGHT&quot;&gt;
+      &lt;body name=&quot;thigh&quot; pos=&quot;0 0 0&quot;&gt;
+        &lt;joint name=&quot;hip_pitch&quot; type=&quot;hinge&quot; axis=&quot;0 1 0&quot;
+               damping=&quot;TODO_DAMPING&quot; /&gt;
+        &lt;geom name=&quot;thigh_box&quot; type=&quot;box&quot; pos=&quot;0 0 TODO_THIGH_CENTER&quot;
+              size=&quot;TODO_W TODO_W TODO_HALF_LEN&quot; density=&quot;TODO_DENSITY&quot; /&gt;
+        &lt;body name=&quot;shank&quot; pos=&quot;0 0 TODO_SHANK_OFFSET&quot;&gt;
+          &lt;joint name=&quot;knee&quot; type=&quot;hinge&quot; axis=&quot;0 1 0&quot; damping=&quot;TODO_DAMPING&quot;
+                 range=&quot;TODO_RANGE&quot; /&gt;
+          &lt;geom name=&quot;shank_box&quot; type=&quot;box&quot; pos=&quot;0 0 TODO_SHANK_CENTER&quot;
+                size=&quot;TODO_W TODO_W TODO_HALF_LEN&quot; density=&quot;TODO_DENSITY&quot; /&gt;
+        &lt;/body&gt;
+      &lt;/body&gt;
+    &lt;/body&gt;
+  &lt;/worldbody&gt;
+
+  &lt;actuator&gt;
+    &lt;position name=&quot;hip_pitch_servo&quot; joint=&quot;hip_pitch&quot;
+              kp=&quot;TODO_KP&quot; forcerange=&quot;TODO_FR&quot; /&gt;
+    &lt;position name=&quot;knee_servo&quot; joint=&quot;knee&quot;
+              kp=&quot;TODO_KP&quot; forcerange=&quot;TODO_FR&quot; /&gt;
+  &lt;/actuator&gt;
+
+  &lt;keyframe&gt;
+    &lt;key name=&quot;STRAIGHT&quot; qpos=&quot;0 0&quot; /&gt;
+  &lt;/keyframe&gt;
+&lt;/mujoco&gt;
+```
+
+`TODO` 处的取值有个舒适区。下表的「建议」栏来自本次验收实测，参考解答的取值在第三栏。你可以照抄，也可以挑别的。
+
+| 量 | 建议 | 参考解答 | 备注 |
+|---|---|---|---|
+| 关节阻尼 damping | 0.01 ~ 0.1 | 0.02 | 写 0 会数值发散 |
+| 位置伺服 kp | 1 ~ 20 | 5 | 稳态误差 ≈ 重力矩 / kp |
+| 力矩上限 forcerange | ±0.05 ~ ±0.3 | ±0.3 | 要大于重力矩（约 0.01 N·m） |
+| 大腿 | 长 5cm、见方 1.6cm | 同左 | 几何即真实形状 |
+| 小腿 | 长 5cm、见方 1.2cm | 同左 | |
+| 密度 density | 200 ~ 5000 | 1000 | 整档实测全过 |
+| 挂载高度 | 0.15 ~ 0.20m | 0.15 | 要高于整条腿长，留出离地间隙 |
+
+box 的 `size` 写半长。见方 1.6cm 写 `0.008`，长 5cm 写 `0.025`。
+
+写完走一遍[第 18 章的五步循环](tutorial-bite1-handmade-mjcf.html#panel-D)：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。
+
+## 怎么跑：验收在容器，眼睛在宿主机
+
+**两个动作，两个地方。** 验收脚本在容器里跑，viewer 在宿主机跑。
+
+```bash
+# 验收（容器内）
+docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh              # 你的作业
+docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh --solution   # 参考解答
+```
+
+```bash
+# 看它甩（宿主机）
+.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/exercise_leg.xml
+```
+
+仓库根的 `.venv` 只为 viewer 而建，验收别在宿主机跑。脚本自带解释器探测：容器内用 `/opt/sim-venv/bin/python`，宿主机回落仓内 `.venv/bin/python`，两个都没有就报错退出。
+
+退出码告诉你现在处在哪一步：
+
+| 退出码 | 含义 | 屏幕上 |
+|---|---|---|
+| 0 | 三组断言全绿 | 末行「腿链练习验收 PASS（作业）：结构 / 跟踪 / keyframe 全绿」 |
+| 1 | 编译失败或断言红 | 逐条 `[FAIL]`，每条下面跟一行「→ 怎么办」 |
+| 2 | 作业文件还没建 | 「找不到文件 …/sim/assets/exercise_leg.xml」+「还没创建作业文件……」 |
+
+一轮的顺序是这样，红了按提示回改，改完再跑：
+
+```flow LR
+[写 exercise_leg.xml] -&gt; [容器内跑验收]
+[容器内跑验收] -&gt; [宿主机 viewer 目检]: 退出码 0
+[容器内跑验收] -&gt; [照「→ 怎么办」改]: 退出码 1
+[容器内跑验收] -&gt; [先建文件]: 退出码 2
+```
+
+## 验收标准：三组断言各管什么
+
+**全绿的意思是：结构对、腿听话、存档准。** 三组一共 21 条断言，A 组 17 条、B 组 3 条、C 组 1 条，下面按组归纳。
+
+A 组（结构）检查模型长成契约写的样子：
+
+| 编号 | 断言 | 通过意味着什么 |
+|---|---|---|
+| A1 | 两个动力 body 叫 thigh / shank，shank 嵌在 thigh 里 | 关节链的连接关系对：膝关节连的是大腿和小腿 |
+| A2 | 关节名、类型、轴、ctrl 序、qpos 序、nu=2、碰撞 geom 全 box、有地板 | 下游按数组下标读写动作，下标错就张冠李戴；碰撞全 box 保证几何即实形 |
+| A3 | knee 的限位覆盖目标角 -0.5 rad，存在 STRAIGHT keyframe | 关节声明的区间装得下验收要的角度，存档姿势在位 |
+
+B 组（执行器跟踪）检查腿真的听话：
+
+| 编号 | 断言 | 通过意味着什么 |
+|---|---|---|
+| B1 | 2s 后 qpos 全是有限数 | 仿真没有数值爆炸 |
+| B2 | hip 到 +0.5 ±0.1 rad、knee 到 -0.5 ±0.1 rad | 执行器把关节拉到了指令角。参考解答实测 +0.4994（误差 0.0006）和 -0.5000（误差 0.0000） |
+
+C 组（keyframe）检查存档姿势能精确复位：
+
+| 编号 | 断言 | 通过意味着什么 |
+|---|---|---|
+| C1 | 扰动 qpos 后回 STRAIGHT，qpos 逐位一致 | 起始状态可复现，训练与回放才对得上 |
+
+阈值 ±0.1 rad 定得很宽。它只抓三类坏：执行器没接上、方向反了、力矩被掐死。你的参数随便选，只要落进上一张表的舒适区就行。
+
+## 对照点：这次为什么不用手写惯量
+
+**练习里一个 `&lt;inertial&gt;` 都不写，第 18 章的 `duck_handmade.xml` 却每个 body 都有。** 差别只有一个：几何是不是真的形状。
+
+| | 第 18 章 duck_handmade.xml | 本练习 exercise_leg.xml |
+|---|---|---|
+| 碰撞几何 | 官方网格的包围盒，假的 | 一个 box 就是腿的实形，真的 |
+| 惯量来源 | 直写官方编译值 | 引擎按 density × 几何自己算 |
+| 为什么 | 从假几何算惯量，得到的是假惯量 | 几何即实形，算出来的就对了 |
+| 质量 | 官方值，逐位对账 | density=1000 时大腿 12.8g、小腿 7.2g |
+
+判据一句话：**几何真不真，决定惯量能不能交给引擎算。**
+
+这也是 A 组那条「碰撞 geom 全 box」的意义所在。换成 mesh 或者随便什么形状，你就没法用「几何即实形」这条理由省掉惯量了。
+
+## 破坏实验：改一个数，看系统怎么坏
+
+**每个实验改一个数、跑一条命令、看一个现象。** 下面六组数字都是容器内实测的（mujoco 3.16.0），不是推测。
+
+| 实验 | 改哪个数 | 跑哪条命令 | 预期现象（含实测） |
+|---|---|---|---|
+| 1 阻尼放大 10 倍 | `damping` 0.02 → 0.2 | 验收 + viewer | 验收照样全绿（退出码 0），腿却变肉。阶跃到 0.45 rad 从 17 步（0.034s）变成 152 步（0.304s），过冲 +0.0103 rad 消失；自由摆动停稳从 16.6s 变成 30s 仍未停 |
+| 2 阻尼写 0 | `damping` = 0 | 验收 | MuJoCo 报 &quot;The simulation is unstable&quot;，数据被重置回初始态。hip 和 knee 都停在 +0.0000，误差 0.5000，B 组红 2 项，退出码 1 |
+| 3 力矩掐死 | `forcerange` ±0.3 → ±0.001 | 验收 | hip 只到 +0.0743（误差 0.4257），knee -0.0985。B 组红 2 项，退出码 1 |
+| 4 ctrl 序写反 | 两个 `&lt;position&gt;` 换行 | 验收 | A 组红「ctrl 序 = hip 后 knee，实际 [&#39;knee&#39;,&#39;hip_pitch&#39;]」；hip 收到 -0.4994、knee 收到 +0.4921，共 3 项红，退出码 1 |
+| 5 删掉 knee 执行器 | 删掉 knee 那行 `&lt;position&gt;` | 验收 | A 组红「nu=2 实际 nu=1」，B 组红「跟踪实验可运行」，共 2 项红，退出码 1 |
+| 6 限位收太紧 | knee `range` -1.4 0.05 → -0.2 0.05 | 验收 | A 组红「knee 限位覆盖跟踪目标 -0.5 rad」，B 组却绿（knee 实测 -0.4947）。退出码 1 |
+
+实验 6 挖出一条反直觉的事：**限位是软约束，伺服器能把它压穿。** 同一条限位（-1.4 rad），执行力矩越大，越压不住它：
+
+| forcerange | ±0.3 | ±0.1 | ±0.05 | ±0.02 | ±0.01 | ±0.005 |
+|---|---|---|---|---|---|---|
+| knee 最终角（命令 -2.0） | -1.9891 | -1.9891 | -1.9362 | -1.5849 | -0.9762 | -0.4924 |
+
+力矩掉到小于 ±0.01 时，伺服器干脆拉不动腿了，关节停在半路。限位写不写、限在哪里，管的是「声明」；关节实际停在哪里，管的是「力矩余量」。
+
+还有一个角度单位坑：MJCF 的 `range` 默认按角度解析。不写 `angle=&quot;radian&quot;`，`-1.4` 会被当成 -1.4 度，编译后是 -0.0244 rad。此时 A 组红「knee 限位覆盖跟踪目标 -0.5 rad」，退出码 1。
+
+## 自测
+
+```html
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;1.&lt;/b&gt; 你把 knee 的 range 从 -1.4 0.05 收到 -0.2 0.05，验收 A 组红了、B 组却绿。为什么？（A）range 只是注释，不影响物理　（B）限位是软约束，kp=5 的伺服器把关节压过了限位；声明的区间与实际停不停得住是两件事　（C）B 组的 ±0.1 阈值太松　（D）MuJoCo 根本不读 range 属性&lt;/summary&gt;
+&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;实测 range=-0.2 0.05 时 knee 仍然到了 -0.4947 rad，越过限位 0.29 rad。range 是约束求解器里的软约束，力矩够大就压得穿。C 把两组断言的职责搞反了，D 与实测矛盾：把 range 改错单位时 A 组立刻变红。&lt;/p&gt;
+&lt;/details&gt;
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;2.&lt;/b&gt; 参考解答一个 &amp;lt;inertial&amp;gt; 都不写，第 18 章的 duck_handmade.xml 每个 body 都有。差别在哪？（A）练习的盒子更小　（B）练习里 box 就是腿的实形，惯量可由 density 算出；第 18 章的 box 是包围盒，几何是假的，惯量必须直写官方值　（C）第 18 章的作者偷懒　（D）两章的 MuJoCo 版本不同&lt;/summary&gt;
+&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;判据是「几何真不真」。第 18 章的碰撞盒是官方网格的包围盒，从假几何算惯量只会得到假惯量，所以直写编译值；练习里每个 box 就是腿的实形，density=1000 时引擎算出的 thigh 12.8g、shank 7.2g 就是对的。&lt;/p&gt;
+&lt;/details&gt;
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;3.&lt;/b&gt; 你把两个 &amp;lt;position&amp;gt; 的声明顺序换了。模型照样编译，viewer 照样能动，真正坏掉的是哪一层？（A）渲染　（B）ctrl 数组下标与关节的对应关系：ctrl[0] 管到 knee 去了　（C）质量与惯量　（D）地板的高度&lt;/summary&gt;
+&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;实测 ctrl 序写反后 hip 收到 -0.4994、knee 收到 +0.4921，指令与动作整体对调。MJCF 的声明顺序就是数组下标顺序，这类错编译期不报错，只有靠断言或肉眼发现。&lt;/p&gt;
+&lt;/details&gt;
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;4.&lt;/b&gt; damping 从 0.02 调到 0.2，验收全绿，但腿明显变肉。哪个说法对？（A）阻尼只影响渲染　（B）阻尼消耗的能量变少，同样的扰动要更久才停；验收只看 2s 末的角度，抓不到这个差别　（C）阻尼改变了刚体质量　（D）阻尼会改写关节限位&lt;/summary&gt;
+&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;实测阶跃到 0.45 rad 从 17 步变成 152 步，自由摆动停稳从 16.6s 变成 30s 仍未停，而 2s 末的落点两者都到 +0.4994。这条就是「验收只覆盖它断言的那几件事」。&lt;/p&gt;
+&lt;/details&gt;
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;5.&lt;/b&gt; 作业文件还没建就跑了验收，退出码 2、屏幕提示「还没创建作业文件」。改到 XML 语法写错时，退出码是多少？（A）0　（B）1　（C）2　（D）3&lt;/summary&gt;
+&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;退出码 2 专指「作业文件不存在」。XML 编译失败走 1，脚本先打印报错行号再提示常见原因：标签没闭合、属性名拼错、MuJoCo 3.x 下写了 range 却忘了 autolimits。&lt;/p&gt;
+&lt;/details&gt;
+```
+
+## 参考解答：卡住时的对照清单
+
+```html
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;卡住了再看：对照 &lt;code&gt;sim/assets/exercise_leg_solution.xml&lt;/code&gt;，先自己查这五处&lt;/b&gt;&lt;/summary&gt;
+&lt;p&gt;1. 关节嵌套层级：&lt;code&gt;shank&lt;/code&gt; 要写在 &lt;code&gt;thigh&lt;/code&gt; 内部，不是平级。&lt;/p&gt;
+&lt;p&gt;2. ctrl 声明顺序：&lt;code&gt;&amp;lt;actuator&amp;gt;&lt;/code&gt; 里 hip 的 &lt;code&gt;&amp;lt;position&amp;gt;&lt;/code&gt; 写在 knee 前面。&lt;/p&gt;
+&lt;p&gt;3. knee 的 range 要覆盖跟踪目标 -0.5 rad。&lt;/p&gt;
+&lt;p&gt;4. kp 与 forcerange 的量级：kp 取个位数，forcerange 要大于重力矩（约 0.01 N·m）。&lt;/p&gt;
+&lt;p&gt;5. keyframe 的 qpos 个数 = 关节数，也就是 2 个。&lt;/p&gt;
+&lt;/details&gt;
+```
+
+## 细节展开
+
+读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在[第 18 章的细节展开](tutorial-bite1-handmade-mjcf.html#panel-K)，不重复记在这里。
+
+```html
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;常见卡点：三条验收抓不住的坑&lt;/b&gt;&lt;/summary&gt;
+&lt;p&gt;验收只断言它写下来的那几件事。这三处它抓不住，得靠自己守。&lt;/p&gt;
+&lt;p&gt;一、阻尼放大十倍，验收照样全绿，因为 B 组只看 2s 末的角度。要看差别，跑上面的实验 1。&lt;/p&gt;
+&lt;p&gt;二、限位收太紧，A 组红、B 组绿。要看软约束的完整行为，看 forcerange 扫描那张表。&lt;/p&gt;
+&lt;p&gt;三、knee 干脆不写 range，A 组也放行。那条断言的语义是「限位区间要覆盖目标角」，关节没有区间时它没有可判的东西。关节能折多深，是你的契约，不是脚本替你守的。&lt;/p&gt;
+&lt;/details&gt;
+```
+</textarea>
+<script>
+(() => {
+  const root = document.documentElement;
+  // A host that serves this page inside its own document leaves the real root without the page's settings. The toolbar keeps a copy;
+  // set back what the root lacks, before anything below reads the root. A root's own value, even an empty one, is never replaced.
+  const carrier = document.querySelector('.am-toolbar');
+  for (const [attr, key] of [['lang', 'data-am-root-lang'], ['dir', 'data-am-root-dir'], ['data-theme', 'data-am-root-theme'], ['data-mode', 'data-am-root-mode'], ['data-style', 'data-am-root-style']]) {
+    if (root.getAttribute(attr) === null && carrier?.getAttribute(key) != null) root.setAttribute(attr, carrier.getAttribute(key));
+  }
+  // Each toolbar list sets one root attribute; its options name the values, so the runtime names no theme or mode.
+  for (const [name, attr] of [['theme', 'data-theme'], ['mode', 'data-mode']]) {
+    const select = document.querySelector(`select[data-am="${name}"]`);
+    if (!select) continue;
+    select.value = root.getAttribute(attr);
+    select.addEventListener('change', () => root.setAttribute(attr, select.value));
+  }
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = Object.assign(document.createElement('textarea'), { value: text });
+      document.body.append(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+  };
+  // The button reads its label from data-done for a moment after a copy.
+  const flash = (btn) => {
+    const original = btn.textContent;
+    btn.textContent = btn.dataset.done;
+    setTimeout(() => { btn.textContent = original; }, 1400);
+  };
+
+  const copyBtn = document.querySelector('[data-am="copy"]');
+  copyBtn?.addEventListener('click', async () => {
+    const nodes = document.querySelectorAll('#am-source');
+    await copyText(nodes[nodes.length - 1]?.value ?? '');
+    flash(copyBtn);
+  });
+
+  // Each code block copies its own lines, without the line numbers.
+  for (const btn of document.querySelectorAll('[data-am="copy-code"]')) {
+    btn.addEventListener('click', async () => {
+      const lines = btn.closest('.am-codeblock')?.querySelectorAll('.am-ln') ?? [];
+      await copyText([...lines].map((l) => l.textContent).join('\n'));
+      flash(btn);
+    });
+  }
+
+  // ── Diagram Lightbox & Pan-Zoom Viewer ─────────────
+  const diagrams = document.querySelectorAll('.am-diagram:not(.am-lightbox-canvas)');
+  const lb = document.querySelector('.am-lightbox');
+  if (diagrams.length && lb) {
+    const backdrop = lb.querySelector('.am-lightbox-backdrop');
+    const titleText = lb.querySelector('.am-lightbox-title-text');
+    const stage = lb.querySelector('.am-lightbox-stage');
+    const canvas = lb.querySelector('.am-lightbox-canvas');
+    const closeBtn = lb.querySelector('.am-lightbox-close');
+    const expandLabel = lb.getAttribute('data-expand') || 'Expand diagram';
+
+    let scale = 1, x = 0, y = 0, fitScale = 1, curVw = 800, curVh = 600;
+    let isDragging = false, activePointerId = null, startX = 0, startY = 0, origX = 0, origY = 0;
+    let lastTrigger = null;
+
+    const apply = () => {
+      canvas.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
+    };
+
+    const zoomTo = (newScale, pivotX, pivotY) => {
+      newScale = Math.max(0.2, Math.min(6.0, newScale));
+      if (Math.abs(newScale - scale) < 0.0001) return;
+      const r = newScale / scale;
+      x = pivotX - (pivotX - x) * r;
+      y = pivotY - (pivotY - y) * r;
+      scale = newScale;
+      apply();
+    };
+
+    const open = (diag, trigger) => {
+      const svg = [...diag.children].find((el) => el.tagName.toLowerCase() === 'svg');
+      if (!svg) return;
+      lastTrigger = trigger;
+
+      const panel = diag.closest('.am-panel');
+      const panelTitle = panel?.querySelector('.am-panel-head h2')?.textContent?.trim() || panel?.querySelector('h2')?.textContent?.trim() || lb.getAttribute('aria-label') || 'Diagram viewer';
+      if (titleText) titleText.textContent = panelTitle;
+
+      const clone = svg.cloneNode(true);
+      const defElements = clone.querySelectorAll('[id]');
+      if (defElements.length) {
+        const idMap = new Map();
+        defElements.forEach((el, i) => {
+          const oldId = el.id;
+          const newId = `${oldId}-lb-${i}`;
+          idMap.set(oldId, newId);
+          el.id = newId;
+        });
+        const urlAttrs = ['marker-start', 'marker-mid', 'marker-end', 'fill', 'stroke', 'filter', 'clip-path', 'mask'];
+        clone.querySelectorAll('*').forEach((el) => {
+          for (const attr of urlAttrs) {
+            const val = el.getAttribute(attr);
+            if (val && val.startsWith('url(#')) {
+              const id = val.slice(5, -1);
+              if (idMap.has(id)) el.setAttribute(attr, `url(#${idMap.get(id)})`);
+            }
+          }
+          const href = el.getAttribute('href') || el.getAttribute('xlink:href');
+          if (href && href.startsWith('#')) {
+            const id = href.slice(1);
+            if (idMap.has(id)) {
+              if (el.hasAttribute('href')) el.setAttribute('href', `#${idMap.get(id)}`);
+              if (el.hasAttribute('xlink:href')) el.setAttribute('xlink:href', `#${idMap.get(id)}`);
+            }
+          }
+        });
+      }
+
+      const vb = svg.viewBox?.baseVal;
+      curVw = (vb && vb.width > 0) ? vb.width : (parseFloat(svg.getAttribute('width')) || svg.clientWidth || 800);
+      curVh = (vb && vb.height > 0) ? vb.height : (parseFloat(svg.getAttribute('height')) || svg.clientHeight || 600);
+      clone.style.width = `${curVw}px`;
+      clone.style.height = `${curVh}px`;
+      canvas.innerHTML = '';
+      canvas.append(clone);
+      lb.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+
+      const rect = stage.getBoundingClientRect();
+      const pad = 48;
+      const availW = Math.max(100, rect.width - pad * 2);
+      const availH = Math.max(100, rect.height - pad * 2);
+      fitScale = Math.min(availW / curVw, availH / curVh, 1.0);
+      scale = fitScale;
+      x = (rect.width - curVw * scale) / 2;
+      y = (rect.height - curVh * scale) / 2;
+      apply();
+      closeBtn.focus();
+    };
+
+    const close = () => {
+      if (lb.hasAttribute('hidden')) return;
+      lb.setAttribute('hidden', '');
+      canvas.innerHTML = '';
+      document.body.style.overflow = '';
+      lastTrigger?.focus();
+    };
+
+    stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const rect = stage.getBoundingClientRect();
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : (e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY);
+      const factor = Math.exp(-Math.max(-200, Math.min(200, dy)) * 0.0015);
+      zoomTo(scale * factor, e.clientX - rect.left, e.clientY - rect.top);
+    }, { passive: false });
+
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || isDragging) return;
+      isDragging = true;
+      activePointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      origX = x;
+      origY = y;
+      stage.setPointerCapture(e.pointerId);
+      stage.classList.add('am-panning');
+    });
+
+    stage.addEventListener('pointermove', (e) => {
+      if (!isDragging || e.pointerId !== activePointerId) return;
+      x = origX + (e.clientX - startX);
+      y = origY + (e.clientY - startY);
+      apply();
+    });
+
+    const endDrag = (e) => {
+      if (!isDragging || e.pointerId !== activePointerId) return;
+      isDragging = false;
+      activePointerId = null;
+      stage.classList.remove('am-panning');
+      try { stage.releasePointerCapture(e.pointerId); } catch {}
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+
+    stage.addEventListener('dblclick', () => {
+      const rect = stage.getBoundingClientRect();
+      scale = fitScale;
+      x = (rect.width - curVw * scale) / 2;
+      y = (rect.height - curVh * scale) / 2;
+      apply();
+    });
+
+    closeBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', close);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !lb.hasAttribute('hidden')) close();
+    });
+
+    lb.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = lb.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    const expandSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+    diagrams.forEach((diag) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'am-diagram-expand';
+      btn.title = expandLabel;
+      btn.setAttribute('aria-label', expandLabel);
+      btn.innerHTML = expandSvg;
+      btn.addEventListener('click', () => open(diag, btn));
+      diag.prepend(btn);
+    });
+  }
+})();
+(() => {
+// The reply a reader copies from the page: one Markdown text with the decisions, the panel comments and the block remarks.
+// A plain ES module for tests; the page gets it with its `export` keyword dropped (src/runtime/compose.js).
+// decisions: [{ panel, question, picked: [label], suggested: [label], touched }]; comments: [{ panel, title, text }];
+// remarks: [{ panel, quote, kind, note }], where quote is the start of the marked block and kind is a key of ui.kinds.
+// Comment and remark text is quoted line by line, so text the reader typed cannot pass as part of the structure.
+// rtl: the page reads right to left, so the arrow before each answer points left, the way the text runs.
+function replyText({ title, decisions, comments, remarks = [], ui, rtl = false }) {
+  const arrow = rtl ? '←' : '→';
+  const out = [`# Re: ${title}`];
+  if (decisions.length) {
+    out.push('', `## ${ui.decisions}`);
+    decisions.forEach((d, i) => {
+      const answer = d.picked.length ? d.picked.map((l) => `**${l}**`).join(', ') : '**—**';
+      const same = d.picked.length === d.suggested.length && d.picked.every((l) => d.suggested.includes(l));
+      const why = same ? (d.touched ? ui.confirmed : ui.untouched) : `${ui.was}: ${d.suggested.join(', ') || '—'}`;
+      out.push(`${i + 1}. [${d.panel}] ${d.question}`, `   ${arrow} ${answer} _(${why})_`);
+    });
+  }
+  const written = comments.filter((c) => c.text.trim());
+  const quoted = (text) => (text.trim() ? text.trim().split('\n').map((l) => `  > ${l}`) : []);
+  if (written.length) {
+    out.push('', `## ${ui.comments}`);
+    for (const c of written) out.push(`- **${c.panel} · ${c.title}**`, ...quoted(c.text));
+  }
+  if (remarks.length) {
+    out.push('', `## ${ui.remarks}`);
+    for (const r of remarks) {
+      const label = [r.panel, ui.kinds?.[r.kind] ?? r.kind].filter(Boolean).join(' · ');
+      out.push(`- **${label}** "${r.quote}"`, ...quoted(r.note));
+    }
+  }
+  if (written.length || remarks.some((r) => r.note.trim())) out.push('', `_${ui.typed}_`);
+  return `${out.join('\n')}\n`;
+}
+
+// Answer on the page: every panel gets a Comment box, and the Reply button collects the ask answers, the comments and the remarks
+// into one Markdown reply (replyText) to copy back to the agent. Answers and comments stay in localStorage across reloads.
+// The remark script (remark.js) adds the blocks the reader marked, through window.__amRemarkData.
+const replyBtn = document.querySelector('[data-am="reply"]');
+const COMMENT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+if (replyBtn) {
+  const ui = JSON.parse(replyBtn.dataset.ui);
+  const storeKey = `am-reply:${location.pathname}`;
+  const panels = [...document.querySelectorAll('.am-panel')];
+  const asks = [...document.querySelectorAll('.am-ask')];
+  // Answers are saved by question text, so they still match after am patch has renumbered the asks.
+  // Page text without the word joiners a right-to-left page puts after a Hebrew prefix hyphen (src/bidi.js): the reply and the saved
+  // answers hold the text as the draft wrote it.
+  const WJ = new RegExp(String.fromCharCode(0x2060), 'g');
+  const textOf = (el) => el?.textContent.replace(WJ, '').trim();
+  const keyOf = (ask) => textOf(ask.querySelector('legend')) ?? ask.dataset.ask;
+  const touched = new Set();
+  const boxes = new Map();
+
+  const load = () => {
+    try {
+      return JSON.parse(localStorage.getItem(storeKey)) || {};
+    } catch {
+      return {};
+    }
+  };
+  const save = () => {
+    const state = {
+      asks: Object.fromEntries(asks.map((a) => [keyOf(a), { picked: picked(a), touched: touched.has(a) }])),
+      comments: Object.fromEntries([...boxes].map(([id, box]) => [id, box.value]).filter(([, text]) => text.trim())),
+    };
+    try {
+      localStorage.setItem(storeKey, JSON.stringify(state));
+    } catch {
+      // Storage may be off (private window, file:// policy); answers then last until the page closes.
+    }
+  };
+  const picked = (ask) => [...ask.querySelectorAll('input')].filter((i) => i.checked).map((i) => i.value);
+  const panelOf = (el) => {
+    const panel = el.closest('.am-panel');
+    return { id: panel?.id.replace(/^panel-/, '') ?? '', title: textOf(panel?.querySelector('.am-panel-head h2')) ?? '' };
+  };
+
+  const saved = load();
+  for (const ask of asks) {
+    const inputs = [...ask.querySelectorAll('input')];
+    const state = saved.asks?.[keyOf(ask)];
+    // A saved answer applies only while every picked option still exists on the page.
+    if (state && state.picked.every((v) => inputs.some((i) => i.value === v))) {
+      for (const input of inputs) input.checked = state.picked.includes(input.value);
+      if (state.touched) touched.add(ask);
+    }
+    // A click counts even on the option that is already picked: the reader confirms the suggestion.
+    const answer = () => {
+      touched.add(ask);
+      save();
+    };
+    ask.addEventListener('change', answer);
+    ask.addEventListener('click', (e) => { if (e.target.matches('input')) answer(); });
+  }
+
+  for (const panel of panels) {
+    const id = panel.id.replace(/^panel-/, '');
+    // An icon only: narrow panels have no room for a word next to the title.
+    const btn = Object.assign(document.createElement('button'), { type: 'button', className: 'am-comment-btn', title: ui.comment, innerHTML: COMMENT_ICON });
+    btn.setAttribute('aria-label', `${ui.comment} ${id}`);
+    btn.setAttribute('aria-expanded', 'false');
+    const wrap = Object.assign(document.createElement('div'), { className: 'am-comment', hidden: true });
+    const box = Object.assign(document.createElement('textarea'), { rows: 3, placeholder: ui.commentHint, value: saved.comments?.[id] ?? '' });
+    box.setAttribute('aria-label', `${ui.comment} ${id}`);
+    wrap.append(box);
+    const show = (open) => {
+      wrap.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    };
+    btn.addEventListener('click', () => {
+      show(wrap.hidden);
+      if (!wrap.hidden) box.focus();
+    });
+    box.addEventListener('input', () => {
+      btn.classList.toggle('am-comment-btn--on', Boolean(box.value.trim()));
+      save();
+    });
+    btn.classList.toggle('am-comment-btn--on', Boolean(box.value.trim()));
+    if (box.value.trim()) show(true);
+    (panel.querySelector('.am-panel-head') ?? panel).append(btn);
+    panel.append(wrap);
+    boxes.set(id, box);
+  }
+
+  const sheet = document.createElement('dialog');
+  sheet.className = 'am-reply';
+  sheet.setAttribute('aria-label', ui.title);
+  sheet.innerHTML = '<div class="am-reply-head"><strong></strong><span></span></div><textarea readonly rows="14"></textarea><div class="am-reply-actions"><button type="button" class="am-btn" data-act="copy"></button><button type="button" class="am-btn" data-act="close"></button></div>';
+  sheet.querySelector('strong').textContent = ui.title;
+  sheet.querySelector('span').textContent = ui.hint;
+  const text = sheet.querySelector('textarea');
+  const copy = sheet.querySelector('[data-act="copy"]');
+  const close = sheet.querySelector('[data-act="close"]');
+  copy.textContent = ui.copy;
+  close.textContent = ui.close;
+  document.body.append(sheet);
+
+  const compose = () => {
+    const decisions = asks.map((ask) => ({
+      panel: panelOf(ask).id,
+      question: textOf(ask.querySelector('legend')) ?? '',
+      picked: picked(ask),
+      suggested: [...ask.querySelectorAll('input[data-suggested]')].map((i) => i.value),
+      touched: touched.has(ask),
+    }));
+    const comments = [...boxes].map(([id, box]) => ({ panel: id, title: panelOf(box).title, text: box.value }));
+    const remarks = window.__amRemarkData?.() ?? [];
+    const empty = !decisions.length && !comments.some((c) => c.text.trim()) && !remarks.length;
+    const title = textOf(document.querySelector('.am-head h1')) ?? document.title;
+    return empty ? '' : replyText({ title, decisions, comments, remarks, ui, rtl: document.documentElement.dir === 'rtl' });
+  };
+
+  replyBtn.addEventListener('click', () => {
+    const reply = compose();
+    text.value = reply || ui.empty;
+    copy.disabled = !reply;
+    if (sheet.showModal) sheet.showModal();
+    else sheet.setAttribute('open', '');
+    (reply ? copy : close).focus();
+  });
+  close.addEventListener('click', () => (sheet.close ? sheet.close() : sheet.removeAttribute('open')));
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text.value);
+    } catch {
+      text.select();
+      document.execCommand('copy');
+    }
+    copy.textContent = ui.done;
+    setTimeout(() => { copy.textContent = ui.copy; }, 1400);
+  });
+}
+})();
+(() => {
+// Text helpers for remark mode (src/runtime/remark.js): how a marked block is named and quoted.
+// A plain ES module for tests; the page gets it with its `export` keyword dropped (src/runtime/compose.js).
+// A block keeps its mark across `am patch` because the key is its panel, its tag and the start of its text, not its position.
+
+const collapse = (text) => String(text).replace(/\s+/g, ' ').trim();
+
+// The start of a block's text with whitespace collapsed: the readable identity of the block.
+function fingerprint(text, len = 80) {
+  return collapse(text).slice(0, len);
+}
+
+// What the reply quotes of a block: the start of its text, with an ellipsis when it is cut.
+function quote(text, len = 60) {
+  const t = collapse(text);
+  return t.length > len ? `${t.slice(0, len).trimEnd()}…` : t;
+}
+
+// Two blocks with the same text (two identical list items) get the same base key. The n-th one in the page gets "\t<n>" added;
+// a tab cannot be in a fingerprint, which has its whitespace collapsed, so the new key never meets another base key.
+function occurrenceKeys(bases) {
+  const seen = new Map();
+  return bases.map((base) => {
+    const n = seen.get(base) ?? 0;
+    seen.set(base, n + 1);
+    return n ? `${base}\t${n}` : base;
+  });
+}
+
+// Remark mode: the reader turns it on, clicks a block, tags it (suggestion, keep, question, concern) and may add a note.
+// A mark shows as a bar and a note chip inside the block, lives in localStorage like panel comments, and the Reply button carries it
+// back to the agent: reply.js calls window.__amRemarkData, and replyText (reply-text.js) writes the Remarks section.
+(() => {
+  const btn = document.querySelector('[data-am="remark"]');
+  if (!btn) return;
+  const ui = JSON.parse(btn.dataset.ui);
+  const KINDS = ['suggestion', 'keep', 'question', 'concern'];
+  const storeKey = `am-remark:${location.pathname}`;
+  // The one definition of a block a reader can mark: the content under <main>. The page and panel titles are left out, because the
+  // reply reads them as text; a panel has its Comment button.
+  const BLOCK = 'main :is(h1,h2,h3,h4,h5,h6,p,li,blockquote,pre,table,dd,dt,figure):not(.am-head *, .am-panel-head *)';
+  // A click on these does what it always did.
+  const LIVE = '.am-remark-pop, .am-toolbar, a, button, input, textarea, select, label';
+  const blockAt = (target) => (target.closest(LIVE) ? null : target.closest(BLOCK));
+
+  const WJ = new RegExp(String.fromCharCode(0x2060), 'g'); // word joiners of a right-to-left page (src/bidi.js); not part of the draft's text
+  const inlineBox = new WeakMap();
+  const isInline = (el) => {
+    if (!inlineBox.has(el)) inlineBox.set(el, getComputedStyle(el).display.startsWith('inline'));
+    return inlineBox.get(el);
+  };
+  // The text of a block as the reader sees it: separate lines, cells and timeline parts are joined by a space (textContent would run
+  // "2026" and "Ship" together), and the note chip is not part of it.
+  const blockText = (el) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let text = '';
+    let last = null;
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.parentElement.closest('.am-mark-note')) continue;
+      let box = node.parentElement;
+      while (box !== el && isInline(box)) box = box.parentElement;
+      if (last && box !== last) text += ' ';
+      text += node.data.replace(WJ, '');
+      last = box;
+    }
+    return text;
+  };
+
+  const panelOf = (el) => el.closest('.am-panel')?.id.replace(/^panel-/, '') ?? '';
+  // Block keys, in page order. Built when first needed: a page nobody marked pays nothing.
+  let keys = null;
+  const keyMap = () => {
+    if (!keys) {
+      const blocks = [...document.querySelectorAll(BLOCK)];
+      const ids = occurrenceKeys(blocks.map((el) => `${panelOf(el)}|${el.localName}|${fingerprint(blockText(el))}`));
+      keys = new Map(blocks.map((el, i) => [el, ids[i]]));
+    }
+    return keys;
+  };
+
+  const load = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storeKey));
+      return Array.isArray(saved) ? saved.filter((m) => typeof m?.key === 'string' && KINDS.includes(m.kind)) : [];
+    } catch {
+      return [];
+    }
+  };
+  // A mark whose block is gone from the page stays stored (it may return with `am patch`); it is neither painted nor sent.
+  const marks = new Map(load().map((m) => [m.key, { key: m.key, kind: m.kind, note: String(m.note ?? '') }]));
+  const save = () => {
+    try {
+      localStorage.setItem(storeKey, JSON.stringify([...marks.values()]));
+    } catch {
+      // Storage may be off (private window, a sandboxed page); marks then last until the page closes.
+    }
+  };
+
+  const chip = (el, mark) => {
+    const note = document.createElement(el.localName === 'table' ? 'caption' : 'span');
+    note.className = 'am-mark-note';
+    const kind = document.createElement('b');
+    kind.textContent = ui.kinds[mark.kind];
+    note.append(kind, mark.note ? ` ${mark.note}` : '');
+    return note;
+  };
+  const clearChip = (el) => el.querySelector(':scope > .am-mark-note')?.remove();
+  const paint = (el, mark) => {
+    clearChip(el);
+    el.classList.add('am-mark');
+    el.dataset.kind = mark.kind;
+    // Inside the block, so a list item stays a child of its list. A table takes it as its caption; a list item with a sub-list shows
+    // it under its own text, before the sub-list.
+    const sub = el.querySelector(':scope > ul, :scope > ol');
+    if (el.localName === 'table') el.prepend(chip(el, mark));
+    else if (sub) sub.before(chip(el, mark));
+    else el.append(chip(el, mark));
+  };
+  const unpaint = (el) => {
+    clearChip(el);
+    el.classList.remove('am-mark');
+    delete el.dataset.kind;
+  };
+  if (marks.size) for (const [el, key] of keyMap()) if (marks.has(key)) paint(el, marks.get(key));
+
+  // The popover edits one block. Save stays off until a kind is picked.
+  const pop = document.createElement('div');
+  pop.className = 'am-remark-pop';
+  pop.hidden = true;
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', ui.button);
+  document.body.append(pop);
+  let opener = null;
+  let anchor = null;
+  const close = (restoreFocus) => {
+    if (pop.hidden) return;
+    pop.hidden = true;
+    if (restoreFocus) (opener?.isConnected && opener !== document.body ? opener : btn).focus();
+  };
+  const place = () => {
+    const rect = anchor.getBoundingClientRect();
+    const rtl = getComputedStyle(document.documentElement).direction === 'rtl';
+    const x = rtl ? rect.right - pop.offsetWidth : rect.left;
+    // Under the block; a block taller than the window gets the popover at the bottom of the window instead.
+    const y = Math.min(rect.bottom + 6, window.innerHeight - pop.offsetHeight - 8);
+    pop.style.left = `${window.scrollX + Math.min(Math.max(8, x), window.innerWidth - pop.offsetWidth - 8)}px`;
+    pop.style.top = `${window.scrollY + Math.max(8, y)}px`;
+  };
+  const make = (tag, props) => Object.assign(document.createElement(tag), props);
+  const open = (el) => {
+    const key = keyMap().get(el);
+    const mark = marks.get(key);
+    let kind = mark?.kind ?? '';
+    opener = document.activeElement;
+    anchor = el;
+
+    const note = make('textarea', { rows: 2, placeholder: ui.hint, value: mark?.note ?? '' });
+    note.setAttribute('aria-label', ui.hint);
+    const keep = make('button', { type: 'button', className: 'am-btn', textContent: ui.save, disabled: !kind });
+    keep.addEventListener('click', () => {
+      const saved = { key, kind, note: note.value.trim() };
+      marks.set(key, saved);
+      save();
+      paint(el, saved);
+      close(true);
+    });
+    const actions = make('div', { className: 'am-remark-actions' });
+    actions.append(keep);
+    if (mark) {
+      const drop = make('button', { type: 'button', className: 'am-btn', textContent: ui.remove });
+      drop.addEventListener('click', () => {
+        marks.delete(key);
+        save();
+        unpaint(el);
+        close(true);
+      });
+      actions.append(drop);
+    }
+    const kindBtns = KINDS.map((k) => {
+      const kb = make('button', { type: 'button', className: 'am-remark-kind', textContent: ui.kinds[k] });
+      kb.dataset.kind = k;
+      kb.setAttribute('aria-pressed', String(k === kind));
+      kb.addEventListener('click', () => {
+        kind = k;
+        for (const other of kindBtns) other.setAttribute('aria-pressed', String(other === kb));
+        keep.disabled = false;
+      });
+      return kb;
+    });
+    pop.replaceChildren(make('div', { className: 'am-remark-kinds' }), note, actions);
+    pop.firstChild.append(...kindBtns);
+    pop.hidden = false;
+    place();
+    (kindBtns.find((b) => b.dataset.kind === kind) ?? kindBtns[0]).focus({ preventScroll: true });
+  };
+
+  // Picking works only while remark mode is on. A click on a marked block edits its mark, on a plain block starts one.
+  // The block under the pointer gets an outline: the same blockAt decides what is outlined and what a click picks.
+  let hover = null;
+  const track = (e) => {
+    const el = e.type === 'mouseout' && e.relatedTarget === null ? null : blockAt(e.target);
+    if (el === hover) return;
+    hover?.classList.remove('am-remark-hover');
+    hover = el;
+    hover?.classList.add('am-remark-hover');
+  };
+  const pick = (e) => {
+    const el = blockAt(e.target);
+    if (el) open(el);
+  };
+  const setMode = (on) => {
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    const toggle = on ? 'addEventListener' : 'removeEventListener';
+    document.body[toggle]('click', pick);
+    document.body[toggle]('mouseover', track);
+    document.body[toggle]('mouseout', track);
+    if (!on) {
+      track({ type: 'mouseout', relatedTarget: null });
+      close(false);
+    }
+  };
+  btn.addEventListener('click', () => setMode(btn.getAttribute('aria-pressed') !== 'true'));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close(true);
+  });
+  // A click outside the popover closes it; the same click may then start another mark.
+  document.addEventListener('click', (e) => {
+    if (!pop.hidden && !pop.contains(e.target)) close(false);
+  }, true);
+  setMode(false);
+
+  // What the Reply button reads: the marked blocks that are on the page, in page order.
+  window.__amRemarkData = () => {
+    if (!marks.size) return [];
+    const live = [];
+    for (const [el, key] of keyMap()) {
+      const mark = marks.get(key);
+      if (mark) live.push({ panel: panelOf(el), quote: quote(blockText(el)), kind: mark.kind, note: mark.note });
+    }
+    return live;
+  };
+})();
+})();
+(() => {
+// Pure planner for justified ("photo wall") rows on sheet pages. No DOM access.
+//
+// This file must stay inlinable into the page script: top-level declarations only, no imports, and the exports are
+// `planLayout` and the constants the DOM adapter shares (STEP, MAX_SCALE, MIN_SCALE). The page build strips the `export ` keyword,
+// and test/layout-plan.test.js checks that this still works.
+//
+// planLayout({ width, gap, cols, panels }) -> { rows: [{ columns: [{ panels: [index, ...], width }], height }] }
+//
+// Input (all lengths in px):
+//   width   container width
+//   gap     space between columns, and between two panels stacked in one column
+//   cols    most columns in one row (the planner never uses more than MAX_COLUMNS, but spans stay shares of `cols`)
+//   panels  one entry per panel, in reading order:
+//     samples   [{ w, h }] panel height at sampled widths, ascending by w (heights between samples are interpolated)
+//     minWidth  narrowest feasible width (clamped to `width`)
+//     maxWidth  widest useful width; beyond it the panel only gains empty space (default: no limit)
+//     natural   natural diagram width for a diagram-only panel (default: none)
+//     pad       panel width not used by the diagram (padding and border; default 0)
+//     span      the author's width hint in grid columns (default 1); span >= cols keeps the panel alone in its row
+//
+// Output: { rows, maxScale }. Rows are in reading order; a row is a list of columns (at most `cols`); a column holds one panel or two
+// consecutive panels, stacked. For integer inputs the column widths plus the gaps between them equal `width`.
+// Rows are chosen by dynamic programming over break points; widths by a search in STEP px steps. Cost per row:
+//   H = tallest column; waste = sum((H - columnHeight) * columnWidth) + sum over diagrams wider than maxWidth of (w - maxWidth) * h
+//   dev = sum(((w - preferred) / oneColumn)^2) + SCALE_WEIGHT * sum over diagrams of (ln(scale) / ln(MAX_SCALE))^2
+//   cost = waste / 1000 + PREF_WEIGHT * dev * H
+// Scale band: diagrams on one page stay at similar sizes. With the result's `maxScale` as the diagram size limit, a diagram is
+// shown at scale min(maxScale, (width - pad) / natural). The planner tries a few bands [lo, lo * BAND_RATIO] (lo in BAND_LOS) and
+// keeps the cheapest plan in which no diagram is narrower than scale lo and none is shown above the band's top, so the largest and
+// smallest diagram scale on the page differ by at most BAND_RATIO. A panel wider than its diagram's top size keeps the diagram at
+// that size, and the page script must set the diagram's max-width to natural * maxScale. The band starts no higher than the
+// largest scale the page allows the least roomy diagram, so one wide diagram lowers the band for the others.
+// If no band is feasible the plan is made without a band (maxScale = MAX_SCALE); if no plan fits (or the input is unusable) the
+// result is a single column: one panel per row at the full width.
+
+const STEP = 10;
+const MAX_SCALE = 1.25;
+const MIN_SCALE = 0.75; // the narrowest a diagram is shown, as a share of its natural width
+const MAX_COLUMNS = 6; // rows with more columns are unreadable, and the search grows steeply with the column count
+const BAND_RATIO = 1.25; // the largest and smallest diagram scale on a page differ by at most this
+const BAND_LOS = [MIN_SCALE, 0.85, 0.95, 1]; // lower ends tried for the band; lo * BAND_RATIO is the upper end (1.25 means no upper limit)
+const SCALE_WEIGHT = 3;
+const PREF_WEIGHT = 0.15;
+
+function heightAt(samples, w) {
+  const i = samples.findIndex((s) => s.w >= w);
+  if (i === -1) return samples[samples.length - 1].h;
+  if (i === 0) return samples[0].h;
+  const a = samples[i - 1];
+  const b = samples[i];
+  return a.h + ((b.h - a.h) * (w - a.w)) / (b.w - a.w);
+}
+
+// Every way to split `len` consecutive panels into columns of 1 or 2 panels, as lists of column sizes.
+function splits(len) {
+  if (len === 0) return [[]];
+  return [1, 2].filter((k) => k <= len).flatMap((k) => splits(len - k).map((rest) => [k, ...rest]));
+}
+
+function singleColumn(width, panels) {
+  return { rows: panels.map((_, i) => ({ columns: [{ panels: [i], width }], height: 0 })) };
+}
+
+function planLayout({ width, gap = 0, cols = 3, panels }) {
+  const usable = Number.isFinite(width) && width > 0 && panels.every((p) => Array.isArray(p.samples) && p.samples.length > 0);
+  if (!usable) return singleColumn(width, panels);
+
+  // `cols` stays the unit of the author's spans; no row gets more than MAX_COLUMNS columns however large `cols` is.
+  const maxColumns = Math.min(cols, MAX_COLUMNS);
+  const oneColumn = Math.max(1, (width - gap * (cols - 1)) / cols);
+  // Per-panel limits. With a band [lo, lo * BAND_RATIO], a diagram is no narrower than scale lo and shown at most at the top of the
+  // band: a wider panel keeps it at that size and gains empty space, which the cost counts as waste.
+  const prepare = (lo) => panels.map((p) => {
+    const pad = p.pad ?? 0;
+    const diagram = lo > 0 && p.natural > 0;
+    const scaleCap = diagram ? Math.min(MAX_SCALE, lo * BAND_RATIO) : MAX_SCALE;
+    return {
+      ...p,
+      minWidth: Math.min(width, Math.max(Math.ceil(p.minWidth || 0), diagram ? Math.ceil(p.natural * lo + pad) : 0)),
+      maxWidth: Math.min(p.maxWidth ?? Infinity, diagram ? p.natural * scaleCap + pad : Infinity),
+      scaleCap,
+      pad,
+      preferred: Math.min(width, (p.span ?? 1) * oneColumn + ((p.span ?? 1) - 1) * gap),
+      alone: (p.span ?? 1) >= cols,
+    };
+  });
+  let info = prepare(0);
+  // Beyond its maxWidth a panel only gains empty space, so its height stops changing there (matters when a band lowers maxWidth).
+  const heightOf = (p, w) => heightAt(p.samples, Math.min(w, p.maxWidth));
+  const columnHeight = (col, w) => col.reduce((h, k) => h + heightOf(info[k], w), 0) + gap * (col.length - 1);
+
+  function bestColumns(columns) {
+    const avail = width - gap * (columns.length - 1);
+    const mins = columns.map((c) => Math.max(...c.map((k) => info[k].minWidth)));
+    const minsFrom = mins.map((_, n) => mins.slice(n).reduce((s, w) => s + w, 0));
+    if (minsFrom[0] > avail) return null;
+    let best = null;
+    const evaluate = (ws) => {
+      const hs = ws.map((w, n) => columnHeight(columns[n], w));
+      const H = Math.max(...hs);
+      let waste = 0;
+      let dev = 0;
+      ws.forEach((w, n) => {
+        waste += (H - hs[n]) * w;
+        for (const k of columns[n]) {
+          const p = info[k];
+          if (w > p.maxWidth) waste += (w - p.maxWidth) * heightOf(p, w);
+          dev += ((w - p.preferred) / oneColumn) ** 2;
+          if (p.natural > 0) {
+            const scale = Math.min(p.scaleCap, Math.max(w - p.pad, 1) / p.natural);
+            dev += SCALE_WEIGHT * (Math.log(scale) / Math.log(MAX_SCALE)) ** 2;
+          }
+        }
+      });
+      const cost = waste / 1000 + PREF_WEIGHT * dev * H;
+      if (!best || cost < best.cost) best = { cost, ws, height: H, columns };
+    };
+    const choose = (n, used, ws) => {
+      if (n === columns.length - 1) {
+        const w = avail - used;
+        if (w >= mins[n]) evaluate([...ws, w]);
+        return;
+      }
+      for (let w = mins[n]; used + w + minsFrom[n + 1] <= avail; w += STEP) choose(n + 1, used + w, [...ws, w]);
+    };
+    choose(0, 0, []);
+    return best;
+  }
+
+  // Best columns for one row of panels i..j.
+  function bestRow(i, j) {
+    if (j > i && info.slice(i, j + 1).some((p) => p.alone)) return null;
+    let best = null;
+    for (const split of splits(j - i + 1)) {
+      if (split.length > maxColumns) continue;
+      let next = i;
+      const columns = split.map((size) => Array.from({ length: size }, () => next++));
+      const r = bestColumns(columns);
+      if (r && (!best || r.cost < best.cost)) best = r;
+    }
+    return best;
+  }
+
+  // Row breaks in reading order, for the band set up in `info`. A row holds at most 2 * maxColumns panels. Null if nothing fits.
+  function solve() {
+    const n = panels.length;
+    const total = Array(n + 1).fill(Infinity);
+    const from = Array(n + 1).fill(-1);
+    const chosen = Array(n + 1).fill(null);
+    total[0] = 0;
+    for (let j = 1; j <= n; j++) {
+      for (let i = Math.max(0, j - 2 * maxColumns); i < j; i++) {
+        if (total[i] === Infinity) continue;
+        const r = bestRow(i, j - 1);
+        if (r && total[i] + r.cost < total[j]) {
+          total[j] = total[i] + r.cost;
+          from[j] = i;
+          chosen[j] = r;
+        }
+      }
+    }
+    if (total[n] === Infinity) return null;
+    const rows = [];
+    for (let j = n; j > 0; j = from[j]) {
+      const r = chosen[j];
+      rows.unshift({ columns: r.columns.map((panelsInColumn, c) => ({ panels: panelsInColumn, width: r.ws[c] })), height: r.height });
+    }
+    return { rows, cost: total[n] };
+  }
+
+  let best = null;
+  const diagrams = panels.filter((p) => p.natural > 0);
+  if (diagrams.length > 1) {
+    // No diagram can be shown larger than the page allows, so the band cannot start above the smallest of those limits.
+    const reach = Math.min(...diagrams.map((p) => Math.min(MAX_SCALE, Math.max(width - (p.pad ?? 0), 1) / p.natural)));
+    for (const lo of new Set([...BAND_LOS.filter((x) => x < reach), reach])) {
+      info = prepare(lo);
+      const r = solve();
+      if (r && (!best || r.cost < best.cost)) best = { ...r, maxScale: Math.min(MAX_SCALE, lo * BAND_RATIO) };
+    }
+    info = prepare(0);
+  }
+  best ??= solve();
+  return best ? { rows: best.rows, maxScale: best.maxScale ?? MAX_SCALE } : singleColumn(width, panels);
+}
+
+// DOM adapter for the sheet's justified ("photo wall") layout. Not a module: compose.js puts it after src/runtime/layout-plan.js
+// (which defines planLayout and the shared STEP, MAX_SCALE, MIN_SCALE) inside one function scope of the page script.
+//
+// It measures every panel at sampled widths, asks planLayout for rows and column widths, and applies them with flexbox.
+// The rendered HTML keeps the plain CSS grid: with JavaScript off, at the single-column breakpoint, or while printing, the grid is what
+// shows (the planned widths belong to the screen width, so print never gets a mix of the two); after printing the layout comes back.
+
+const grid = document.querySelector('.am-grid');
+const panels = grid ? [...grid.children].filter((el) => el.classList.contains('am-panel')) : [];
+
+if (panels.length > 1) {
+  const SINGLE_COLUMN = '(max-width: 760px)'; // the single-column breakpoint in src/themes/base.css
+  const TWO_COLUMNS = '(max-width: 1100px)'; // below this the CSS grid has two columns
+  const SAMPLE_STEP = 20; // width sampling step, px; the planner interpolates between samples
+  const TEXT_MIN = 260; // text keeps at least about 16 CJK characters per line
+  const TABLE_COL_MIN = 96; // per table column, px
+  const TABLE_COL_COMFORT = 220; // a table column this wide reads three or four words per line
+  const KV_COL_MIN = 120; // per key-value column, px: a value of two short words stays on one line
+  const DIAGRAM_MIN = 160;
+  const RESIZE_DELAY = 150;
+  const OVERFLOWING = '.am-table-wrap, .am-diagram, .am-annot-scroll, pre';
+
+  // The first-row cells of each table carry the column widths fitTables() sets, so restore() resets them too.
+  const tables = [...grid.querySelectorAll('.am-table-wrap > table')];
+  const headCells = (table) => [...(table.rows[0]?.cells ?? [])];
+  const original = new Map([grid, ...panels, ...grid.querySelectorAll('.am-diagram > svg'), ...tables.flatMap(headCells)].map((el) => [el, el.getAttribute('style')]));
+  const restoreStyle = (el) => (original.get(el) === null ? el.removeAttribute('style') : el.setAttribute('style', original.get(el)));
+
+  // Back to the plain grid markup and styles.
+  const restore = () => {
+    for (const box of grid.querySelectorAll(':scope > .am-col')) box.replaceWith(...box.children);
+    for (const el of original.keys()) restoreStyle(el);
+  };
+
+  // The author's width hint, rendered as data-span only when the author wrote one. The inline grid-column is the no-JavaScript fallback
+  // and may hold spans the server added, so it is never read here.
+  const spanHint = (el) => Number(el.dataset.span) || 1;
+  const diagramOnly = (el) => {
+    const body = el.querySelector(':scope > .am-panel-body');
+    return body && body.children.length === 1 ? body.querySelector(':scope > .am-diagram > svg') : null;
+  };
+  const naturalWidth = (svg) => Number(svg.getAttribute('width')) || 0;
+
+  // The width each column of a table reads well at: its natural width, but no wider than TABLE_COL_COMFORT unless its longest word
+  // needs more. Below it the cells wrap one word per line, so a panel with a table is not planned narrower than the sum, and
+  // fitTables() keeps each column at its share (the browser would otherwise give the room to the longest column).
+  const columnWidths = new Map();
+  function comfortableWidth(table) {
+    const saved = table.getAttribute('style');
+    const columns = (width) => {
+      table.style.width = width;
+      return headCells(table).map((cell) => cell.getBoundingClientRect().width);
+    };
+    const most = columns('max-content');
+    const least = columns('min-content');
+    if (saved === null) table.removeAttribute('style');
+    else table.setAttribute('style', saved);
+    // A max-content column comes out a fraction under its text in Chrome, enough to wrap the last word, so it gets one pixel more.
+    const want = most.map((w, i) => Math.min(Math.ceil(w) + 1, Math.max(least[i], TABLE_COL_COMFORT)));
+    columnWidths.set(table, { least, want });
+    return want.reduce((sum, w) => sum + w, 0);
+  }
+
+  // After the layout: each column gets at least its comfortable width, scaled down toward its longest word when the panel came out
+  // narrower than planned (a page narrower than the table), so a table scrolls sideways only when even its longest words do not fit.
+  function fitTables() {
+    for (const [table, { least, want }] of columnWidths) {
+      // Each width is rounded up to a whole pixel (a column a fraction too narrow wraps its last word), so keep a pixel per column spare.
+      const room = table.parentElement.clientWidth - want.length;
+      const low = least.reduce((s, w) => s + w, 0);
+      const high = want.reduce((s, w) => s + w, 0);
+      const k = high > room ? Math.max(0, (room - low) / (high - low || 1)) : 1;
+      headCells(table).forEach((cell, i) => { cell.style.minWidth = `${Math.ceil(least[i] + (want[i] - least[i]) * k)}px`; });
+    }
+  }
+
+  // Height (and, for panels with tables or code, the narrowest width without sideways scrolling) at sampled widths.
+  // Only one panel is displayed while it is measured, so each width change lays out that panel alone.
+  function measure(width) {
+    grid.style.display = 'block';
+    for (const el of panels) {
+      el.style.display = 'none';
+      el.style.boxSizing = 'border-box';
+      for (const svg of el.querySelectorAll('.am-diagram > svg')) {
+        svg.style.width = '100%';
+        svg.style.maxWidth = `${naturalWidth(svg) * MAX_SCALE}px`;
+      }
+    }
+    const info = panels.map((el) => {
+      const svg = diagramOnly(el);
+      const svgs = [...el.querySelectorAll('.am-diagram > svg')];
+      const scrollers = el.querySelectorAll(OVERFLOWING);
+      const tableCols = Math.max(0, ...[...el.querySelectorAll('table tr:first-child')].map((tr) => tr.children.length));
+      el.style.display = '';
+      el.style.width = `${width}px`;
+      const pad = svg ? el.offsetWidth - svg.parentElement.clientWidth : 0;
+      const natural = svg ? naturalWidth(svg) : 0;
+      const shrunk = Math.max(0, ...svgs.map((s) => naturalWidth(s) * MIN_SCALE)) + (svg ? pad : 34);
+      const tableFloors = [...el.querySelectorAll('.am-table-wrap > table')].map((t) => comfortableWidth(t) + el.offsetWidth - t.parentElement.clientWidth);
+      // A key-value grid gets the same care: the room a table gains must not squeeze a neighbouring grid to one word per line.
+      const kvs = [...el.querySelectorAll('.am-kv')].map((kv) => (Number(kv.style.getPropertyValue('--kv-cols')) || 1) * KV_COL_MIN + el.offsetWidth - kv.clientWidth);
+      const floor = svg ? Math.max(DIAGRAM_MIN, natural * MIN_SCALE + pad) : Math.max(TEXT_MIN, shrunk, tableCols * TABLE_COL_MIN + 34, ...tableFloors, ...kvs);
+      const from = Math.min(width, Math.floor(floor / STEP) * STEP);
+      const samples = [];
+      let fits = null;
+      for (let w = from; ; w += SAMPLE_STEP) {
+        w = Math.min(w, width);
+        el.style.width = `${w}px`;
+        if (fits === null && !svg && scrollers.length && ![...scrollers].some((s) => s.scrollWidth > s.clientWidth + 1)) fits = w;
+        samples.push({ w, h: el.offsetHeight });
+        if (w === width) break;
+      }
+      el.style.display = 'none';
+      return {
+        samples,
+        minWidth: svg ? floor : Math.max(floor, fits ?? (scrollers.length ? width : 0)),
+        maxWidth: svg ? natural * MAX_SCALE + pad : Infinity,
+        natural,
+        pad,
+        span: spanHint(el),
+      };
+    });
+    for (const el of panels) {
+      el.style.display = '';
+      el.style.width = '';
+    }
+    return info;
+  }
+
+  // Each column gets a fixed width. A row adds up to the full width, so flex-wrap breaks rows by itself.
+  // Stacked panels go into a column wrapper whose last panel absorbs the extra height.
+  function apply(plan, gap) {
+    grid.style.display = 'flex';
+    grid.style.flexWrap = 'wrap';
+    grid.style.alignItems = 'stretch';
+    grid.style.gap = `${gap}px`;
+    for (const el of panels) {
+      el.style.gridColumn = '';
+      el.style.gridRow = '';
+      el.style.flex = '0 0 auto';
+    }
+    for (const row of plan.rows) {
+      for (const col of row.columns) {
+        const width = `${col.width}px`;
+        if (col.panels.length === 1) {
+          panels[col.panels[0]].style.width = width;
+          continue;
+        }
+        const box = document.createElement('div');
+        box.className = 'am-col';
+        box.style.cssText = `width:${width};flex:0 0 auto;display:flex;flex-direction:column;gap:${gap}px`;
+        panels[col.panels[0]].before(box);
+        for (const k of col.panels) {
+          panels[k].style.width = '';
+          box.append(panels[k]);
+        }
+        panels[col.panels[col.panels.length - 1]].style.flex = '1 1 auto';
+      }
+    }
+  }
+
+  // Diagram-only panels show their diagram at most at the top of the page's scale band; a wider panel gains empty space instead.
+  function capDiagrams(maxScale) {
+    for (const el of panels) {
+      const svg = diagramOnly(el);
+      if (svg) svg.style.maxWidth = `${naturalWidth(svg) * maxScale}px`;
+    }
+  }
+
+  const containerWidth = () => Math.floor(grid.getBoundingClientRect().width);
+
+  function justify() {
+    if (printing || printQuery.matches) return;
+    try {
+      // A vertical scrollbar can appear or vanish once the rows change height; plan again if the width moved.
+      let planned = -1;
+      for (let pass = 0; pass < 3 && planned !== containerWidth(); pass++) {
+        restore();
+        if (matchMedia(SINGLE_COLUMN).matches) return;
+        planned = containerWidth();
+        const gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+        const cols = Math.max(1, Number(getComputedStyle(grid).getPropertyValue('--cols')) || 3);
+        const plan = planLayout({ width: planned, gap, cols: matchMedia(TWO_COLUMNS).matches ? Math.min(cols, 2) : cols, panels: measure(planned) });
+        apply(plan, gap);
+        capDiagrams(plan.maxScale);
+        fitTables();
+      }
+      // The width never settled: columns planned for another width would overflow or leave gaps, so show the plain grid.
+      if (planned !== containerWidth()) restore();
+    } catch {
+      restore();
+    }
+  }
+
+  // Printing: back to the plain grid (spans and all), and the layout again afterwards. Browsers disagree on which of the
+  // `beforeprint` event and the print media query change fires first, or at all, so listen to both; both are idempotent.
+  // While `printing` is set (beforeprint to afterprint) justify() does nothing, so a late resize cannot bring flex widths into the print layout.
+  let printing = false;
+  const printQuery = matchMedia('print');
+  let timer = 0;
+  const later = () => {
+    clearTimeout(timer);
+    timer = setTimeout(justify, RESIZE_DELAY);
+  };
+  const toPrint = () => {
+    clearTimeout(timer);
+    restore();
+  };
+  justify();
+  addEventListener('resize', later);
+  addEventListener('beforeprint', () => {
+    printing = true;
+    toPrint();
+  });
+  addEventListener('afterprint', () => {
+    printing = false;
+    later();
+  });
+  printQuery.addEventListener('change', (e) => (e.matches ? toPrint() : later()));
+  // Late changes to panel heights: web fonts arriving, and images inside the grid finishing their load (load does not bubble, so capture it).
+  document.fonts?.ready.then(later);
+  grid.addEventListener('load', later, true);
+  // Switching theme changes paddings and fonts, hence panel heights.
+  document.querySelector('[data-am="theme"]')?.addEventListener('click', later);
+}
+})();
+</script>
+</body>
+</html>

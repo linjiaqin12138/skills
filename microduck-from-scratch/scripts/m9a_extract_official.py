@@ -1,5 +1,8 @@
 """M9a 数据提取（一次性工具，不进验收链路）：
 
+在容器内跑（无头、纯计算）：
+    docker compose exec -T rust /opt/sim-venv/bin/python scripts/m9a_extract_official.py
+
 1. 编译官方 robot_groundcontact.xml，导出逐 body 质量/质心/惯量（body frame）。
 2. 按 body 聚合 collision/visual geom 的 body 系 AABB（近似基本几何体尺寸用）。
 3. 官方 scene_groundcontact 推倒/落体对照：复现 D26 穿透数据。

@@ -5,8 +5,8 @@
 ## 验收命令
 
 ```bash
-bash scripts/accept-m9a-bite1.sh
-# SIM_PYTHON 默认 ~/microduck-verify/.venv/bin/python；容器内 SIM_PYTHON=/opt/sim-venv/bin/python
+docker compose exec rust bash scripts/accept-m9a-bite1.sh
+# 脚本自带解释器探测：容器内 /opt/sim-venv/bin/python，宿主机回落仓内 .venv/bin/python
 ```
 
 ## 实测输出（2026-10-20 宿主机，mujoco 3.16.0，视觉修订后复跑）
