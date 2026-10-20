@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <!-- M9a Bite 1：自建 MJCF 场景包装——组织方式对齐 scene_groundcontact.xml，
-     机器人本体换成 duck_handmade.xml（零 STL）。
+     机器人本体换成 duck_handmade.xml（碰撞/惯量自建，视觉挂官方 STL）。
      timestep 0.005 与 BAM 路径一致（duck_body.py BAM 分支也按 0.005 写）。 -->
 <mujoco model="microduck_scene_handmade">
   <compiler angle="radian" autolimits="true" />

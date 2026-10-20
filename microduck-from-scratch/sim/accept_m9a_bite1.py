@@ -1,7 +1,8 @@
 """M9a Bite 1 验收核心：自建 MJCF（duck_handmade）对照官方 robot_groundcontact。
 
 断言组：
-  A. 结构：14 hinge 关节同名同序、body 树同构、nu=14、duck_handmade.xml 零 <mesh>
+  A. 结构：14 hinge 关节同名同序、body 树同构、nu=14、碰撞 geom 全 box
+     （视觉挂官方 STL 网格，contype/conaffinity=0 不进物理）
   B. 惯量对账：总质量 ≤3%；逐 body 质量 ≤5%、质心 ≤2mm、对角惯量 ≤15%
      （阈值为代理假设：显式 <inertial> 直写官方编译值，误差应≈0，阈值防回归）
   C. STAND keyframe：重置后脚掌碰撞盒最低点贴地（|z| ≤ 5mm），与官方同姿势对比
@@ -17,7 +18,6 @@ import numpy as np
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 OFFICIAL_SCENE = os.path.join(ASSETS, "scene_groundcontact.xml")
 HANDMADE_SCENE = os.path.join(ASSETS, "scene_handmade.xml")
-HANDMADE_ROBOT = os.path.join(ASSETS, "duck_handmade.xml")
 
 JOINT_NAMES = [
     "left_hip_yaw", "left_hip_roll", "left_hip_pitch", "left_knee", "left_ankle",
@@ -90,12 +90,45 @@ def push_test(scene_path, label):
 
 def main():
     print("== A. 结构 ==")
-    with open(HANDMADE_ROBOT, encoding="utf-8") as f:
-        xml = f.read()
-    check("<mesh" not in xml, "duck_handmade.xml 零 <mesh> 引用")
-
     off = mujoco.MjModel.from_xml_path(OFFICIAL_SCENE)
     new = mujoco.MjModel.from_xml_path(HANDMADE_SCENE)
+
+    contact_types = {int(new.geom_type[g]) for g in range(new.ngeom)
+                     if new.geom_bodyid[g] != 0
+                     and (new.geom_contype[g] != 0 or new.geom_conaffinity[g] != 0)}
+    check(contact_types == {int(mujoco.mjtGeom.mjGEOM_BOX)},
+          "碰撞 geom 全 box（视觉 STL 不进物理）", f"实际类型: {sorted(contact_types)}")
+    n_mesh = sum(1 for g in range(new.ngeom)
+                 if new.geom_type[g] == mujoco.mjtGeom.mjGEOM_MESH)
+    check(n_mesh == 70, "视觉网格 geom 数 = 70（官方 STL 照抄）", f"实际 {n_mesh}")
+
+    # 视觉网格位姿对账：编译后 geom pos/quat 与官方逐位比对（防照抄转写回归，
+    # 2026-10-20 曾抓出 8 处 quat 符号抄错——肉眼在 XML 里几乎不可见）
+    def mesh_geom_table(m):
+        tbl = {}
+        for g in range(m.ngeom):
+            if m.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:
+                continue
+            body = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[g])
+            mesh = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_MESH, m.geom_dataid[g])
+            tbl.setdefault((body, mesh), []).append(g)
+        return tbl
+
+    off_tbl = mesh_geom_table(off)
+    vis_worst = 0.0
+    for g in range(new.ngeom):
+        if new.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:
+            continue
+        body = mujoco.mj_id2name(new, mujoco.mjtObj.mjOBJ_BODY, new.geom_bodyid[g])
+        mesh = mujoco.mj_id2name(new, mujoco.mjtObj.mjOBJ_MESH, new.geom_dataid[g])
+        cands = off_tbl.get((body, mesh), [])
+        best = min(
+            max(np.abs(new.geom_pos[g] - off.geom_pos[og]).max(),
+                min(np.abs(new.geom_quat[g] - off.geom_quat[og]).max(),
+                    np.abs(new.geom_quat[g] + off.geom_quat[og]).max()))
+            for og in cands) if cands else np.inf
+        vis_worst = max(vis_worst, best)
+    check(vis_worst <= 1e-5, "视觉网格位姿与官方编译值对账", f"最差 {vis_worst:.2e}")
 
     new_joints = [mujoco.mj_id2name(new, mujoco.mjtObj.mjOBJ_JOINT, j) for j in range(new.njnt)]
     check(new_joints[1:] == JOINT_NAMES and new_joints[0] == "trunk_base_freejoint",

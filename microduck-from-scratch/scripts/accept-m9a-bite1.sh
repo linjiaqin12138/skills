@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# M9a Bite 1 验收：自建 MJCF（零 STL 基本几何体）结构/惯量/接触物理。
+# M9a Bite 1 验收：自建 MJCF（碰撞盒+惯量自建，视觉挂官方 STL）结构/惯量/接触物理。
 #
 # 用法（宿主机）：
 #   bash scripts/accept-m9a-bite1.sh

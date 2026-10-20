@@ -1,11 +1,17 @@
 ---
 template: sheet
 title: M9a Bite 1：自建 MJCF 身体模型（第 18 章）
-subtitle: 零 STL 手写 duck_handmade.xml：惯量直写官方编译值、碰撞用包围盒、D26 穿透收敛
+subtitle: 自建 duck_handmade.xml：惯量直写官方编译值、碰撞用包围盒、视觉挂官方 STL、D26 穿透收敛
 source: clone-from-scratch-tutor · 第 18 章
 ---
 
-M9 要自己训策略，先得有一个能随便摔、随便改、能合法分发的仿真身体。本章从零手写一个：15 个刚体、14 个关节、25 个几何体，没有一行网格引用，物理行为与官方模型逐项对账。
+M9 要自己训策略，先得有一个能随便摔、随便改、物理核心不依赖受限资产的仿真身体。本章从零手写一个：15 个刚体、14 个关节、80 个几何体。其中 10 个是自建碰撞盒、70 个是官方视觉网格，物理行为与官方模型逐项对账。
+
+![自建模型 STAND 姿态：官方 STL 视觉网格的鸭子站立在地板上](/home/jqlin/Project/skills/microduck-from-scratch/docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png)
+
+```callout ok 本章交付
+`duck_handmade.xml`：碰撞全 box 基本几何体、惯量直写官方编译值、视觉挂官方 STL 网格（geom 逐字照抄）。总质量 0.737243 kg 与官方逐位一致；落体/推倒穿透 -0.0002m（官方对照 -0.0137m）。D26 收敛。
+```
 
 ## 问题
 
@@ -14,14 +20,10 @@ M9 要自己训策略，先得有一个能随便摔、随便改、能合法分�
 M9 批次开局的处境：
 
 1. **训练要用仿真身体**。M9 的目标是甩开现成 ONNX、自己训策略，身体模型是训练的地基。
-2. **官方身体由 43 个 STL 网格定义**，许可是 CC BY-NC-SA（禁止商用）。走自定义硬件路线，不能把它当地基。
+2. **官方身体由 43 个 STL 网格定义**，许可是 CC BY-NC-SA（禁止商用）。走自定义硬件路线，物理地基不能建在受限资产上。
 3. **网格接触本身有伤**（上面的穿透）。换基本几何体碰撞，顺手修掉 D26。
 
 穿透不是渲染错误：仿真里的接触是弹簧-阻尼软约束，穿透量就是弹簧压缩量。为什么穿透合法、多少算合理，见深读页 [接触求解与穿透](../../concepts/contact-penetration.html)。
-
-```callout ok 本章交付
-`duck_handmade.xml`：零 STL、全 box 基本几何体。总质量 0.737243 kg 与官方逐位一致；落体/推倒穿透 -0.0002m（官方对照 -0.0137m）。D26 收敛。
-```
 
 ## 背景：MJCF 是什么
 
@@ -97,13 +99,14 @@ keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复�
 
 这张卡是压缩版。卡片看不懂就先去读深读页 [惯量张量](../../concepts/inertia-tensor.html)，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。
 
-## 设计：惯量是数据，碰撞才讲形状
+## 设计：惯量是数据，碰撞才讲形状，视觉只管好看
 
-设计结论一句话：**惯量从官方编译输出直抄（数据），碰撞几何取官方碰撞网格的包围盒（形状）**。数据流水线：
+设计结论一句话：**惯量直写官方编译值，碰撞取包围盒，视觉照抄官方 STL**。数据、形状、外观三件事各管各的，互不污染。数据流水线：
 
 ```flow LR
 (官方 robot_groundcontact.xml) -> [m9a_extract_official.py]: 编译，读 mjModel
 [m9a_extract_official.py] -> [duck_handmade.xml]: 惯量值 + 包围盒尺寸
+(官方 robot_groundcontact.xml) -> [duck_handmade.xml]: 视觉 geom 逐字照抄
 [duck_handmade.xml] -> [scene_handmade.xml]: include 进场景
 [scene_handmade.xml] -> [accept_m9a_bite1.py]: A-D 四组断言
 (官方 robot_groundcontact.xml) --> [accept_m9a_bite1.py]: 对照基准
@@ -129,11 +132,15 @@ trunk_base | 躯干，挂 freejoint + imu site
           ankle_right | right_ankle
 ```
 
+**契约先行**：`duck_body.py` 不改一个字，但它点名依赖四个名字——STAND keyframe、`imu_gyro` 传感器、`imu` site、14 个关节名同序（`sim/duck_body.py:58-64`、`:171-173`）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。
+
+## 决策：数据、形状、外观各管各的
+
 **【决策卡片 1】惯量从哪来：直写官方编译值，不让引擎从几何体算**
 
 - **决策点**：每个 body 的质量/质心/惯量主轴怎么定。
 - **备选**：A. 给 box 设密度，MuJoCo 从几何体自动算；B. 用 `<inertial>` 显式直写官方编译输出。
-- **选择理由**：自建模型的几何是假的（包围盒），从假几何算惯量只能得到假惯量。官方 XML 是 Apache-2.0，编译输出是纯数值数据，可以直接用。验收对账误差约等于零（最差：质量 0.005%、质心 0.001mm）。
+- **选择理由**：自建模型的碰撞几何是假的（包围盒），从假几何算惯量只能得到假惯量。官方 XML 是 Apache-2.0，编译输出是纯数值数据，可以直接用。验收对账误差约等于零（最差：质量 0.005%、质心 0.001mm）。
 - **放弃的成本**：选 A 能白得「模型自洽」——改几何形状惯量自动跟着变。没选它，以后改 box 尺寸必须手工同步 `<inertial>`，忘了同步就会得到一对互相矛盾的形状与惯量。
 - **失效边界**：将来换自研构型（M10 自定义硬件），官方惯量数据失效，要重新测量或计算。
 
@@ -143,38 +150,42 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 - **决策点**：碰撞几何用什么形状。
 - **备选**：A. 沿用 STL 网格；B. 每个碰撞网格取包围盒写成 box。
-- **选择理由**：零 STL 绕开 CC BY-NC-SA。box-平面是解析求交，每个角点约束稳定；网格-平面靠采样接触点，大冲击修不回穿透（D26 的病灶）。实测：同条件推倒，官方 -0.0137m，自建 -0.0002m。
+- **选择理由**：碰撞层零 STL 绕开 CC BY-NC-SA——碰撞是物理的接触面，是训练真正依赖的部分。box-平面是解析求交，每个角点约束稳定；网格-平面靠采样接触点，大冲击修不回穿透（D26 的病灶）。实测：同条件推倒，官方 -0.0137m，自建 -0.0002m。
 - **放弃的成本**：选 A 能白得接触点保真——脚掌曲面可以滚转、边缘圆润。没选它，脚是方盒子，边缘先着地可能改变步态；这条成本是否兑现，Bite 2 行走验收实测判定。
 - **失效边界**：Bite 2 行走不达标时，退而求其次：把脚掌拆成多个 box 拼贴合形状。
 
-**契约先行**：`duck_body.py` 不改一个字，但它点名依赖四个名字——STAND keyframe、`imu_gyro` 传感器、`imu` site、14 个关节名同序（`sim/duck_body.py:58-64`、`:171-173`）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。
+**【决策卡片 3】视觉几何：照抄官方 STL，不把盒体坚持到底（2026-10-20 修订）**
 
-视觉抽查（STAND 姿态渲染，盒体鸭站立）：
+初版本章连视觉也是盒体拼接，交付后用户裁决：太丑，改回官方 STL。
 
-![自建模型 STAND 姿态：黄色盒体鸭站立在地板上](/home/jqlin/Project/skills/microduck-from-scratch/docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png)
+- **决策点**：视觉 geom（contype=0、conaffinity=0，纯观赏不进物理）用什么。
+- **备选**：A. 每 body 一个包围盒 box，零 STL 到底；B. 官方视觉网格 geom 行逐字照抄。
+- **选择理由**：盒体鸭丑到认不出部件，教学截图和演示失去对照价值。视觉 geom 不进物理——碰撞层规避 CC 资产的成果（决策卡片 2）完全不受影响。且本仓 BAM 默认路径（`scene_groundcontact.xml`）本来就加载同一批 STL，视觉层没有引入新的依赖面。
+- **放弃的成本**：选 A 能白得「整个模型零受限资产」。没选它，视觉层挂 CC BY-NC-SA——教程衍生物若要商用分发，视觉资产需替换；物理核心（碰撞 + 惯量 + 关节树）仍是自建零 STL 数据。
+- **失效边界**：将来需要整体摆脱受限资产（如商用整机），视觉网格也要自建，届时连材质配色一起重来。
 
 ## 代码领读
 
-顺序跟着「设计」走：参数默认值 → 躯干（惯量直写 + 契约）→ 腿链 → 执行器 → 场景存档 → 验收探针。
+顺序跟着「设计」走：参数默认值 → 躯干（惯量直写 + 契约 + 视觉网格）→ 腿链 → 执行器 → 场景存档 → 验收探针。
 
-关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值：
+关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值。视觉/碰撞两类几何的分离也写在这几行里：visual 类是 mesh 不进接触，collision 类是 box：
 
-```xml src=sim/assets/duck_handmade.xml lines=20-31 hl=22-23
+```xml src=sim/assets/duck_handmade.xml lines=23-34 hl=25-26
 ```
 
-躯干 body：freejoint 提供 6 自由度；`<inertial>` 四字段直写官方编译值；`imu` site 是 duck_body.py 读 gyro 的安装点；碰撞盒 = 官方电池网格的包围盒：
+躯干 body：freejoint 提供 6 自由度；`<inertial>` 四字段直写官方编译值；`imu` site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：
 
-```xml src=sim/assets/duck_handmade.xml lines=34-43 hl=36-39
+```xml src=sim/assets/duck_handmade.xml lines=37-45 hl=39-41
 ```
 
-左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写：
+左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写。视觉网格行跟在关节声明后面：
 
-```xml src=sim/assets/duck_handmade.xml lines=46-61 hl=49-50
+```xml src=sim/assets/duck_handmade.xml lines=59-67 hl=62-63
 ```
 
 14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：
 
-```xml src=sim/assets/duck_handmade.xml lines=190-205
+```xml src=sim/assets/duck_handmade.xml lines=330-345
 ```
 
 场景包装：`imu_gyro` 传感器挂 imu site；STAND 存档的 14 个关节角与官方逐位一致。躯干高度 0.12 沿用官方——包围盒最底面就是网格最底面，着地点不变：
@@ -182,9 +193,19 @@ trunk_base | 躯干，挂 freejoint + imu site
 ```xml src=sim/assets/scene_handmade.xml lines=31-43 hl=39-42
 ```
 
-验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样：
+验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：
 
 ```python src=sim/accept_m9a_bite1.py lines=37-56 hl=49-52
+```
+
+「碰撞必须是 box」这条验收锁的是编译后的模型，不是 XML 文本。修订后文本里全是 `<mesh>`，但碰撞 geom 的类型集合仍然只能是 box：
+
+```python src=sim/accept_m9a_bite1.py lines=96-103 hl=96-100
+```
+
+视觉网格同样按编译后对账：按（body, 网格名）配对，geom 位姿与官方编译值逐位比。坑 5 的 8 处符号错误就是这条断言抓出来的：
+
+```python src=sim/accept_m9a_bite1.py lines=105-131 hl=131
 ```
 
 ## 验收
@@ -195,18 +216,18 @@ trunk_base | 躯干，挂 freejoint + imu site
 bash scripts/accept-m9a-bite1.sh
 ```
 
-四组断言，2026-10-20 宿主机实测（mujoco 3.15.0，全绿）：
+四组断言，2026-10-20 宿主机实测（mujoco 3.16.0，视觉修订后复跑，全绿）：
 
 | 组 | 断言 | 实测 |
 |---|---|---|
-| A 结构 | 零 mesh；freejoint+14 hinge 同名同序；body 树同构；nu=14；range/damping/frictionloss/armature/kp/forcerange 全对齐 | ok 10/10 PASS |
+| A 结构 | 碰撞 geom 全 box；视觉网格 geom=70 且位姿与官方编译值逐位对账；freejoint+14 hinge 同名同序；body 树同构；nu=14；range/damping/frictionloss/armature/kp/forcerange 全对齐 | ok 12/12 PASS（视觉对账最差误差 0.00e+00） |
 | B 惯量 | 总质量 ≤3%；逐 body 质量 ≤5%、质心 ≤2mm、惯量 ≤15% | ok 总质量 0.737243 kg 两侧逐位一致；最差 0.005% / 0.001mm / 0.041% |
 | C 贴地 | STAND 复位后脚掌最低点 \|z\| ≤5mm | ok z=+0.00065，与官方逐位一致 |
 | D 穿透 | 落体+推倒稳定后最低碰撞角点 z ≥ -1mm | ok 自建 -0.0002 / -0.0002；官方对照 -0.0137 |
 
 B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误差本该约等于零，实测确实如此。C 组是「包围盒最底面 = 网格最底面」的直接证据。D 组官方对照组只记录不断言——-0.0137m 就是 D26 的可复现现场（M5 极端工况曾记录 z≈-0.111）。
 
-回归：本 Bite 不动 duck_body.py 与 Rust 侧，旧验收不受影响。
+回归：本 Bite 不动 duck_body.py 与 Rust 侧，旧验收不受影响。视觉修订（决策卡片 3）只加 contype=0/conaffinity=0 的 geom，B/C/D 组数值与修订前逐位一致。
 
 ## 与原版差异 · 常见坑与展望
 
@@ -221,7 +242,7 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 | 差异 | 处置 |
 |---|---|
 | 碰撞盒比真实网格只大不小 | Bite 2 行走验收实测判定影响 |
-| 视觉是盒体拼接，无 STL 保真 | 教学模型定位，永久保留 |
+| 视觉挂官方 STL（CC BY-NC-SA 4.0） | 用户裁决（2026-10-20）：外观优先；视觉不进物理，物理核心零 STL 成果保留；商用分发时需替换视觉资产 |
 | 官方 trunk 无效 geom（contype/conaffinity=2 实际不产生接触） | 未复制 |
 | 官方 RL 传感器组未移植（duck_body.py 只读 imu_gyro） | M9b 训练侧需要时再加 |
 
@@ -230,6 +251,8 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 1. **关节文档序是接口**。打乱顺序模型照样编译。但策略权重按序读写，动作会张冠李戴。验收 A 组「同名同序」就是防这条。
 2. **`<inertial>` 的 quat 是惯量主轴朝向**，不是 geom 姿态，也不是 body 姿态。三个朝向各管各的。
 3. **包围盒只大不小是特性**。贴地验收靠的正是「最底面不变」；把盒子「修瘦」反而会改变着地点。
+4. **断言语义要跟着裁决变**。视觉换 STL 后，原来的「XML 文本零 `<mesh>`」断言直接变红。它锁的是旧决策的实现痕迹，不是真实意图。真实意图是「碰撞必须是 box」。改成编译后枚举碰撞 geom 类型，断言才重新对准意图。
+5. **四元数照抄会错在符号上，肉眼不可见**。视觉修订第一版转抄 70 行 geom，8 处 quat 符号抄错。XML diff 里不显眼，渲染出来右腿板件悬空。修复后把视觉位姿对账固化成 A 组断言，实测误差 0.00e+00，再犯当场变红。
 
 展望：Bite 2 把 BAM 参数与 microduck_constants 对账，自建模型接 velstand 站立 + vx=0.8 走 10s 前移 ≥2.0m；Bite 3 仿真协议面对齐官方 duck-body。
 
@@ -253,7 +276,11 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 <p><b>答案：B。</b>AABB 的 min/max 取自网格顶点，最底面 z 与网格相同。官方 STAND 躯干高 0.12 按真实着地点标定，包围盒不改变最底面，所以逐位一致。这也是「只大不小」被列为特性的原因。</p>
 </details>
 <details>
-<summary><b>5.</b> Bite 2 行走验收如果不达标，按决策卡片 2 的失效边界，下一步应该是什么？（A）改回 STL 网格　（B）把脚掌拆成多个 box 拼贴合形状　（C）调大 solref timeconst　（D）放弃自建模型</summary>
-<p><b>答案：B。</b>失效边界写明：包围盒代价（方盒子脚）若兑现为行走不达标，退路是更细的基本几何体分解，而不是回到网格——回网格会把许可和 D26 两个问题一起请回来。C 方向反了：调大 timeconst 是调软，穿透更大。</p>
+<summary><b>5.</b> Bite 2 行走验收如果不达标，按决策卡片 2 的失效边界，下一步应该是什么？（A）碰撞改回 STL 网格　（B）把脚掌拆成多个 box 拼贴合形状　（C）调大 solref timeconst　（D）放弃自建模型</summary>
+<p><b>答案：B。</b>失效边界写明：包围盒代价（方盒子脚）若兑现为行走不达标，退路是更细的基本几何体分解，而不是回到网格——回网格会把 D26 一起请回来。C 方向反了：调大 timeconst 是调软，穿透更大。</p>
+</details>
+<details>
+<summary><b>6.</b> 视觉修订后验收 A 组为什么不断言「XML 里没有 &lt;mesh&gt;」了？（A）mesh 加载太慢，验收跳过　（B）那条断言锁的是实现痕迹；真实意图是「碰撞必须是 box」，编译后枚举碰撞 geom 类型才是对准意图的断言　（C）MuJoCo 不支持文本检查　（D）视觉网格不影响物理，所以什么都不用验</summary>
+<p><b>答案：B。</b>文本级断言在视觉挂 STL 后必然变红，但模型并没有变坏——锁错了层。编译后检查「接触几何类型集合 == {box}」在两种视觉方案下都正确。D 错在放弃验证：碰撞层回退成网格正是要防的回归。</p>
 </details>
 ```

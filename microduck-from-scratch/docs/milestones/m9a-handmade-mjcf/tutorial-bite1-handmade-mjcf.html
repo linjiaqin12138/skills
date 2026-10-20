@@ -761,8 +761,11 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
 <main class="am-sheet">
-<header class="am-head"><h1>M9a Bite 1：自建 MJCF 身体模型（第 18 章）</h1><p class="am-sub">零 STL 手写 duck_handmade.xml：惯量直写官方编译值、碰撞用包围盒、D26 穿透收敛</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 18 章</span></div><div class="am-intro am-md"><div class="am-md"><p>M9 要自己训策略，先得有一个能随便摔、随便改、能合法分发的仿真身体。本章从零手写一个：15 个刚体、14 个关节、25 个几何体，没有一行网格引用，物理行为与官方模型逐项对账。</p>
-</div></div></header>
+<header class="am-head"><h1>M9a Bite 1：自建 MJCF 身体模型（第 18 章）</h1><p class="am-sub">自建 duck_handmade.xml：惯量直写官方编译值、碰撞用包围盒、视觉挂官方 STL、D26 穿透收敛</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 18 章</span></div><div class="am-intro am-md"><div class="am-md"><p>M9 要自己训策略，先得有一个能随便摔、随便改、物理核心不依赖受限资产的仿真身体。本章从零手写一个：15 个刚体、14 个关节、80 个几何体。其中 10 个是自建碰撞盒、70 个是官方视觉网格，物理行为与官方模型逐项对账。</p>
+<figure class="am-figure"><img data-am-src="/home/jqlin/Project/skills/microduck-from-scratch/docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png" src="assets/dst/handmade_stand.png" alt="自建模型 STAND 姿态：官方 STL 视觉网格的鸭子站立在地板上"><figcaption>自建模型 STAND 姿态：官方 STL 视觉网格的鸭子站立在地板上</figcaption></figure>
+</div>
+<div class="am-callout am-callout--ok" role="note"><div class="am-callout-title">本章交付</div><div class="am-callout-body am-md"><p><code>duck_handmade.xml</code>：碰撞全 box 基本几何体、惯量直写官方编译值、视觉挂官方 STL 网格（geom 逐字照抄）。总质量 0.737243 kg 与官方逐位一致；落体/推倒穿透 -0.0002m（官方对照 -0.0137m）。D26 收敛。</p>
+</div></div></div></header>
 <div class="am-frame">
 <div class="am-ruler am-ruler--top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div><div class="am-ruler am-ruler--right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
 <div class="am-grid" style="--cols: 3">
@@ -772,13 +775,11 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>M9 批次开局的处境：</p>
 <ol>
 <li><strong>训练要用仿真身体</strong>。M9 的目标是甩开现成 ONNX、自己训策略，身体模型是训练的地基。</li>
-<li><strong>官方身体由 43 个 STL 网格定义</strong>，许可是 CC BY-NC-SA（禁止商用）。走自定义硬件路线，不能把它当地基。</li>
+<li><strong>官方身体由 43 个 STL 网格定义</strong>，许可是 CC BY-NC-SA（禁止商用）。走自定义硬件路线，物理地基不能建在受限资产上。</li>
 <li><strong>网格接触本身有伤</strong>（上面的穿透）。换基本几何体碰撞，顺手修掉 D26。</li>
 </ol>
 <p>穿透不是渲染错误：仿真里的接触是弹簧-阻尼软约束，穿透量就是弹簧压缩量。为什么穿透合法、多少算合理，见深读页 <a href="../../concepts/contact-penetration.html">接触求解与穿透</a>。</p>
-</div>
-<div class="am-callout am-callout--ok" role="note"><div class="am-callout-title">本章交付</div><div class="am-callout-body am-md"><p><code>duck_handmade.xml</code>：零 STL、全 box 基本几何体。总质量 0.737243 kg 与官方逐位一致；落体/推倒穿透 -0.0002m（官方对照 -0.0137m）。D26 收敛。</p>
-</div></div></div>
+</div></div>
 </section>
 <section class="am-panel" id="panel-B">
 <header class="am-panel-head"><span class="am-panel-id">B</span><h2>背景：MJCF 是什么</h2></header>
@@ -846,18 +847,23 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div></div>
 </section>
 <section class="am-panel am-span-wide" id="panel-D" style="grid-column: span 3">
-<header class="am-panel-head"><span class="am-panel-id">D</span><h2>设计：惯量是数据，碰撞才讲形状</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>设计结论一句话：<strong>惯量从官方编译输出直抄（数据），碰撞几何取官方碰撞网格的包围盒（形状）</strong>。数据流水线：</p>
+<header class="am-panel-head"><span class="am-panel-id">D</span><h2>设计：惯量是数据，碰撞才讲形状，视觉只管好看</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>设计结论一句话：<strong>惯量直写官方编译值，碰撞取包围盒，视觉照抄官方 STL</strong>。数据、形状、外观三件事各管各的，互不污染。数据流水线：</p>
 </div>
-<figure class="am-diagram am-flow"><svg viewBox="0 0 1445 109" width="1445" height="109" role="img" aria-label="流程图：官方 robot_groundcontact.xml、m9a_extract_official.py、duck_handmade.xml、scene_handmade.xml、accept_m9a_bite1.py" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M203.5,65.3 L242,71.4 Q280.5,77.5 318.9,77.5 L357.4,77.5" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="227.5" y="68.5" width="105.9" height="18" rx="3"/><text x="280.5" y="77.5" text-anchor="middle" dominant-baseline="central">编译，读 mjModel</text></g></g><g data-step="1"><path class="am-edge" d="M528.7,77.5 L569.5,77.5 Q610.3,77.5 651.2,77.5 L692,77.5" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="552.7" y="68.5" width="115.3" height="18" rx="3"/><text x="610.3" y="77.5" text-anchor="middle" dominant-baseline="central">惯量值 + 包围盒尺寸</text></g></g><g data-step="2"><path class="am-edge" d="M845.3,77.5 L879.2,77.5 Q913.1,77.5 947,77.5 L980.8,77.5" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="869.3" y="68.5" width="87.5" height="18" rx="3"/><text x="913.1" y="77.5" text-anchor="middle" dominant-baseline="central">include 进场景</text></g></g><g data-step="3"><path class="am-edge" d="M1141.4,77.5 L1174.3,77.5 Q1207.2,77.5 1240.1,71.3 L1273,65.1" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="1165.4" y="68.5" width="83.6" height="18" rx="3"/><text x="1207.2" y="77.5" text-anchor="middle" dominant-baseline="central">A-D 四组断言</text></g></g><g data-step="4"><path class="am-edge am-edge--dashed" d="M203.5,35.2 L242,29.1 Q280.5,23 361.7,23 Q443,23 526.7,23 Q610.3,23 689.5,23 Q768.7,23 840.9,23 Q913.1,23 987.1,23 Q1061.1,23 1134.2,23 Q1207.2,23 1240.1,29.2 L1273,35.4" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="740.7" y="14" width="56" height="18" rx="3"/><text x="768.7" y="23" text-anchor="middle" dominant-baseline="central">对照基准</text></g></g></g><g><g class="am-node am-node--round" data-key="官方 robot_groundcontact.xml" data-step="0"><rect class="am-node-shape" x="14" y="24.3" width="189.5" height="52" rx="26"/><text x="108.8" y="41.8" text-anchor="middle" dominant-baseline="central">官方</text><text x="108.8" y="58.8" text-anchor="middle" dominant-baseline="central">robot_groundcontact.xml</text></g><g class="am-node am-node--rect" data-key="m9a_extract_official.py" data-step="0"><rect class="am-node-shape" x="357.4" y="60" width="171.3" height="35" rx="3"/><text x="443" y="77.5" text-anchor="middle" dominant-baseline="central">m9a_extract_official.py</text></g><g class="am-node am-node--rect" data-key="duck_handmade.xml" data-step="1"><rect class="am-node-shape" x="692" y="60" width="153.3" height="35" rx="3"/><text x="768.7" y="77.5" text-anchor="middle" dominant-baseline="central">duck_handmade.xml</text></g><g class="am-node am-node--rect" data-key="scene_handmade.xml" data-step="2"><rect class="am-node-shape" x="980.8" y="60" width="160.6" height="35" rx="3"/><text x="1061.1" y="77.5" text-anchor="middle" dominant-baseline="central">scene_handmade.xml</text></g><g class="am-node am-node--rect" data-key="accept_m9a_bite1.py" data-step="3"><rect class="am-node-shape" x="1273" y="32.8" width="157.7" height="35" rx="3"/><text x="1351.9" y="50.3" text-anchor="middle" dominant-baseline="central">accept_m9a_bite1.py</text></g></g></svg></figure>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 1445 151" width="1445" height="151" role="img" aria-label="流程图：官方 robot_groundcontact.xml、m9a_extract_official.py、duck_handmade.xml、scene_handmade.xml、accept_m9a_bite1.py" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M190.7,90.8 L235.6,105 Q280.5,119.3 318.9,119.3 L357.4,119.3" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="227.5" y="110.3" width="105.9" height="18" rx="3"/><text x="280.5" y="119.3" text-anchor="middle" dominant-baseline="central">编译，读 mjModel</text></g></g><g data-step="1"><path class="am-edge" d="M528.7,119.3 L569.5,119.3 Q610.3,119.3 651.2,112.2 L692,105.2" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="552.7" y="110.3" width="115.3" height="18" rx="3"/><text x="610.3" y="119.3" text-anchor="middle" dominant-baseline="central">惯量值 + 包围盒尺寸</text></g></g><g data-step="2"><path class="am-edge" d="M203.5,64.8 L242,64.8 Q280.5,64.8 361.7,64.8 Q443,64.8 526.7,64.8 Q610.3,64.8 651.2,71.8 L692,78.8" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="385.5" y="55.8" width="115.1" height="18" rx="3"/><text x="443" y="64.8" text-anchor="middle" dominant-baseline="central">视觉 geom 逐字照抄</text></g></g><g data-step="3"><path class="am-edge" d="M845.3,92 L879.2,92 Q913.1,92 947,92 L980.8,92" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="869.3" y="83" width="87.5" height="18" rx="3"/><text x="913.1" y="92" text-anchor="middle" dominant-baseline="central">include 进场景</text></g></g><g data-step="4"><path class="am-edge" d="M1141.4,92 L1174.3,92 Q1207.2,92 1240.1,85.8 L1273,79.6" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="1165.4" y="83" width="83.6" height="18" rx="3"/><text x="1207.2" y="92" text-anchor="middle" dominant-baseline="central">A-D 四组断言</text></g></g><g data-step="5"><path class="am-edge am-edge--dashed" d="M203.5,41.7 L242,32.4 Q280.5,23 361.7,23 Q443,23 526.7,23 Q610.3,23 689.5,23 Q768.7,23 840.9,23 Q913.1,23 987.1,23 Q1061.1,23 1134.2,23 Q1207.2,23 1249.3,35.1 L1291.3,47.3" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="740.7" y="14" width="56" height="18" rx="3"/><text x="768.7" y="23" text-anchor="middle" dominant-baseline="central">对照基准</text></g></g></g><g><g class="am-node am-node--round" data-key="官方 robot_groundcontact.xml" data-step="0"><rect class="am-node-shape" x="14" y="38.8" width="189.5" height="52" rx="26"/><text x="108.8" y="56.3" text-anchor="middle" dominant-baseline="central">官方</text><text x="108.8" y="73.3" text-anchor="middle" dominant-baseline="central">robot_groundcontact.xml</text></g><g class="am-node am-node--rect" data-key="m9a_extract_official.py" data-step="0"><rect class="am-node-shape" x="357.4" y="101.8" width="171.3" height="35" rx="3"/><text x="443" y="119.3" text-anchor="middle" dominant-baseline="central">m9a_extract_official.py</text></g><g class="am-node am-node--rect" data-key="duck_handmade.xml" data-step="1"><rect class="am-node-shape" x="692" y="74.5" width="153.3" height="35" rx="3"/><text x="768.7" y="92" text-anchor="middle" dominant-baseline="central">duck_handmade.xml</text></g><g class="am-node am-node--rect" data-key="scene_handmade.xml" data-step="3"><rect class="am-node-shape" x="980.8" y="74.5" width="160.6" height="35" rx="3"/><text x="1061.1" y="92" text-anchor="middle" dominant-baseline="central">scene_handmade.xml</text></g><g class="am-node am-node--rect" data-key="accept_m9a_bite1.py" data-step="4"><rect class="am-node-shape" x="1273" y="47.3" width="157.7" height="35" rx="3"/><text x="1351.9" y="64.8" text-anchor="middle" dominant-baseline="central">accept_m9a_bite1.py</text></g></g></svg></figure>
 <div class="am-md"><p>关节树与官方逐位对齐（trunk_base 三分叉，共 15 刚体 14 关节）：</p>
 </div>
 <div class="am-tree"><div class="am-tree-root"><div class="am-tree-box am-tree-box--root" data-key="trunk_base" data-step="0">trunk_base<small>躯干，挂 freejoint + imu site</small></div></div><div class="am-tree-cols" style="--n: 3"><div class="am-tree-col"><div class="am-tree-box" data-key="yaw2roll" data-step="1">yaw2roll<small>left_hip_yaw</small></div><ul class="am-tree-list"><li data-key="hip_l" data-step="2"><span class="am-tree-label">hip_l</span><span class="am-tree-sub">left_hip_roll</span><ul><li data-key="upper_leg_left" data-step="3"><span class="am-tree-label">upper_leg_left</span><span class="am-tree-sub">left_hip_pitch</span><ul><li data-key="leg" data-step="4"><span class="am-tree-label">leg</span><span class="am-tree-sub">left_knee</span><ul><li data-key="ankle_left" data-step="5"><span class="am-tree-label">ankle_left</span><span class="am-tree-sub">left_ankle</span></li></ul></li></ul></li></ul></li></ul></div><div class="am-tree-col"><div class="am-tree-box" data-key="neck" data-step="6">neck<small>neck_pitch</small></div><ul class="am-tree-list"><li data-key="neck_pitch" data-step="7"><span class="am-tree-label">neck_pitch</span><span class="am-tree-sub">挂 head_pitch（官方命名如此）</span><ul><li data-key="yaw_roll_motion" data-step="8"><span class="am-tree-label">yaw_roll_motion</span><span class="am-tree-sub">head_yaw</span><ul><li data-key="jaw_soft" data-step="9"><span class="am-tree-label">jaw_soft</span><span class="am-tree-sub">head_roll</span></li></ul></li></ul></li></ul></div><div class="am-tree-col"><div class="am-tree-box" data-key="bearing_roll" data-step="10">bearing_roll<small>right_hip_yaw</small></div><ul class="am-tree-list"><li data-key="hip_l_2" data-step="11"><span class="am-tree-label">hip_l_2</span><span class="am-tree-sub">right_hip_roll</span><ul><li data-key="upper_leg_right" data-step="12"><span class="am-tree-label">upper_leg_right</span><span class="am-tree-sub">right_hip_pitch</span><ul><li data-key="leg_2" data-step="13"><span class="am-tree-label">leg_2</span><span class="am-tree-sub">right_knee</span><ul><li data-key="ankle_right" data-step="14"><span class="am-tree-label">ankle_right</span><span class="am-tree-sub">right_ankle</span></li></ul></li></ul></li></ul></li></ul></div></div></div>
-<div class="am-md"><p><strong>【决策卡片 1】惯量从哪来：直写官方编译值，不让引擎从几何体算</strong></p>
+<div class="am-md"><p><strong>契约先行</strong>：<code>duck_body.py</code> 不改一个字，但它点名依赖四个名字——STAND keyframe、<code>imu_gyro</code> 传感器、<code>imu</code> site、14 个关节名同序（<code>sim/duck_body.py:58-64</code>、<code>:171-173</code>）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-E">
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>决策：数据、形状、外观各管各的</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>【决策卡片 1】惯量从哪来：直写官方编译值，不让引擎从几何体算</strong></p>
 <ul>
 <li><strong>决策点</strong>：每个 body 的质量/质心/惯量主轴怎么定。</li>
 <li><strong>备选</strong>：A. 给 box 设密度，MuJoCo 从几何体自动算；B. 用 <code>&lt;inertial&gt;</code> 显式直写官方编译输出。</li>
-<li><strong>选择理由</strong>：自建模型的几何是假的（包围盒），从假几何算惯量只能得到假惯量。官方 XML 是 Apache-2.0，编译输出是纯数值数据，可以直接用。验收对账误差约等于零（最差：质量 0.005%、质心 0.001mm）。</li>
+<li><strong>选择理由</strong>：自建模型的碰撞几何是假的（包围盒），从假几何算惯量只能得到假惯量。官方 XML 是 Apache-2.0，编译输出是纯数值数据，可以直接用。验收对账误差约等于零（最差：质量 0.005%、质心 0.001mm）。</li>
 <li><strong>放弃的成本</strong>：选 A 能白得「模型自洽」——改几何形状惯量自动跟着变。没选它，以后改 box 尺寸必须手工同步 <code>&lt;inertial&gt;</code>，忘了同步就会得到一对互相矛盾的形状与惯量。</li>
 <li><strong>失效边界</strong>：将来换自研构型（M10 自定义硬件），官方惯量数据失效，要重新测量或计算。</li>
 </ul>
@@ -866,43 +872,55 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <ul>
 <li><strong>决策点</strong>：碰撞几何用什么形状。</li>
 <li><strong>备选</strong>：A. 沿用 STL 网格；B. 每个碰撞网格取包围盒写成 box。</li>
-<li><strong>选择理由</strong>：零 STL 绕开 CC BY-NC-SA。box-平面是解析求交，每个角点约束稳定；网格-平面靠采样接触点，大冲击修不回穿透（D26 的病灶）。实测：同条件推倒，官方 -0.0137m，自建 -0.0002m。</li>
+<li><strong>选择理由</strong>：碰撞层零 STL 绕开 CC BY-NC-SA——碰撞是物理的接触面，是训练真正依赖的部分。box-平面是解析求交，每个角点约束稳定；网格-平面靠采样接触点，大冲击修不回穿透（D26 的病灶）。实测：同条件推倒，官方 -0.0137m，自建 -0.0002m。</li>
 <li><strong>放弃的成本</strong>：选 A 能白得接触点保真——脚掌曲面可以滚转、边缘圆润。没选它，脚是方盒子，边缘先着地可能改变步态；这条成本是否兑现，Bite 2 行走验收实测判定。</li>
 <li><strong>失效边界</strong>：Bite 2 行走不达标时，退而求其次：把脚掌拆成多个 box 拼贴合形状。</li>
 </ul>
-<p><strong>契约先行</strong>：<code>duck_body.py</code> 不改一个字，但它点名依赖四个名字——STAND keyframe、<code>imu_gyro</code> 传感器、<code>imu</code> site、14 个关节名同序（<code>sim/duck_body.py:58-64</code>、<code>:171-173</code>）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。</p>
-<p>视觉抽查（STAND 姿态渲染，盒体鸭站立）：</p>
-<figure class="am-figure"><img data-am-src="/home/jqlin/Project/skills/microduck-from-scratch/docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png" src="assets/dst/handmade_stand.png" alt="自建模型 STAND 姿态：黄色盒体鸭站立在地板上"><figcaption>自建模型 STAND 姿态：黄色盒体鸭站立在地板上</figcaption></figure>
+<p><strong>【决策卡片 3】视觉几何：照抄官方 STL，不把盒体坚持到底（2026-10-20 修订）</strong></p>
+<p>初版本章连视觉也是盒体拼接，交付后用户裁决：太丑，改回官方 STL。</p>
+<ul>
+<li><strong>决策点</strong>：视觉 geom（contype=0、conaffinity=0，纯观赏不进物理）用什么。</li>
+<li><strong>备选</strong>：A. 每 body 一个包围盒 box，零 STL 到底；B. 官方视觉网格 geom 行逐字照抄。</li>
+<li><strong>选择理由</strong>：盒体鸭丑到认不出部件，教学截图和演示失去对照价值。视觉 geom 不进物理——碰撞层规避 CC 资产的成果（决策卡片 2）完全不受影响。且本仓 BAM 默认路径（<code>scene_groundcontact.xml</code>）本来就加载同一批 STL，视觉层没有引入新的依赖面。</li>
+<li><strong>放弃的成本</strong>：选 A 能白得「整个模型零受限资产」。没选它，视觉层挂 CC BY-NC-SA——教程衍生物若要商用分发，视觉资产需替换；物理核心（碰撞 + 惯量 + 关节树）仍是自建零 STL 数据。</li>
+<li><strong>失效边界</strong>：将来需要整体摆脱受限资产（如商用整机），视觉网格也要自建，届时连材质配色一起重来。</li>
+</ul>
 </div></div>
 </section>
-<section class="am-panel" id="panel-E">
-<header class="am-panel-head"><span class="am-panel-id">E</span><h2>代码领读</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>顺序跟着「设计」走：参数默认值 → 躯干（惯量直写 + 契约）→ 腿链 → 执行器 → 场景存档 → 验收探针。</p>
-<p>关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值：</p>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>代码领读</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>顺序跟着「设计」走：参数默认值 → 躯干（惯量直写 + 契约 + 视觉网格）→ 腿链 → 执行器 → 场景存档 → 验收探针。</p>
+<p>关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值。视觉/碰撞两类几何的分离也写在这几行里：visual 类是 mesh 不进接触，collision 类是 box：</p>
 </div>
-<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="20-31"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:20-31</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="20">  &lt;default&gt;</span><span class="am-ln" data-n="21">    &lt;default class=&quot;duck&quot;&gt;</span><span class="am-ln am-ln--hl" data-n="22">      &lt;joint damping=&quot;0.053&quot; frictionloss=&quot;0.0048&quot; armature=&quot;0.0018&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="23">      &lt;position kp=&quot;0.55&quot; kv=&quot;0.0&quot; forcerange=&quot;-0.96 0.96&quot; ctrlrange=&quot;-10.0 10.0&quot; /&gt;</span><span class="am-ln" data-n="24">      &lt;default class=&quot;visual&quot;&gt;</span><span class="am-ln" data-n="25">        &lt;geom type=&quot;box&quot; contype=&quot;0&quot; conaffinity=&quot;0&quot; group=&quot;2&quot; rgba=&quot;1 0.8 0.1 1&quot; /&gt;</span><span class="am-ln" data-n="26">      &lt;/default&gt;</span><span class="am-ln" data-n="27">      &lt;default class=&quot;collision&quot;&gt;</span><span class="am-ln" data-n="28">        &lt;geom type=&quot;box&quot; group=&quot;3&quot; rgba=&quot;0.2 0.6 1 0.4&quot; /&gt;</span><span class="am-ln" data-n="29">      &lt;/default&gt;</span><span class="am-ln" data-n="30">    &lt;/default&gt;</span><span class="am-ln" data-n="31">  &lt;/default&gt;</span></code></pre></figure>
-<div class="am-md"><p>躯干 body：freejoint 提供 6 自由度；<code>&lt;inertial&gt;</code> 四字段直写官方编译值；<code>imu</code> site 是 duck_body.py 读 gyro 的安装点；碰撞盒 = 官方电池网格的包围盒：</p>
+<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="23-34"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:23-34</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="23">  &lt;default&gt;</span><span class="am-ln" data-n="24">    &lt;default class=&quot;duck&quot;&gt;</span><span class="am-ln am-ln--hl" data-n="25">      &lt;joint damping=&quot;0.053&quot; frictionloss=&quot;0.0048&quot; armature=&quot;0.0018&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="26">      &lt;position kp=&quot;0.55&quot; kv=&quot;0.0&quot; forcerange=&quot;-0.96 0.96&quot; ctrlrange=&quot;-10.0 10.0&quot; /&gt;</span><span class="am-ln" data-n="27">      &lt;default class=&quot;visual&quot;&gt;</span><span class="am-ln" data-n="28">        &lt;geom type=&quot;mesh&quot; contype=&quot;0&quot; conaffinity=&quot;0&quot; group=&quot;2&quot; /&gt;</span><span class="am-ln" data-n="29">      &lt;/default&gt;</span><span class="am-ln" data-n="30">      &lt;default class=&quot;collision&quot;&gt;</span><span class="am-ln" data-n="31">        &lt;geom type=&quot;box&quot; group=&quot;3&quot; rgba=&quot;0.2 0.6 1 0.4&quot; /&gt;</span><span class="am-ln" data-n="32">      &lt;/default&gt;</span><span class="am-ln" data-n="33">    &lt;/default&gt;</span><span class="am-ln" data-n="34">  &lt;/default&gt;</span></code></pre></figure>
+<div class="am-md"><p>躯干 body：freejoint 提供 6 自由度；<code>&lt;inertial&gt;</code> 四字段直写官方编译值；<code>imu</code> site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：</p>
 </div>
-<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="34-43"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:34-43</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="34">    &lt;body name=&quot;trunk_base&quot; pos=&quot;0 0 0.12&quot; childclass=&quot;duck&quot;&gt;</span><span class="am-ln" data-n="35">      &lt;freejoint name=&quot;trunk_base_freejoint&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="36">      &lt;inertial mass=&quot;0.199224&quot; pos=&quot;-0.022633 -0.000027 0.002801&quot;</span><span class="am-ln am-ln--hl" data-n="37">                quat=&quot;0.664866 0.238381 0.235012 0.667756&quot;</span><span class="am-ln am-ln--hl" data-n="38">                diaginertia=&quot;1.459e-04 1.408e-04 9.853e-05&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="39">      &lt;site group=&quot;3&quot; name=&quot;imu&quot; pos=&quot;-0.021 0.0000664 -0.0146984&quot; quat=&quot;1 0 0 0&quot; /&gt;</span><span class="am-ln" data-n="40">      &lt;geom class=&quot;visual&quot; pos=&quot;-0.010311 0.000596 0.009162&quot; size=&quot;0.048385 0.052674 0.053448&quot; /&gt;</span><span class="am-ln" data-n="41">      &lt;!-- 官方碰撞网格 np_f970（电池）的 AABB --&gt;</span><span class="am-ln" data-n="42">      &lt;geom class=&quot;collision&quot; pos=&quot;-0.035593 -0.000007 -0.004094&quot;</span><span class="am-ln" data-n="43">            quat=&quot;0.009019 0.00034 -0.999959 -0.000116&quot; size=&quot;0.010659 0.019312 0.03564&quot; /&gt;</span></code></pre></figure>
-<div class="am-md"><p>左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写：</p>
+<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="37-45"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:37-45</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="37">    &lt;body name=&quot;trunk_base&quot; pos=&quot;0 0 0.12&quot; childclass=&quot;duck&quot;&gt;</span><span class="am-ln" data-n="38">      &lt;freejoint name=&quot;trunk_base_freejoint&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="39">      &lt;inertial mass=&quot;0.199224&quot; pos=&quot;-0.022633 -0.000027 0.002801&quot;</span><span class="am-ln am-ln--hl" data-n="40">                quat=&quot;0.664866 0.238381 0.235012 0.667756&quot;</span><span class="am-ln am-ln--hl" data-n="41">                diaginertia=&quot;1.459e-04 1.408e-04 9.853e-05&quot; /&gt;</span><span class="am-ln" data-n="42">      &lt;site group=&quot;3&quot; name=&quot;imu&quot; pos=&quot;-0.021 0.0000664 -0.0146984&quot; quat=&quot;1 0 0 0&quot; /&gt;</span><span class="am-ln" data-n="43">      &lt;!-- 视觉：官方 STL（robot_groundcontact.xml 逐字照抄） --&gt;</span><span class="am-ln" data-n="44">      &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;0.006 0.0175 -0.005&quot; quat=&quot;1 -0 -0 0&quot; mesh=&quot;seeed_bearing__configuration__22x16x4&quot; material=&quot;seeed_bearing__configuration__22x16x4_material&quot;/&gt;</span><span class="am-ln" data-n="45">      &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;0.004 -0.0005 -0.0175&quot; quat=&quot;0.707107 0 0 0.707107&quot; mesh=&quot;right_shell&quot; material=&quot;right_shell_material&quot;/&gt;</span></code></pre></figure>
+<div class="am-md"><p>左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写。视觉网格行跟在关节声明后面：</p>
 </div>
-<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="46-61"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:46-61</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="46">      &lt;body name=&quot;yaw2roll&quot; pos=&quot;0.006 0.0175 -0.005&quot; quat=&quot;0 -0.7071068 -0.7071068 0&quot;&gt;</span><span class="am-ln" data-n="47">        &lt;inertial mass=&quot;0.023041&quot; pos=&quot;0 0.000994 0.016892&quot;</span><span class="am-ln" data-n="48">                  quat=&quot;0.99973 -0.023249 0 0&quot; diaginertia=&quot;4.196e-06 3.420e-06 2.324e-06&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="49">        &lt;joint axis=&quot;0 0 1&quot; name=&quot;left_hip_yaw&quot; type=&quot;hinge&quot;</span><span class="am-ln am-ln--hl" data-n="50">               range=&quot;-0.4363323129985824 0.5235987755982988&quot; /&gt;</span><span class="am-ln" data-n="51">        &lt;geom class=&quot;visual&quot; pos=&quot;0 -0.003828 0.013005&quot; size=&quot;0.014638 0.020329 0.024065&quot; /&gt;</span><span class="am-ln" data-n="52"></span><span class="am-ln" data-n="53">        &lt;body name=&quot;hip_l&quot; pos=&quot;0 0.0165 0.0125&quot; quat=&quot;0.7071068 -0.7071068 0 0&quot;&gt;</span><span class="am-ln" data-n="54">          &lt;inertial mass=&quot;0.006189&quot; pos=&quot;0.014815 0 -0.0083&quot;</span><span class="am-ln" data-n="55">                    quat=&quot;0.94694 -0.000014 -0.321411 0.000039&quot;</span><span class="am-ln" data-n="56">                    diaginertia=&quot;1.160e-06 1.158e-06 3.525e-07&quot; /&gt;</span><span class="am-ln" data-n="57">          &lt;joint axis=&quot;0 0 1&quot; name=&quot;left_hip_roll&quot; type=&quot;hinge&quot;</span><span class="am-ln" data-n="58">                 range=&quot;-0.3839724354386992 0.38397243543880577&quot; /&gt;</span><span class="am-ln" data-n="59">          &lt;geom class=&quot;visual&quot; pos=&quot;0.01146 0 -0.00705&quot; size=&quot;0.024924 0.014638 0.026088&quot; /&gt;</span><span class="am-ln" data-n="60">          &lt;geom class=&quot;collision&quot; pos=&quot;0.01146 0.000002 -0.006718&quot;</span><span class="am-ln" data-n="61">                quat=&quot;0.662162 -0.248967 -0.248818 0.661549&quot; size=&quot;0.009511 0.013456 0.022452&quot; /&gt;</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="59-67"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:59-67</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="59">      &lt;body name=&quot;yaw2roll&quot; pos=&quot;0.006 0.0175 -0.005&quot; quat=&quot;0 -0.7071068 -0.7071068 0&quot;&gt;</span><span class="am-ln" data-n="60">        &lt;inertial mass=&quot;0.023041&quot; pos=&quot;0 0.000994 0.016892&quot;</span><span class="am-ln" data-n="61">                  quat=&quot;0.99973 -0.023249 0 0&quot; diaginertia=&quot;4.196e-06 3.420e-06 2.324e-06&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="62">        &lt;joint axis=&quot;0 0 1&quot; name=&quot;left_hip_yaw&quot; type=&quot;hinge&quot;</span><span class="am-ln am-ln--hl" data-n="63">               range=&quot;-0.4363323129985824 0.5235987755982988&quot; /&gt;</span><span class="am-ln" data-n="64">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0.0175 -0.002 0.0125&quot; quat=&quot;0 1 0 0&quot; mesh=&quot;yaw2roll&quot; material=&quot;yaw2roll_material&quot;/&gt;</span><span class="am-ln" data-n="65">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0 -0 0.0125&quot; quat=&quot;0 -0.707107 0.707107 -0&quot; mesh=&quot;xl330&quot; material=&quot;xl330_material&quot;/&gt;</span><span class="am-ln" data-n="66">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0 0.0165 0.0125&quot; quat=&quot;0.5 0.5 0.5 -0.5&quot; mesh=&quot;seeed_bearing__configuration__22x16x4&quot; material=&quot;seeed_bearing__configuration__22x16x4_material&quot;/&gt;</span><span class="am-ln" data-n="67">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0.0175 -0.002 0.0125&quot; quat=&quot;0 -1 -0 -0&quot; mesh=&quot;bearing_roll&quot; material=&quot;bearing_roll_material&quot;/&gt;</span></code></pre></figure>
 <div class="am-md"><p>14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：</p>
 </div>
-<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="190-205"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:190-205</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="190">  &lt;actuator&gt;</span><span class="am-ln" data-n="191">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_yaw&quot; joint=&quot;left_hip_yaw&quot; /&gt;</span><span class="am-ln" data-n="192">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_roll&quot; joint=&quot;left_hip_roll&quot; /&gt;</span><span class="am-ln" data-n="193">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_pitch&quot; joint=&quot;left_hip_pitch&quot; /&gt;</span><span class="am-ln" data-n="194">    &lt;position class=&quot;duck&quot; name=&quot;left_knee&quot; joint=&quot;left_knee&quot; /&gt;</span><span class="am-ln" data-n="195">    &lt;position class=&quot;duck&quot; name=&quot;left_ankle&quot; joint=&quot;left_ankle&quot; /&gt;</span><span class="am-ln" data-n="196">    &lt;position class=&quot;duck&quot; name=&quot;neck_pitch&quot; joint=&quot;neck_pitch&quot; /&gt;</span><span class="am-ln" data-n="197">    &lt;position class=&quot;duck&quot; name=&quot;head_pitch&quot; joint=&quot;head_pitch&quot; /&gt;</span><span class="am-ln" data-n="198">    &lt;position class=&quot;duck&quot; name=&quot;head_yaw&quot; joint=&quot;head_yaw&quot; /&gt;</span><span class="am-ln" data-n="199">    &lt;position class=&quot;duck&quot; name=&quot;head_roll&quot; joint=&quot;head_roll&quot; /&gt;</span><span class="am-ln" data-n="200">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_yaw&quot; joint=&quot;right_hip_yaw&quot; /&gt;</span><span class="am-ln" data-n="201">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_roll&quot; joint=&quot;right_hip_roll&quot; /&gt;</span><span class="am-ln" data-n="202">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_pitch&quot; joint=&quot;right_hip_pitch&quot; /&gt;</span><span class="am-ln" data-n="203">    &lt;position class=&quot;duck&quot; name=&quot;right_knee&quot; joint=&quot;right_knee&quot; /&gt;</span><span class="am-ln" data-n="204">    &lt;position class=&quot;duck&quot; name=&quot;right_ankle&quot; joint=&quot;right_ankle&quot; /&gt;</span><span class="am-ln" data-n="205">  &lt;/actuator&gt;</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="330-345"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:330-345</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="330">  &lt;actuator&gt;</span><span class="am-ln" data-n="331">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_yaw&quot; joint=&quot;left_hip_yaw&quot; /&gt;</span><span class="am-ln" data-n="332">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_roll&quot; joint=&quot;left_hip_roll&quot; /&gt;</span><span class="am-ln" data-n="333">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_pitch&quot; joint=&quot;left_hip_pitch&quot; /&gt;</span><span class="am-ln" data-n="334">    &lt;position class=&quot;duck&quot; name=&quot;left_knee&quot; joint=&quot;left_knee&quot; /&gt;</span><span class="am-ln" data-n="335">    &lt;position class=&quot;duck&quot; name=&quot;left_ankle&quot; joint=&quot;left_ankle&quot; /&gt;</span><span class="am-ln" data-n="336">    &lt;position class=&quot;duck&quot; name=&quot;neck_pitch&quot; joint=&quot;neck_pitch&quot; /&gt;</span><span class="am-ln" data-n="337">    &lt;position class=&quot;duck&quot; name=&quot;head_pitch&quot; joint=&quot;head_pitch&quot; /&gt;</span><span class="am-ln" data-n="338">    &lt;position class=&quot;duck&quot; name=&quot;head_yaw&quot; joint=&quot;head_yaw&quot; /&gt;</span><span class="am-ln" data-n="339">    &lt;position class=&quot;duck&quot; name=&quot;head_roll&quot; joint=&quot;head_roll&quot; /&gt;</span><span class="am-ln" data-n="340">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_yaw&quot; joint=&quot;right_hip_yaw&quot; /&gt;</span><span class="am-ln" data-n="341">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_roll&quot; joint=&quot;right_hip_roll&quot; /&gt;</span><span class="am-ln" data-n="342">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_pitch&quot; joint=&quot;right_hip_pitch&quot; /&gt;</span><span class="am-ln" data-n="343">    &lt;position class=&quot;duck&quot; name=&quot;right_knee&quot; joint=&quot;right_knee&quot; /&gt;</span><span class="am-ln" data-n="344">    &lt;position class=&quot;duck&quot; name=&quot;right_ankle&quot; joint=&quot;right_ankle&quot; /&gt;</span><span class="am-ln" data-n="345">  &lt;/actuator&gt;</span></code></pre></figure>
 <div class="am-md"><p>场景包装：<code>imu_gyro</code> 传感器挂 imu site；STAND 存档的 14 个关节角与官方逐位一致。躯干高度 0.12 沿用官方——包围盒最底面就是网格最底面，着地点不变：</p>
 </div>
 <figure class="am-codeblock" data-am-src="sim/assets/scene_handmade.xml" data-am-lines="31-43"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/scene_handmade.xml:31-43</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="31">  &lt;sensor&gt;</span><span class="am-ln" data-n="32">    &lt;!-- duck_body.py 按此名读 gyro --&gt;</span><span class="am-ln" data-n="33">    &lt;gyro name=&quot;imu_gyro&quot; site=&quot;imu&quot; /&gt;</span><span class="am-ln" data-n="34">  &lt;/sensor&gt;</span><span class="am-ln" data-n="35"></span><span class="am-ln" data-n="36">  &lt;keyframe&gt;</span><span class="am-ln" data-n="37">    &lt;!-- STAND：关节角与官方 scene_groundcontact.xml 逐位一致（同一关节树同序）；</span><span class="am-ln" data-n="38">         躯干高度 0.12 沿用官方——脚掌碰撞盒就是原网格 AABB，着地点不变 --&gt;</span><span class="am-ln am-ln--hl" data-n="39">    &lt;key name=&quot;STAND&quot; qpos=&quot;0 0 0.12 1 0 0 0</span><span class="am-ln am-ln--hl" data-n="40">         0 -0.08726646259971647 -0.457924 -0.004940 0.452984</span><span class="am-ln am-ln--hl" data-n="41">         0.3490658503988659 0.3490658503988659 0 0</span><span class="am-ln am-ln--hl" data-n="42">         0 0.08726646259971647 0.457924 0.004940 -0.452984&quot; /&gt;</span><span class="am-ln" data-n="43">  &lt;/keyframe&gt;</span></code></pre></figure>
-<div class="am-md"><p>验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样：</p>
+<div class="am-md"><p>验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：</p>
 </div>
-<figure class="am-codeblock" data-am-src="sim/accept_m9a_bite1.py" data-am-lines="37-56"><figcaption class="am-code-head"><span class="am-code-title">sim/accept_m9a_bite1.py:37-56</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="python"><span class="am-ln" data-n="37">def geom_corner_min_z(model, data):</span><span class="am-ln" data-n="38">    &quot;&quot;&quot;所有碰撞 geom（contype 或 conaffinity 非零）8 角点的最低世界 z。&quot;&quot;&quot;</span><span class="am-ln" data-n="39">    worst = np.inf</span><span class="am-ln" data-n="40">    worst_name = None</span><span class="am-ln" data-n="41">    for g in range(model.ngeom):</span><span class="am-ln" data-n="42">        if model.geom_contype[g] == 0 and model.geom_conaffinity[g] == 0:</span><span class="am-ln" data-n="43">            continue</span><span class="am-ln" data-n="44">        if model.geom_bodyid[g] == 0:</span><span class="am-ln" data-n="45">            continue  # 地板自己不算</span><span class="am-ln" data-n="46">        center = data.geom_xpos[g]</span><span class="am-ln" data-n="47">        rot = data.geom_xmat[g].reshape(3, 3)</span><span class="am-ln" data-n="48">        half = model.geom_size[g]</span><span class="am-ln am-ln--hl" data-n="49">        for sx in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="50">            for sy in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="51">                for sz in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="52">                    z = (center + rot @ (half * np.array([sx, sy, sz])))[2]</span><span class="am-ln" data-n="53">                    if z &lt; worst:</span><span class="am-ln" data-n="54">                        worst = z</span><span class="am-ln" data-n="55">                        worst_name = f&quot;geom#{g}&quot;</span><span class="am-ln" data-n="56">    return worst, worst_name</span></code></pre></figure></div>
+<figure class="am-codeblock" data-am-src="sim/accept_m9a_bite1.py" data-am-lines="37-56"><figcaption class="am-code-head"><span class="am-code-title">sim/accept_m9a_bite1.py:37-56</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="python"><span class="am-ln" data-n="37">def geom_corner_min_z(model, data):</span><span class="am-ln" data-n="38">    &quot;&quot;&quot;所有碰撞 geom（contype 或 conaffinity 非零）8 角点的最低世界 z。&quot;&quot;&quot;</span><span class="am-ln" data-n="39">    worst = np.inf</span><span class="am-ln" data-n="40">    worst_name = None</span><span class="am-ln" data-n="41">    for g in range(model.ngeom):</span><span class="am-ln" data-n="42">        if model.geom_contype[g] == 0 and model.geom_conaffinity[g] == 0:</span><span class="am-ln" data-n="43">            continue</span><span class="am-ln" data-n="44">        if model.geom_bodyid[g] == 0:</span><span class="am-ln" data-n="45">            continue  # 地板自己不算</span><span class="am-ln" data-n="46">        center = data.geom_xpos[g]</span><span class="am-ln" data-n="47">        rot = data.geom_xmat[g].reshape(3, 3)</span><span class="am-ln" data-n="48">        half = model.geom_size[g]</span><span class="am-ln am-ln--hl" data-n="49">        for sx in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="50">            for sy in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="51">                for sz in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="52">                    z = (center + rot @ (half * np.array([sx, sy, sz])))[2]</span><span class="am-ln" data-n="53">                    if z &lt; worst:</span><span class="am-ln" data-n="54">                        worst = z</span><span class="am-ln" data-n="55">                        worst_name = f&quot;geom#{g}&quot;</span><span class="am-ln" data-n="56">    return worst, worst_name</span></code></pre></figure>
+<div class="am-md"><p>「碰撞必须是 box」这条验收锁的是编译后的模型，不是 XML 文本。修订后文本里全是 <code>&lt;mesh&gt;</code>，但碰撞 geom 的类型集合仍然只能是 box：</p>
+</div>
+<figure class="am-codeblock" data-am-src="sim/accept_m9a_bite1.py" data-am-lines="96-103"><figcaption class="am-code-head"><span class="am-code-title">sim/accept_m9a_bite1.py:96-103</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="python"><span class="am-ln am-ln--hl" data-n="96">    contact_types = {int(new.geom_type[g]) for g in range(new.ngeom)</span><span class="am-ln am-ln--hl" data-n="97">                     if new.geom_bodyid[g] != 0</span><span class="am-ln am-ln--hl" data-n="98">                     and (new.geom_contype[g] != 0 or new.geom_conaffinity[g] != 0)}</span><span class="am-ln am-ln--hl" data-n="99">    check(contact_types == {int(mujoco.mjtGeom.mjGEOM_BOX)},</span><span class="am-ln am-ln--hl" data-n="100">          &quot;碰撞 geom 全 box（视觉 STL 不进物理）&quot;, f&quot;实际类型: {sorted(contact_types)}&quot;)</span><span class="am-ln" data-n="101">    n_mesh = sum(1 for g in range(new.ngeom)</span><span class="am-ln" data-n="102">                 if new.geom_type[g] == mujoco.mjtGeom.mjGEOM_MESH)</span><span class="am-ln" data-n="103">    check(n_mesh == 70, &quot;视觉网格 geom 数 = 70（官方 STL 照抄）&quot;, f&quot;实际 {n_mesh}&quot;)</span></code></pre></figure>
+<div class="am-md"><p>视觉网格同样按编译后对账：按（body, 网格名）配对，geom 位姿与官方编译值逐位比。坑 5 的 8 处符号错误就是这条断言抓出来的：</p>
+</div>
+<figure class="am-codeblock" data-am-src="sim/accept_m9a_bite1.py" data-am-lines="105-131"><figcaption class="am-code-head"><span class="am-code-title">sim/accept_m9a_bite1.py:105-131</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="python"><span class="am-ln" data-n="105">    # 视觉网格位姿对账：编译后 geom pos/quat 与官方逐位比对（防照抄转写回归，</span><span class="am-ln" data-n="106">    # 2026-10-20 曾抓出 8 处 quat 符号抄错——肉眼在 XML 里几乎不可见）</span><span class="am-ln" data-n="107">    def mesh_geom_table(m):</span><span class="am-ln" data-n="108">        tbl = {}</span><span class="am-ln" data-n="109">        for g in range(m.ngeom):</span><span class="am-ln" data-n="110">            if m.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:</span><span class="am-ln" data-n="111">                continue</span><span class="am-ln" data-n="112">            body = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[g])</span><span class="am-ln" data-n="113">            mesh = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_MESH, m.geom_dataid[g])</span><span class="am-ln" data-n="114">            tbl.setdefault((body, mesh), []).append(g)</span><span class="am-ln" data-n="115">        return tbl</span><span class="am-ln" data-n="116"></span><span class="am-ln" data-n="117">    off_tbl = mesh_geom_table(off)</span><span class="am-ln" data-n="118">    vis_worst = 0.0</span><span class="am-ln" data-n="119">    for g in range(new.ngeom):</span><span class="am-ln" data-n="120">        if new.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:</span><span class="am-ln" data-n="121">            continue</span><span class="am-ln" data-n="122">        body = mujoco.mj_id2name(new, mujoco.mjtObj.mjOBJ_BODY, new.geom_bodyid[g])</span><span class="am-ln" data-n="123">        mesh = mujoco.mj_id2name(new, mujoco.mjtObj.mjOBJ_MESH, new.geom_dataid[g])</span><span class="am-ln" data-n="124">        cands = off_tbl.get((body, mesh), [])</span><span class="am-ln" data-n="125">        best = min(</span><span class="am-ln" data-n="126">            max(np.abs(new.geom_pos[g] - off.geom_pos[og]).max(),</span><span class="am-ln" data-n="127">                min(np.abs(new.geom_quat[g] - off.geom_quat[og]).max(),</span><span class="am-ln" data-n="128">                    np.abs(new.geom_quat[g] + off.geom_quat[og]).max()))</span><span class="am-ln" data-n="129">            for og in cands) if cands else np.inf</span><span class="am-ln" data-n="130">        vis_worst = max(vis_worst, best)</span><span class="am-ln am-ln--hl" data-n="131">    check(vis_worst &lt;= 1e-5, &quot;视觉网格位姿与官方编译值对账&quot;, f&quot;最差 {vis_worst:.2e}&quot;)</span></code></pre></figure></div>
 </section>
-<section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>验收</h2></header>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>验收</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>入口命令（SIM_PYTHON 默认宿主机 venv，容器内换 <code>/opt/sim-venv/bin/python</code>）：</p>
 </div>
 <figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">bash scripts/accept-m9a-bite1.sh</span></code></pre></figure>
-<div class="am-md"><p>四组断言，2026-10-20 宿主机实测（mujoco 3.15.0，全绿）：</p>
+<div class="am-md"><p>四组断言，2026-10-20 宿主机实测（mujoco 3.16.0，视觉修订后复跑，全绿）：</p>
 <div class="am-table-wrap"><table>
 <thead>
 <tr>
@@ -913,8 +931,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </thead>
 <tbody><tr>
 <td>A 结构</td>
-<td>零 mesh；freejoint+14 hinge 同名同序；body 树同构；nu=14；range/damping/frictionloss/armature/kp/forcerange 全对齐</td>
-<td><span class="am-status am-status--ok"><span class="am-status-icon" aria-hidden="true">✓</span>10/10 PASS</span></td>
+<td>碰撞 geom 全 box；视觉网格 geom=70 且位姿与官方编译值逐位对账；freejoint+14 hinge 同名同序；body 树同构；nu=14；range/damping/frictionloss/armature/kp/forcerange 全对齐</td>
+<td><span class="am-status am-status--ok"><span class="am-status-icon" aria-hidden="true">✓</span>12/12 PASS（视觉对账最差误差 0.00e+00）</span></td>
 </tr>
 <tr>
 <td>B 惯量</td>
@@ -933,11 +951,11 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </tr>
 </tbody></table></div>
 <p>B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误差本该约等于零，实测确实如此。C 组是「包围盒最底面 = 网格最底面」的直接证据。D 组官方对照组只记录不断言——-0.0137m 就是 D26 的可复现现场（M5 极端工况曾记录 z≈-0.111）。</p>
-<p>回归：本 Bite 不动 duck_body.py 与 Rust 侧，旧验收不受影响。</p>
+<p>回归：本 Bite 不动 duck_body.py 与 Rust 侧，旧验收不受影响。视觉修订（决策卡片 3）只加 contype=0/conaffinity=0 的 geom，B/C/D 组数值与修订前逐位一致。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-G">
-<header class="am-panel-head"><span class="am-panel-id">G</span><h2>与原版差异 · 常见坑与展望</h2></header>
+<section class="am-panel" id="panel-H">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>与原版差异 · 常见坑与展望</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>偏差簿变动：</p>
 <div class="am-table-wrap"><table>
 <thead>
@@ -966,8 +984,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <td>Bite 2 行走验收实测判定影响</td>
 </tr>
 <tr>
-<td>视觉是盒体拼接，无 STL 保真</td>
-<td>教学模型定位，永久保留</td>
+<td>视觉挂官方 STL（CC BY-NC-SA 4.0）</td>
+<td>用户裁决（2026-10-20）：外观优先；视觉不进物理，物理核心零 STL 成果保留；商用分发时需替换视觉资产</td>
 </tr>
 <tr>
 <td>官方 trunk 无效 geom（contype/conaffinity=2 实际不产生接触）</td>
@@ -983,12 +1001,14 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li><strong>关节文档序是接口</strong>。打乱顺序模型照样编译。但策略权重按序读写，动作会张冠李戴。验收 A 组「同名同序」就是防这条。</li>
 <li><strong><code>&lt;inertial&gt;</code> 的 quat 是惯量主轴朝向</strong>，不是 geom 姿态，也不是 body 姿态。三个朝向各管各的。</li>
 <li><strong>包围盒只大不小是特性</strong>。贴地验收靠的正是「最底面不变」；把盒子「修瘦」反而会改变着地点。</li>
+<li><strong>断言语义要跟着裁决变</strong>。视觉换 STL 后，原来的「XML 文本零 <code>&lt;mesh&gt;</code>」断言直接变红。它锁的是旧决策的实现痕迹，不是真实意图。真实意图是「碰撞必须是 box」。改成编译后枚举碰撞 geom 类型，断言才重新对准意图。</li>
+<li><strong>四元数照抄会错在符号上，肉眼不可见</strong>。视觉修订第一版转抄 70 行 geom，8 处 quat 符号抄错。XML diff 里不显眼，渲染出来右腿板件悬空。修复后把视觉位姿对账固化成 A 组断言，实测误差 0.00e+00，再犯当场变红。</li>
 </ol>
 <p>展望：Bite 2 把 BAM 参数与 microduck_constants 对账，自建模型接 velstand 站立 + vx=0.8 走 10s 前移 ≥2.0m；Bite 3 仿真协议面对齐官方 duck-body。</p>
 </div></div>
 </section>
-<section class="am-panel am-span-wide" id="panel-H" style="grid-column: span 3">
-<header class="am-panel-head"><span class="am-panel-id">H</span><h2>自测</h2></header>
+<section class="am-panel am-span-wide" id="panel-I" style="grid-column: span 2">
+<header class="am-panel-head"><span class="am-panel-id">I</span><h2>自测</h2></header>
 <div class="am-panel-body"><details>
 <summary><b>1.</b> 你给某个 body 的碰撞盒调大了 2mm，忘了同步它的 &lt;inertial&gt;。模型行为会怎样？（A）惯量自动按新盒子重算　（B）惯量保持原值——它是直写的数据，与几何无关　（C）编译报错　（D）质量变成盒子的体积乘以密度</summary>
 <p><b>答案：B。</b>显式 &lt;inertial&gt; 存在时 MuJoCo 不从几何算惯量（这正是决策卡片 1 的设计）。代价也在这里：形状与惯量从此是两份要手工同步的数据，A 和 D 描述的是没写 &lt;inertial&gt; 时的行为。</p>
@@ -1006,8 +1026,12 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p><b>答案：B。</b>AABB 的 min/max 取自网格顶点，最底面 z 与网格相同。官方 STAND 躯干高 0.12 按真实着地点标定，包围盒不改变最底面，所以逐位一致。这也是「只大不小」被列为特性的原因。</p>
 </details>
 <details>
-<summary><b>5.</b> Bite 2 行走验收如果不达标，按决策卡片 2 的失效边界，下一步应该是什么？（A）改回 STL 网格　（B）把脚掌拆成多个 box 拼贴合形状　（C）调大 solref timeconst　（D）放弃自建模型</summary>
-<p><b>答案：B。</b>失效边界写明：包围盒代价（方盒子脚）若兑现为行走不达标，退路是更细的基本几何体分解，而不是回到网格——回网格会把许可和 D26 两个问题一起请回来。C 方向反了：调大 timeconst 是调软，穿透更大。</p>
+<summary><b>5.</b> Bite 2 行走验收如果不达标，按决策卡片 2 的失效边界，下一步应该是什么？（A）碰撞改回 STL 网格　（B）把脚掌拆成多个 box 拼贴合形状　（C）调大 solref timeconst　（D）放弃自建模型</summary>
+<p><b>答案：B。</b>失效边界写明：包围盒代价（方盒子脚）若兑现为行走不达标，退路是更细的基本几何体分解，而不是回到网格——回网格会把 D26 一起请回来。C 方向反了：调大 timeconst 是调软，穿透更大。</p>
+</details>
+<details>
+<summary><b>6.</b> 视觉修订后验收 A 组为什么不断言「XML 里没有 &lt;mesh&gt;」了？（A）mesh 加载太慢，验收跳过　（B）那条断言锁的是实现痕迹；真实意图是「碰撞必须是 box」，编译后枚举碰撞 geom 类型才是对准意图的断言　（C）MuJoCo 不支持文本检查　（D）视觉网格不影响物理，所以什么都不用验</summary>
+<p><b>答案：B。</b>文本级断言在视觉挂 STL 后必然变红，但模型并没有变坏——锁错了层。编译后检查「接触几何类型集合 == {box}」在两种视觉方案下都正确。D 错在放弃验证：碰撞层回退成网格正是要防的回归。</p>
 </details></div>
 </section>
 </div>
@@ -1028,15 +1052,21 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-20 11:01 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-20 14:38 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: sheet
 title: M9a Bite 1：自建 MJCF 身体模型（第 18 章）
-subtitle: 零 STL 手写 duck_handmade.xml：惯量直写官方编译值、碰撞用包围盒、D26 穿透收敛
+subtitle: 自建 duck_handmade.xml：惯量直写官方编译值、碰撞用包围盒、视觉挂官方 STL、D26 穿透收敛
 source: clone-from-scratch-tutor · 第 18 章
 ---
 
-M9 要自己训策略，先得有一个能随便摔、随便改、能合法分发的仿真身体。本章从零手写一个：15 个刚体、14 个关节、25 个几何体，没有一行网格引用，物理行为与官方模型逐项对账。
+M9 要自己训策略，先得有一个能随便摔、随便改、物理核心不依赖受限资产的仿真身体。本章从零手写一个：15 个刚体、14 个关节、80 个几何体。其中 10 个是自建碰撞盒、70 个是官方视觉网格，物理行为与官方模型逐项对账。
+
+![自建模型 STAND 姿态：官方 STL 视觉网格的鸭子站立在地板上](/home/jqlin/Project/skills/microduck-from-scratch/docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png)
+
+```callout ok 本章交付
+`duck_handmade.xml`：碰撞全 box 基本几何体、惯量直写官方编译值、视觉挂官方 STL 网格（geom 逐字照抄）。总质量 0.737243 kg 与官方逐位一致；落体/推倒穿透 -0.0002m（官方对照 -0.0137m）。D26 收敛。
+```
 
 ## 问题
 
@@ -1045,14 +1075,10 @@ M9 要自己训策略，先得有一个能随便摔、随便改、能合法分�
 M9 批次开局的处境：
 
 1. **训练要用仿真身体**。M9 的目标是甩开现成 ONNX、自己训策略，身体模型是训练的地基。
-2. **官方身体由 43 个 STL 网格定义**，许可是 CC BY-NC-SA（禁止商用）。走自定义硬件路线，不能把它当地基。
+2. **官方身体由 43 个 STL 网格定义**，许可是 CC BY-NC-SA（禁止商用）。走自定义硬件路线，物理地基不能建在受限资产上。
 3. **网格接触本身有伤**（上面的穿透）。换基本几何体碰撞，顺手修掉 D26。
 
 穿透不是渲染错误：仿真里的接触是弹簧-阻尼软约束，穿透量就是弹簧压缩量。为什么穿透合法、多少算合理，见深读页 [接触求解与穿透](../../concepts/contact-penetration.html)。
-
-```callout ok 本章交付
-`duck_handmade.xml`：零 STL、全 box 基本几何体。总质量 0.737243 kg 与官方逐位一致；落体/推倒穿透 -0.0002m（官方对照 -0.0137m）。D26 收敛。
-```
 
 ## 背景：MJCF 是什么
 
@@ -1128,13 +1154,14 @@ keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复�
 
 这张卡是压缩版。卡片看不懂就先去读深读页 [惯量张量](../../concepts/inertia-tensor.html)，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。
 
-## 设计：惯量是数据，碰撞才讲形状
+## 设计：惯量是数据，碰撞才讲形状，视觉只管好看
 
-设计结论一句话：**惯量从官方编译输出直抄（数据），碰撞几何取官方碰撞网格的包围盒（形状）**。数据流水线：
+设计结论一句话：**惯量直写官方编译值，碰撞取包围盒，视觉照抄官方 STL**。数据、形状、外观三件事各管各的，互不污染。数据流水线：
 
 ```flow LR
 (官方 robot_groundcontact.xml) -&gt; [m9a_extract_official.py]: 编译，读 mjModel
 [m9a_extract_official.py] -&gt; [duck_handmade.xml]: 惯量值 + 包围盒尺寸
+(官方 robot_groundcontact.xml) -&gt; [duck_handmade.xml]: 视觉 geom 逐字照抄
 [duck_handmade.xml] -&gt; [scene_handmade.xml]: include 进场景
 [scene_handmade.xml] -&gt; [accept_m9a_bite1.py]: A-D 四组断言
 (官方 robot_groundcontact.xml) --&gt; [accept_m9a_bite1.py]: 对照基准
@@ -1160,11 +1187,15 @@ trunk_base | 躯干，挂 freejoint + imu site
           ankle_right | right_ankle
 ```
 
+**契约先行**：`duck_body.py` 不改一个字，但它点名依赖四个名字——STAND keyframe、`imu_gyro` 传感器、`imu` site、14 个关节名同序（`sim/duck_body.py:58-64`、`:171-173`）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。
+
+## 决策：数据、形状、外观各管各的
+
 **【决策卡片 1】惯量从哪来：直写官方编译值，不让引擎从几何体算**
 
 - **决策点**：每个 body 的质量/质心/惯量主轴怎么定。
 - **备选**：A. 给 box 设密度，MuJoCo 从几何体自动算；B. 用 `&lt;inertial&gt;` 显式直写官方编译输出。
-- **选择理由**：自建模型的几何是假的（包围盒），从假几何算惯量只能得到假惯量。官方 XML 是 Apache-2.0，编译输出是纯数值数据，可以直接用。验收对账误差约等于零（最差：质量 0.005%、质心 0.001mm）。
+- **选择理由**：自建模型的碰撞几何是假的（包围盒），从假几何算惯量只能得到假惯量。官方 XML 是 Apache-2.0，编译输出是纯数值数据，可以直接用。验收对账误差约等于零（最差：质量 0.005%、质心 0.001mm）。
 - **放弃的成本**：选 A 能白得「模型自洽」——改几何形状惯量自动跟着变。没选它，以后改 box 尺寸必须手工同步 `&lt;inertial&gt;`，忘了同步就会得到一对互相矛盾的形状与惯量。
 - **失效边界**：将来换自研构型（M10 自定义硬件），官方惯量数据失效，要重新测量或计算。
 
@@ -1174,38 +1205,42 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 - **决策点**：碰撞几何用什么形状。
 - **备选**：A. 沿用 STL 网格；B. 每个碰撞网格取包围盒写成 box。
-- **选择理由**：零 STL 绕开 CC BY-NC-SA。box-平面是解析求交，每个角点约束稳定；网格-平面靠采样接触点，大冲击修不回穿透（D26 的病灶）。实测：同条件推倒，官方 -0.0137m，自建 -0.0002m。
+- **选择理由**：碰撞层零 STL 绕开 CC BY-NC-SA——碰撞是物理的接触面，是训练真正依赖的部分。box-平面是解析求交，每个角点约束稳定；网格-平面靠采样接触点，大冲击修不回穿透（D26 的病灶）。实测：同条件推倒，官方 -0.0137m，自建 -0.0002m。
 - **放弃的成本**：选 A 能白得接触点保真——脚掌曲面可以滚转、边缘圆润。没选它，脚是方盒子，边缘先着地可能改变步态；这条成本是否兑现，Bite 2 行走验收实测判定。
 - **失效边界**：Bite 2 行走不达标时，退而求其次：把脚掌拆成多个 box 拼贴合形状。
 
-**契约先行**：`duck_body.py` 不改一个字，但它点名依赖四个名字——STAND keyframe、`imu_gyro` 传感器、`imu` site、14 个关节名同序（`sim/duck_body.py:58-64`、`:171-173`）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。
+**【决策卡片 3】视觉几何：照抄官方 STL，不把盒体坚持到底（2026-10-20 修订）**
 
-视觉抽查（STAND 姿态渲染，盒体鸭站立）：
+初版本章连视觉也是盒体拼接，交付后用户裁决：太丑，改回官方 STL。
 
-![自建模型 STAND 姿态：黄色盒体鸭站立在地板上](/home/jqlin/Project/skills/microduck-from-scratch/docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png)
+- **决策点**：视觉 geom（contype=0、conaffinity=0，纯观赏不进物理）用什么。
+- **备选**：A. 每 body 一个包围盒 box，零 STL 到底；B. 官方视觉网格 geom 行逐字照抄。
+- **选择理由**：盒体鸭丑到认不出部件，教学截图和演示失去对照价值。视觉 geom 不进物理——碰撞层规避 CC 资产的成果（决策卡片 2）完全不受影响。且本仓 BAM 默认路径（`scene_groundcontact.xml`）本来就加载同一批 STL，视觉层没有引入新的依赖面。
+- **放弃的成本**：选 A 能白得「整个模型零受限资产」。没选它，视觉层挂 CC BY-NC-SA——教程衍生物若要商用分发，视觉资产需替换；物理核心（碰撞 + 惯量 + 关节树）仍是自建零 STL 数据。
+- **失效边界**：将来需要整体摆脱受限资产（如商用整机），视觉网格也要自建，届时连材质配色一起重来。
 
 ## 代码领读
 
-顺序跟着「设计」走：参数默认值 → 躯干（惯量直写 + 契约）→ 腿链 → 执行器 → 场景存档 → 验收探针。
+顺序跟着「设计」走：参数默认值 → 躯干（惯量直写 + 契约 + 视觉网格）→ 腿链 → 执行器 → 场景存档 → 验收探针。
 
-关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值：
+关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值。视觉/碰撞两类几何的分离也写在这几行里：visual 类是 mesh 不进接触，collision 类是 box：
 
-```xml src=sim/assets/duck_handmade.xml lines=20-31 hl=22-23
+```xml src=sim/assets/duck_handmade.xml lines=23-34 hl=25-26
 ```
 
-躯干 body：freejoint 提供 6 自由度；`&lt;inertial&gt;` 四字段直写官方编译值；`imu` site 是 duck_body.py 读 gyro 的安装点；碰撞盒 = 官方电池网格的包围盒：
+躯干 body：freejoint 提供 6 自由度；`&lt;inertial&gt;` 四字段直写官方编译值；`imu` site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：
 
-```xml src=sim/assets/duck_handmade.xml lines=34-43 hl=36-39
+```xml src=sim/assets/duck_handmade.xml lines=37-45 hl=39-41
 ```
 
-左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写：
+左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写。视觉网格行跟在关节声明后面：
 
-```xml src=sim/assets/duck_handmade.xml lines=46-61 hl=49-50
+```xml src=sim/assets/duck_handmade.xml lines=59-67 hl=62-63
 ```
 
 14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：
 
-```xml src=sim/assets/duck_handmade.xml lines=190-205
+```xml src=sim/assets/duck_handmade.xml lines=330-345
 ```
 
 场景包装：`imu_gyro` 传感器挂 imu site；STAND 存档的 14 个关节角与官方逐位一致。躯干高度 0.12 沿用官方——包围盒最底面就是网格最底面，着地点不变：
@@ -1213,9 +1248,19 @@ trunk_base | 躯干，挂 freejoint + imu site
 ```xml src=sim/assets/scene_handmade.xml lines=31-43 hl=39-42
 ```
 
-验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样：
+验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：
 
 ```python src=sim/accept_m9a_bite1.py lines=37-56 hl=49-52
+```
+
+「碰撞必须是 box」这条验收锁的是编译后的模型，不是 XML 文本。修订后文本里全是 `&lt;mesh&gt;`，但碰撞 geom 的类型集合仍然只能是 box：
+
+```python src=sim/accept_m9a_bite1.py lines=96-103 hl=96-100
+```
+
+视觉网格同样按编译后对账：按（body, 网格名）配对，geom 位姿与官方编译值逐位比。坑 5 的 8 处符号错误就是这条断言抓出来的：
+
+```python src=sim/accept_m9a_bite1.py lines=105-131 hl=131
 ```
 
 ## 验收
@@ -1226,18 +1271,18 @@ trunk_base | 躯干，挂 freejoint + imu site
 bash scripts/accept-m9a-bite1.sh
 ```
 
-四组断言，2026-10-20 宿主机实测（mujoco 3.15.0，全绿）：
+四组断言，2026-10-20 宿主机实测（mujoco 3.16.0，视觉修订后复跑，全绿）：
 
 | 组 | 断言 | 实测 |
 |---|---|---|
-| A 结构 | 零 mesh；freejoint+14 hinge 同名同序；body 树同构；nu=14；range/damping/frictionloss/armature/kp/forcerange 全对齐 | ok 10/10 PASS |
+| A 结构 | 碰撞 geom 全 box；视觉网格 geom=70 且位姿与官方编译值逐位对账；freejoint+14 hinge 同名同序；body 树同构；nu=14；range/damping/frictionloss/armature/kp/forcerange 全对齐 | ok 12/12 PASS（视觉对账最差误差 0.00e+00） |
 | B 惯量 | 总质量 ≤3%；逐 body 质量 ≤5%、质心 ≤2mm、惯量 ≤15% | ok 总质量 0.737243 kg 两侧逐位一致；最差 0.005% / 0.001mm / 0.041% |
 | C 贴地 | STAND 复位后脚掌最低点 \|z\| ≤5mm | ok z=+0.00065，与官方逐位一致 |
 | D 穿透 | 落体+推倒稳定后最低碰撞角点 z ≥ -1mm | ok 自建 -0.0002 / -0.0002；官方对照 -0.0137 |
 
 B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误差本该约等于零，实测确实如此。C 组是「包围盒最底面 = 网格最底面」的直接证据。D 组官方对照组只记录不断言——-0.0137m 就是 D26 的可复现现场（M5 极端工况曾记录 z≈-0.111）。
 
-回归：本 Bite 不动 duck_body.py 与 Rust 侧，旧验收不受影响。
+回归：本 Bite 不动 duck_body.py 与 Rust 侧，旧验收不受影响。视觉修订（决策卡片 3）只加 contype=0/conaffinity=0 的 geom，B/C/D 组数值与修订前逐位一致。
 
 ## 与原版差异 · 常见坑与展望
 
@@ -1252,7 +1297,7 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 | 差异 | 处置 |
 |---|---|
 | 碰撞盒比真实网格只大不小 | Bite 2 行走验收实测判定影响 |
-| 视觉是盒体拼接，无 STL 保真 | 教学模型定位，永久保留 |
+| 视觉挂官方 STL（CC BY-NC-SA 4.0） | 用户裁决（2026-10-20）：外观优先；视觉不进物理，物理核心零 STL 成果保留；商用分发时需替换视觉资产 |
 | 官方 trunk 无效 geom（contype/conaffinity=2 实际不产生接触） | 未复制 |
 | 官方 RL 传感器组未移植（duck_body.py 只读 imu_gyro） | M9b 训练侧需要时再加 |
 
@@ -1261,6 +1306,8 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 1. **关节文档序是接口**。打乱顺序模型照样编译。但策略权重按序读写，动作会张冠李戴。验收 A 组「同名同序」就是防这条。
 2. **`&lt;inertial&gt;` 的 quat 是惯量主轴朝向**，不是 geom 姿态，也不是 body 姿态。三个朝向各管各的。
 3. **包围盒只大不小是特性**。贴地验收靠的正是「最底面不变」；把盒子「修瘦」反而会改变着地点。
+4. **断言语义要跟着裁决变**。视觉换 STL 后，原来的「XML 文本零 `&lt;mesh&gt;`」断言直接变红。它锁的是旧决策的实现痕迹，不是真实意图。真实意图是「碰撞必须是 box」。改成编译后枚举碰撞 geom 类型，断言才重新对准意图。
+5. **四元数照抄会错在符号上，肉眼不可见**。视觉修订第一版转抄 70 行 geom，8 处 quat 符号抄错。XML diff 里不显眼，渲染出来右腿板件悬空。修复后把视觉位姿对账固化成 A 组断言，实测误差 0.00e+00，再犯当场变红。
 
 展望：Bite 2 把 BAM 参数与 microduck_constants 对账，自建模型接 velstand 站立 + vx=0.8 走 10s 前移 ≥2.0m；Bite 3 仿真协议面对齐官方 duck-body。
 
@@ -1284,8 +1331,12 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 &lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;AABB 的 min/max 取自网格顶点，最底面 z 与网格相同。官方 STAND 躯干高 0.12 按真实着地点标定，包围盒不改变最底面，所以逐位一致。这也是「只大不小」被列为特性的原因。&lt;/p&gt;
 &lt;/details&gt;
 &lt;details&gt;
-&lt;summary&gt;&lt;b&gt;5.&lt;/b&gt; Bite 2 行走验收如果不达标，按决策卡片 2 的失效边界，下一步应该是什么？（A）改回 STL 网格　（B）把脚掌拆成多个 box 拼贴合形状　（C）调大 solref timeconst　（D）放弃自建模型&lt;/summary&gt;
-&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;失效边界写明：包围盒代价（方盒子脚）若兑现为行走不达标，退路是更细的基本几何体分解，而不是回到网格——回网格会把许可和 D26 两个问题一起请回来。C 方向反了：调大 timeconst 是调软，穿透更大。&lt;/p&gt;
+&lt;summary&gt;&lt;b&gt;5.&lt;/b&gt; Bite 2 行走验收如果不达标，按决策卡片 2 的失效边界，下一步应该是什么？（A）碰撞改回 STL 网格　（B）把脚掌拆成多个 box 拼贴合形状　（C）调大 solref timeconst　（D）放弃自建模型&lt;/summary&gt;
+&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;失效边界写明：包围盒代价（方盒子脚）若兑现为行走不达标，退路是更细的基本几何体分解，而不是回到网格——回网格会把 D26 一起请回来。C 方向反了：调大 timeconst 是调软，穿透更大。&lt;/p&gt;
+&lt;/details&gt;
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;6.&lt;/b&gt; 视觉修订后验收 A 组为什么不断言「XML 里没有 &amp;lt;mesh&amp;gt;」了？（A）mesh 加载太慢，验收跳过　（B）那条断言锁的是实现痕迹；真实意图是「碰撞必须是 box」，编译后枚举碰撞 geom 类型才是对准意图的断言　（C）MuJoCo 不支持文本检查　（D）视觉网格不影响物理，所以什么都不用验&lt;/summary&gt;
+&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;文本级断言在视觉挂 STL 后必然变红，但模型并没有变坏——锁错了层。编译后检查「接触几何类型集合 == {box}」在两种视觉方案下都正确。D 错在放弃验证：碰撞层回退成网格正是要防的回归。&lt;/p&gt;
 &lt;/details&gt;
 ```
 </textarea>
