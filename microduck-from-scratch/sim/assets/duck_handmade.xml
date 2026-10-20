@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- M9a Bite 1：自建鸭子身体 MJCF——零 STL、只用基本几何体。
+
+     设计原则：
+     - 惯量是数据不是形状：每个 body 的质量/质心/惯量主轴来自官方
+       robot_groundcontact.xml 的编译输出（mjModel.body_mass/ipos/iquat/inertia，
+       官方 XML 是 Apache-2.0），用显式 <inertial> 写入，逐位对齐。
+     - 碰撞几何才讲形状：官方 10 个碰撞网格（trunk/hip×2/leg×2/foot×2/head×3）
+       各取网格 AABB 写成 box——AABB 包围盒天然保守（只大不小），D26 收敛
+       就靠这组 primitive-box 接触替掉 mesh-plane 接触。
+     - 视觉几何取每 body 全部视觉网格的并集 AABB，一个 box 一个 body，
+       纯观赏（contype=0）。
+     - 关节树/关节名/文档序与官方逐一对齐：下游策略权重按关节顺序读写。
+     - 关节与执行器参数取官方 chosen_actuator 类编译值：
+       damping=0.053 frictionloss=0.0048 armature=0.0018，
+       position kp=0.55 kv=0 forcerange=±0.96N·m ctrlrange=±10。 -->
+<mujoco model="microduck_handmade">
+  <compiler angle="radian" autolimits="true" />
+
+  <default>
+    <default class="duck">
+      <joint damping="0.053" frictionloss="0.0048" armature="0.0018" />
+      <position kp="0.55" kv="0.0" forcerange="-0.96 0.96" ctrlrange="-10.0 10.0" />
+      <default class="visual">
+        <geom type="box" contype="0" conaffinity="0" group="2" rgba="1 0.8 0.1 1" />
+      </default>
+      <default class="collision">
+        <geom type="box" group="3" rgba="0.2 0.6 1 0.4" />
+      </default>
+    </default>
+  </default>
+
+  <worldbody>
+    <body name="trunk_base" pos="0 0 0.12" childclass="duck">
+      <freejoint name="trunk_base_freejoint" />
+      <inertial mass="0.199224" pos="-0.022633 -0.000027 0.002801"
+                quat="0.664866 0.238381 0.235012 0.667756"
+                diaginertia="1.459e-04 1.408e-04 9.853e-05" />
+      <site group="3" name="imu" pos="-0.021 0.0000664 -0.0146984" quat="1 0 0 0" />
+      <geom class="visual" pos="-0.010311 0.000596 0.009162" size="0.048385 0.052674 0.053448" />
+      <!-- 官方碰撞网格 np_f970（电池）的 AABB -->
+      <geom class="collision" pos="-0.035593 -0.000007 -0.004094"
+            quat="0.009019 0.00034 -0.999959 -0.000116" size="0.010659 0.019312 0.03564" />
+
+      <!-- 左腿：yaw → roll → pitch → knee → ankle -->
+      <body name="yaw2roll" pos="0.006 0.0175 -0.005" quat="0 -0.7071068 -0.7071068 0">
+        <inertial mass="0.023041" pos="0 0.000994 0.016892"
+                  quat="0.99973 -0.023249 0 0" diaginertia="4.196e-06 3.420e-06 2.324e-06" />
+        <joint axis="0 0 1" name="left_hip_yaw" type="hinge"
+               range="-0.4363323129985824 0.5235987755982988" />
+        <geom class="visual" pos="0 -0.003828 0.013005" size="0.014638 0.020329 0.024065" />
+
+        <body name="hip_l" pos="0 0.0165 0.0125" quat="0.7071068 -0.7071068 0 0">
+          <inertial mass="0.006189" pos="0.014815 0 -0.0083"
+                    quat="0.94694 -0.000014 -0.321411 0.000039"
+                    diaginertia="1.160e-06 1.158e-06 3.525e-07" />
+          <joint axis="0 0 1" name="left_hip_roll" type="hinge"
+                 range="-0.3839724354386992 0.38397243543880577" />
+          <geom class="visual" pos="0.01146 0 -0.00705" size="0.024924 0.014638 0.026088" />
+          <geom class="collision" pos="0.01146 0.000002 -0.006718"
+                quat="0.662162 -0.248967 -0.248818 0.661549" size="0.009511 0.013456 0.022452" />
+
+          <body name="upper_leg_left" pos="0.025 0 -0.0185" quat="0.5 -0.5 0.5 -0.5">
+            <inertial mass="0.048207" pos="0.006766 0.022884 0.013453"
+                      quat="0.620818 0.374279 -0.583696 0.365786"
+                      diaginertia="1.985e-05 1.911e-05 8.118e-06" />
+            <joint axis="0 0 1" name="left_hip_pitch" type="hinge"
+                   range="-1.570796326794949 1.5707963267948442" />
+            <geom class="visual" pos="0.001918 0.027685 0.019744" size="0.04158 0.04605 0.032184" />
+
+            <body name="leg" pos="0.022 0.0357771 -0.004" quat="0 0.7071068 0.7071068 0">
+              <inertial mass="0.021584" pos="0 0.031894 -0.009535"
+                        quat="0.806473 0.591271 0 0" diaginertia="5.251e-06 4.581e-06 1.914e-06" />
+              <joint axis="0 0 1" name="left_knee" type="hinge"
+                     range="-1.5707963267948983 1.5707963267948948" />
+              <geom class="visual" pos="0 0.0196 -0.009535" size="0.01 0.033149 0.01678" />
+              <geom class="collision" pos="0 0.017258 0.001867"
+                    quat="0.492539 0.507352 0.507351 -0.492538" size="0.00447 0.01 0.030688" />
+
+              <body name="ankle_left" pos="0 0.042 -0.026" quat="0 -1 0 0">
+                <inertial mass="0.030025" pos="-0.006157 -0.013748 -0.015658"
+                          quat="0.474723 0.505182 0.517427 0.501696"
+                          diaginertia="1.116e-05 7.743e-06 5.903e-06" />
+                <joint axis="0 0 1" name="left_ankle" type="hinge"
+                       range="-1.5707963267949063 1.5707963267948868" />
+                <geom class="visual" pos="-0.006705 -0.007375 -0.015204" size="0.027705 0.018431 0.022607" />
+                <!-- 脚掌：官方 sole_left 网格 AABB，步态接触就靠它 -->
+                <geom name="left_foot_collision" class="collision" pos="-0.006832 -0.018218 -0.015741"
+                      quat="0.4924 -0.508108 -0.489826 0.509351" size="0.006788 0.021741 0.02723" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- 头颈：neck_pitch → head_pitch → head_yaw → head_roll -->
+      <body name="neck" pos="0.026 0.0145 0.0324215" quat="0 0 0.7071068 -0.7071068">
+        <inertial mass="0.036841" pos="0 -0.025 0.014166"
+                  quat="0.707107 0.707107 0 0" diaginertia="1.729e-05 1.637e-05 3.127e-06" />
+        <joint axis="0 0 1" name="neck_pitch" type="hinge"
+               range="-1.5707963267948974 1.0471975511965967" />
+        <geom class="visual" pos="0 -0.025 0.014367" size="0.01 0.035749 0.014682" />
+
+        <body name="neck_pitch" pos="0 -0.05 0" quat="0 1 0 0">
+          <inertial mass="0.005720" pos="0 0.011664 -0.0145"
+                    quat="1 0 0 0" diaginertia="1.092e-06 9.669e-07 5.121e-07" />
+          <joint axis="0 0 1" name="head_pitch" type="hinge"
+                 range="-1.5707963267948966 1.5707963267948966" />
+          <geom class="visual" pos="0 0.007209 -0.0145" size="0.014638 0.016209 0.0175" />
+
+          <body name="yaw_roll_motion" pos="0 0.0186931 -0.0145" quat="0 0 -0.7071068 -0.7071068">
+            <inertial mass="0.048600" pos="-0.000167 -0.00501 0.017806"
+                      quat="0.174483 0.690172 -0.019258 0.702031"
+                      diaginertia="9.655e-06 8.118e-06 6.888e-06" />
+            <joint axis="0 0 1" name="head_yaw" type="hinge"
+                   range="-2.9670597283903613 2.9670597283903595" />
+            <geom class="visual" pos="-0.000669 -0.004207 0.019858" size="0.022609 0.028879 0.021577" />
+
+            <body name="jaw_soft" pos="-0.0179 0 0.0145" quat="0.7071068 0 -0.7071068 0">
+              <inertial mass="0.188766" pos="0.004605 0.0012 -0.032476"
+                        quat="0.999608 0.020149 -0.019164 -0.003139"
+                        diaginertia="3.211e-04 2.543e-04 1.495e-04" />
+              <joint axis="0 0 1" name="head_roll" type="hinge"
+                     range="-0.43633231299858327 0.4363323129985815" />
+              <geom class="visual" pos="0.012099 -0.002213 -0.018294" size="0.04425 0.04987 0.071328" />
+              <!-- 头部三碰撞盒：官方 top_head_shell / jaw / bottom_head_shell 网格 AABB -->
+              <geom class="collision" pos="0.018532 0.000002 -0.021558"
+                    quat="0.000058 0.998034 0.000007 0.062669" size="0.029943 0.045884 0.064822" />
+              <geom class="collision" pos="-0.00902 -0.000234 -0.045215"
+                    quat="-0.69899 0.706179 -0.078888 -0.08063" size="0.014671 0.038671 0.046233" />
+              <geom class="collision" pos="-0.009131 -0.001532 -0.01299"
+                    quat="0.001424 0.999847 0.002743 0.017243" size="0.012276 0.047571 0.065501" />
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- 右腿：与左腿同构，body/joint 名是官方命名（hip_l_2 / leg_2 不是笔误） -->
+      <body name="bearing_roll" pos="0.006 -0.0175 -0.005" quat="0 -0.7071068 -0.7071068 0">
+        <inertial mass="0.023041" pos="0 0.000994 0.016892"
+                  quat="0.99973 -0.023249 0 0" diaginertia="4.196e-06 3.420e-06 2.324e-06" />
+        <joint axis="0 0 1" name="right_hip_yaw" type="hinge"
+               range="-0.523598775598297 0.43633231299858416" />
+        <geom class="visual" pos="0 -0.003828 0.013005" size="0.014638 0.020329 0.024065" />
+
+        <body name="hip_l_2" pos="0 0.0165 0.0125" quat="0 0 0.7071068 0.7071068">
+          <inertial mass="0.006189" pos="0.014815 0 -0.0083"
+                    quat="0.94694 -0.000014 -0.321411 0.000039"
+                    diaginertia="1.160e-06 1.158e-06 3.525e-07" />
+          <joint axis="0 0 1" name="right_hip_roll" type="hinge"
+                 range="-0.3839724354387507 0.38397243543875426" />
+          <geom class="visual" pos="0.01146 0 -0.00705" size="0.024924 0.014638 0.026088" />
+          <geom class="collision" pos="0.01146 0.000002 -0.006718"
+                quat="0.662162 -0.248967 -0.248818 0.661549" size="0.009511 0.013456 0.022452" />
+
+          <body name="upper_leg_right" pos="0.025 0 -0.0185" quat="0.5 -0.5 0.5 -0.5">
+            <inertial mass="0.048207" pos="-0.006766 0.022884 0.013453"
+                      quat="0.365786 0.583696 -0.374279 0.620818"
+                      diaginertia="1.985e-05 1.911e-05 8.118e-06" />
+            <joint axis="0 0 1" name="right_hip_pitch" type="hinge"
+                   range="-1.57079632679494 1.570796326794853" />
+            <geom class="visual" pos="-0.001918 0.027685 0.019744" size="0.04158 0.046051 0.032183" />
+
+            <body name="leg_2" pos="-0.022 0.0357771 -0.004" quat="0 1 0 0">
+              <inertial mass="0.021584" pos="-0.031894 0 -0.009535"
+                        quat="0.570263 0.418091 0.418091 0.570263" diaginertia="5.251e-06 4.581e-06 1.914e-06" />
+              <joint axis="0 0 1" name="right_knee" type="hinge"
+                     range="-1.5707963267949339 1.5707963267948593" />
+              <geom class="visual" pos="-0.0196 0 -0.009535" size="0.033149 0.01 0.01678" />
+              <geom class="collision" pos="-0.017258 0 0.001867"
+                    quat="0.696555 0.000001 0.717504 0.000001" size="0.00447 0.01 0.030688" />
+
+              <body name="ankle_right" pos="-0.042 0 -0.026" quat="0 -0.7071068 -0.7071068 0">
+                <inertial mass="0.030025" pos="0.006155 -0.013748 -0.015657"
+                          quat="0.517424 0.501653 0.474682 0.505266"
+                          diaginertia="1.116e-05 7.743e-06 5.903e-06" />
+                <joint axis="0 0 1" name="right_ankle" type="hinge"
+                       range="-1.5707963267949028 1.5707963267948903" />
+                <geom class="visual" pos="0.006705 -0.007375 -0.015204" size="0.027705 0.018431 0.022607" />
+                <geom name="right_foot_collision" class="collision" pos="0.006832 -0.018218 -0.015741"
+                      quat="0.509351 0.489826 0.508109 0.492399" size="0.006788 0.021741 0.02723" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <position class="duck" name="left_hip_yaw" joint="left_hip_yaw" />
+    <position class="duck" name="left_hip_roll" joint="left_hip_roll" />
+    <position class="duck" name="left_hip_pitch" joint="left_hip_pitch" />
+    <position class="duck" name="left_knee" joint="left_knee" />
+    <position class="duck" name="left_ankle" joint="left_ankle" />
+    <position class="duck" name="neck_pitch" joint="neck_pitch" />
+    <position class="duck" name="head_pitch" joint="head_pitch" />
+    <position class="duck" name="head_yaw" joint="head_yaw" />
+    <position class="duck" name="head_roll" joint="head_roll" />
+    <position class="duck" name="right_hip_yaw" joint="right_hip_yaw" />
+    <position class="duck" name="right_hip_roll" joint="right_hip_roll" />
+    <position class="duck" name="right_hip_pitch" joint="right_hip_pitch" />
+    <position class="duck" name="right_knee" joint="right_knee" />
+    <position class="duck" name="right_ankle" joint="right_ankle" />
+  </actuator>
+</mujoco>
