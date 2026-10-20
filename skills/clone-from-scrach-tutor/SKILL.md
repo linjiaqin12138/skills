@@ -115,7 +115,7 @@ Phase 1 的硬性产出，教程的"范围宪法"。教训：只做架构拆解�
 
 **Bite 制**：一轮交互只交付一个 Bite（可独立验收的最小闭环，有自己的验收命令与预期输出），交付后停下等用户确认再进行下一个。硬性的是"单轮不过载"这条交付粒度，**不是 Bite 数量**——数量按里程碑实际内容定：整个里程碑本身就是一个小闭环，就 1 个 Bite 直接交付；内容多才拆成多个（经验值 2~4 个），拆的唯一标准是"每个 Bite 独立可验收 + 单轮信息量不过载"。禁止任何 subagent 一轮交付超出单 Bite 的内容（教训：M7 一次交付 10 个模块 + 5 张决策卡片，追问 13 次，一大半是一次性信息量过大造成的）。
 
-**多 subagent 分工**：每个 Bite 由多个 subagent 串行完成，主 agent 只做设计、复核与向用户串讲，以保护主上下文。**subagent 的工作规范不在本文件**：coder 读 `coder-subagent.md`、verifier 读 `verifier-subagent.md`、diagram 读 `diagram-subagent.md`、writer 读 `writer-subagent.md`（均在本 skill 目录）；启动 subagent 时在 prompt 里指示它先读对应文件并严格按其执行，交接按该文件的「输入」清单给全（subagent 无任何上下文，交接必须自包含）。
+**多 subagent 分工**：每个 Bite 由多个 subagent 串行完成，主 agent 只做设计、复核与向用户串讲，以保护主上下文。**subagent 的工作规范不在本文件**：coder 读 `coder-subagent.md`、verifier 读 `verifier-subagent.md`、diagram 读 `diagram-subagent.md`、writer 读 `writer-subagent.md`（均在本 skill 目录）；启动 subagent 时在 prompt 里指示它先读对应文件并严格按其执行，交接按该文件的「输入」清单给全（subagent 无任何上下文，交接必须自包含）。**用户级偏好随交接下发**：每个 subagent 的 prompt 都必须写上 `~/.clone-from-scratch-tutor/user-prefs.md` 的路径并指示先读——呈现次序/画图/行文等用户偏好只存在那里，不读就会写出违反偏好的产物。
 
 1. **coder subagent（写代码）**：prompt 里写明"先读 `<本 skill 目录>/coder-subagent.md`，严格按其执行"，再给齐该文件「输入」清单要求的事实（本 Bite 目标与验收标准、工作目录与已有文件清单、偏差簿当前状态）。
 2. **verifier subagent（验收）**：prompt 里写明"先读 `<本 skill 目录>/verifier-subagent.md`，严格按其执行"，给齐验收标准（命令 + 预期输出）、工作目录与构建方式、coder 的改动文件清单。verifier 复跑验收命令并给出验收结论；**主 agent 不复跑命令，只复核结论与实测输出原文是否吻合**——不通过则回 coder 修。
