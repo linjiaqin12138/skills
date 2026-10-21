@@ -48,6 +48,7 @@
 - 直立、没转：`[1,0,0,0]`。转到 180° 时 w = 0，xyz 变成转轴本身。转到 360° 得到 `[-1,0,0,0]`，和 `[1,0,0,0]` 是同一个姿态
 - 反着读：角度 = `2·arccos(w)`，`(x,y,z)` 的方向是转轴。先不用管 i/j/k 乘法
 - 绕上轴左转 180°：`[0,0,0,1]`，鼻子朝后。绕左轴（+y）前倾 θ：`[cos(θ/2), 0, sin(θ/2), 0]`
+- 深读页：`docs/concepts/quaternion.html`（2026-10-21 新增；含 wxyz/xyzw 顺序约定、半角由来、q 与 -q 双覆盖、slerp vs nlerp、可运行示例 `docs/concepts/assets/quaternion/quat_demo.py`）。M1 背景卡片与 M9a 第 18 章（惯量张量卡片 + 坑 5）均已挂链接
 
 ## Q10（读 control.rs:59-61）：插值为什么不从进程启动起算？
 - 常见坑 3 的时间线。`RAMP_TICKS = 100`。`MINIDUCK_FAKE_FAILING_READS=100` 时，前 100 次 read 失败只做 `tick += 1` 然后 `continue`，`ramp_origin` 仍是 `None`，此时变量 `tick` 已经是 100
