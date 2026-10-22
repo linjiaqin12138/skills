@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="paper" data-mode="auto" data-style="strict">
+<html lang="en" data-theme="paper" data-mode="auto" data-style="strict">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Answer me with HTML 0.5.0">
-<title>惯量张量：转动惯量为什么不是一个数</title>
+<title>惯量张量：描述一个刚体的转动惯性，需要哪些数据</title>
 <style>
 html[data-theme="blueprint"], html[data-theme="blueprint"][data-mode="light"] {
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -753,248 +753,756 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </style>
 </head>
 <body>
-<div class="am-toolbar" data-am-root-lang="zh-CN" data-am-root-theme="paper" data-am-root-mode="auto" data-am-root-style="strict">
-<label class="am-pick">主题<select data-am="theme"><option value="blueprint">图纸</option><option value="shadcn">卡片</option><option value="paper" selected>纸张</option></select></label>
-<label class="am-pick">明暗<select data-am="mode"><option value="auto" selected>跟随系统</option><option value="light">亮</option><option value="dark">暗</option></select></label>
-<button class="am-btn am-btn--reply" type="button" data-am="reply" data-ui="{&quot;button&quot;:&quot;回复&quot;,&quot;comment&quot;:&quot;评论&quot;,&quot;commentHint&quot;:&quot;对这个面板的意见&quot;,&quot;title&quot;:&quot;你的回复&quot;,&quot;hint&quot;:&quot;复制后粘贴到对话里。&quot;,&quot;copy&quot;:&quot;复制回复&quot;,&quot;close&quot;:&quot;关闭&quot;,&quot;suggested&quot;:&quot;建议&quot;,&quot;empty&quot;:&quot;先选择选项，或在面板上写评论。&quot;,&quot;decisions&quot;:&quot;决定&quot;,&quot;comments&quot;:&quot;评论&quot;,&quot;confirmed&quot;:&quot;确认了建议&quot;,&quot;untouched&quot;:&quot;未作答，保留建议&quot;,&quot;was&quot;:&quot;原为&quot;,&quot;typed&quot;:&quot;以 \&quot;&gt;\&quot; 开头的行是读者输入的文字。&quot;,&quot;done&quot;:&quot;已复制 ✓&quot;,&quot;remarks&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">回复</button>
-<button class="am-btn am-btn--remark" type="button" data-am="remark" data-ui="{&quot;button&quot;:&quot;标注&quot;,&quot;hint&quot;:&quot;批注（可选）&quot;,&quot;save&quot;:&quot;保存&quot;,&quot;remove&quot;:&quot;删除&quot;,&quot;section&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">标注</button>
-<button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
+<div class="am-toolbar" data-am-root-lang="en" data-am-root-theme="paper" data-am-root-mode="auto" data-am-root-style="strict">
+<label class="am-pick">Theme<select data-am="theme"><option value="blueprint">Blueprint</option><option value="shadcn">Cards</option><option value="paper" selected>Paper</option></select></label>
+<label class="am-pick">Mode<select data-am="mode"><option value="auto" selected>Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+<button class="am-btn am-btn--reply" type="button" data-am="reply" data-ui="{&quot;button&quot;:&quot;Reply&quot;,&quot;comment&quot;:&quot;Comment&quot;,&quot;commentHint&quot;:&quot;Your comment on this panel&quot;,&quot;title&quot;:&quot;Your reply&quot;,&quot;hint&quot;:&quot;Copy it and paste it into the chat.&quot;,&quot;copy&quot;:&quot;Copy reply&quot;,&quot;close&quot;:&quot;Close&quot;,&quot;suggested&quot;:&quot;suggested&quot;,&quot;empty&quot;:&quot;Pick options, or comment on a panel first.&quot;,&quot;decisions&quot;:&quot;Decisions&quot;,&quot;comments&quot;:&quot;Comments&quot;,&quot;confirmed&quot;:&quot;suggestion confirmed&quot;,&quot;untouched&quot;:&quot;not answered; suggestion kept&quot;,&quot;was&quot;:&quot;was&quot;,&quot;typed&quot;:&quot;Lines that start with \&quot;&gt;\&quot; are text the reader typed.&quot;,&quot;done&quot;:&quot;Copied ✓&quot;,&quot;remarks&quot;:&quot;Remarks&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;suggestion&quot;,&quot;keep&quot;:&quot;keep&quot;,&quot;question&quot;:&quot;question&quot;,&quot;concern&quot;:&quot;concern&quot;}}">Reply</button>
+<button class="am-btn am-btn--remark" type="button" data-am="remark" data-ui="{&quot;button&quot;:&quot;Remark&quot;,&quot;hint&quot;:&quot;Optional note&quot;,&quot;save&quot;:&quot;Save&quot;,&quot;remove&quot;:&quot;Remove&quot;,&quot;section&quot;:&quot;Remarks&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;suggestion&quot;,&quot;keep&quot;:&quot;keep&quot;,&quot;question&quot;:&quot;question&quot;,&quot;concern&quot;:&quot;concern&quot;}}">Remark</button>
+<button class="am-btn" type="button" data-am="copy" data-done="Copied ✓">Copy source</button>
 </div>
 <main class="am-doc">
-<header class="am-head"><h1>惯量张量：转动惯量为什么不是一个数</h1><p class="am-sub">从标量 mr² 到「3 个对角值 + 一个主轴朝向」</p><div class="am-intro am-md"><div class="am-md"><p>推一个箱子走直线，只需要知道质量。让它在空中转起来，只给质量就不够了：绕不同的轴转，「难推动」的程度不同，还会互相串扰。完整描述转动惯性的是一个 3x3 矩阵——惯量张量。这一页讲清它的结构，以及仿真器为什么最后只存 3 个数加 1 个朝向。</p>
-</div></div></header>
+<header class="am-head"><h1>惯量张量：描述一个刚体的转动惯性，需要哪些数据</h1><p class="am-sub">从手算一只哑铃，到「三个数加一个朝向」</p></header>
 <div class="am-doc-layout">
-<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 一句话版本</a><a href="#panel-B">B · 为什么不是一个数</a><a href="#panel-C">C · 最小示例</a><a href="#panel-D">D · 素材</a><a href="#panel-E">E · 自测</a></nav><div class="am-doc-body">
+<nav class="am-toc" aria-label="Contents"><a href="#panel-A">A · 结论与验收承诺</a><a href="#panel-B">B · 转动惯量是「质量乘距离的平方」</a><a href="#panel-C">C · 矩阵里为什么有六个数</a><a href="#panel-D">D · 换个坐标系看同一个刚体</a><a href="#panel-E">E · 主轴：转到不串轴的方向</a><a href="#panel-F">F · 为什么最后只存三个数加一个朝向</a><a href="#panel-G">G · 四个常踩的坑</a><a href="#panel-H">H · 自测与复习</a></nav><div class="am-doc-body">
 <section class="am-panel" id="panel-A">
-<header class="am-panel-head"><span class="am-panel-id">A</span><h2>一句话版本</h2></header>
-<div class="am-panel-body"><div class="am-md"><ul>
-<li>刚体绕不同的轴转，「难推动」的程度不同。</li>
-<li>完整描述要一个 3x3 对称矩阵，叫惯量张量。</li>
-<li>把坐标系转到一组特殊方向（主轴）上，矩阵只剩对角 3 个数。</li>
-<li>主轴相对刚体的朝向，另用一个四元数记录。</li>
-<li>仿真器存的转动惯量 = 3 个对角数 + 1 个朝向四元数。</li>
-</ul>
+<header class="am-panel-head"><span class="am-panel-id">A</span><h2>结论与验收承诺</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>推一个箱子走直线，只要知道质量；让它在空中转起来，质量一个数就不够了。完整描述转动惯性，需要 3 个数加一个朝向——也就是 3x3 惯量张量对角化后的三个主惯量，加一组主轴朝向。</p>
+<p>读完本页，你能独立做三件事：</p>
+<ol>
+<li>手算一只哑铃绕某条轴的转动惯量，判断 3x3 矩阵里哪些元素该为零。</li>
+<li>预测坐标系绕 z 轴转过某个角度后，矩阵里哪几个数会变。</li>
+<li>解释「三个对角值加一个朝向」为什么不丢信息。</li>
+</ol>
 </div></div>
 </section>
 <section class="am-panel" id="panel-B">
-<header class="am-panel-head"><span class="am-panel-id">B</span><h2>为什么不是一个数</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>标量转动惯量 I = mr² 只回答「绕固定轴」的问题。刚体自由转动时，转轴可以是任何方向。</p>
-<ol>
-<li>方向不同，数值不同。一根细杆绕长轴转很省力，绕短轴转很费力。一个数说不全。</li>
-<li>质量分布歪的时候，绕 x 轴转也会带出 y 轴方向的角动量。这种「串轴」写在矩阵非对角元里，叫惯量积。</li>
-<li>数学结论：3x3 实对称矩阵总能靠旋转坐标系变成对角矩阵。这组坐标轴叫主轴，对角值叫主惯量。</li>
-<li>主轴系下没有「串轴」，转动方程最简。仿真器因此直接存对角化后的结果。</li>
-</ol>
+<header class="am-panel-head"><span class="am-panel-id">B</span><h2>转动惯量是「质量乘距离的平方」</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>转动惯量衡量绕某条轴转动的难易，定义是把每个质量块到轴的垂直距离平方乘上质量，再全部加起来。绕 x 轴写作：</p>
+<p><math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>I</mi><mrow><mi>x</mi><mi>x</mi></mrow></msub><mo>=</mo><mo movablelimits="false">∫</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mi>y</mi><mn class="tml-sml-pad">2</mn></msup><mo>+</mo><msup><mi>z</mi><mn class="tml-sml-pad">2</mn></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></p>
+<p>绕 y 轴、绕 z 轴对称换元即可。单位是 kg·m²。</p>
+<p>手算一例：两个 1 kg 质量块在 x = ±0.5 m，中间一根不计质量的杆。</p>
+<ul>
+<li>绕 x 轴：质量块在轴上，距离为 0，<math><mrow><msub><mi>I</mi><mrow><mi>x</mi><mi>x</mi></mrow></msub><mo>=</mo><mn>0</mn></mrow></math>。</li>
+<li>绕 y 轴：每个质量块贡献 <math><mrow><mn>1</mn><mo>×</mo><msup><mn>0.5</mn><mn>2</mn></msup><mo>=</mo><mn>0.25</mn></mrow></math>，合计 <math><mrow><msub><mi>I</mi><mrow><mi>y</mi><mi>y</mi></mrow></msub><mo>=</mo><mn>0.5</mn></mrow></math>。</li>
+<li>绕 z 轴：同理 <math><mrow><msub><mi>I</mi><mrow><mi>z</mi><mi>z</mi></mrow></msub><mo>=</mo><mn>0.5</mn></mrow></math>。</li>
+</ul>
+<p>写成矩阵就是 <code>[[0,0,0],[0,0.5,0],[0,0,0.5]]</code>。</p>
+<p>一个常见误读：<math><mrow><mi>I</mi><mo>=</mo><mi>m</mi><msup><mi>r</mi><mn class="tml-sml-pad">2</mn></msup></mrow></math> 只在「单个质量点绕固定轴」时成立，不是通用公式。通用算法永远是「逐块算距离平方，再加总」。</p>
 </div>
-<svg width="660" height="250" viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg">
-  <rect width="660" height="250" fill="#14181f"/>
-  <g transform="translate(165,125)">
-    <line x1="-90" y1="0" x2="90" y2="0" stroke="#e25555" stroke-width="1.5"/>
-    <line x1="0" y1="-80" x2="0" y2="80" stroke="#e25555" stroke-width="1.5"/>
-    <text x="94" y="4" fill="#e25555" font-size="12">x</text>
-    <text x="4" y="-84" fill="#e25555" font-size="12">y</text>
-    <g transform="rotate(30)">
-      <line x1="-70" y1="0" x2="70" y2="0" stroke="#8b93a3" stroke-width="6"/>
-      <circle cx="-70" cy="0" r="22" fill="#d8a018"/>
-      <circle cx="70" cy="0" r="14" fill="#d8a018"/>
-      <line x1="-100" y1="0" x2="100" y2="0" stroke="#4f9cf7" stroke-width="1.5" stroke-dasharray="6 4"/>
-      <line x1="0" y1="-70" x2="0" y2="70" stroke="#4f9cf7" stroke-width="1.5" stroke-dasharray="6 4"/>
-    </g>
-    <text x="104" y="58" fill="#4f9cf7" font-size="12">主轴</text>
-    <text x="-150" y="110" fill="#c8cfd9" font-size="13">坐标轴 ≠ 主轴：非对角元不为零</text>
-  </g>
-  <g transform="translate(495,125)">
-    <g>
-      <line x1="-70" y1="0" x2="70" y2="0" stroke="#8b93a3" stroke-width="6"/>
-      <circle cx="-70" cy="0" r="22" fill="#d8a018"/>
-      <circle cx="70" cy="0" r="14" fill="#d8a018"/>
-      <line x1="-100" y1="0" x2="100" y2="0" stroke="#4f9cf7" stroke-width="1.5"/>
-      <line x1="0" y1="-70" x2="0" y2="70" stroke="#4f9cf7" stroke-width="1.5"/>
-      <text x="104" y="4" fill="#4f9cf7" font-size="12">I₁ 轴</text>
-      <text x="4" y="-74" fill="#4f9cf7" font-size="12">I₂ 轴</text>
-    </g>
-    <text x="-150" y="110" fill="#c8cfd9" font-size="13">坐标轴 = 主轴：只剩 3 个对角值</text>
-  </g>
+<svg width="640" height="320" viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)">
+  <defs>
+    <marker id="arrx" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-3)"/></marker>
+    <marker id="arry" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-3)"/></marker>
+  </defs>
+  <line x1="60" y1="150" x2="596" y2="150" stroke="var(--ink-3)" stroke-width="2" marker-end="url(#arrx)"/>
+  <line x1="320" y1="270" x2="320" y2="34" stroke="var(--ink-3)" stroke-width="2" marker-end="url(#arry)"/>
+  <line x1="120" y1="150" x2="520" y2="150" stroke="var(--ink-3)" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="120" cy="150" r="17" fill="var(--accent)" fill-opacity="0.85"/>
+  <circle cx="520" cy="150" r="17" fill="var(--accent)" fill-opacity="0.85"/>
+  <text x="120" y="155" text-anchor="middle" font-size="11" fill="var(--bg)">1 kg</text>
+  <text x="520" y="155" text-anchor="middle" font-size="11" fill="var(--bg)">1 kg</text>
+  <line x1="120" y1="158" x2="120" y2="176" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="320" y1="158" x2="320" y2="176" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="120" y1="176" x2="320" y2="176" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="320" y1="176" x2="520" y2="176" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="520" y1="158" x2="520" y2="176" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="220" y="194" text-anchor="middle" font-size="12" fill="var(--ink-2)">r = 0.5 m</text>
+  <text x="420" y="194" text-anchor="middle" font-size="12" fill="var(--ink-2)">r = 0.5 m</text>
+  <text x="600" y="146" font-size="14" fill="var(--ink-3)">x</text>
+  <text x="328" y="42" font-size="14" fill="var(--ink-3)">y</text>
+  <text x="24" y="246" font-size="13" fill="var(--ink)">绕 y 轴：每个贡献 1 × 0.5² = 0.25</text>
+  <text x="24" y="266" font-size="13" fill="var(--ink)">绕 x 轴：质量块在轴上，距离 0</text>
+  <text x="24" y="30" font-size="12" fill="var(--ink-3)">杆不计质量</text>
 </svg>
-<div class="am-md"><p>同一个刚体，两种坐标系。左边：坐标轴没对准质量分布，惯量矩阵的非对角元不是零。右边：坐标轴沿主轴，矩阵只剩对角 3 个数，但这 3 个数只对「转过来的坐标系」成立——所以要再记一个朝向。</p>
+<div class="am-md"><p>图注（F1）：从 +z 侧俯视 xy 平面，视线沿 -z。灰色箭头是坐标轴 x 与 y，本图里它们同时是两条转轴。灰杆连接两个主色质量块，虚线标出每个质量块到 y 轴的垂直距离。距离按比例绘制。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-C">
-<header class="am-panel-head"><span class="am-panel-id">C</span><h2>最小示例</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>三个质点拼一个歪哑铃，先算出 3x3 惯量张量，再做特征值分解。特征值就是 3 个主惯量，特征向量就是主轴朝向。脚本在 <code>assets/inertia-tensor/inertia_demo.py</code>，用 python3 + numpy 跑：</p>
+<header class="am-panel-head"><span class="am-panel-id">C</span><h2>矩阵里为什么有六个数</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>惯量张量是对称矩阵（<math><mrow><msub><mi>I</mi><mrow><mi>x</mi><mi>y</mi></mrow></msub><mo>=</mo><msub><mi>I</mi><mrow><mi>y</mi><mi>x</mi></mrow></msub></mrow></math>），所以 9 个格子里只有 6 个独立元素。对角元之外的叫惯量积，定义是：</p>
+<p><math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>I</mi><mrow><mi>x</mi><mi>y</mi></mrow></msub><mo>=</mo><mo form="prefix" stretchy="false">−</mo><mo movablelimits="false">∫</mo><mi>x</mi><mi>y</mi><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></p>
+<p><math><msub><mi>I</mi><mrow><mi>x</mi><mi>z</mi></mrow></msub></math>、<math><msub><mi>I</mi><mrow><mi>y</mi><mi>z</mi></mrow></msub></math> 同型，换一对坐标即可。惯量积用大白话说：质量分布歪着时，绕 x 轴转也会带出 y 方向角动量。这种现象叫「串轴」——拧一个轴，别的轴跟着动。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>元素</th>
+<th>物理含义</th>
+<th>怎么算</th>
+<th>什么时候为零</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><math><msub><mi>I</mi><mrow><mi>x</mi><mi>x</mi></mrow></msub></math></td>
+<td>绕 x 轴转的难易</td>
+<td><math><mrow><mo movablelimits="false">∫</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mi>y</mi><mn class="tml-sml-pad">2</mn></msup><mo>+</mo><msup><mi>z</mi><mn class="tml-sml-pad">2</mn></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></td>
+<td>质量全在 x 轴上</td>
+</tr>
+<tr>
+<td><math><msub><mi>I</mi><mrow><mi>y</mi><mi>y</mi></mrow></msub></math></td>
+<td>绕 y 轴转的难易</td>
+<td><math><mrow><mo movablelimits="false">∫</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mi>x</mi><mn class="tml-sml-pad">2</mn></msup><mo>+</mo><msup><mi>z</mi><mn class="tml-sml-pad">2</mn></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></td>
+<td>质量全在 y 轴上</td>
+</tr>
+<tr>
+<td><math><msub><mi>I</mi><mrow><mi>z</mi><mi>z</mi></mrow></msub></math></td>
+<td>绕 z 轴转的难易</td>
+<td><math><mrow><mo movablelimits="false">∫</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mi>x</mi><mn class="tml-sml-pad">2</mn></msup><mo>+</mo><msup><mi>y</mi><mn class="tml-sml-pad">2</mn></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></td>
+<td>质量全在 z 轴上</td>
+</tr>
+<tr>
+<td><math><msub><mi>I</mi><mrow><mi>x</mi><mi>y</mi></mrow></msub></math></td>
+<td>x 与 y 之间的串轴强度</td>
+<td><math><mrow><mo form="prefix" stretchy="false">−</mo><mo movablelimits="false">∫</mo><mi>x</mi><mi>y</mi><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></td>
+<td>质量分布关于 x 或 y 轴对称</td>
+</tr>
+<tr>
+<td><math><msub><mi>I</mi><mrow><mi>x</mi><mi>z</mi></mrow></msub></math></td>
+<td>x 与 z 之间的串轴强度</td>
+<td><math><mrow><mo form="prefix" stretchy="false">−</mo><mo movablelimits="false">∫</mo><mi>x</mi><mi>z</mi><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></td>
+<td>质量分布关于 x 或 z 轴对称</td>
+</tr>
+<tr>
+<td><math><msub><mi>I</mi><mrow><mi>y</mi><mi>z</mi></mrow></msub></math></td>
+<td>y 与 z 之间的串轴强度</td>
+<td><math><mrow><mo form="prefix" stretchy="false">−</mo><mo movablelimits="false">∫</mo><mi>y</mi><mi>z</mi><mspace width="0.1667em"></mspace><mrow><mi mathvariant="normal">d</mi><mspace></mspace></mrow><mi>m</mi></mrow></math></td>
+<td>质量分布关于 y 或 z 轴对称</td>
+</tr>
+</tbody></table></div>
 </div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title">inertia_demo.py</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="python"><span class="am-ln">import numpy as np</span><span class="am-ln"></span><span class="am-ln"># 三个质点（质量 m，位置 p），拼一个歪的哑铃形</span><span class="am-ln">pts = [(2.0, np.array([ 1.0, 0.3, 0.0])),</span><span class="am-ln">       (2.0, np.array([-0.6, 0.8, 0.2])),</span><span class="am-ln">       (1.0, np.array([ 0.2,-0.5, 0.9]))]</span><span class="am-ln">M = sum(m for m, _ in pts)</span><span class="am-ln">com = sum(m*p for m, p in pts) / M</span><span class="am-ln"></span><span class="am-ln"># 质心系下累加 3x3 惯量张量</span><span class="am-ln">I = np.zeros((3, 3))</span><span class="am-ln">for m, p in pts:</span><span class="am-ln">    r = p - com</span><span class="am-ln">    I += m * ((r @ r) * np.eye(3) - np.outer(r, r))</span><span class="am-ln"></span><span class="am-ln">vals, vecs = np.linalg.eigh(I)   # 特征值 = 主惯量，特征向量 = 主轴</span><span class="am-ln">print(&quot;惯量张量 I =\n&quot;, I)</span><span class="am-ln">print(&quot;主惯量（对角 3 个数）:&quot;, vals)</span><span class="am-ln">print(&quot;主轴矩阵（每列一根轴）:\n&quot;, vecs)</span><span class="am-ln">print(&quot;转进主轴系 R.T @ I @ R =\n&quot;, vecs.T @ I @ vecs)</span></code></pre></figure>
-<div class="am-md"><p>实测输出（numpy 2.x，保留 4 位小数）：</p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">惯量张量 I =</span><span class="am-ln"> [[1.684  0.8    0.32 ]</span><span class="am-ln">  [0.8    3.112  0.572]</span><span class="am-ln">  [0.32   0.572  3.692]]        ← 非对角元不为零：坐标轴不是主轴</span><span class="am-ln">主惯量（对角 3 个数）: [1.3242 2.9198 4.244 ]</span><span class="am-ln">主轴矩阵（每列一根轴）:</span><span class="am-ln"> [[ 0.9156  0.2909  0.2775]</span><span class="am-ln">  [-0.4011  0.7072  0.5822]</span><span class="am-ln">  [-0.0268 -0.6444  0.7642]]</span><span class="am-ln">转进主轴系 R.T @ I @ R =</span><span class="am-ln"> [[1.3242 0.     0.    ]</span><span class="am-ln">  [0.     2.9198 0.    ]</span><span class="am-ln">  [0.     0.     4.244 ]]       ← 对角化完成</span></code></pre></figure>
-<div class="am-md"><p>最后一行印证「3 个数 + 一个朝向」：对角值来自特征值，朝向来自特征向量（四元数只是更紧凑的存储写法）。</p>
+<svg width="640" height="340" viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)">
+  <defs>
+    <marker id="f2x" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
+    <marker id="f2y" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-2)"/></marker>
+    <marker id="f2p" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="var(--accent)"/></marker>
+  </defs>
+  <line x1="100" y1="160" x2="580" y2="160" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#f2x)"/>
+  <line x1="260" y1="320" x2="260" y2="16" stroke="var(--ink-2)" stroke-width="1.5" marker-end="url(#f2y)"/>
+  <text x="586" y="156" font-size="14" fill="var(--accent)">x</text>
+  <text x="268" y="24" font-size="14" fill="var(--ink-2)">y</text>
+  <circle cx="410" cy="115" r="8" fill="var(--ink)"/>
+  <text x="422" y="112" font-size="12" fill="var(--ink)">P1 (1.0, 0.3), z = 0</text>
+  <circle cx="170" cy="40" r="8" fill="var(--ink)"/>
+  <text x="182" y="44" font-size="12" fill="var(--ink)">P2 (-0.6, 0.8), z = 0.2</text>
+  <circle cx="290" cy="235" r="8" fill="var(--ink)"/>
+  <text x="302" y="239" font-size="12" fill="var(--ink)">P3 (0.2, -0.5), z = 0.9</text>
+  <line x1="283" y1="109" x2="297" y2="109" stroke="var(--bg)" stroke-width="5"/>
+  <line x1="290" y1="102" x2="290" y2="116" stroke="var(--bg)" stroke-width="5"/>
+  <line x1="283" y1="109" x2="297" y2="109" stroke="var(--ink-3)" stroke-width="1"/>
+  <line x1="290" y1="102" x2="290" y2="116" stroke="var(--ink-3)" stroke-width="1"/>
+  <text x="302" y="100" font-size="12" fill="var(--ink-3)">质心 (0.2, 0.34)</text>
+  <line x1="480" y1="270" x2="480" y2="190" stroke="var(--accent)" stroke-width="2.5" marker-start="url(#f2p)" marker-end="url(#f2p)"/>
+  <text x="492" y="238" font-size="12" fill="var(--accent)">绕 x 转带出的</text>
+  <text x="492" y="256" font-size="12" fill="var(--accent)">y 方向角动量分量</text>
+</svg>
+<div class="am-md"><p>图注（F2）：从 +z 侧俯视 xy 平面，视线沿 -z。三个深色点是质量点，坐标按比例，z 值写在各自标注里。主色箭头是 x 轴，灰色箭头是 y 轴，十字标记是质心。主色双头粗箭头表示绕 x 转时会带出 y 方向的角动量分量。它只示意存在这个分量，不代表正负方向。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-D">
-<header class="am-panel-head"><span class="am-panel-id">D</span><h2>素材</h2></header>
-<div class="am-panel-body"><div class="am-md"><ul>
-<li>MuJoCo 官方 XML 参考的 <code>&lt;inertial&gt;</code> 元素（mass / pos / quat / diaginertia 字段定义）：<a href="https://mujoco.readthedocs.io/en/stable/XMLreference.html#body-inertial">mujoco.readthedocs.io XMLreference</a></li>
-<li>主轴选取的对称性法则与对角化推导（中文）：<a href="https://zhuanlan.zhihu.com/p/137394465">知乎：一般性刚体惯量主轴的选取</a></li>
-<li>严格的动力学推导（英文讲义 §3.2）：<a href="https://www.damtp.cam.ac.uk/user/tong/dynamics/three.pdf">David Tong, The Motion of Rigid Bodies</a></li>
+<header class="am-panel-head"><span class="am-panel-id">D</span><h2>换个坐标系看同一个刚体</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>同一个刚体，坐标轴一转，惯量矩阵跟着变：<math><mrow><msup><mi>I</mi><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msup><mo>=</mo><msup><mi>R</mi><mi class="tml-med-pad">𝖳</mi></msup><mi>I</mi><mi>R</mi></mrow></math>。<math><mi>R</mi></math> 是旋转矩阵，绕 z 轴转 θ 时：</p>
+<p><math display="block" class="tml-display" style="display:block math;"><mrow><mi>R</mi><mo>=</mo><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mtable><mtr><mtd style="padding-left:0em;padding-right:5.9776pt;"><mrow><mrow><mi>cos</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mi>θ</mi></mrow></mtd><mtd style="padding-left:5.9776pt;padding-right:5.9776pt;"><mrow><mo form="prefix" stretchy="false">−</mo><mrow><mi>sin</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mi>θ</mi></mrow></mtd><mtd style="padding-left:5.9776pt;padding-right:0em;"><mn>0</mn></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:5.9776pt;"><mrow><mrow><mi>sin</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mi>θ</mi></mrow></mtd><mtd style="padding-left:5.9776pt;padding-right:5.9776pt;"><mrow><mrow><mi>cos</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mi>θ</mi></mrow></mtd><mtd style="padding-left:5.9776pt;padding-right:0em;"><mn>0</mn></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:5.9776pt;"><mn>0</mn></mtd><mtd style="padding-left:5.9776pt;padding-right:5.9776pt;"><mn>0</mn></mtd><mtd style="padding-left:5.9776pt;padding-right:0em;"><mn>1</mn></mtd></mtr></mtable><mo fence="true" form="postfix" stretchy="true">)</mo></mrow></mrow></math></p>
+<p>下面这只「歪哑铃」由三个质点组成，质心 (0.2, 0.34, 0.26)：</p>
+<ul>
+<li>m = 2，位置 (1.0, 0.3, 0.0)</li>
+<li>m = 2，位置 (-0.6, 0.8, 0.2)</li>
+<li>m = 1，位置 (0.2, -0.5, 0.9)</li>
 </ul>
+<p>它在质心系里的惯量矩阵是：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><button class="am-code-copy" type="button" data-am="copy-code" data-done="Copied ✓">Copy</button></figcaption><pre class="am-code"><code><span class="am-ln">[[1.684  0.8    0.32 ]</span><span class="am-ln"> [0.8    3.112  0.572]</span><span class="am-ln"> [0.32   0.572  3.692]]</span></code></pre></figure>
+<div class="am-md"><p>拖动滑块，看矩阵随 θ 实时变化：</p>
+</div>
+<div style="border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--bg);font-family:var(--font-sans);max-width:640px">
+  <div style="margin-bottom:10px">
+    <label for="th" style="font-size:14px;color:var(--ink)">绕 z 轴转角 θ：</label>
+    <input id="th" type="range" min="0" max="90" step="1" value="0" style="width:240px;vertical-align:middle">
+    <span id="thv" style="font-family:var(--font-mono);font-size:14px;color:var(--accent);margin-left:8px">0°</span>
+    <button id="rst" style="margin-left:14px;font-size:13px;padding:2px 10px;border:1px solid var(--line);border-radius:5px;background:var(--fill);color:var(--ink);cursor:pointer">重置</button>
+  </div>
+  <table id="mtab" style="border-collapse:collapse;font-family:var(--font-mono);font-size:13px;margin-bottom:10px"></table>
+  <div style="font-size:12px;color:var(--ink-3);margin-bottom:10px">带底色 = 对角元（绕轴难易）；无底色 = 副对角元（串轴强度）</div>
+  <div id="bars" style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2)"></div>
+  <div style="font-size:13px;color:var(--ink-2);margin-top:10px">提示：不管 θ 怎么拖，I<sub>zz</sub> 恒为 3.692——绕 z 转不改变质量块到 z 轴的距离。</div>
+  <div style="font-size:13px;color:var(--ink);margin-top:8px">观察任务：① 拖到 90°，看 I<sub>xx</sub> 与 I<sub>yy</sub> 互换、I<sub>xy</sub> 变号；② 任意拖，确认 I<sub>zz</sub> 不变；③ 试着找副对角元同时为零的角度——找不到，除非转到主轴系（一般三维旋转，本滑块只绕 z 一根轴）。</div>
+</div>
+<script>
+(function(){
+  var I=[[1.684,0.8,0.32],[0.8,3.112,0.572],[0.32,0.572,3.692]];
+  var th=document.getElementById('th'),thv=document.getElementById('thv'),
+      tab=document.getElementById('mtab'),bars=document.getElementById('bars');
+  function calc(deg){
+    var t=deg*Math.PI/180,c=Math.cos(t),s=Math.sin(t);
+    var R=[[c,-s,0],[s,c,0],[0,0,1]];
+    var M=[[0,0,0],[0,0,0],[0,0,0]],i,j,k,l;
+    for(i=0;i<3;i++)for(j=0;j<3;j++){var v=0;
+      for(k=0;k<3;k++)for(l=0;l<3;l++)v+=R[k][i]*I[k][l]*R[l][j];
+      M[i][j]=Math.abs(v)<5e-4?0:v;}
+    return M;
+  }
+  function render(){
+    var deg=+th.value;thv.textContent=deg+'°';
+    var M=calc(deg),head=['x','y','z'];
+    var cell='border:1px solid var(--line);padding:6px 12px;';
+    var html='<tr><td style="'+cell+'"></td>';
+    for(var c=0;c<3;c++) html+='<td style="'+cell+'text-align:center;color:var(--ink-3)">'+head[c]+'</td>';
+    html+='</tr>';
+    for(var i=0;i<3;i++){html+='<tr><td style="'+cell+'color:var(--ink-3)">'+head[i]+'</td>';
+      for(var j=0;j<3;j++){
+        var diag=i===j;
+        html+='<td style="'+cell+'text-align:right;'+
+          (diag?'background:var(--accent-bg);color:var(--ink);font-weight:bold':'color:var(--ink-2)')+
+          '">'+M[i][j].toFixed(4)+'</td>';
+      }
+      html+='</tr>';}
+    tab.innerHTML=html;
+    var names=['|I_xy|','|I_xz|','|I_yz|'],vals=[Math.abs(M[0][1]),Math.abs(M[0][2]),Math.abs(M[1][2])],bh='';
+    for(var n=0;n<3;n++){
+      var w=Math.round(vals[n]/1.2*220);
+      bh+='<div style="display:flex;align-items:center;gap:8px;margin:3px 0">'+
+        '<span style="width:52px">'+names[n]+'</span>'+
+        '<span style="display:inline-block;height:10px;width:'+w+'px;background:var(--accent);border-radius:2px"></span>'+
+        '<span>'+vals[n].toFixed(4)+'</span></div>';
+    }
+    bars.innerHTML=bh;
+  }
+  th.addEventListener('input',render);
+  document.getElementById('rst').addEventListener('click',function(){th.value=0;render();});
+  render();
+})();
+</script>
+<div class="am-md"><p>图注（F3）：滑块把坐标系绕 z 轴转 θ，矩阵数值由 <math><mrow><msup><mi>I</mi><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msup><mo>=</mo><msup><mi>R</mi><mi class="tml-med-pad">𝖳</mi></msup><mi>I</mi><mi>R</mi></mrow></math> 实时算出。行和列的表头是矩阵对应的 x、y、z 分量。带底色格是对角元，无底色格是副对角元，条形是三个副对角元的绝对值。</p>
+<p>这四组数由同一条公式用 numpy 实算，拖滑块到对应角度可互相验证：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>θ</th>
+<th><math><msubsup><mi>I</mi><mrow><mi>x</mi><mi>x</mi></mrow><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msubsup></math></th>
+<th><math><msubsup><mi>I</mi><mrow><mi>y</mi><mi>y</mi></mrow><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msubsup></math></th>
+<th><math><msubsup><mi>I</mi><mrow><mi>z</mi><mi>z</mi></mrow><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msubsup></math></th>
+<th><math><msubsup><mi>I</mi><mrow><mi>x</mi><mi>y</mi></mrow><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msubsup></math></th>
+<th><math><msubsup><mi>I</mi><mrow><mi>x</mi><mi>z</mi></mrow><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msubsup></math></th>
+<th><math><msubsup><mi>I</mi><mrow><mi>y</mi><mi>z</mi></mrow><mo lspace="0em" rspace="0em" class="tml-prime tml-med-pad">′</mo></msubsup></math></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0°</td>
+<td>1.684</td>
+<td>3.112</td>
+<td>3.692</td>
+<td>0.8</td>
+<td>0.32</td>
+<td>0.572</td>
+</tr>
+<tr>
+<td>30°</td>
+<td>2.7338</td>
+<td>2.0622</td>
+<td>3.692</td>
+<td>1.0183</td>
+<td>0.5631</td>
+<td>0.3354</td>
+</tr>
+<tr>
+<td>45°</td>
+<td>3.198</td>
+<td>1.598</td>
+<td>3.692</td>
+<td>0.714</td>
+<td>0.6307</td>
+<td>0.1782</td>
+</tr>
+<tr>
+<td>90°</td>
+<td>3.112</td>
+<td>1.684</td>
+<td>3.692</td>
+<td>-0.8</td>
+<td>0.572</td>
+<td>-0.32</td>
+</tr>
+</tbody></table></div>
 </div></div>
 </section>
 <section class="am-panel" id="panel-E">
-<header class="am-panel-head"><span class="am-panel-id">E</span><h2>自测</h2></header>
-<div class="am-panel-body"><details>
-<summary><b>1.</b> 一个 L 形零件，你拿到的惯量矩阵里非对角元不是零。这说明什么？（A）数据一定错了，非对角元必须是零　（B）正常——你用的坐标轴没对准它的主轴　（C）零件有负质量　（D）测量仪器坏了</summary>
-<p><b>答案：B。</b>非对角元（惯量积）记录的是「串轴」：坐标系和主轴不重合时它们必然出现。把坐标系旋转到主轴方向，矩阵自然只剩对角值。A 是最常见的误判——把「非对角非零」当成数据错误。</p>
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>主轴：转到不串轴的方向</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>总存在一个让矩阵变对角的朝向。数学依据是谱分解：实对称矩阵一定能分解出一组互相垂直的特征方向，旋转到这组方向后，<math><mrow><msup><mi>R</mi><mi class="tml-med-pad">𝖳</mi></msup><mi>I</mi><mi>R</mi><mo>=</mo><mpadded lspace="0"><mi>diag</mi></mpadded><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>I</mi><mn>1</mn></msub><mo separator="true">,</mo><msub><mi>I</mi><mn>2</mn></msub><mo separator="true">,</mo><msub><mi>I</mi><mn>3</mn></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></math>。这组方向叫主轴，特征值叫主惯量，特征向量就是主轴方向。推导略去，记住结论即可。</p>
+<p>对上面的歪哑铃跑一遍配套脚本 <code>python3 assets/inertia_demo.py</code>（需 numpy），实测输出：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><button class="am-code-copy" type="button" data-am="copy-code" data-done="Copied ✓">Copy</button></figcaption><pre class="am-code"><code><span class="am-ln">主惯量（特征值升序）：[1.3242  2.9198  4.244 ]</span><span class="am-ln">主轴矩阵（每列一根轴）：</span><span class="am-ln">[[ 0.9156  0.2909  0.2775]</span><span class="am-ln"> [-0.4011  0.7072  0.5822]</span><span class="am-ln"> [-0.0268 -0.6444  0.7642]]</span><span class="am-ln">R.T @ I @ R：</span><span class="am-ln">[[1.3242  0.      0.    ]</span><span class="am-ln"> [0.      2.9198  0.    ]</span><span class="am-ln"> [0.      0.      4.244 ]]</span></code></pre></figure>
+<div class="am-md"><p>转到主轴系后，六个副对角元全部归零，串轴消失。</p>
+</div>
+<svg width="720" height="320" viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)">
+  <defs>
+    <marker id="f4ax" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-3)"/></marker>
+    <marker id="f4a" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="var(--ink-2)"/></marker>
+  </defs>
+  <line x1="250" y1="180" x2="319" y2="190" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#f4ax)"/>
+  <line x1="250" y1="180" x2="250" y2="117" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#f4ax)"/>
+  <line x1="250" y1="180" x2="313" y2="155" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#f4ax)"/>
+  <text x="324" y="206" font-size="12" fill="var(--ink-3)">x</text>
+  <text x="256" y="112" font-size="12" fill="var(--ink-3)">y</text>
+  <text x="319" y="150" font-size="12" fill="var(--ink-3)">z</text>
+  <circle cx="343" cy="167" r="7" fill="var(--ink)"/>
+  <text x="355" y="162" font-size="11" fill="var(--ink-2)">P1</text>
+  <circle cx="204" cy="83" r="7" fill="var(--ink)"/>
+  <text x="192" y="96" font-size="11" fill="var(--ink-2)">P2</text>
+  <circle cx="361" cy="198" r="7" fill="var(--ink)"/>
+  <text x="373" y="201" font-size="11" fill="var(--ink-2)">P3</text>
+  <line x1="192" y1="122" x2="332" y2="200" stroke="var(--accent)" stroke-width="2.5"/>
+  <line x1="212" y1="99" x2="312" y2="223" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="8 5"/>
+  <line x1="199" y1="210" x2="325" y2="112" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="2 4"/>
+  <line x1="253" y1="161" x2="271" y2="161" stroke="var(--bg)" stroke-width="5"/>
+  <line x1="262" y1="152" x2="262" y2="170" stroke="var(--bg)" stroke-width="5"/>
+  <line x1="253" y1="161" x2="271" y2="161" stroke="var(--ink-3)" stroke-width="1.2"/>
+  <line x1="262" y1="152" x2="262" y2="170" stroke="var(--ink-3)" stroke-width="1.2"/>
+  <line x1="70" y1="26" x2="100" y2="26" stroke="var(--accent)" stroke-width="2.5"/>
+  <text x="107" y="30" font-size="12" fill="var(--ink)">主轴 1 · 1.3242</text>
+  <line x1="70" y1="46" x2="100" y2="46" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="8 5"/>
+  <text x="107" y="50" font-size="12" fill="var(--ink)">主轴 2 · 2.9198</text>
+  <line x1="70" y1="66" x2="100" y2="66" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="2 4"/>
+  <text x="107" y="70" font-size="12" fill="var(--ink)">主轴 3 · 4.244</text>
+  <g font-family="var(--font-mono)" font-size="12">
+    <rect x="452" y="52" width="58" height="42" fill="var(--accent-bg)" stroke="var(--line)"/>
+    <rect x="510" y="52" width="58" height="42" fill="none" stroke="var(--line)"/>
+    <rect x="568" y="52" width="58" height="42" fill="none" stroke="var(--line)"/>
+    <rect x="452" y="94" width="58" height="42" fill="none" stroke="var(--line)"/>
+    <rect x="510" y="94" width="58" height="42" fill="var(--accent-bg)" stroke="var(--line)"/>
+    <rect x="568" y="94" width="58" height="42" fill="none" stroke="var(--line)"/>
+    <rect x="452" y="136" width="58" height="42" fill="none" stroke="var(--line)"/>
+    <rect x="510" y="136" width="58" height="42" fill="none" stroke="var(--line)"/>
+    <rect x="568" y="136" width="58" height="42" fill="var(--accent-bg)" stroke="var(--line)"/>
+    <text x="481" y="78" text-anchor="middle" fill="var(--ink)">1.3242</text>
+    <text x="539" y="78" text-anchor="middle" fill="var(--ink-3)">0</text>
+    <text x="597" y="78" text-anchor="middle" fill="var(--ink-3)">0</text>
+    <text x="481" y="120" text-anchor="middle" fill="var(--ink-3)">0</text>
+    <text x="539" y="120" text-anchor="middle" fill="var(--ink)">2.9198</text>
+    <text x="597" y="120" text-anchor="middle" fill="var(--ink-3)">0</text>
+    <text x="481" y="162" text-anchor="middle" fill="var(--ink-3)">0</text>
+    <text x="539" y="162" text-anchor="middle" fill="var(--ink-3)">0</text>
+    <text x="597" y="162" text-anchor="middle" fill="var(--ink)">4.244</text>
+  </g>
+  <line x1="539" y1="186" x2="539" y2="222" stroke="var(--ink-2)" stroke-width="1.5" marker-end="url(#f4a)"/>
+  <text x="539" y="244" text-anchor="middle" font-size="13" fill="var(--ink)">主轴朝向另记一个四元数（3 个自由度）</text>
+</svg>
+<div class="am-md"><p>图注（F4）：左半是斜视的三质点刚体。x 轴朝右下、y 轴朝上、z 轴朝右上，灰色细线是坐标轴。三个深色点是质量点 P1、P2、P3，十字标记是质心。</p>
+<p>三根主色线从质心出发，是三根主轴；主轴是无向直线，正向反向等价。方向按主轴矩阵的列投影到该视角：三维投到屏幕二维，只保留方向，不保留长度。右半是主轴系里的 3x3 矩阵：带底色三格是主惯量，无底色 0 是归零后的副对角元。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>为什么最后只存三个数加一个朝向</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>因为不丢信息，而且算起来最省事。先数信息量：三个主惯量 3 个数，朝向 3 个自由度，合计 6；对称矩阵恰好 6 个独立元素，一一对应。</p>
+<p>再看计算：主轴系里转动方程没有交叉项，<math><mrow><msub><mi>τ</mi><mi>x</mi></msub><mo>=</mo><msub><mi>I</mi><mn>1</mn></msub><msub><mi>α</mi><mi>x</mi></msub></mrow></math>，三个分量各算各的，数值积分最干净。物理引擎因此直接存对角化后的结果，而不是 9 个格子。</p>
+<p>朝向一般用四元数存，不用三个欧拉角。欧拉角在某些姿态下两个转轴会重合，丢一个自由度，俗称万向节死锁。就像万向节两环转到同一平面，卡死一个方向。细节见复习区的四元数概念页。</p>
+<p>前提两条：刚体（形状不变），质量分布不随时间变。软体、可变形体不适用这套存法。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>四个常踩的坑</h2></header>
+<div class="am-panel-body"><div style="font-family:var(--font-sans);max-width:640px">
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">坑 1：看到非对角元非零，以为数据错了</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">坐标轴没对准主轴时，副对角元必然非零，换一组轴数值就变。先换到主轴系再下结论。</div>
 </details>
-<details>
-<summary><b>2.</b> 仿真器存「3 个对角值 + 1 个朝向四元数」，而不是直接存 3x3 矩阵的 6 个独立元素。根本原因是什么？（A）省内存　（B）主轴系下转动方程最简，存的就是对角化后的现成结果　（C）四元数比矩阵精确　（D）历史习惯</summary>
-<p><b>答案：B。</b>刚体转动方程在主轴系里没有交叉项，数值积分最干净。既然算之前总要先对角化，不如直接存对角化后的结果：3 个主惯量 + 主轴朝向。7 个数反而比 6 个多，A 不成立。</p>
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">坑 2：忘了惯量相对某个点算</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">同一个刚体，相对质心和相对边角算出的矩阵不同。只有相对质心那份，才和质心平动互不干扰。</div>
 </details>
-<details>
-<summary><b>3.</b> 把一个刚体的 3 个主惯量都放大 2 倍，质量和质心不动。它在仿真里会怎样？（A）下落变慢　（B）同样的力矩下，角加速度减半　（C）接触摩擦变大　（D）没有变化</summary>
-<p><b>答案：B。</b>转动版牛顿第二定律：力矩 = 惯量 × 角加速度。惯量翻倍，同样的力矩只能产生一半角加速度——转起来更「钝」。平移运动只由质量决定，A 错。</p>
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">坑 3：单位搞错</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">惯量单位是 kg·m²，距离进公式前先平方。m 与 cm 混用一档，结果差一万倍。</div>
 </details>
-<details>
-<summary><b>4.</b> 两个刚体质量相同、质心相同，惯量张量可以差很多吗？（A）不可能，质量和质心定了惯量就定了　（B）可以，惯量还取决于质量分布离轴多远　（C）可以，但只差一个常数倍　（D）只在外形是球时才可能</summary>
-<p><b>答案：B。</b>惯量 ∝ 质量 × 到轴距离的平方。同样 1 kg，压成球和拉成哑铃，主惯量差几个量级。质量和质心只是质量分布的最低阶信息，定不了惯量。</p>
-</details></div>
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">坑 4：没确认排序与四元数约定</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">主惯量有升序、降序两种排序约定，各家不同。朝向四元数里 q 与 -q 表示同一个姿态（双覆盖）。读别人数据前，先确认这两条约定。</div>
+</details>
+</div></div>
+</section>
+<section class="am-panel" id="panel-H">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>自测与复习</h2></header>
+<div class="am-panel-body"><div style="font-family:var(--font-sans);max-width:640px">
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">1. 两个 2 kg 质量块在 y = ±1 m，中间一根不计质量的杆。它在质心处的惯量矩阵是哪个？A) [[4,0,0],[0,0,0],[0,0,4]]　B) [[0,0,0],[0,4,0],[0,0,0]]　C) [[4,2,0],[2,0,0],[0,0,4]]　D) [[2,0,0],[0,0,0],[0,0,2]]</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">答案 A。绕 y 轴转时质量块在轴上，<i>I</i><sub>yy</sub> = 0；绕 x 轴、绕 z 轴转时各离轴 1 m，每块贡献 2 × 1² = 2，两块共 4。质量块全在 y 轴上，任意两个坐标的乘积都是 0，所以三个副对角元全为零。</div>
+</details>
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">2. 歪哑铃的坐标系绕 z 轴从 0° 转到 90°，矩阵里哪些元素会变？A) 九个全变　B) 除 I<sub>zz</sub> 外都变　C) 只有对角元变　D) 都不变</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">答案 B。绕 z 旋转只重排 x 和 y 两个方向，z 轴不动，质量块到 z 轴的距离不变，<i>I</i><sub>zz</sub> 不变；其余五个独立元素都变。可拖 D 面板滑块到 90° 对照。</div>
+</details>
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">3. E 面板 F4 图右半的矩阵里，六个无底色的 0 格对应刚体的什么性质？A) 主惯量为零　B) 质心在原点　C) 主轴系里没有串轴　D) 刚体不受重力</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">答案 C。那六个 0 是归零后的副对角元：主轴系下绕一根主轴转，不会带出别的方向的角动量。这正是转到主轴系的意义。</div>
+</details>
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">4. 为什么「三个对角值加一个朝向四元数」和直接存 3x3 矩阵表示的是同一份信息？A) 四元数比矩阵精确　B) 两种表示都是 6 个独立数，只是打包方式不同　C) 矩阵有 3 个元素恒为零　D) 主轴取法唯一</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">答案 B。对称矩阵有 6 个独立元素；三个主惯量加朝向的 3 个自由度也是 6 个，一一对应。与精度无关，一般坐标系下副对角元也不恒为零。</div>
+</details>
+<details style="border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0">
+<summary style="cursor:pointer;color:var(--ink)">5. 某刚体三个主惯量都乘 2，质量不变，同样的力矩和同样的力之下会怎样？A) 角加速度减半，平动加速度不变　B) 角加速度减半，平动加速度也减半　C) 角加速度不变　D) 下落变慢</summary>
+<div style="color:var(--ink-2);font-size:14px;margin-top:8px">答案 A。平动加速度等于力除以质量，质量没变所以平动不变；转动按 τ = <i>I</i>α，惯量翻倍角加速度减半。下落是平动，不受影响。</div>
+</details>
+</div>
+<div class="am-md"><h3>复习与拓展</h3>
+<ul>
+<li><a href="https://www.damtp.cam.ac.uk/user/tong/dynamics/three.pdf">David Tong 动力学讲义 §3.2（英文）</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/137394465">知乎：一般性刚体惯量主轴的选取</a></li>
+<li><a href="../quaternion.html">四元数概念页</a>：本页对朝向四元数一句带过，细节看这里</li>
+</ul>
+</div></div>
 </section>
 </div>
 </div>
 </main>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-20 10:57 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-22 21:04 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
-title: 惯量张量：转动惯量为什么不是一个数
-subtitle: 从标量 mr² 到「3 个对角值 + 一个主轴朝向」
+title: 惯量张量：描述一个刚体的转动惯性，需要哪些数据
+subtitle: 从手算一只哑铃，到「三个数加一个朝向」
 ---
 
-推一个箱子走直线，只需要知道质量。让它在空中转起来，只给质量就不够了：绕不同的轴转，「难推动」的程度不同，还会互相串扰。完整描述转动惯性的是一个 3x3 矩阵——惯量张量。这一页讲清它的结构，以及仿真器为什么最后只存 3 个数加 1 个朝向。
+## A 结论与验收承诺
 
-## 一句话版本
+推一个箱子走直线，只要知道质量；让它在空中转起来，质量一个数就不够了。完整描述转动惯性，需要 3 个数加一个朝向——也就是 3x3 惯量张量对角化后的三个主惯量，加一组主轴朝向。
 
-- 刚体绕不同的轴转，「难推动」的程度不同。
-- 完整描述要一个 3x3 对称矩阵，叫惯量张量。
-- 把坐标系转到一组特殊方向（主轴）上，矩阵只剩对角 3 个数。
-- 主轴相对刚体的朝向，另用一个四元数记录。
-- 仿真器存的转动惯量 = 3 个对角数 + 1 个朝向四元数。
+读完本页，你能独立做三件事：
 
-## 为什么不是一个数
+1. 手算一只哑铃绕某条轴的转动惯量，判断 3x3 矩阵里哪些元素该为零。
+2. 预测坐标系绕 z 轴转过某个角度后，矩阵里哪几个数会变。
+3. 解释「三个对角值加一个朝向」为什么不丢信息。
 
-标量转动惯量 I = mr² 只回答「绕固定轴」的问题。刚体自由转动时，转轴可以是任何方向。
+## B 转动惯量是「质量乘距离的平方」
 
-1. 方向不同，数值不同。一根细杆绕长轴转很省力，绕短轴转很费力。一个数说不全。
-2. 质量分布歪的时候，绕 x 轴转也会带出 y 轴方向的角动量。这种「串轴」写在矩阵非对角元里，叫惯量积。
-3. 数学结论：3x3 实对称矩阵总能靠旋转坐标系变成对角矩阵。这组坐标轴叫主轴，对角值叫主惯量。
-4. 主轴系下没有「串轴」，转动方程最简。仿真器因此直接存对角化后的结果。
+转动惯量衡量绕某条轴转动的难易，定义是把每个质量块到轴的垂直距离平方乘上质量，再全部加起来。绕 x 轴写作：
+
+&lt;math display=&quot;block&quot; class=&quot;tml-display&quot; style=&quot;display:block math;&quot;&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;(&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot; stretchy=&quot;false&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt;
+
+绕 y 轴、绕 z 轴对称换元即可。单位是 kg·m²。
+
+手算一例：两个 1 kg 质量块在 x = ±0.5 m，中间一根不计质量的杆。
+
+- 绕 x 轴：质量块在轴上，距离为 0，&lt;math&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mrow&gt;&lt;/math&gt;。
+- 绕 y 轴：每个质量块贡献 &lt;math&gt;&lt;mrow&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mo&gt;×&lt;/mo&gt;&lt;msup&gt;&lt;mn&gt;0.5&lt;/mn&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;0.25&lt;/mn&gt;&lt;/mrow&gt;&lt;/math&gt;，合计 &lt;math&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;0.5&lt;/mn&gt;&lt;/mrow&gt;&lt;/math&gt;。
+- 绕 z 轴：同理 &lt;math&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;0.5&lt;/mn&gt;&lt;/mrow&gt;&lt;/math&gt;。
+
+写成矩阵就是 `[[0,0,0],[0,0.5,0],[0,0,0.5]]`。
+
+一个常见误读：&lt;math&gt;&lt;mrow&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;msup&gt;&lt;mi&gt;r&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/math&gt; 只在「单个质量点绕固定轴」时成立，不是通用公式。通用算法永远是「逐块算距离平方，再加总」。
 
 ```svg
-&lt;svg width=&quot;660&quot; height=&quot;250&quot; viewBox=&quot;0 0 660 250&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
-  &lt;rect width=&quot;660&quot; height=&quot;250&quot; fill=&quot;#14181f&quot;/&gt;
-  &lt;g transform=&quot;translate(165,125)&quot;&gt;
-    &lt;line x1=&quot;-90&quot; y1=&quot;0&quot; x2=&quot;90&quot; y2=&quot;0&quot; stroke=&quot;#e25555&quot; stroke-width=&quot;1.5&quot;/&gt;
-    &lt;line x1=&quot;0&quot; y1=&quot;-80&quot; x2=&quot;0&quot; y2=&quot;80&quot; stroke=&quot;#e25555&quot; stroke-width=&quot;1.5&quot;/&gt;
-    &lt;text x=&quot;94&quot; y=&quot;4&quot; fill=&quot;#e25555&quot; font-size=&quot;12&quot;&gt;x&lt;/text&gt;
-    &lt;text x=&quot;4&quot; y=&quot;-84&quot; fill=&quot;#e25555&quot; font-size=&quot;12&quot;&gt;y&lt;/text&gt;
-    &lt;g transform=&quot;rotate(30)&quot;&gt;
-      &lt;line x1=&quot;-70&quot; y1=&quot;0&quot; x2=&quot;70&quot; y2=&quot;0&quot; stroke=&quot;#8b93a3&quot; stroke-width=&quot;6&quot;/&gt;
-      &lt;circle cx=&quot;-70&quot; cy=&quot;0&quot; r=&quot;22&quot; fill=&quot;#d8a018&quot;/&gt;
-      &lt;circle cx=&quot;70&quot; cy=&quot;0&quot; r=&quot;14&quot; fill=&quot;#d8a018&quot;/&gt;
-      &lt;line x1=&quot;-100&quot; y1=&quot;0&quot; x2=&quot;100&quot; y2=&quot;0&quot; stroke=&quot;#4f9cf7&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;6 4&quot;/&gt;
-      &lt;line x1=&quot;0&quot; y1=&quot;-70&quot; x2=&quot;0&quot; y2=&quot;70&quot; stroke=&quot;#4f9cf7&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;6 4&quot;/&gt;
-    &lt;/g&gt;
-    &lt;text x=&quot;104&quot; y=&quot;58&quot; fill=&quot;#4f9cf7&quot; font-size=&quot;12&quot;&gt;主轴&lt;/text&gt;
-    &lt;text x=&quot;-150&quot; y=&quot;110&quot; fill=&quot;#c8cfd9&quot; font-size=&quot;13&quot;&gt;坐标轴 ≠ 主轴：非对角元不为零&lt;/text&gt;
-  &lt;/g&gt;
-  &lt;g transform=&quot;translate(495,125)&quot;&gt;
-    &lt;g&gt;
-      &lt;line x1=&quot;-70&quot; y1=&quot;0&quot; x2=&quot;70&quot; y2=&quot;0&quot; stroke=&quot;#8b93a3&quot; stroke-width=&quot;6&quot;/&gt;
-      &lt;circle cx=&quot;-70&quot; cy=&quot;0&quot; r=&quot;22&quot; fill=&quot;#d8a018&quot;/&gt;
-      &lt;circle cx=&quot;70&quot; cy=&quot;0&quot; r=&quot;14&quot; fill=&quot;#d8a018&quot;/&gt;
-      &lt;line x1=&quot;-100&quot; y1=&quot;0&quot; x2=&quot;100&quot; y2=&quot;0&quot; stroke=&quot;#4f9cf7&quot; stroke-width=&quot;1.5&quot;/&gt;
-      &lt;line x1=&quot;0&quot; y1=&quot;-70&quot; x2=&quot;0&quot; y2=&quot;70&quot; stroke=&quot;#4f9cf7&quot; stroke-width=&quot;1.5&quot;/&gt;
-      &lt;text x=&quot;104&quot; y=&quot;4&quot; fill=&quot;#4f9cf7&quot; font-size=&quot;12&quot;&gt;I₁ 轴&lt;/text&gt;
-      &lt;text x=&quot;4&quot; y=&quot;-74&quot; fill=&quot;#4f9cf7&quot; font-size=&quot;12&quot;&gt;I₂ 轴&lt;/text&gt;
-    &lt;/g&gt;
-    &lt;text x=&quot;-150&quot; y=&quot;110&quot; fill=&quot;#c8cfd9&quot; font-size=&quot;13&quot;&gt;坐标轴 = 主轴：只剩 3 个对角值&lt;/text&gt;
-  &lt;/g&gt;
+&lt;svg width=&quot;640&quot; height=&quot;320&quot; viewBox=&quot;0 0 640 320&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; font-family=&quot;var(--font-sans)&quot;&gt;
+  &lt;defs&gt;
+    &lt;marker id=&quot;arrx&quot; markerWidth=&quot;8&quot; markerHeight=&quot;8&quot; refX=&quot;6&quot; refY=&quot;3&quot; orient=&quot;auto&quot;&gt;&lt;path d=&quot;M0,0 L6,3 L0,6 Z&quot; fill=&quot;var(--ink-3)&quot;/&gt;&lt;/marker&gt;
+    &lt;marker id=&quot;arry&quot; markerWidth=&quot;8&quot; markerHeight=&quot;8&quot; refX=&quot;6&quot; refY=&quot;3&quot; orient=&quot;auto&quot;&gt;&lt;path d=&quot;M0,0 L6,3 L0,6 Z&quot; fill=&quot;var(--ink-3)&quot;/&gt;&lt;/marker&gt;
+  &lt;/defs&gt;
+  &lt;line x1=&quot;60&quot; y1=&quot;150&quot; x2=&quot;596&quot; y2=&quot;150&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;2&quot; marker-end=&quot;url(#arrx)&quot;/&gt;
+  &lt;line x1=&quot;320&quot; y1=&quot;270&quot; x2=&quot;320&quot; y2=&quot;34&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;2&quot; marker-end=&quot;url(#arry)&quot;/&gt;
+  &lt;line x1=&quot;120&quot; y1=&quot;150&quot; x2=&quot;520&quot; y2=&quot;150&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;8&quot; stroke-linecap=&quot;round&quot;/&gt;
+  &lt;circle cx=&quot;120&quot; cy=&quot;150&quot; r=&quot;17&quot; fill=&quot;var(--accent)&quot; fill-opacity=&quot;0.85&quot;/&gt;
+  &lt;circle cx=&quot;520&quot; cy=&quot;150&quot; r=&quot;17&quot; fill=&quot;var(--accent)&quot; fill-opacity=&quot;0.85&quot;/&gt;
+  &lt;text x=&quot;120&quot; y=&quot;155&quot; text-anchor=&quot;middle&quot; font-size=&quot;11&quot; fill=&quot;var(--bg)&quot;&gt;1 kg&lt;/text&gt;
+  &lt;text x=&quot;520&quot; y=&quot;155&quot; text-anchor=&quot;middle&quot; font-size=&quot;11&quot; fill=&quot;var(--bg)&quot;&gt;1 kg&lt;/text&gt;
+  &lt;line x1=&quot;120&quot; y1=&quot;158&quot; x2=&quot;120&quot; y2=&quot;176&quot; stroke=&quot;var(--ink-2)&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;4 3&quot;/&gt;
+  &lt;line x1=&quot;320&quot; y1=&quot;158&quot; x2=&quot;320&quot; y2=&quot;176&quot; stroke=&quot;var(--ink-2)&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;4 3&quot;/&gt;
+  &lt;line x1=&quot;120&quot; y1=&quot;176&quot; x2=&quot;320&quot; y2=&quot;176&quot; stroke=&quot;var(--ink-2)&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;4 3&quot;/&gt;
+  &lt;line x1=&quot;320&quot; y1=&quot;176&quot; x2=&quot;520&quot; y2=&quot;176&quot; stroke=&quot;var(--ink-2)&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;4 3&quot;/&gt;
+  &lt;line x1=&quot;520&quot; y1=&quot;158&quot; x2=&quot;520&quot; y2=&quot;176&quot; stroke=&quot;var(--ink-2)&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;4 3&quot;/&gt;
+  &lt;text x=&quot;220&quot; y=&quot;194&quot; text-anchor=&quot;middle&quot; font-size=&quot;12&quot; fill=&quot;var(--ink-2)&quot;&gt;r = 0.5 m&lt;/text&gt;
+  &lt;text x=&quot;420&quot; y=&quot;194&quot; text-anchor=&quot;middle&quot; font-size=&quot;12&quot; fill=&quot;var(--ink-2)&quot;&gt;r = 0.5 m&lt;/text&gt;
+  &lt;text x=&quot;600&quot; y=&quot;146&quot; font-size=&quot;14&quot; fill=&quot;var(--ink-3)&quot;&gt;x&lt;/text&gt;
+  &lt;text x=&quot;328&quot; y=&quot;42&quot; font-size=&quot;14&quot; fill=&quot;var(--ink-3)&quot;&gt;y&lt;/text&gt;
+  &lt;text x=&quot;24&quot; y=&quot;246&quot; font-size=&quot;13&quot; fill=&quot;var(--ink)&quot;&gt;绕 y 轴：每个贡献 1 × 0.5² = 0.25&lt;/text&gt;
+  &lt;text x=&quot;24&quot; y=&quot;266&quot; font-size=&quot;13&quot; fill=&quot;var(--ink)&quot;&gt;绕 x 轴：质量块在轴上，距离 0&lt;/text&gt;
+  &lt;text x=&quot;24&quot; y=&quot;30&quot; font-size=&quot;12&quot; fill=&quot;var(--ink-3)&quot;&gt;杆不计质量&lt;/text&gt;
 &lt;/svg&gt;
 ```
 
-同一个刚体，两种坐标系。左边：坐标轴没对准质量分布，惯量矩阵的非对角元不是零。右边：坐标轴沿主轴，矩阵只剩对角 3 个数，但这 3 个数只对「转过来的坐标系」成立——所以要再记一个朝向。
+图注（F1）：从 +z 侧俯视 xy 平面，视线沿 -z。灰色箭头是坐标轴 x 与 y，本图里它们同时是两条转轴。灰杆连接两个主色质量块，虚线标出每个质量块到 y 轴的垂直距离。距离按比例绘制。
 
-## 最小示例
+## C 矩阵里为什么有六个数
 
-三个质点拼一个歪哑铃，先算出 3x3 惯量张量，再做特征值分解。特征值就是 3 个主惯量，特征向量就是主轴朝向。脚本在 `assets/inertia-tensor/inertia_demo.py`，用 python3 + numpy 跑：
+惯量张量是对称矩阵（&lt;math&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/mrow&gt;&lt;/math&gt;），所以 9 个格子里只有 6 个独立元素。对角元之外的叫惯量积，定义是：
 
-```python title=&quot;inertia_demo.py&quot;
-import numpy as np
+&lt;math display=&quot;block&quot; class=&quot;tml-display&quot; style=&quot;display:block math;&quot;&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mo form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;−&lt;/mo&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt;
 
-# 三个质点（质量 m，位置 p），拼一个歪的哑铃形
-pts = [(2.0, np.array([ 1.0, 0.3, 0.0])),
-       (2.0, np.array([-0.6, 0.8, 0.2])),
-       (1.0, np.array([ 0.2,-0.5, 0.9]))]
-M = sum(m for m, _ in pts)
-com = sum(m*p for m, p in pts) / M
+&lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt;、&lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt; 同型，换一对坐标即可。惯量积用大白话说：质量分布歪着时，绕 x 轴转也会带出 y 方向角动量。这种现象叫「串轴」——拧一个轴，别的轴跟着动。
 
-# 质心系下累加 3x3 惯量张量
-I = np.zeros((3, 3))
-for m, p in pts:
-    r = p - com
-    I += m * ((r @ r) * np.eye(3) - np.outer(r, r))
+| 元素 | 物理含义 | 怎么算 | 什么时候为零 |
+|---|---|---|---|
+| &lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt; | 绕 x 轴转的难易 | &lt;math&gt;&lt;mrow&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;(&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot; stretchy=&quot;false&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt; | 质量全在 x 轴上 |
+| &lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt; | 绕 y 轴转的难易 | &lt;math&gt;&lt;mrow&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;(&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot; stretchy=&quot;false&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt; | 质量全在 y 轴上 |
+| &lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt; | 绕 z 轴转的难易 | &lt;math&gt;&lt;mrow&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;(&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mn class=&quot;tml-sml-pad&quot;&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot; stretchy=&quot;false&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt; | 质量全在 z 轴上 |
+| &lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt; | x 与 y 之间的串轴强度 | &lt;math&gt;&lt;mrow&gt;&lt;mo form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;−&lt;/mo&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt; | 质量分布关于 x 或 y 轴对称 |
+| &lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt; | x 与 z 之间的串轴强度 | &lt;math&gt;&lt;mrow&gt;&lt;mo form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;−&lt;/mo&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt; | 质量分布关于 x 或 z 轴对称 |
+| &lt;math&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;/math&gt; | y 与 z 之间的串轴强度 | &lt;math&gt;&lt;mrow&gt;&lt;mo form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;−&lt;/mo&gt;&lt;mo movablelimits=&quot;false&quot;&gt;∫&lt;/mo&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mi mathvariant=&quot;normal&quot;&gt;d&lt;/mi&gt;&lt;mspace&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt; | 质量分布关于 y 或 z 轴对称 |
 
-vals, vecs = np.linalg.eigh(I)   # 特征值 = 主惯量，特征向量 = 主轴
-print(&quot;惯量张量 I =\n&quot;, I)
-print(&quot;主惯量（对角 3 个数）:&quot;, vals)
-print(&quot;主轴矩阵（每列一根轴）:\n&quot;, vecs)
-print(&quot;转进主轴系 R.T @ I @ R =\n&quot;, vecs.T @ I @ vecs)
+```svg
+&lt;svg width=&quot;640&quot; height=&quot;340&quot; viewBox=&quot;0 0 640 340&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; font-family=&quot;var(--font-sans)&quot;&gt;
+  &lt;defs&gt;
+    &lt;marker id=&quot;f2x&quot; markerWidth=&quot;8&quot; markerHeight=&quot;8&quot; refX=&quot;6&quot; refY=&quot;3&quot; orient=&quot;auto&quot;&gt;&lt;path d=&quot;M0,0 L6,3 L0,6 Z&quot; fill=&quot;var(--accent)&quot;/&gt;&lt;/marker&gt;
+    &lt;marker id=&quot;f2y&quot; markerWidth=&quot;8&quot; markerHeight=&quot;8&quot; refX=&quot;6&quot; refY=&quot;3&quot; orient=&quot;auto&quot;&gt;&lt;path d=&quot;M0,0 L6,3 L0,6 Z&quot; fill=&quot;var(--ink-2)&quot;/&gt;&lt;/marker&gt;
+    &lt;marker id=&quot;f2p&quot; markerWidth=&quot;9&quot; markerHeight=&quot;9&quot; refX=&quot;7&quot; refY=&quot;3.5&quot; orient=&quot;auto&quot;&gt;&lt;path d=&quot;M0,0 L7,3.5 L0,7 Z&quot; fill=&quot;var(--accent)&quot;/&gt;&lt;/marker&gt;
+  &lt;/defs&gt;
+  &lt;line x1=&quot;100&quot; y1=&quot;160&quot; x2=&quot;580&quot; y2=&quot;160&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#f2x)&quot;/&gt;
+  &lt;line x1=&quot;260&quot; y1=&quot;320&quot; x2=&quot;260&quot; y2=&quot;16&quot; stroke=&quot;var(--ink-2)&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#f2y)&quot;/&gt;
+  &lt;text x=&quot;586&quot; y=&quot;156&quot; font-size=&quot;14&quot; fill=&quot;var(--accent)&quot;&gt;x&lt;/text&gt;
+  &lt;text x=&quot;268&quot; y=&quot;24&quot; font-size=&quot;14&quot; fill=&quot;var(--ink-2)&quot;&gt;y&lt;/text&gt;
+  &lt;circle cx=&quot;410&quot; cy=&quot;115&quot; r=&quot;8&quot; fill=&quot;var(--ink)&quot;/&gt;
+  &lt;text x=&quot;422&quot; y=&quot;112&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;P1 (1.0, 0.3), z = 0&lt;/text&gt;
+  &lt;circle cx=&quot;170&quot; cy=&quot;40&quot; r=&quot;8&quot; fill=&quot;var(--ink)&quot;/&gt;
+  &lt;text x=&quot;182&quot; y=&quot;44&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;P2 (-0.6, 0.8), z = 0.2&lt;/text&gt;
+  &lt;circle cx=&quot;290&quot; cy=&quot;235&quot; r=&quot;8&quot; fill=&quot;var(--ink)&quot;/&gt;
+  &lt;text x=&quot;302&quot; y=&quot;239&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;P3 (0.2, -0.5), z = 0.9&lt;/text&gt;
+  &lt;line x1=&quot;283&quot; y1=&quot;109&quot; x2=&quot;297&quot; y2=&quot;109&quot; stroke=&quot;var(--bg)&quot; stroke-width=&quot;5&quot;/&gt;
+  &lt;line x1=&quot;290&quot; y1=&quot;102&quot; x2=&quot;290&quot; y2=&quot;116&quot; stroke=&quot;var(--bg)&quot; stroke-width=&quot;5&quot;/&gt;
+  &lt;line x1=&quot;283&quot; y1=&quot;109&quot; x2=&quot;297&quot; y2=&quot;109&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;1&quot;/&gt;
+  &lt;line x1=&quot;290&quot; y1=&quot;102&quot; x2=&quot;290&quot; y2=&quot;116&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;1&quot;/&gt;
+  &lt;text x=&quot;302&quot; y=&quot;100&quot; font-size=&quot;12&quot; fill=&quot;var(--ink-3)&quot;&gt;质心 (0.2, 0.34)&lt;/text&gt;
+  &lt;line x1=&quot;480&quot; y1=&quot;270&quot; x2=&quot;480&quot; y2=&quot;190&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;2.5&quot; marker-start=&quot;url(#f2p)&quot; marker-end=&quot;url(#f2p)&quot;/&gt;
+  &lt;text x=&quot;492&quot; y=&quot;238&quot; font-size=&quot;12&quot; fill=&quot;var(--accent)&quot;&gt;绕 x 转带出的&lt;/text&gt;
+  &lt;text x=&quot;492&quot; y=&quot;256&quot; font-size=&quot;12&quot; fill=&quot;var(--accent)&quot;&gt;y 方向角动量分量&lt;/text&gt;
+&lt;/svg&gt;
 ```
 
-实测输出（numpy 2.x，保留 4 位小数）：
+图注（F2）：从 +z 侧俯视 xy 平面，视线沿 -z。三个深色点是质量点，坐标按比例，z 值写在各自标注里。主色箭头是 x 轴，灰色箭头是 y 轴，十字标记是质心。主色双头粗箭头表示绕 x 转时会带出 y 方向的角动量分量。它只示意存在这个分量，不代表正负方向。
 
-```text
-惯量张量 I =
- [[1.684  0.8    0.32 ]
-  [0.8    3.112  0.572]
-  [0.32   0.572  3.692]]        ← 非对角元不为零：坐标轴不是主轴
-主惯量（对角 3 个数）: [1.3242 2.9198 4.244 ]
-主轴矩阵（每列一根轴）:
- [[ 0.9156  0.2909  0.2775]
-  [-0.4011  0.7072  0.5822]
-  [-0.0268 -0.6444  0.7642]]
-转进主轴系 R.T @ I @ R =
- [[1.3242 0.     0.    ]
-  [0.     2.9198 0.    ]
-  [0.     0.     4.244 ]]       ← 对角化完成
+## D 换个坐标系看同一个刚体
+
+同一个刚体，坐标轴一转，惯量矩阵跟着变：&lt;math&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msup&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;mi class=&quot;tml-med-pad&quot;&gt;𝖳&lt;/mi&gt;&lt;/msup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt;。&lt;math&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;/math&gt; 是旋转矩阵，绕 z 轴转 θ 时：
+
+&lt;math display=&quot;block&quot; class=&quot;tml-display&quot; style=&quot;display:block math;&quot;&gt;&lt;mrow&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot; stretchy=&quot;true&quot;&gt;(&lt;/mo&gt;&lt;mtable&gt;&lt;mtr&gt;&lt;mtd style=&quot;padding-left:0em;padding-right:5.9776pt;&quot;&gt;&lt;mrow&gt;&lt;mrow&gt;&lt;mi&gt;cos&lt;/mi&gt;&lt;mo&gt;⁡&lt;/mo&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;θ&lt;/mi&gt;&lt;/mrow&gt;&lt;/mtd&gt;&lt;mtd style=&quot;padding-left:5.9776pt;padding-right:5.9776pt;&quot;&gt;&lt;mrow&gt;&lt;mo form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;−&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;sin&lt;/mi&gt;&lt;mo&gt;⁡&lt;/mo&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;θ&lt;/mi&gt;&lt;/mrow&gt;&lt;/mtd&gt;&lt;mtd style=&quot;padding-left:5.9776pt;padding-right:0em;&quot;&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mtd&gt;&lt;/mtr&gt;&lt;mtr&gt;&lt;mtd style=&quot;padding-left:0em;padding-right:5.9776pt;&quot;&gt;&lt;mrow&gt;&lt;mrow&gt;&lt;mi&gt;sin&lt;/mi&gt;&lt;mo&gt;⁡&lt;/mo&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;θ&lt;/mi&gt;&lt;/mrow&gt;&lt;/mtd&gt;&lt;mtd style=&quot;padding-left:5.9776pt;padding-right:5.9776pt;&quot;&gt;&lt;mrow&gt;&lt;mrow&gt;&lt;mi&gt;cos&lt;/mi&gt;&lt;mo&gt;⁡&lt;/mo&gt;&lt;mspace width=&quot;0.1667em&quot;&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;θ&lt;/mi&gt;&lt;/mrow&gt;&lt;/mtd&gt;&lt;mtd style=&quot;padding-left:5.9776pt;padding-right:0em;&quot;&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mtd&gt;&lt;/mtr&gt;&lt;mtr&gt;&lt;mtd style=&quot;padding-left:0em;padding-right:5.9776pt;&quot;&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mtd&gt;&lt;mtd style=&quot;padding-left:5.9776pt;padding-right:5.9776pt;&quot;&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mtd&gt;&lt;mtd style=&quot;padding-left:5.9776pt;padding-right:0em;&quot;&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mtd&gt;&lt;/mtr&gt;&lt;/mtable&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot; stretchy=&quot;true&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;/math&gt;
+
+下面这只「歪哑铃」由三个质点组成，质心 (0.2, 0.34, 0.26)：
+
+- m = 2，位置 (1.0, 0.3, 0.0)
+- m = 2，位置 (-0.6, 0.8, 0.2)
+- m = 1，位置 (0.2, -0.5, 0.9)
+
+它在质心系里的惯量矩阵是：
+
+```
+[[1.684  0.8    0.32 ]
+ [0.8    3.112  0.572]
+ [0.32   0.572  3.692]]
 ```
 
-最后一行印证「3 个数 + 一个朝向」：对角值来自特征值，朝向来自特征向量（四元数只是更紧凑的存储写法）。
-
-## 素材
-
-- MuJoCo 官方 XML 参考的 `&lt;inertial&gt;` 元素（mass / pos / quat / diaginertia 字段定义）：[mujoco.readthedocs.io XMLreference](https://mujoco.readthedocs.io/en/stable/XMLreference.html#body-inertial)
-- 主轴选取的对称性法则与对角化推导（中文）：[知乎：一般性刚体惯量主轴的选取](https://zhuanlan.zhihu.com/p/137394465)
-- 严格的动力学推导（英文讲义 §3.2）：[David Tong, The Motion of Rigid Bodies](https://www.damtp.cam.ac.uk/user/tong/dynamics/three.pdf)
-
-## 自测
+拖动滑块，看矩阵随 θ 实时变化：
 
 ```html
-&lt;details&gt;
-&lt;summary&gt;&lt;b&gt;1.&lt;/b&gt; 一个 L 形零件，你拿到的惯量矩阵里非对角元不是零。这说明什么？（A）数据一定错了，非对角元必须是零　（B）正常——你用的坐标轴没对准它的主轴　（C）零件有负质量　（D）测量仪器坏了&lt;/summary&gt;
-&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;非对角元（惯量积）记录的是「串轴」：坐标系和主轴不重合时它们必然出现。把坐标系旋转到主轴方向，矩阵自然只剩对角值。A 是最常见的误判——把「非对角非零」当成数据错误。&lt;/p&gt;
-&lt;/details&gt;
-&lt;details&gt;
-&lt;summary&gt;&lt;b&gt;2.&lt;/b&gt; 仿真器存「3 个对角值 + 1 个朝向四元数」，而不是直接存 3x3 矩阵的 6 个独立元素。根本原因是什么？（A）省内存　（B）主轴系下转动方程最简，存的就是对角化后的现成结果　（C）四元数比矩阵精确　（D）历史习惯&lt;/summary&gt;
-&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;刚体转动方程在主轴系里没有交叉项，数值积分最干净。既然算之前总要先对角化，不如直接存对角化后的结果：3 个主惯量 + 主轴朝向。7 个数反而比 6 个多，A 不成立。&lt;/p&gt;
-&lt;/details&gt;
-&lt;details&gt;
-&lt;summary&gt;&lt;b&gt;3.&lt;/b&gt; 把一个刚体的 3 个主惯量都放大 2 倍，质量和质心不动。它在仿真里会怎样？（A）下落变慢　（B）同样的力矩下，角加速度减半　（C）接触摩擦变大　（D）没有变化&lt;/summary&gt;
-&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;转动版牛顿第二定律：力矩 = 惯量 × 角加速度。惯量翻倍，同样的力矩只能产生一半角加速度——转起来更「钝」。平移运动只由质量决定，A 错。&lt;/p&gt;
-&lt;/details&gt;
-&lt;details&gt;
-&lt;summary&gt;&lt;b&gt;4.&lt;/b&gt; 两个刚体质量相同、质心相同，惯量张量可以差很多吗？（A）不可能，质量和质心定了惯量就定了　（B）可以，惯量还取决于质量分布离轴多远　（C）可以，但只差一个常数倍　（D）只在外形是球时才可能&lt;/summary&gt;
-&lt;p&gt;&lt;b&gt;答案：B。&lt;/b&gt;惯量 ∝ 质量 × 到轴距离的平方。同样 1 kg，压成球和拉成哑铃，主惯量差几个量级。质量和质心只是质量分布的最低阶信息，定不了惯量。&lt;/p&gt;
-&lt;/details&gt;
+&lt;div style=&quot;border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--bg);font-family:var(--font-sans);max-width:640px&quot;&gt;
+  &lt;div style=&quot;margin-bottom:10px&quot;&gt;
+    &lt;label for=&quot;th&quot; style=&quot;font-size:14px;color:var(--ink)&quot;&gt;绕 z 轴转角 θ：&lt;/label&gt;
+    &lt;input id=&quot;th&quot; type=&quot;range&quot; min=&quot;0&quot; max=&quot;90&quot; step=&quot;1&quot; value=&quot;0&quot; style=&quot;width:240px;vertical-align:middle&quot;&gt;
+    &lt;span id=&quot;thv&quot; style=&quot;font-family:var(--font-mono);font-size:14px;color:var(--accent);margin-left:8px&quot;&gt;0°&lt;/span&gt;
+    &lt;button id=&quot;rst&quot; style=&quot;margin-left:14px;font-size:13px;padding:2px 10px;border:1px solid var(--line);border-radius:5px;background:var(--fill);color:var(--ink);cursor:pointer&quot;&gt;重置&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;table id=&quot;mtab&quot; style=&quot;border-collapse:collapse;font-family:var(--font-mono);font-size:13px;margin-bottom:10px&quot;&gt;&lt;/table&gt;
+  &lt;div style=&quot;font-size:12px;color:var(--ink-3);margin-bottom:10px&quot;&gt;带底色 = 对角元（绕轴难易）；无底色 = 副对角元（串轴强度）&lt;/div&gt;
+  &lt;div id=&quot;bars&quot; style=&quot;font-family:var(--font-mono);font-size:12px;color:var(--ink-2)&quot;&gt;&lt;/div&gt;
+  &lt;div style=&quot;font-size:13px;color:var(--ink-2);margin-top:10px&quot;&gt;提示：不管 θ 怎么拖，I&lt;sub&gt;zz&lt;/sub&gt; 恒为 3.692——绕 z 转不改变质量块到 z 轴的距离。&lt;/div&gt;
+  &lt;div style=&quot;font-size:13px;color:var(--ink);margin-top:8px&quot;&gt;观察任务：① 拖到 90°，看 I&lt;sub&gt;xx&lt;/sub&gt; 与 I&lt;sub&gt;yy&lt;/sub&gt; 互换、I&lt;sub&gt;xy&lt;/sub&gt; 变号；② 任意拖，确认 I&lt;sub&gt;zz&lt;/sub&gt; 不变；③ 试着找副对角元同时为零的角度——找不到，除非转到主轴系（一般三维旋转，本滑块只绕 z 一根轴）。&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+(function(){
+  var I=[[1.684,0.8,0.32],[0.8,3.112,0.572],[0.32,0.572,3.692]];
+  var th=document.getElementById(&#39;th&#39;),thv=document.getElementById(&#39;thv&#39;),
+      tab=document.getElementById(&#39;mtab&#39;),bars=document.getElementById(&#39;bars&#39;);
+  function calc(deg){
+    var t=deg*Math.PI/180,c=Math.cos(t),s=Math.sin(t);
+    var R=[[c,-s,0],[s,c,0],[0,0,1]];
+    var M=[[0,0,0],[0,0,0],[0,0,0]],i,j,k,l;
+    for(i=0;i&lt;3;i++)for(j=0;j&lt;3;j++){var v=0;
+      for(k=0;k&lt;3;k++)for(l=0;l&lt;3;l++)v+=R[k][i]*I[k][l]*R[l][j];
+      M[i][j]=Math.abs(v)&lt;5e-4?0:v;}
+    return M;
+  }
+  function render(){
+    var deg=+th.value;thv.textContent=deg+&#39;°&#39;;
+    var M=calc(deg),head=[&#39;x&#39;,&#39;y&#39;,&#39;z&#39;];
+    var cell=&#39;border:1px solid var(--line);padding:6px 12px;&#39;;
+    var html=&#39;&lt;tr&gt;&lt;td style=&quot;&#39;+cell+&#39;&quot;&gt;&lt;/td&gt;&#39;;
+    for(var c=0;c&lt;3;c++) html+=&#39;&lt;td style=&quot;&#39;+cell+&#39;text-align:center;color:var(--ink-3)&quot;&gt;&#39;+head[c]+&#39;&lt;/td&gt;&#39;;
+    html+=&#39;&lt;/tr&gt;&#39;;
+    for(var i=0;i&lt;3;i++){html+=&#39;&lt;tr&gt;&lt;td style=&quot;&#39;+cell+&#39;color:var(--ink-3)&quot;&gt;&#39;+head[i]+&#39;&lt;/td&gt;&#39;;
+      for(var j=0;j&lt;3;j++){
+        var diag=i===j;
+        html+=&#39;&lt;td style=&quot;&#39;+cell+&#39;text-align:right;&#39;+
+          (diag?&#39;background:var(--accent-bg);color:var(--ink);font-weight:bold&#39;:&#39;color:var(--ink-2)&#39;)+
+          &#39;&quot;&gt;&#39;+M[i][j].toFixed(4)+&#39;&lt;/td&gt;&#39;;
+      }
+      html+=&#39;&lt;/tr&gt;&#39;;}
+    tab.innerHTML=html;
+    var names=[&#39;|I_xy|&#39;,&#39;|I_xz|&#39;,&#39;|I_yz|&#39;],vals=[Math.abs(M[0][1]),Math.abs(M[0][2]),Math.abs(M[1][2])],bh=&#39;&#39;;
+    for(var n=0;n&lt;3;n++){
+      var w=Math.round(vals[n]/1.2*220);
+      bh+=&#39;&lt;div style=&quot;display:flex;align-items:center;gap:8px;margin:3px 0&quot;&gt;&#39;+
+        &#39;&lt;span style=&quot;width:52px&quot;&gt;&#39;+names[n]+&#39;&lt;/span&gt;&#39;+
+        &#39;&lt;span style=&quot;display:inline-block;height:10px;width:&#39;+w+&#39;px;background:var(--accent);border-radius:2px&quot;&gt;&lt;/span&gt;&#39;+
+        &#39;&lt;span&gt;&#39;+vals[n].toFixed(4)+&#39;&lt;/span&gt;&lt;/div&gt;&#39;;
+    }
+    bars.innerHTML=bh;
+  }
+  th.addEventListener(&#39;input&#39;,render);
+  document.getElementById(&#39;rst&#39;).addEventListener(&#39;click&#39;,function(){th.value=0;render();});
+  render();
+})();
+&lt;/script&gt;
 ```
+
+图注（F3）：滑块把坐标系绕 z 轴转 θ，矩阵数值由 &lt;math&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msup&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;mi class=&quot;tml-med-pad&quot;&gt;𝖳&lt;/mi&gt;&lt;/msup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt; 实时算出。行和列的表头是矩阵对应的 x、y、z 分量。带底色格是对角元，无底色格是副对角元，条形是三个副对角元的绝对值。
+
+这四组数由同一条公式用 numpy 实算，拖滑块到对应角度可互相验证：
+
+| θ | &lt;math&gt;&lt;msubsup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msubsup&gt;&lt;/math&gt; | &lt;math&gt;&lt;msubsup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msubsup&gt;&lt;/math&gt; | &lt;math&gt;&lt;msubsup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msubsup&gt;&lt;/math&gt; | &lt;math&gt;&lt;msubsup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msubsup&gt;&lt;/math&gt; | &lt;math&gt;&lt;msubsup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msubsup&gt;&lt;/math&gt; | &lt;math&gt;&lt;msubsup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;mo lspace=&quot;0em&quot; rspace=&quot;0em&quot; class=&quot;tml-prime tml-med-pad&quot;&gt;′&lt;/mo&gt;&lt;/msubsup&gt;&lt;/math&gt; |
+|---|---|---|---|---|---|---|
+| 0° | 1.684 | 3.112 | 3.692 | 0.8 | 0.32 | 0.572 |
+| 30° | 2.7338 | 2.0622 | 3.692 | 1.0183 | 0.5631 | 0.3354 |
+| 45° | 3.198 | 1.598 | 3.692 | 0.714 | 0.6307 | 0.1782 |
+| 90° | 3.112 | 1.684 | 3.692 | -0.8 | 0.572 | -0.32 |
+
+## E 主轴：转到不串轴的方向
+
+总存在一个让矩阵变对角的朝向。数学依据是谱分解：实对称矩阵一定能分解出一组互相垂直的特征方向，旋转到这组方向后，&lt;math&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;mi class=&quot;tml-med-pad&quot;&gt;𝖳&lt;/mi&gt;&lt;/msup&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mi&gt;R&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mpadded lspace=&quot;0&quot;&gt;&lt;mi&gt;diag&lt;/mi&gt;&lt;/mpadded&gt;&lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot; stretchy=&quot;false&quot;&gt;(&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/msub&gt;&lt;mo separator=&quot;true&quot;&gt;,&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msub&gt;&lt;mo separator=&quot;true&quot;&gt;,&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mn&gt;3&lt;/mn&gt;&lt;/msub&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot; stretchy=&quot;false&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;/math&gt;。这组方向叫主轴，特征值叫主惯量，特征向量就是主轴方向。推导略去，记住结论即可。
+
+对上面的歪哑铃跑一遍配套脚本 `python3 assets/inertia_demo.py`（需 numpy），实测输出：
+
+```
+主惯量（特征值升序）：[1.3242  2.9198  4.244 ]
+主轴矩阵（每列一根轴）：
+[[ 0.9156  0.2909  0.2775]
+ [-0.4011  0.7072  0.5822]
+ [-0.0268 -0.6444  0.7642]]
+R.T @ I @ R：
+[[1.3242  0.      0.    ]
+ [0.      2.9198  0.    ]
+ [0.      0.      4.244 ]]
+```
+
+转到主轴系后，六个副对角元全部归零，串轴消失。
+
+```svg
+&lt;svg width=&quot;720&quot; height=&quot;320&quot; viewBox=&quot;0 0 720 320&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; font-family=&quot;var(--font-sans)&quot;&gt;
+  &lt;defs&gt;
+    &lt;marker id=&quot;f4ax&quot; markerWidth=&quot;8&quot; markerHeight=&quot;8&quot; refX=&quot;6&quot; refY=&quot;3&quot; orient=&quot;auto&quot;&gt;&lt;path d=&quot;M0,0 L6,3 L0,6 Z&quot; fill=&quot;var(--ink-3)&quot;/&gt;&lt;/marker&gt;
+    &lt;marker id=&quot;f4a&quot; markerWidth=&quot;9&quot; markerHeight=&quot;9&quot; refX=&quot;7&quot; refY=&quot;3.5&quot; orient=&quot;auto&quot;&gt;&lt;path d=&quot;M0,0 L7,3.5 L0,7 Z&quot; fill=&quot;var(--ink-2)&quot;/&gt;&lt;/marker&gt;
+  &lt;/defs&gt;
+  &lt;line x1=&quot;250&quot; y1=&quot;180&quot; x2=&quot;319&quot; y2=&quot;190&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;1.2&quot; marker-end=&quot;url(#f4ax)&quot;/&gt;
+  &lt;line x1=&quot;250&quot; y1=&quot;180&quot; x2=&quot;250&quot; y2=&quot;117&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;1.2&quot; marker-end=&quot;url(#f4ax)&quot;/&gt;
+  &lt;line x1=&quot;250&quot; y1=&quot;180&quot; x2=&quot;313&quot; y2=&quot;155&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;1.2&quot; marker-end=&quot;url(#f4ax)&quot;/&gt;
+  &lt;text x=&quot;324&quot; y=&quot;206&quot; font-size=&quot;12&quot; fill=&quot;var(--ink-3)&quot;&gt;x&lt;/text&gt;
+  &lt;text x=&quot;256&quot; y=&quot;112&quot; font-size=&quot;12&quot; fill=&quot;var(--ink-3)&quot;&gt;y&lt;/text&gt;
+  &lt;text x=&quot;319&quot; y=&quot;150&quot; font-size=&quot;12&quot; fill=&quot;var(--ink-3)&quot;&gt;z&lt;/text&gt;
+  &lt;circle cx=&quot;343&quot; cy=&quot;167&quot; r=&quot;7&quot; fill=&quot;var(--ink)&quot;/&gt;
+  &lt;text x=&quot;355&quot; y=&quot;162&quot; font-size=&quot;11&quot; fill=&quot;var(--ink-2)&quot;&gt;P1&lt;/text&gt;
+  &lt;circle cx=&quot;204&quot; cy=&quot;83&quot; r=&quot;7&quot; fill=&quot;var(--ink)&quot;/&gt;
+  &lt;text x=&quot;192&quot; y=&quot;96&quot; font-size=&quot;11&quot; fill=&quot;var(--ink-2)&quot;&gt;P2&lt;/text&gt;
+  &lt;circle cx=&quot;361&quot; cy=&quot;198&quot; r=&quot;7&quot; fill=&quot;var(--ink)&quot;/&gt;
+  &lt;text x=&quot;373&quot; y=&quot;201&quot; font-size=&quot;11&quot; fill=&quot;var(--ink-2)&quot;&gt;P3&lt;/text&gt;
+  &lt;line x1=&quot;192&quot; y1=&quot;122&quot; x2=&quot;332&quot; y2=&quot;200&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;2.5&quot;/&gt;
+  &lt;line x1=&quot;212&quot; y1=&quot;99&quot; x2=&quot;312&quot; y2=&quot;223&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;8 5&quot;/&gt;
+  &lt;line x1=&quot;199&quot; y1=&quot;210&quot; x2=&quot;325&quot; y2=&quot;112&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;2 4&quot;/&gt;
+  &lt;line x1=&quot;253&quot; y1=&quot;161&quot; x2=&quot;271&quot; y2=&quot;161&quot; stroke=&quot;var(--bg)&quot; stroke-width=&quot;5&quot;/&gt;
+  &lt;line x1=&quot;262&quot; y1=&quot;152&quot; x2=&quot;262&quot; y2=&quot;170&quot; stroke=&quot;var(--bg)&quot; stroke-width=&quot;5&quot;/&gt;
+  &lt;line x1=&quot;253&quot; y1=&quot;161&quot; x2=&quot;271&quot; y2=&quot;161&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;1.2&quot;/&gt;
+  &lt;line x1=&quot;262&quot; y1=&quot;152&quot; x2=&quot;262&quot; y2=&quot;170&quot; stroke=&quot;var(--ink-3)&quot; stroke-width=&quot;1.2&quot;/&gt;
+  &lt;line x1=&quot;70&quot; y1=&quot;26&quot; x2=&quot;100&quot; y2=&quot;26&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;2.5&quot;/&gt;
+  &lt;text x=&quot;107&quot; y=&quot;30&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;主轴 1 · 1.3242&lt;/text&gt;
+  &lt;line x1=&quot;70&quot; y1=&quot;46&quot; x2=&quot;100&quot; y2=&quot;46&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;8 5&quot;/&gt;
+  &lt;text x=&quot;107&quot; y=&quot;50&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;主轴 2 · 2.9198&lt;/text&gt;
+  &lt;line x1=&quot;70&quot; y1=&quot;66&quot; x2=&quot;100&quot; y2=&quot;66&quot; stroke=&quot;var(--accent)&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;2 4&quot;/&gt;
+  &lt;text x=&quot;107&quot; y=&quot;70&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;主轴 3 · 4.244&lt;/text&gt;
+  &lt;g font-family=&quot;var(--font-mono)&quot; font-size=&quot;12&quot;&gt;
+    &lt;rect x=&quot;452&quot; y=&quot;52&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;var(--accent-bg)&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;510&quot; y=&quot;52&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;none&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;568&quot; y=&quot;52&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;none&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;452&quot; y=&quot;94&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;none&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;510&quot; y=&quot;94&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;var(--accent-bg)&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;568&quot; y=&quot;94&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;none&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;452&quot; y=&quot;136&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;none&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;510&quot; y=&quot;136&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;none&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;rect x=&quot;568&quot; y=&quot;136&quot; width=&quot;58&quot; height=&quot;42&quot; fill=&quot;var(--accent-bg)&quot; stroke=&quot;var(--line)&quot;/&gt;
+    &lt;text x=&quot;481&quot; y=&quot;78&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink)&quot;&gt;1.3242&lt;/text&gt;
+    &lt;text x=&quot;539&quot; y=&quot;78&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink-3)&quot;&gt;0&lt;/text&gt;
+    &lt;text x=&quot;597&quot; y=&quot;78&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink-3)&quot;&gt;0&lt;/text&gt;
+    &lt;text x=&quot;481&quot; y=&quot;120&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink-3)&quot;&gt;0&lt;/text&gt;
+    &lt;text x=&quot;539&quot; y=&quot;120&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink)&quot;&gt;2.9198&lt;/text&gt;
+    &lt;text x=&quot;597&quot; y=&quot;120&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink-3)&quot;&gt;0&lt;/text&gt;
+    &lt;text x=&quot;481&quot; y=&quot;162&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink-3)&quot;&gt;0&lt;/text&gt;
+    &lt;text x=&quot;539&quot; y=&quot;162&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink-3)&quot;&gt;0&lt;/text&gt;
+    &lt;text x=&quot;597&quot; y=&quot;162&quot; text-anchor=&quot;middle&quot; fill=&quot;var(--ink)&quot;&gt;4.244&lt;/text&gt;
+  &lt;/g&gt;
+  &lt;line x1=&quot;539&quot; y1=&quot;186&quot; x2=&quot;539&quot; y2=&quot;222&quot; stroke=&quot;var(--ink-2)&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#f4a)&quot;/&gt;
+  &lt;text x=&quot;539&quot; y=&quot;244&quot; text-anchor=&quot;middle&quot; font-size=&quot;13&quot; fill=&quot;var(--ink)&quot;&gt;主轴朝向另记一个四元数（3 个自由度）&lt;/text&gt;
+&lt;/svg&gt;
+```
+
+图注（F4）：左半是斜视的三质点刚体。x 轴朝右下、y 轴朝上、z 轴朝右上，灰色细线是坐标轴。三个深色点是质量点 P1、P2、P3，十字标记是质心。
+
+三根主色线从质心出发，是三根主轴；主轴是无向直线，正向反向等价。方向按主轴矩阵的列投影到该视角：三维投到屏幕二维，只保留方向，不保留长度。右半是主轴系里的 3x3 矩阵：带底色三格是主惯量，无底色 0 是归零后的副对角元。
+
+## F 为什么最后只存三个数加一个朝向
+
+因为不丢信息，而且算起来最省事。先数信息量：三个主惯量 3 个数，朝向 3 个自由度，合计 6；对称矩阵恰好 6 个独立元素，一一对应。
+
+再看计算：主轴系里转动方程没有交叉项，&lt;math&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;τ&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;I&lt;/mi&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/msub&gt;&lt;msub&gt;&lt;mi&gt;α&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/msub&gt;&lt;/mrow&gt;&lt;/math&gt;，三个分量各算各的，数值积分最干净。物理引擎因此直接存对角化后的结果，而不是 9 个格子。
+
+朝向一般用四元数存，不用三个欧拉角。欧拉角在某些姿态下两个转轴会重合，丢一个自由度，俗称万向节死锁。就像万向节两环转到同一平面，卡死一个方向。细节见复习区的四元数概念页。
+
+前提两条：刚体（形状不变），质量分布不随时间变。软体、可变形体不适用这套存法。
+
+## G 四个常踩的坑
+
+```html
+&lt;div style=&quot;font-family:var(--font-sans);max-width:640px&quot;&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;坑 1：看到非对角元非零，以为数据错了&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;坐标轴没对准主轴时，副对角元必然非零，换一组轴数值就变。先换到主轴系再下结论。&lt;/div&gt;
+&lt;/details&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;坑 2：忘了惯量相对某个点算&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;同一个刚体，相对质心和相对边角算出的矩阵不同。只有相对质心那份，才和质心平动互不干扰。&lt;/div&gt;
+&lt;/details&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;坑 3：单位搞错&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;惯量单位是 kg·m²，距离进公式前先平方。m 与 cm 混用一档，结果差一万倍。&lt;/div&gt;
+&lt;/details&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;坑 4：没确认排序与四元数约定&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;主惯量有升序、降序两种排序约定，各家不同。朝向四元数里 q 与 -q 表示同一个姿态（双覆盖）。读别人数据前，先确认这两条约定。&lt;/div&gt;
+&lt;/details&gt;
+&lt;/div&gt;
+```
+
+## H 自测与复习
+
+```html
+&lt;div style=&quot;font-family:var(--font-sans);max-width:640px&quot;&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;1. 两个 2 kg 质量块在 y = ±1 m，中间一根不计质量的杆。它在质心处的惯量矩阵是哪个？A) [[4,0,0],[0,0,0],[0,0,4]]　B) [[0,0,0],[0,4,0],[0,0,0]]　C) [[4,2,0],[2,0,0],[0,0,4]]　D) [[2,0,0],[0,0,0],[0,0,2]]&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;答案 A。绕 y 轴转时质量块在轴上，&lt;i&gt;I&lt;/i&gt;&lt;sub&gt;yy&lt;/sub&gt; = 0；绕 x 轴、绕 z 轴转时各离轴 1 m，每块贡献 2 × 1² = 2，两块共 4。质量块全在 y 轴上，任意两个坐标的乘积都是 0，所以三个副对角元全为零。&lt;/div&gt;
+&lt;/details&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;2. 歪哑铃的坐标系绕 z 轴从 0° 转到 90°，矩阵里哪些元素会变？A) 九个全变　B) 除 I&lt;sub&gt;zz&lt;/sub&gt; 外都变　C) 只有对角元变　D) 都不变&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;答案 B。绕 z 旋转只重排 x 和 y 两个方向，z 轴不动，质量块到 z 轴的距离不变，&lt;i&gt;I&lt;/i&gt;&lt;sub&gt;zz&lt;/sub&gt; 不变；其余五个独立元素都变。可拖 D 面板滑块到 90° 对照。&lt;/div&gt;
+&lt;/details&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;3. E 面板 F4 图右半的矩阵里，六个无底色的 0 格对应刚体的什么性质？A) 主惯量为零　B) 质心在原点　C) 主轴系里没有串轴　D) 刚体不受重力&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;答案 C。那六个 0 是归零后的副对角元：主轴系下绕一根主轴转，不会带出别的方向的角动量。这正是转到主轴系的意义。&lt;/div&gt;
+&lt;/details&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;4. 为什么「三个对角值加一个朝向四元数」和直接存 3x3 矩阵表示的是同一份信息？A) 四元数比矩阵精确　B) 两种表示都是 6 个独立数，只是打包方式不同　C) 矩阵有 3 个元素恒为零　D) 主轴取法唯一&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;答案 B。对称矩阵有 6 个独立元素；三个主惯量加朝向的 3 个自由度也是 6 个，一一对应。与精度无关，一般坐标系下副对角元也不恒为零。&lt;/div&gt;
+&lt;/details&gt;
+&lt;details style=&quot;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0&quot;&gt;
+&lt;summary style=&quot;cursor:pointer;color:var(--ink)&quot;&gt;5. 某刚体三个主惯量都乘 2，质量不变，同样的力矩和同样的力之下会怎样？A) 角加速度减半，平动加速度不变　B) 角加速度减半，平动加速度也减半　C) 角加速度不变　D) 下落变慢&lt;/summary&gt;
+&lt;div style=&quot;color:var(--ink-2);font-size:14px;margin-top:8px&quot;&gt;答案 A。平动加速度等于力除以质量，质量没变所以平动不变；转动按 τ = &lt;i&gt;I&lt;/i&gt;α，惯量翻倍角加速度减半。下落是平动，不受影响。&lt;/div&gt;
+&lt;/details&gt;
+&lt;/div&gt;
+```
+
+### 复习与拓展
+
+- [David Tong 动力学讲义 §3.2（英文）](https://www.damtp.cam.ac.uk/user/tong/dynamics/three.pdf)
+- [知乎：一般性刚体惯量主轴的选取](https://zhuanlan.zhihu.com/p/137394465)
+- [四元数概念页](../quaternion.html)：本页对朝向四元数一句带过，细节看这里
 </textarea>
 <script>
 (() => {
