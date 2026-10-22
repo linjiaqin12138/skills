@@ -43,7 +43,7 @@ M9 批次开局的处境：
 | `<inertial>` | 质量、质心、惯量主轴（显式直写） |
 | `<actuator>` | 执行器，本章用 position 位置伺服 |
 | `<sensor>` / `<site>` | 传感器及其安装点 |
-| `<keyframe>` | 存档姿势，一键复位用 |
+| `<keyframe>` | 存档姿势，一键复位用；姿势记成 qpos = 广义坐标向量（每个自由度一个分量） |
 
 最小示例（一个球 + 地板 + 一个存档姿势，需 mujoco）：
 
@@ -95,7 +95,22 @@ keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复�
 
 - **一句话**：刚体绕不同的轴转，「难推动」程度不同；完整描述要一个 3x3 矩阵，转到主轴方向后只剩 3 个对角数，主轴朝向再用一个四元数记录。
 - **为什么需要**：仿真器做刚体积分时每步都要它；给错惯量，鸭子摔起来的姿势就不对。
-- **本项目在哪用**：`duck_handmade.xml` 每个 body 一个 `<inertial mass=... pos=... quat=... diaginertia=...>`，四个字段分别对应质量、质心、主轴朝向、3 个主惯量。
+- **本项目在哪用**：`duck_handmade.xml` 每个 body 一个 `<inertial mass=... pos=... quat=... diaginertia=...>`。四个字段合起来就是这个刚体的完整质量分布，逐条对应（数值取躯干本例）：
+
+| 字段 | 物理量 | 单位 | 躯干本例 |
+|---|---|---|---|
+| `mass` | 质量 | kg | 0.199224 |
+| `pos` | 质心位置（body 局部系，**不是** body 原点） | m | -0.022633 -0.000027 0.002801 |
+| `quat` | 惯量主轴系的朝向：主轴系相对 body 系的旋转（wxyz 顺序） | — | 0.664866 0.238381 0.235012 0.667756 |
+| `diaginertia` | 沿三个主轴的主转动惯量 | kg·m² | 1.459e-04 1.408e-04 9.853e-05 |
+
+任意刚体的转动惯量是一个 3x3 对称矩阵。总能找出一组正交主轴，让矩阵只剩对角三个数——`quat` 记这组主轴朝哪，`diaginertia` 记沿主轴的三个值。
+
+动力学上两组字段各管一半。`mass` + `pos` 管平动：重力拉在哪、动量多少。`quat` + `diaginertia` 管转动：绕哪根轴好转、角动量怎么算。
+
+躯干质心偏在 body 原点后方 2.3cm。重心不在几何中心——这就是「不能只写一个 mass」的实例。
+
+这些值不是手拍的：官方模型编译输出的 `body_mass/ipos/iquat/inertia` 是唯一数据源，逐位抄入（提取过程见「搭建实操」第 1 步）。
 
 这张卡是压缩版。卡片看不懂就先去读深读页 [惯量张量](../../concepts/inertia-tensor.html)，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。卡里那句「主轴朝向用一个四元数记录」里的四元数（wxyz 顺序、为什么是半角、转 360° 怎么读），另有深读页 [四元数](../../concepts/quaternion.html)。
 
@@ -235,7 +250,7 @@ trunk_base | 躯干，挂 freejoint + imu site
 ```xml src=sim/assets/duck_handmade.xml lines=23-34 hl=25-26
 ```
 
-躯干 body：freejoint 提供 6 自由度；`<inertial>` 四字段直写官方编译值；`imu` site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：
+躯干 body：freejoint 提供 6 自由度；`<inertial>` 四字段直写官方编译值。`mass` + `pos` 决定平移动力学，`quat` + `diaginertia` 决定旋转动力学。逐字段解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表。`imu` site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：
 
 ```xml src=sim/assets/duck_handmade.xml lines=37-45 hl=39-41
 ```
@@ -244,6 +259,20 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 ```xml src=sim/assets/duck_handmade.xml lines=59-67 hl=62-63
 ```
+
+joint 三个属性各管一件事：**type 管有几个自由度、axis 管绕哪转、range 管能转多远**。
+
+| 属性 | 管什么 | 本例（left_hip_yaw） |
+|---|---|---|
+| `type="hinge"` | 自由度个数 | 铰链 1 个——绕一根轴转，正好对应一个舵机（对比 freejoint 6 个、ball 3 个） |
+| `axis="0 0 1"` | 绕哪根轴转 | body 局部系的 z 轴；轴的世界朝向由 body 的 quat 决定（见下） |
+| `range` | 关节角允许范围 | -0.436 ~ +0.524 rad ≈ -25° ~ +30° |
+
+三点展开：
+
+- **axis 在 body 局部系里表达**。全模型 14 个关节的 axis 统一写 z 轴，这是 MJCF 常见手法，不是巧合。真实舵机轴的世界方向，由 body 上的 `quat` 转出来。本例 `yaw2roll` 用的是 `quat="0 -0.7071068 -0.7071068 0"`。关节朝向问题全部推给 body 姿态，joint 行因此个个长得一样。
+- **range 单位是弧度**（`<compiler angle="radian">`，`sim/assets/duck_handmade.xml:21`），数值对应真实舵机的机械限位；左右髋 yaw 互为镜像——左 -0.436/+0.524、右 -0.524/+0.436（`sim/assets/duck_handmade.xml:189-190`）。`autolimits="true"` 让 range 成为硬约束：关节角越界即被引擎拦下。
+- **joint 标签上看不到 damping/frictionloss/armature**：这组舵机动力学参数从 `default class="duck"` 继承（前面 default 段），14 个关节共享同一份。这就是 `<default>` 机制的作用，改一处全树生效。
 
 14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：
 
@@ -254,6 +283,20 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 ```xml src=sim/assets/scene_handmade.xml lines=31-43 hl=39-42
 ```
+
+STAND 的 `qpos` 那串数共 21 个：qpos 是**广义坐标向量**——整个系统的当前姿态，每个自由度占一个分量。拆开读是五段：
+
+| 段 | 维数 | 内容 |
+|---|---|---|
+| 1 | 3 | 躯干位置 xyz（freejoint）：`0 0 0.12` |
+| 2 | 4 | 躯干姿态四元数 wxyz（freejoint）：`1 0 0 0` |
+| 3 | 5 | 左腿 5 关节角（left_hip_yaw … left_ankle） |
+| 4 | 4 | 头颈 4 关节角（neck_pitch … head_roll） |
+| 5 | 5 | 右腿 5 关节角（right_hip_yaw … right_ankle） |
+
+「多」是因为 freejoint 一个就吃掉 7 维（3 位置 + 4 姿态）。剩下 14 维是 14 个 hinge 各一维。排列顺序就是前文说的关节文档序——策略权重按这个序读写，乱序等于把膝盖指令发给脚踝。
+
+`imu_gyro` 和 qpos 别混。qpos 是**状态**：仿真的输入侧，决定系统此刻的姿态。`imu_gyro` 是**传感器读数**：输出侧，测的是角速度（躯干转动快慢）在 imu site 局部系下的三个分量。`duck_body.py` 按名字 `imu_gyro` 定位后，在 `sensordata` 里取这三个数（`sim/duck_body.py:171`、`:284`）。
 
 验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：
 
@@ -355,5 +398,9 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 <details>
 <summary><b>这一章没有构建命令，我到底学了什么？</b></summary>
 <p>本章原本教的是「为什么这么搭」：三个设计决策（惯量直写官方编译值、碰撞包围盒、视觉照抄官方 STL）加一套验收方法——搭建动作当时全部发生在后台，一个命令都没写，这是本章的缺口。现已补入「搭建实操：从空白文件到能跑的模型」一节，把操作循环补全。关键是先建立一条认知：MJCF 是数据文件不是代码，没有「构建」这一步；搭建 = 提取数据 → 写 XML → 编译验证 → viewer 目检 → 行为验收的五步循环，每改一处走一圈。另外加了练习 Bite，让你从空白文件亲手搭一条 2 关节腿链，把这五步亲手走一遍。</p>
+</details>
+<details>
+<summary><b>inertial 四个字段是什么 / joint 的 hinge·axis·range 怎么理解 / qpos 为什么有 21 个数？</b></summary>
+<p>本轮三个提问已分别补进正文对应位置讲透，此处只做记录与指路：inertial 四字段（质量 / 质心 / 主轴朝向 / 主惯量）逐条解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表与「代码领读」躯干 body 段；joint 三属性（type 管自由度个数、axis 管绕哪转、range 管能转多远）见「代码领读」左腿链段的属性表；qpos 的 21 维分段拆读（7 维 freejoint + 14 维关节文档序）与「gyro 传感器读数 ≠ qpos 状态」的区分见「代码领读」场景包装段。</p>
 </details>
 ```

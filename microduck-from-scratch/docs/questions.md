@@ -483,3 +483,23 @@
 - 推论：Bite 7「坐姿起身 50 拍后进 Limp」不是「物理吃上一拍目标」造成的。最可能是启动相位差（边界①）经接触动力学混沌放大，临界动作成败翻转——单次观测，运气成分大
 - 保留 write 步进的真正理由：与官方 `infer_policy.py` 主循环同序（观测→推理→写目标→步进，:1683-1684、:1770-1777）+ 边界②③两条工程性质。教程「设计」一节、决策卡片 1、Q76 已按此订正；示意图在 `docs/milestones/m8-convergence/assets/dst/step-order.svg`，已嵌入该篇「细节展开」
 - 教训：行为变了 ≠ 改动就是原因。临界动作的单次 A/B 不能建立因果；归因前先问「两者在数学上是否本就等价」
+
+## Q84（M9a Bite 1，教程读者提问）：`<inertial>` 里的物理量是什么？
+- 四个字段 = 刚体的质量分布：`mass` 质量（kg）、`pos` 质心位置（body 局部系，不是原点，躯干偏后 2.3cm）、`quat` 惯量主轴系朝向（wxyz）、`diaginertia` 沿三个主轴的主转动惯量（kg·m²）
+- 分工：`mass` + `pos` 管平动（重力拉在哪、动量多少），`quat` + `diaginertia` 管转动（绕哪根轴好转、角动量怎么算）
+- 值不是手拍的：来自官方模型编译输出的 `body_mass/ipos/iquat/inertia`，逐位抄入（`scripts/m9a_extract_official.py`）
+- 已补进教程：第 18 章「背景：惯量为什么是『3 个数 + 一个朝向』」卡片新增四行字段表（字段/物理量/单位/本例数值）+ 平动与转动分工；「代码领读」躯干 body 段补分工指路
+
+## Q85（M9a Bite 1，教程读者提问）：hinge / range / axis 怎么理解？
+- 三个属性各管一件事：type 管有几个自由度（hinge 1 个，对比 freejoint 6、ball 3）、axis 管绕哪根轴转、range 管能转多远
+- axis 在 body 局部系表达；本模型 14 个关节统一写 z 轴是 MJCF 手法——真实舵机轴的世界朝向由 body 自己的 quat 转出来，关节朝向问题全部推给 body 姿态
+- range 单位是弧度（`<compiler angle="radian">`），左右髋 yaw 互为镜像（-0.436/+0.524 vs -0.524/+0.436），`autolimits="true"` 使其成为硬约束
+- joint 标签上没有 damping/frictionloss/armature：从 `default class="duck"` 继承，14 个关节共享一份
+- 已补进教程：第 18 章「代码领读」左腿链段新增三行属性表 + 三点展开
+
+## Q86（M9a Bite 1，教程读者提问）：qpos 是什么，怎么这么多值？
+- qpos = 广义坐标向量，整个系统当前姿态，每个自由度一个分量。本模型 21 维 = freejoint 7（xyz 3 + 四元数 wxyz 4）+ 14 个 hinge 各 1
+- 「多」是因为 freejoint 一个就吃 7 维；后 14 维按关节文档序排列，策略权重按序读写，乱序等于把膝盖指令发给脚踝
+- `imu_gyro` 与 qpos 不是一回事：qpos 是状态（输入侧），gyro 是传感器读数（输出侧，角速度在 imu site 局部系下的三分量），`sim/duck_body.py:171`、`:284` 按名定位后取 `sensordata`
+- 已补进教程：第 18 章「代码领读」场景包装段新增 qpos 五段拆读表 + gyro 与 qpos 的区分；「背景：MJCF 是什么」元件表 `<keyframe>` 行补 qpos 说明
+- 遗留：writer 提出可能需要一篇「广义坐标」概念深读页（slug `generalized-coordinates`），未排期，等用户裁决

@@ -781,7 +781,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>穿透不是渲染错误：仿真里的接触是弹簧-阻尼软约束，穿透量就是弹簧压缩量。为什么穿透合法、多少算合理，见深读页 <a href="../../concepts/contact-penetration.html">接触求解与穿透</a>。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-B">
+<section class="am-panel am-span-wide" id="panel-B" style="grid-column: span 2">
 <header class="am-panel-head"><span class="am-panel-id">B</span><h2>背景：MJCF 是什么</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>【背景卡片】MJCF（MuJoCo XML 模型格式）</strong></p>
 <ul>
@@ -823,7 +823,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </tr>
 <tr>
 <td><code>&lt;keyframe&gt;</code></td>
-<td>存档姿势，一键复位用</td>
+<td>存档姿势，一键复位用；姿势记成 qpos = 广义坐标向量（每个自由度一个分量）</td>
 </tr>
 </tbody></table></div>
 <p>最小示例（一个球 + 地板 + 一个存档姿势，需 mujoco）：</p>
@@ -835,14 +835,52 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-md"><p>keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复位。本章后面 STAND 存档是仿真体每次启动的站姿。深入阅读：<a href="https://mujoco.readthedocs.io/en/stable/XMLreference.html">MuJoCo 官方 XML 参考</a>。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-C">
+<section class="am-panel am-span-wide" id="panel-C" style="grid-column: span 3">
 <header class="am-panel-head"><span class="am-panel-id">C</span><h2>背景：惯量为什么是「3 个数 + 一个朝向」</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>【背景卡片】惯量张量（压缩版）</strong></p>
 <ul>
 <li><strong>一句话</strong>：刚体绕不同的轴转，「难推动」程度不同；完整描述要一个 3x3 矩阵，转到主轴方向后只剩 3 个对角数，主轴朝向再用一个四元数记录。</li>
 <li><strong>为什么需要</strong>：仿真器做刚体积分时每步都要它；给错惯量，鸭子摔起来的姿势就不对。</li>
-<li><strong>本项目在哪用</strong>：<code>duck_handmade.xml</code> 每个 body 一个 <code>&lt;inertial mass=... pos=... quat=... diaginertia=...&gt;</code>，四个字段分别对应质量、质心、主轴朝向、3 个主惯量。</li>
+<li><strong>本项目在哪用</strong>：<code>duck_handmade.xml</code> 每个 body 一个 <code>&lt;inertial mass=... pos=... quat=... diaginertia=...&gt;</code>。四个字段合起来就是这个刚体的完整质量分布，逐条对应（数值取躯干本例）：</li>
 </ul>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>物理量</th>
+<th>单位</th>
+<th>躯干本例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mass</code></td>
+<td>质量</td>
+<td>kg</td>
+<td>0.199224</td>
+</tr>
+<tr>
+<td><code>pos</code></td>
+<td>质心位置（body 局部系，<strong>不是</strong> body 原点）</td>
+<td>m</td>
+<td>-0.022633 -0.000027 0.002801</td>
+</tr>
+<tr>
+<td><code>quat</code></td>
+<td>惯量主轴系的朝向：主轴系相对 body 系的旋转（wxyz 顺序）</td>
+<td>—</td>
+<td>0.664866 0.238381 0.235012 0.667756</td>
+</tr>
+<tr>
+<td><code>diaginertia</code></td>
+<td>沿三个主轴的主转动惯量</td>
+<td>kg·m²</td>
+<td>1.459e-04 1.408e-04 9.853e-05</td>
+</tr>
+</tbody></table></div>
+<p>任意刚体的转动惯量是一个 3x3 对称矩阵。总能找出一组正交主轴，让矩阵只剩对角三个数——<code>quat</code> 记这组主轴朝哪，<code>diaginertia</code> 记沿主轴的三个值。</p>
+<p>动力学上两组字段各管一半。<code>mass</code> + <code>pos</code> 管平动：重力拉在哪、动量多少。<code>quat</code> + <code>diaginertia</code> 管转动：绕哪根轴好转、角动量怎么算。</p>
+<p>躯干质心偏在 body 原点后方 2.3cm。重心不在几何中心——这就是「不能只写一个 mass」的实例。</p>
+<p>这些值不是手拍的：官方模型编译输出的 <code>body_mass/ipos/iquat/inertia</code> 是唯一数据源，逐位抄入（提取过程见「搭建实操」第 1 步）。</p>
 <p>这张卡是压缩版。卡片看不懂就先去读深读页 <a href="../../concepts/inertia-tensor.html">惯量张量</a>，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。卡里那句「主轴朝向用一个四元数记录」里的四元数（wxyz 顺序、为什么是半角、转 360° 怎么读），另有深读页 <a href="../../concepts/quaternion.html">四元数</a>。</p>
 </div></div>
 </section>
@@ -925,19 +963,87 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值。视觉/碰撞两类几何的分离也写在这几行里：visual 类是 mesh 不进接触，collision 类是 box：</p>
 </div>
 <figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="23-34"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:23-34</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="23">  &lt;default&gt;</span><span class="am-ln" data-n="24">    &lt;default class=&quot;duck&quot;&gt;</span><span class="am-ln am-ln--hl" data-n="25">      &lt;joint damping=&quot;0.053&quot; frictionloss=&quot;0.0048&quot; armature=&quot;0.0018&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="26">      &lt;position kp=&quot;0.55&quot; kv=&quot;0.0&quot; forcerange=&quot;-0.96 0.96&quot; ctrlrange=&quot;-10.0 10.0&quot; /&gt;</span><span class="am-ln" data-n="27">      &lt;default class=&quot;visual&quot;&gt;</span><span class="am-ln" data-n="28">        &lt;geom type=&quot;mesh&quot; contype=&quot;0&quot; conaffinity=&quot;0&quot; group=&quot;2&quot; /&gt;</span><span class="am-ln" data-n="29">      &lt;/default&gt;</span><span class="am-ln" data-n="30">      &lt;default class=&quot;collision&quot;&gt;</span><span class="am-ln" data-n="31">        &lt;geom type=&quot;box&quot; group=&quot;3&quot; rgba=&quot;0.2 0.6 1 0.4&quot; /&gt;</span><span class="am-ln" data-n="32">      &lt;/default&gt;</span><span class="am-ln" data-n="33">    &lt;/default&gt;</span><span class="am-ln" data-n="34">  &lt;/default&gt;</span></code></pre></figure>
-<div class="am-md"><p>躯干 body：freejoint 提供 6 自由度；<code>&lt;inertial&gt;</code> 四字段直写官方编译值；<code>imu</code> site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：</p>
+<div class="am-md"><p>躯干 body：freejoint 提供 6 自由度；<code>&lt;inertial&gt;</code> 四字段直写官方编译值。<code>mass</code> + <code>pos</code> 决定平移动力学，<code>quat</code> + <code>diaginertia</code> 决定旋转动力学。逐字段解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表。<code>imu</code> site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：</p>
 </div>
 <figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="37-45"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:37-45</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="37">    &lt;body name=&quot;trunk_base&quot; pos=&quot;0 0 0.12&quot; childclass=&quot;duck&quot;&gt;</span><span class="am-ln" data-n="38">      &lt;freejoint name=&quot;trunk_base_freejoint&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="39">      &lt;inertial mass=&quot;0.199224&quot; pos=&quot;-0.022633 -0.000027 0.002801&quot;</span><span class="am-ln am-ln--hl" data-n="40">                quat=&quot;0.664866 0.238381 0.235012 0.667756&quot;</span><span class="am-ln am-ln--hl" data-n="41">                diaginertia=&quot;1.459e-04 1.408e-04 9.853e-05&quot; /&gt;</span><span class="am-ln" data-n="42">      &lt;site group=&quot;3&quot; name=&quot;imu&quot; pos=&quot;-0.021 0.0000664 -0.0146984&quot; quat=&quot;1 0 0 0&quot; /&gt;</span><span class="am-ln" data-n="43">      &lt;!-- 视觉：官方 STL（robot_groundcontact.xml 逐字照抄） --&gt;</span><span class="am-ln" data-n="44">      &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;0.006 0.0175 -0.005&quot; quat=&quot;1 -0 -0 0&quot; mesh=&quot;seeed_bearing__configuration__22x16x4&quot; material=&quot;seeed_bearing__configuration__22x16x4_material&quot;/&gt;</span><span class="am-ln" data-n="45">      &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;0.004 -0.0005 -0.0175&quot; quat=&quot;0.707107 0 0 0.707107&quot; mesh=&quot;right_shell&quot; material=&quot;right_shell_material&quot;/&gt;</span></code></pre></figure>
 <div class="am-md"><p>左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写。视觉网格行跟在关节声明后面：</p>
 </div>
 <figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="59-67"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:59-67</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="59">      &lt;body name=&quot;yaw2roll&quot; pos=&quot;0.006 0.0175 -0.005&quot; quat=&quot;0 -0.7071068 -0.7071068 0&quot;&gt;</span><span class="am-ln" data-n="60">        &lt;inertial mass=&quot;0.023041&quot; pos=&quot;0 0.000994 0.016892&quot;</span><span class="am-ln" data-n="61">                  quat=&quot;0.99973 -0.023249 0 0&quot; diaginertia=&quot;4.196e-06 3.420e-06 2.324e-06&quot; /&gt;</span><span class="am-ln am-ln--hl" data-n="62">        &lt;joint axis=&quot;0 0 1&quot; name=&quot;left_hip_yaw&quot; type=&quot;hinge&quot;</span><span class="am-ln am-ln--hl" data-n="63">               range=&quot;-0.4363323129985824 0.5235987755982988&quot; /&gt;</span><span class="am-ln" data-n="64">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0.0175 -0.002 0.0125&quot; quat=&quot;0 1 0 0&quot; mesh=&quot;yaw2roll&quot; material=&quot;yaw2roll_material&quot;/&gt;</span><span class="am-ln" data-n="65">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0 -0 0.0125&quot; quat=&quot;0 -0.707107 0.707107 -0&quot; mesh=&quot;xl330&quot; material=&quot;xl330_material&quot;/&gt;</span><span class="am-ln" data-n="66">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0 0.0165 0.0125&quot; quat=&quot;0.5 0.5 0.5 -0.5&quot; mesh=&quot;seeed_bearing__configuration__22x16x4&quot; material=&quot;seeed_bearing__configuration__22x16x4_material&quot;/&gt;</span><span class="am-ln" data-n="67">        &lt;geom type=&quot;mesh&quot; class=&quot;visual&quot; pos=&quot;-0.0175 -0.002 0.0125&quot; quat=&quot;0 -1 -0 -0&quot; mesh=&quot;bearing_roll&quot; material=&quot;bearing_roll_material&quot;/&gt;</span></code></pre></figure>
-<div class="am-md"><p>14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：</p>
+<div class="am-md"><p>joint 三个属性各管一件事：<strong>type 管有几个自由度、axis 管绕哪转、range 管能转多远</strong>。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>属性</th>
+<th>管什么</th>
+<th>本例（left_hip_yaw）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>type=&quot;hinge&quot;</code></td>
+<td>自由度个数</td>
+<td>铰链 1 个——绕一根轴转，正好对应一个舵机（对比 freejoint 6 个、ball 3 个）</td>
+</tr>
+<tr>
+<td><code>axis=&quot;0 0 1&quot;</code></td>
+<td>绕哪根轴转</td>
+<td>body 局部系的 z 轴；轴的世界朝向由 body 的 quat 决定（见下）</td>
+</tr>
+<tr>
+<td><code>range</code></td>
+<td>关节角允许范围</td>
+<td>-0.436 ~ +0.524 rad ≈ -25° ~ +30°</td>
+</tr>
+</tbody></table></div>
+<p>三点展开：</p>
+<ul>
+<li><strong>axis 在 body 局部系里表达</strong>。全模型 14 个关节的 axis 统一写 z 轴，这是 MJCF 常见手法，不是巧合。真实舵机轴的世界方向，由 body 上的 <code>quat</code> 转出来。本例 <code>yaw2roll</code> 用的是 <code>quat=&quot;0 -0.7071068 -0.7071068 0&quot;</code>。关节朝向问题全部推给 body 姿态，joint 行因此个个长得一样。</li>
+<li><strong>range 单位是弧度</strong>（<code>&lt;compiler angle=&quot;radian&quot;&gt;</code>，<code>sim/assets/duck_handmade.xml:21</code>），数值对应真实舵机的机械限位；左右髋 yaw 互为镜像——左 -0.436/+0.524、右 -0.524/+0.436（<code>sim/assets/duck_handmade.xml:189-190</code>）。<code>autolimits=&quot;true&quot;</code> 让 range 成为硬约束：关节角越界即被引擎拦下。</li>
+<li><strong>joint 标签上看不到 damping/frictionloss/armature</strong>：这组舵机动力学参数从 <code>default class=&quot;duck&quot;</code> 继承（前面 default 段），14 个关节共享同一份。这就是 <code>&lt;default&gt;</code> 机制的作用，改一处全树生效。</li>
+</ul>
+<p>14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：</p>
 </div>
 <figure class="am-codeblock" data-am-src="sim/assets/duck_handmade.xml" data-am-lines="330-345"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/duck_handmade.xml:330-345</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="330">  &lt;actuator&gt;</span><span class="am-ln" data-n="331">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_yaw&quot; joint=&quot;left_hip_yaw&quot; /&gt;</span><span class="am-ln" data-n="332">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_roll&quot; joint=&quot;left_hip_roll&quot; /&gt;</span><span class="am-ln" data-n="333">    &lt;position class=&quot;duck&quot; name=&quot;left_hip_pitch&quot; joint=&quot;left_hip_pitch&quot; /&gt;</span><span class="am-ln" data-n="334">    &lt;position class=&quot;duck&quot; name=&quot;left_knee&quot; joint=&quot;left_knee&quot; /&gt;</span><span class="am-ln" data-n="335">    &lt;position class=&quot;duck&quot; name=&quot;left_ankle&quot; joint=&quot;left_ankle&quot; /&gt;</span><span class="am-ln" data-n="336">    &lt;position class=&quot;duck&quot; name=&quot;neck_pitch&quot; joint=&quot;neck_pitch&quot; /&gt;</span><span class="am-ln" data-n="337">    &lt;position class=&quot;duck&quot; name=&quot;head_pitch&quot; joint=&quot;head_pitch&quot; /&gt;</span><span class="am-ln" data-n="338">    &lt;position class=&quot;duck&quot; name=&quot;head_yaw&quot; joint=&quot;head_yaw&quot; /&gt;</span><span class="am-ln" data-n="339">    &lt;position class=&quot;duck&quot; name=&quot;head_roll&quot; joint=&quot;head_roll&quot; /&gt;</span><span class="am-ln" data-n="340">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_yaw&quot; joint=&quot;right_hip_yaw&quot; /&gt;</span><span class="am-ln" data-n="341">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_roll&quot; joint=&quot;right_hip_roll&quot; /&gt;</span><span class="am-ln" data-n="342">    &lt;position class=&quot;duck&quot; name=&quot;right_hip_pitch&quot; joint=&quot;right_hip_pitch&quot; /&gt;</span><span class="am-ln" data-n="343">    &lt;position class=&quot;duck&quot; name=&quot;right_knee&quot; joint=&quot;right_knee&quot; /&gt;</span><span class="am-ln" data-n="344">    &lt;position class=&quot;duck&quot; name=&quot;right_ankle&quot; joint=&quot;right_ankle&quot; /&gt;</span><span class="am-ln" data-n="345">  &lt;/actuator&gt;</span></code></pre></figure>
 <div class="am-md"><p>场景包装：<code>imu_gyro</code> 传感器挂 imu site；STAND 存档的 14 个关节角与官方逐位一致。躯干高度 0.12 沿用官方——包围盒最底面就是网格最底面，着地点不变：</p>
 </div>
 <figure class="am-codeblock" data-am-src="sim/assets/scene_handmade.xml" data-am-lines="31-43"><figcaption class="am-code-head"><span class="am-code-title">sim/assets/scene_handmade.xml:31-43</span><span class="am-code-lang">xml</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="xml"><span class="am-ln" data-n="31">  &lt;sensor&gt;</span><span class="am-ln" data-n="32">    &lt;!-- duck_body.py 按此名读 gyro --&gt;</span><span class="am-ln" data-n="33">    &lt;gyro name=&quot;imu_gyro&quot; site=&quot;imu&quot; /&gt;</span><span class="am-ln" data-n="34">  &lt;/sensor&gt;</span><span class="am-ln" data-n="35"></span><span class="am-ln" data-n="36">  &lt;keyframe&gt;</span><span class="am-ln" data-n="37">    &lt;!-- STAND：关节角与官方 scene_groundcontact.xml 逐位一致（同一关节树同序）；</span><span class="am-ln" data-n="38">         躯干高度 0.12 沿用官方——脚掌碰撞盒就是原网格 AABB，着地点不变 --&gt;</span><span class="am-ln am-ln--hl" data-n="39">    &lt;key name=&quot;STAND&quot; qpos=&quot;0 0 0.12 1 0 0 0</span><span class="am-ln am-ln--hl" data-n="40">         0 -0.08726646259971647 -0.457924 -0.004940 0.452984</span><span class="am-ln am-ln--hl" data-n="41">         0.3490658503988659 0.3490658503988659 0 0</span><span class="am-ln am-ln--hl" data-n="42">         0 0.08726646259971647 0.457924 0.004940 -0.452984&quot; /&gt;</span><span class="am-ln" data-n="43">  &lt;/keyframe&gt;</span></code></pre></figure>
-<div class="am-md"><p>验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：</p>
+<div class="am-md"><p>STAND 的 <code>qpos</code> 那串数共 21 个：qpos 是<strong>广义坐标向量</strong>——整个系统的当前姿态，每个自由度占一个分量。拆开读是五段：</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>段</th>
+<th>维数</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>3</td>
+<td>躯干位置 xyz（freejoint）：<code>0 0 0.12</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>4</td>
+<td>躯干姿态四元数 wxyz（freejoint）：<code>1 0 0 0</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>5</td>
+<td>左腿 5 关节角（left_hip_yaw … left_ankle）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>4</td>
+<td>头颈 4 关节角（neck_pitch … head_roll）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>5</td>
+<td>右腿 5 关节角（right_hip_yaw … right_ankle）</td>
+</tr>
+</tbody></table></div>
+<p>「多」是因为 freejoint 一个就吃掉 7 维（3 位置 + 4 姿态）。剩下 14 维是 14 个 hinge 各一维。排列顺序就是前文说的关节文档序——策略权重按这个序读写，乱序等于把膝盖指令发给脚踝。</p>
+<p><code>imu_gyro</code> 和 qpos 别混。qpos 是<strong>状态</strong>：仿真的输入侧，决定系统此刻的姿态。<code>imu_gyro</code> 是<strong>传感器读数</strong>：输出侧，测的是角速度（躯干转动快慢）在 imu site 局部系下的三个分量。<code>duck_body.py</code> 按名字 <code>imu_gyro</code> 定位后，在 <code>sensordata</code> 里取这三个数（<code>sim/duck_body.py:171</code>、<code>:284</code>）。</p>
+<p>验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：</p>
 </div>
 <figure class="am-codeblock" data-am-src="sim/accept_m9a_bite1.py" data-am-lines="37-56"><figcaption class="am-code-head"><span class="am-code-title">sim/accept_m9a_bite1.py:37-56</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="python"><span class="am-ln" data-n="37">def geom_corner_min_z(model, data):</span><span class="am-ln" data-n="38">    &quot;&quot;&quot;所有碰撞 geom（contype 或 conaffinity 非零）8 角点的最低世界 z。&quot;&quot;&quot;</span><span class="am-ln" data-n="39">    worst = np.inf</span><span class="am-ln" data-n="40">    worst_name = None</span><span class="am-ln" data-n="41">    for g in range(model.ngeom):</span><span class="am-ln" data-n="42">        if model.geom_contype[g] == 0 and model.geom_conaffinity[g] == 0:</span><span class="am-ln" data-n="43">            continue</span><span class="am-ln" data-n="44">        if model.geom_bodyid[g] == 0:</span><span class="am-ln" data-n="45">            continue  # 地板自己不算</span><span class="am-ln" data-n="46">        center = data.geom_xpos[g]</span><span class="am-ln" data-n="47">        rot = data.geom_xmat[g].reshape(3, 3)</span><span class="am-ln" data-n="48">        half = model.geom_size[g]</span><span class="am-ln am-ln--hl" data-n="49">        for sx in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="50">            for sy in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="51">                for sz in (-1, 1):</span><span class="am-ln am-ln--hl" data-n="52">                    z = (center + rot @ (half * np.array([sx, sy, sz])))[2]</span><span class="am-ln" data-n="53">                    if z &lt; worst:</span><span class="am-ln" data-n="54">                        worst = z</span><span class="am-ln" data-n="55">                        worst_name = f&quot;geom#{g}&quot;</span><span class="am-ln" data-n="56">    return worst, worst_name</span></code></pre></figure>
 <div class="am-md"><p>「碰撞必须是 box」这条验收锁的是编译后的模型，不是 XML 文本。修订后文本里全是 <code>&lt;mesh&gt;</code>，但碰撞 geom 的类型集合仍然只能是 box：</p>
@@ -1073,6 +1179,10 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <details>
 <summary><b>这一章没有构建命令，我到底学了什么？</b></summary>
 <p>本章原本教的是「为什么这么搭」：三个设计决策（惯量直写官方编译值、碰撞包围盒、视觉照抄官方 STL）加一套验收方法——搭建动作当时全部发生在后台，一个命令都没写，这是本章的缺口。现已补入「搭建实操：从空白文件到能跑的模型」一节，把操作循环补全。关键是先建立一条认知：MJCF 是数据文件不是代码，没有「构建」这一步；搭建 = 提取数据 → 写 XML → 编译验证 → viewer 目检 → 行为验收的五步循环，每改一处走一圈。另外加了练习 Bite，让你从空白文件亲手搭一条 2 关节腿链，把这五步亲手走一遍。</p>
+</details>
+<details>
+<summary><b>inertial 四个字段是什么 / joint 的 hinge·axis·range 怎么理解 / qpos 为什么有 21 个数？</b></summary>
+<p>本轮三个提问已分别补进正文对应位置讲透，此处只做记录与指路：inertial 四字段（质量 / 质心 / 主轴朝向 / 主惯量）逐条解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表与「代码领读」躯干 body 段；joint 三属性（type 管自由度个数、axis 管绕哪转、range 管能转多远）见「代码领读」左腿链段的属性表；qpos 的 21 维分段拆读（7 维 freejoint + 14 维关节文档序）与「gyro 传感器读数 ≠ qpos 状态」的区分见「代码领读」场景包装段。</p>
 </details></div>
 </section>
 </div>
@@ -1093,7 +1203,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-21 14:46 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-22 14:17 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: sheet
 title: M9a Bite 1：自建 MJCF 身体模型（第 18 章）
@@ -1139,7 +1249,7 @@ M9 批次开局的处境：
 | `&lt;inertial&gt;` | 质量、质心、惯量主轴（显式直写） |
 | `&lt;actuator&gt;` | 执行器，本章用 position 位置伺服 |
 | `&lt;sensor&gt;` / `&lt;site&gt;` | 传感器及其安装点 |
-| `&lt;keyframe&gt;` | 存档姿势，一键复位用 |
+| `&lt;keyframe&gt;` | 存档姿势，一键复位用；姿势记成 qpos = 广义坐标向量（每个自由度一个分量） |
 
 最小示例（一个球 + 地板 + 一个存档姿势，需 mujoco）：
 
@@ -1191,7 +1301,22 @@ keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复�
 
 - **一句话**：刚体绕不同的轴转，「难推动」程度不同；完整描述要一个 3x3 矩阵，转到主轴方向后只剩 3 个对角数，主轴朝向再用一个四元数记录。
 - **为什么需要**：仿真器做刚体积分时每步都要它；给错惯量，鸭子摔起来的姿势就不对。
-- **本项目在哪用**：`duck_handmade.xml` 每个 body 一个 `&lt;inertial mass=... pos=... quat=... diaginertia=...&gt;`，四个字段分别对应质量、质心、主轴朝向、3 个主惯量。
+- **本项目在哪用**：`duck_handmade.xml` 每个 body 一个 `&lt;inertial mass=... pos=... quat=... diaginertia=...&gt;`。四个字段合起来就是这个刚体的完整质量分布，逐条对应（数值取躯干本例）：
+
+| 字段 | 物理量 | 单位 | 躯干本例 |
+|---|---|---|---|
+| `mass` | 质量 | kg | 0.199224 |
+| `pos` | 质心位置（body 局部系，**不是** body 原点） | m | -0.022633 -0.000027 0.002801 |
+| `quat` | 惯量主轴系的朝向：主轴系相对 body 系的旋转（wxyz 顺序） | — | 0.664866 0.238381 0.235012 0.667756 |
+| `diaginertia` | 沿三个主轴的主转动惯量 | kg·m² | 1.459e-04 1.408e-04 9.853e-05 |
+
+任意刚体的转动惯量是一个 3x3 对称矩阵。总能找出一组正交主轴，让矩阵只剩对角三个数——`quat` 记这组主轴朝哪，`diaginertia` 记沿主轴的三个值。
+
+动力学上两组字段各管一半。`mass` + `pos` 管平动：重力拉在哪、动量多少。`quat` + `diaginertia` 管转动：绕哪根轴好转、角动量怎么算。
+
+躯干质心偏在 body 原点后方 2.3cm。重心不在几何中心——这就是「不能只写一个 mass」的实例。
+
+这些值不是手拍的：官方模型编译输出的 `body_mass/ipos/iquat/inertia` 是唯一数据源，逐位抄入（提取过程见「搭建实操」第 1 步）。
 
 这张卡是压缩版。卡片看不懂就先去读深读页 [惯量张量](../../concepts/inertia-tensor.html)，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。卡里那句「主轴朝向用一个四元数记录」里的四元数（wxyz 顺序、为什么是半角、转 360° 怎么读），另有深读页 [四元数](../../concepts/quaternion.html)。
 
@@ -1331,7 +1456,7 @@ trunk_base | 躯干，挂 freejoint + imu site
 ```xml src=sim/assets/duck_handmade.xml lines=23-34 hl=25-26
 ```
 
-躯干 body：freejoint 提供 6 自由度；`&lt;inertial&gt;` 四字段直写官方编译值；`imu` site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：
+躯干 body：freejoint 提供 6 自由度；`&lt;inertial&gt;` 四字段直写官方编译值。`mass` + `pos` 决定平移动力学，`quat` + `diaginertia` 决定旋转动力学。逐字段解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表。`imu` site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：
 
 ```xml src=sim/assets/duck_handmade.xml lines=37-45 hl=39-41
 ```
@@ -1340,6 +1465,20 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 ```xml src=sim/assets/duck_handmade.xml lines=59-67 hl=62-63
 ```
+
+joint 三个属性各管一件事：**type 管有几个自由度、axis 管绕哪转、range 管能转多远**。
+
+| 属性 | 管什么 | 本例（left_hip_yaw） |
+|---|---|---|
+| `type=&quot;hinge&quot;` | 自由度个数 | 铰链 1 个——绕一根轴转，正好对应一个舵机（对比 freejoint 6 个、ball 3 个） |
+| `axis=&quot;0 0 1&quot;` | 绕哪根轴转 | body 局部系的 z 轴；轴的世界朝向由 body 的 quat 决定（见下） |
+| `range` | 关节角允许范围 | -0.436 ~ +0.524 rad ≈ -25° ~ +30° |
+
+三点展开：
+
+- **axis 在 body 局部系里表达**。全模型 14 个关节的 axis 统一写 z 轴，这是 MJCF 常见手法，不是巧合。真实舵机轴的世界方向，由 body 上的 `quat` 转出来。本例 `yaw2roll` 用的是 `quat=&quot;0 -0.7071068 -0.7071068 0&quot;`。关节朝向问题全部推给 body 姿态，joint 行因此个个长得一样。
+- **range 单位是弧度**（`&lt;compiler angle=&quot;radian&quot;&gt;`，`sim/assets/duck_handmade.xml:21`），数值对应真实舵机的机械限位；左右髋 yaw 互为镜像——左 -0.436/+0.524、右 -0.524/+0.436（`sim/assets/duck_handmade.xml:189-190`）。`autolimits=&quot;true&quot;` 让 range 成为硬约束：关节角越界即被引擎拦下。
+- **joint 标签上看不到 damping/frictionloss/armature**：这组舵机动力学参数从 `default class=&quot;duck&quot;` 继承（前面 default 段），14 个关节共享同一份。这就是 `&lt;default&gt;` 机制的作用，改一处全树生效。
 
 14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：
 
@@ -1350,6 +1489,20 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 ```xml src=sim/assets/scene_handmade.xml lines=31-43 hl=39-42
 ```
+
+STAND 的 `qpos` 那串数共 21 个：qpos 是**广义坐标向量**——整个系统的当前姿态，每个自由度占一个分量。拆开读是五段：
+
+| 段 | 维数 | 内容 |
+|---|---|---|
+| 1 | 3 | 躯干位置 xyz（freejoint）：`0 0 0.12` |
+| 2 | 4 | 躯干姿态四元数 wxyz（freejoint）：`1 0 0 0` |
+| 3 | 5 | 左腿 5 关节角（left_hip_yaw … left_ankle） |
+| 4 | 4 | 头颈 4 关节角（neck_pitch … head_roll） |
+| 5 | 5 | 右腿 5 关节角（right_hip_yaw … right_ankle） |
+
+「多」是因为 freejoint 一个就吃掉 7 维（3 位置 + 4 姿态）。剩下 14 维是 14 个 hinge 各一维。排列顺序就是前文说的关节文档序——策略权重按这个序读写，乱序等于把膝盖指令发给脚踝。
+
+`imu_gyro` 和 qpos 别混。qpos 是**状态**：仿真的输入侧，决定系统此刻的姿态。`imu_gyro` 是**传感器读数**：输出侧，测的是角速度（躯干转动快慢）在 imu site 局部系下的三个分量。`duck_body.py` 按名字 `imu_gyro` 定位后，在 `sensordata` 里取这三个数（`sim/duck_body.py:171`、`:284`）。
 
 验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：
 
@@ -1451,6 +1604,10 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 &lt;details&gt;
 &lt;summary&gt;&lt;b&gt;这一章没有构建命令，我到底学了什么？&lt;/b&gt;&lt;/summary&gt;
 &lt;p&gt;本章原本教的是「为什么这么搭」：三个设计决策（惯量直写官方编译值、碰撞包围盒、视觉照抄官方 STL）加一套验收方法——搭建动作当时全部发生在后台，一个命令都没写，这是本章的缺口。现已补入「搭建实操：从空白文件到能跑的模型」一节，把操作循环补全。关键是先建立一条认知：MJCF 是数据文件不是代码，没有「构建」这一步；搭建 = 提取数据 → 写 XML → 编译验证 → viewer 目检 → 行为验收的五步循环，每改一处走一圈。另外加了练习 Bite，让你从空白文件亲手搭一条 2 关节腿链，把这五步亲手走一遍。&lt;/p&gt;
+&lt;/details&gt;
+&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;inertial 四个字段是什么 / joint 的 hinge·axis·range 怎么理解 / qpos 为什么有 21 个数？&lt;/b&gt;&lt;/summary&gt;
+&lt;p&gt;本轮三个提问已分别补进正文对应位置讲透，此处只做记录与指路：inertial 四字段（质量 / 质心 / 主轴朝向 / 主惯量）逐条解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表与「代码领读」躯干 body 段；joint 三属性（type 管自由度个数、axis 管绕哪转、range 管能转多远）见「代码领读」左腿链段的属性表；qpos 的 21 维分段拆读（7 维 freejoint + 14 维关节文档序）与「gyro 传感器读数 ≠ qpos 状态」的区分见「代码领读」场景包装段。&lt;/p&gt;
 &lt;/details&gt;
 ```
 </textarea>
