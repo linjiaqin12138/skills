@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+// bin/am-math — 草稿里的 LaTeX 数学片段 → MathML（bin/am-render 的预处理步骤）。
+//
+// 用法: bin/am-math <draft> <out>
+//   草稿含 $...$（行内）或 $$...$$（独立）时，把转换后的草稿写到 <out> 并打印转换数；
+//   不含数学片段时不写 <out>，退出码恒 0（调用方按原草稿渲染）。
+//
+// 规则:
+//   $$...$$ → <math display="block">；$...$ → 行内 <math>；\$ → 字面 $
+//   跳过: YAML frontmatter、``` 围栏块（含 html/svg 围栏）、行内 `code`
+//
+// 依赖 vendor/temml/temml.min.js（LaTeX → MathML，MIT，https://temml.org）。
+// 需要 am.mjs 的本地补丁（vendor/answer-me-with-html/PATCHES.md）：raw-html
+// 白名单放行 MathML 标签，否则行内 <math> 会被当文本转义。
+const fs = require('fs');
+const path = require('path');
+
+const temmlSrc = fs.readFileSync(path.join(__dirname, '..', 'vendor', 'temml', 'temml.min.js'), 'utf8');
+const temml = new Function(temmlSrc + '; return temml;')();
+
+const [, , inPath, outPath] = process.argv;
+if (!inPath || !outPath) {
+  console.error('usage: bin/am-math <draft> <out>');
+  process.exit(2);
+}
+const src = fs.readFileSync(inPath, 'utf8');
+
+// 受保护区域：frontmatter（仅文件开头）/ 围栏块 / 行内代码。逐段切分，只转换未保护段。
+const FM = src.startsWith('---\n') ? src.indexOf('\n---', 4) : -1;
+const fmEnd = FM === -1 ? 0 : src.indexOf('\n', FM + 4) + 1;
+const PROTECT = /(`{3,}[\s\S]*?`{3,})|(`[^`\n]*`)/gm;
+
+let n = 0;
+const PH = 'AM-MATH-ESCAPED-DOLLAR-x9q2'; // \$ 的占位符（草稿里不可能出现的可见 token）
+function conv(text) {
+  return text
+    .replace(/\\\$/g, PH)
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_m, tex) => {
+      n++;
+      return temml.renderToString(tex.trim(), { displayMode: true });
+    })
+    .replace(/\$([^$\n]+?)\$/g, (_m, tex) => {
+      n++;
+      return temml.renderToString(tex.trim());
+    })
+    .replace(new RegExp(PH, 'g'), '$');
+}
+
+let out = src.slice(0, fmEnd), last = fmEnd;
+for (const m of src.slice(fmEnd).matchAll(PROTECT)) {
+  out += conv(src.slice(last, fmEnd + m.index)) + m[0];
+  last = fmEnd + m.index + m[0].length;
+}
+out += conv(src.slice(last));
+
+if (n > 0) {
+  fs.writeFileSync(outPath, out);
+  console.error(`am-math: 转换 ${n} 个数学片段（LaTeX → MathML）`);
+}

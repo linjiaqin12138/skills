@@ -26,6 +26,17 @@ done
 args=("$@")
 [ "$has_style" = 0 ] && args+=("--style" "strict")
 
+# LaTeX → MathML 预处理：本封装约定草稿是第一个参数；草稿含 $...$ / $$...$$ 时
+# bin/am-math 生成同目录临时草稿（保证 src= 与图片相对路径照常解析），改渲染临时稿。
+draft="${args[0]:-}"
+if [ -n "$draft" ] && [ "$draft" != "-" ] && [ -f "$draft" ]; then
+  mtmp="$(dirname "$draft")/.$(basename "$draft").am-math.tmp"
+  if node "$HERE/am-math" "$draft" "$mtmp" && [ -f "$mtmp" ]; then
+    args[0]="$mtmp"
+    trap 'rm -f "$mtmp"' EXIT
+  fi
+fi
+
 node "$AM" render "${args[@]}"
 
 # 没指定 -o 时渲染到 AM_HOME，去内嵌无意义（不在仓库内），跳过

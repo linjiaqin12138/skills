@@ -2845,8 +2845,8 @@ function esc(str) {
 
 // src/raw-html.js
 var words2 = (list) => new Set(list.split(" "));
-var NEVER = words2("title textarea style xmp iframe noembed noframes script plaintext link meta base object embed frame frameset template html head body noscript svg math");
-var PHRASING = words2("a abbr b bdi bdo br cite code data del dfn em i img ins kbd mark q rp rt ruby s samp small span strong sub sup time u var wbr");
+var NEVER = words2("title textarea style xmp iframe noembed noframes script plaintext link meta base object embed frame frameset template html head body noscript svg");
+var PHRASING = words2("a abbr b bdi bdo br cite code data del dfn em i img ins kbd mark q rp rt ruby s samp small span strong sub sup time u var wbr math mrow mi mn mo ms mtext msup msub msubsup mfrac msqrt mroot mstyle mspace mover munder munderover semantics annotation mpadded mphantom menclose merror mtable mtr mtd mmultiscripts mprescripts none mlabeledtr maligngroup malignmark");
 var BLOCK = words2("address area article aside audio blockquote button canvas caption col colgroup datalist dd details dialog div dl dt fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 header hgroup hr input label legend li main map menu meter nav ol optgroup option output p picture pre progress search section select slot source summary table tbody td tfoot th thead tr track ul video acronym big center font strike tt");
 var VOID = words2("br wbr img");
 var REASON = {
