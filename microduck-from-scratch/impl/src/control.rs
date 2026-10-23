@@ -21,7 +21,7 @@
 //! 斜坡完成后按 enabled 现值落 Driving 或 Stopped，所以 RampUp/Limp 途中的
 //! enable 边沿不会丢（边沿只动 Held/Stopped/Driving，其余阶段自然汇入）。
 //! 卸 torque 是 robot.relax 的活（enable 管策略、init/relax 管电源，两对
-//! 开关——reference/robotd/src/main.rs:4496-4499）；本循环没有任何
+//! 开关——upstream/robotd/src/main.rs:4496-4499）；本循环没有任何
 //! set_torque(false) 路径，Held 是进程启动态，也是未来 relax 的落点。
 //!
 //! Held 绝不调 set_torque：进程启动不是移动机器人的理由——舵机 RAM 里的
@@ -83,7 +83,7 @@ pub struct Stats {
     pub achieved_millihz: AtomicU64,
     /// 策略是否加载成功（D19：加载失败进程也活着，抱持姿态报病）。
     pub policy_ok: AtomicBool,
-    /// 斜坡是否完成过——原版 homed 的对应物（reference/robotd/src/main.rs
+    /// 斜坡是否完成过——原版 homed 的对应物（upstream/robotd/src/main.rs
     /// :650-653：false 刻意合并"从没起来过"与"斜坡上"两种状态，客户端
     /// 对两者的答案都是"等，或按 Start"）。robot.do 的门口据此拒绝
     /// "斜坡途中"的技能请求（:4201-4204）。fallen/Limp 期间保持 true：
@@ -130,7 +130,7 @@ pub struct ControlState {
     pub enabled: bool,
     /// M6：技能请求边沿位掩码（位分配见 scheduler.rs）。控制循环每拍
     /// 取一次清零——位掩码而非队列：同拍两个不同请求都该被看到，优先级
-    /// 链决定谁先（reference/robotd/src/intents.rs:105-117）。
+    /// 链决定谁先（upstream/robotd/src/intents.rs:105-117）。
     pub skill_edges: u32,
     /// M6：robot.mouth 意图，0..1 开度。纯 level 无时间戳：客户端死掉
     /// 嘴停在那（原版刻意行为，intents.rs:144-146）。
@@ -268,7 +268,7 @@ pub struct DrivingOutcome {
 /// 而不是它的一个改写版。
 ///
 /// `command` 必须已过 deadman 门。`mouth` 是 0..1 开度意图：嘴不属于任何
-/// 策略，策略写完 14 关节后单独覆写（reference/robotd/src/main.rs:3188-3194
+/// 策略，策略写完 14 关节后单独覆写（upstream/robotd/src/main.rs:3188-3194
 /// ——嘴只有意图能动它，且只在 Driving 覆写，斜坡/抱持阶段嘴跟随该阶段
 /// 自己的目标，"a restart cannot snap a mouth"）。
 pub fn driving_tick(
@@ -291,7 +291,7 @@ pub fn driving_tick(
         &decision.command,
     );
     // 换网即 reset 新网络的 LSTM 状态（scheduler.infer 内做）；last_action
-    // 与低通锚点跨切换保留（reference/robotd/src/control.rs:211-214）。
+    // 与低通锚点跨切换保留（upstream/robotd/src/control.rs:211-214）。
     let action = scheduler.infer(&obs, &decision)?;
     let mut targets = apply_action(&action, previous, decision.action_scale);
     targets[MOUTH_INDEX] = mouth_target(mouth);
@@ -327,7 +327,7 @@ enum Phase {
 }
 
 /// enabled 边沿上要做的动作（纯数据，转移规则单测覆盖）。
-/// 规则依据（reference/robotd/src/main.rs）：
+/// 规则依据（upstream/robotd/src/main.rs）：
 /// - enable 的 bring-up（torque on + 斜坡回 home）只从 torque off 的 Held
 ///   触发（:2560-2566）；没策略的机器人 enable 无意义，留在 Held（D19）。
 /// - Stopped（上电抱持 home）再 enable：直接回 Driving，无斜坡无死窗
@@ -376,7 +376,7 @@ fn ramp_done_phase(enabled: bool) -> Phase {
 /// D36：技能边沿只在 Driving 拍放行；其余阶段（Held/RampUp/Limp/
 /// Stopped = policy 不在驱动）返回 None，调用方当拍丢弃。不启动、
 /// 不排队（位掩码取出时已 mem::take 清零）、不记仇——恢复 Driving
-/// 后只认新请求。原版同（reference/robotd/src/main.rs:2120-2158：
+/// 后只认新请求。原版同（upstream/robotd/src/main.rs:2120-2158：
 /// enabled && Ready 之外一律 "skill request ignored: the policy is
 /// not driving"）。
 ///
@@ -557,7 +557,7 @@ pub fn spawn(
                 // 跌倒转移（只在 Driving/Limp 间；斜坡/抱持期间的跌倒
                 // 不改变行为——斜坡回 home 本身就是对的恢复动作）。
                 // M6：脚本动作在飞（busy：技能/ground_pick/起身中）时抑制
-                // Driving→Limp——原版用 busy 门 FallPredictor（reference/robotd/
+                // Driving→Limp——原版用 busy 门 FallPredictor（upstream/robotd/
                 // src/control.rs:318-322），我们门的是简化版直接转移（D32）。
                 // fallen 报告不受影响，state 推送照真。
                 let busy = scheduler.as_ref().is_some_and(|s| s.busy());
@@ -592,7 +592,7 @@ pub fn spawn(
                 // D36：技能请求只在 Driving 拍生效，其余阶段当拍丢弃并
                 // 留日志（对齐原版 "the loop drops a skill request whenever
                 // the policy is not driving, and it says so only in the
-                // journal"，reference/robotd/src/main.rs:4192-4195 与
+                // journal"，upstream/robotd/src/main.rs:4192-4195 与
                 // :2157）。能走到这里的非 Driving 请求是 fallen/Limp 期间
                 // 门口照收的（!enabled/!homed 已在门口拒掉）；调用方拿到
                 // 的是 accepted:true，丢弃不向调用方报错。
@@ -966,7 +966,7 @@ mod tests {
     ///    跨切换逐位保留（若切换把锚点清零，这一拍会写未滤波的 raw，公式
     ///    立刻不成立）。这是"切换无 blending 也不跳"的真正机制：
     ///    last_action 跨网共享回喂 + 锚点保留 + 换网即 reset LSTM
-    ///    （reference/robotd/src/control.rs:211-214）。
+    ///    （upstream/robotd/src/control.rs:211-214）。
     ///
     /// 2. **回归阈值（全程）**：任意相邻两拍、任一策略关节 |Δtarget| ≤ 5.0 rad。
     ///    实测依据：本场景（FakeIo 完美跟踪 + 速度恒 0，全程在策略训练分布
@@ -977,7 +977,7 @@ mod tests {
     ///    导致的全局跳变"这类回归，不是证明数学上不可能跳。在分布内（sim）
     ///    该值小一到两个数量级。
     ///
-    /// 嘴除外：嘴有意图直通覆写、无低通（原版同，reference/robotd/src/
+    /// 嘴除外：嘴有意图直通覆写、无低通（原版同，upstream/robotd/src/
     /// control.rs:618-620 低通跳过嘴，main.rs:3188-3194 意图直接覆写），
     /// 进 Driving 第一拍 mouth 从 home(0) 跳到 −5° 是原版行为。
     #[test]

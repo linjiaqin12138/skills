@@ -6,26 +6,26 @@
 
 ### 交付物
 
-- `src/lib.rs`：`Request.id` → `Option<u64>`（无 id = JSON-RPC notification，`skip_serializing_if` 保证序列化回去不带 `"id"` 字段）；`ServerMessage::Response.id` 同步 `Option<u64>`（解析失败按规范回 `"id":null`，修掉旧实现的假 id 0）；新增 `MoveParams`（`#[serde(default, deny_unknown_fields)]`，doc 注释含承重的单位/坐标系约定：m/s 与 rad/s、躯干系 x 前 y 左 z 上、vyaw 正左转）+ `finite_twist()` 有限性校验（线路不可达的深度防御）；8 条新单测。
-- `src/main.rs`：删 `robot.drive` 分支，新增 `robot.move`（无 id 静默应用/静默丢弃，有 id 回 accepted 或 INVALID_PARAMS）；抽出 `parse_move` 与 `apply_move_intent`（通知/请求两路共用，只写 twist + 刷新 `last_intent_at`，无限幅）；分发 match 改返回 `Option<ServerMessage>`（`None` = 本帧无回复）。
-- `src/bin/mini-duckctl.rs`：`drive <vx> <vyaw>` → `move <vx> <vy> <vyaw> [--secs N]`；仍请求式逐条调用（打印 accepted 回显）；`--secs` 期间 100ms 重发扮演手柄、到时发零命令停车（deadman 适配不变）。
-- `src/updater/ipc.rs` + `src/updater/gate.rs`：id 类型适配（`Option<u64>`），语义不变；ipc.rs 解析失败路径同样从假 id 0 改 `"id":null`。
-- `src/control.rs`：两处注释 `robot.drive` → `robot.move`（无代码变动）。
-- `scripts/accept-m8.sh`（新建）：FakeIo 起 daemon，python3 裸 socket 发帧（CLI 发不了无 id 通知），单连接时间线断言 a–h。
-- `scripts/accept-m4.sh` / `accept-m5.sh` / `accept-m6.sh`：CLI 调用 `drive 0.15 0 …` → `move 0.15 0 0 …`（vy=0 保持原行为）。
+- `impl/src/lib.rs`：`Request.id` → `Option<u64>`（无 id = JSON-RPC notification，`skip_serializing_if` 保证序列化回去不带 `"id"` 字段）；`ServerMessage::Response.id` 同步 `Option<u64>`（解析失败按规范回 `"id":null`，修掉旧实现的假 id 0）；新增 `MoveParams`（`#[serde(default, deny_unknown_fields)]`，doc 注释含承重的单位/坐标系约定：m/s 与 rad/s、躯干系 x 前 y 左 z 上、vyaw 正左转）+ `finite_twist()` 有限性校验（线路不可达的深度防御）；8 条新单测。
+- `impl/src/main.rs`：删 `robot.drive` 分支，新增 `robot.move`（无 id 静默应用/静默丢弃，有 id 回 accepted 或 INVALID_PARAMS）；抽出 `parse_move` 与 `apply_move_intent`（通知/请求两路共用，只写 twist + 刷新 `last_intent_at`，无限幅）；分发 match 改返回 `Option<ServerMessage>`（`None` = 本帧无回复）。
+- `impl/src/bin/mini-duckctl.rs`：`drive <vx> <vyaw>` → `move <vx> <vy> <vyaw> [--secs N]`；仍请求式逐条调用（打印 accepted 回显）；`--secs` 期间 100ms 重发扮演手柄、到时发零命令停车（deadman 适配不变）。
+- `impl/src/updater/ipc.rs` + `impl/src/updater/gate.rs`：id 类型适配（`Option<u64>`），语义不变；ipc.rs 解析失败路径同样从假 id 0 改 `"id":null`。
+- `impl/src/control.rs`：两处注释 `robot.drive` → `robot.move`（无代码变动）。
+- `accept/m08-b01.sh`（新建）：FakeIo 起 daemon，python3 裸 socket 发帧（CLI 发不了无 id 通知），单连接时间线断言 a–h。
+- `accept/m04-b01.sh` / `accept/m05-b01.sh` / `accept/m06-b01.sh`：CLI 调用 `drive 0.15 0 …` → `move 0.15 0 0 …`（vy=0 保持原行为）。
 - **控制循环 / 调度器 / Safety / RobotIo / 仿真体一行未动**；进程边界与模块零增删。
 
 ### 验收实测
 
-`docker compose exec rust cargo test`（2026-10-05 复跑）：
+`docker compose -f impl/docker-compose.yml exec rust cargo test`（2026-10-05 复跑）：
 
 ```text
 test result: ok. 68 passed; 0 failed
 ```
 
-构成：M7 基线 60 条 + 本章新增 8 条（全部在 `src/lib.rs`：move 参数全字段/缺省/未知字段/错误类型四条、非有限拒绝一条、JSON 溢出解析期拒绝一条、notification 帧形态一条、`"id":null` 响应一条）。
+构成：M7 基线 60 条 + 本章新增 8 条（全部在 `impl/src/lib.rs`：move 参数全字段/缺省/未知字段/错误类型四条、非有限拒绝一条、JSON 溢出解析期拒绝一条、notification 帧形态一条、`"id":null` 响应一条）。
 
-`docker compose exec rust bash scripts/accept-m8.sh`（2026-10-05 复跑实测关键行）：
+`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b01.sh`（2026-10-05 复跑实测关键行）：
 
 ```text
 握手 + 订阅  OK
@@ -42,35 +42,35 @@ h. robot.drive → METHOD_NOT_FOUND  OK
 M8（本 Bite）断言 a–h 全部通过
 ```
 
-断言要点：a 中 twist 经 obs f32 落盘（`src/obs.rs:105`），容差 1e-6，偏移 `OFF_TWIST=48`（`src/obs.rs:22`）；e2 的 15 帧 = 300ms（< deadman 500ms）内的全部推送；f 的帧是手写字面量（python `json.dumps(1e999)` 会印成非法 JSON 的裸 `Infinity`，测不成数值溢出——见 tutorial「常见坑」1）。
+断言要点：a 中 twist 经 obs f32 落盘（`impl/src/obs.rs:105`），容差 1e-6，偏移 `OFF_TWIST=48`（`impl/src/obs.rs:22`）；e2 的 15 帧 = 300ms（< deadman 500ms）内的全部推送；f 的帧是手写字面量（python `json.dumps(1e999)` 会印成非法 JSON 的裸 `Infinity`，测不成数值溢出——见 tutorial「常见坑」1）。
 
 **回归**：
 
-- `docker compose exec rust bash scripts/accept-m7.sh`：PASS=39 FAIL=0（updater id 适配语义不变）。
-- `accept-m4.sh` / `accept-m5.sh` / `accept-m6.sh`（MuJoCo 仿真，仅改了脚本里的 CLI 调用）：10 秒行走位移实测 0.764m / 0.848m / 0.816m，均过 0.5m 门槛，exit 0——vy=0 的新发法与旧发法行为一致。
+- `docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m07-b01.sh`：PASS=39 FAIL=0（updater id 适配语义不变）。
+- `accept/m04-b01.sh` / `accept/m05-b01.sh` / `accept/m06-b01.sh`（MuJoCo 仿真，仅改了脚本里的 CLI 调用）：10 秒行走位移实测 0.764m / 0.848m / 0.816m，均过 0.5m 门槛，exit 0——vy=0 的新发法与旧发法行为一致。
 
-**实现期踩坑记录**（已修复并变成断言）：① 断言 f 第一版假阳性——`json.dumps(1e999)` 印成裸 `Infinity`（非法 JSON 词法），daemon 回词法错误而非数值溢出；改为脚本内手写帧字面量 `"vx":1e999` 才真正测到 serde_json 的 number out of range（`scripts/accept-m8.sh:153-161`）；② `finite_twist()` 的 `is_finite` 检查线上不可达（`serde_json::Value` 装不下 inf/NaN，解析阶段即拒），作为深度防御保留，由单测直接构造 NaN/±inf 验证（`src/lib.rs:167-175`）；③ CLI 发不了无 id 通知，验收脚本必须用 python3 裸 socket 发帧（`scripts/accept-m8.sh:36-46`）。
+**实现期踩坑记录**（已修复并变成断言）：① 断言 f 第一版假阳性——`json.dumps(1e999)` 印成裸 `Infinity`（非法 JSON 词法），daemon 回词法错误而非数值溢出；改为脚本内手写帧字面量 `"vx":1e999` 才真正测到 serde_json 的 number out of range（`accept/m08-b01.sh:153-161`）；② `finite_twist()` 的 `is_finite` 检查线上不可达（`serde_json::Value` 装不下 inf/NaN，解析阶段即拒），作为深度防御保留，由单测直接构造 NaN/±inf 验证（`impl/src/lib.rs:167-175`）；③ CLI 发不了无 id 通知，验收脚本必须用 python3 裸 socket 发帧（`accept/m08-b01.sh:36-46`）。
 
 ### 涉及代码文件清单
 
 | 文件 | 变动 |
 |---|---|
-| `src/lib.rs` | `Request.id`/`Response.id` → `Option<u64>`；+`MoveParams`/`finite_twist()`；+8 单测 |
-| `src/main.rs` | 删 robot.drive，+robot.move 双路径；+`parse_move`/`apply_move_intent`；match 返回 `Option<ServerMessage>` |
-| `src/bin/mini-duckctl.rs` | `drive` → `move vx vy vyaw [--secs N]` 子命令 |
-| `src/updater/ipc.rs` | id 类型适配（`Option<u64>`），解析失败回 `"id":null` |
-| `src/updater/gate.rs` | 发请求 id 包 `Some` |
-| `src/control.rs` | 两处注释改名（robot.drive → robot.move） |
-| `scripts/accept-m8.sh` | 新建：a–h 八项断言 |
-| `scripts/accept-m4/m5/m6.sh` | CLI 调用改名（vy=0） |
-| `examples/jsonrpc_notification.py` | 新建：教程概念演示（request/notification 双形态） |
-| `docs/concepts/jsonrpc-notification.md` | 新建：概念深读 |
-| `docs/milestones/m8-convergence/{tutorial,acceptance}.md` | 本档案与教程章节 |
-| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 架构图（M7 图改标签；变动示意灰化未动模块） |
+| `impl/src/lib.rs` | `Request.id`/`Response.id` → `Option<u64>`；+`MoveParams`/`finite_twist()`；+8 单测 |
+| `impl/src/main.rs` | 删 robot.drive，+robot.move 双路径；+`parse_move`/`apply_move_intent`；match 返回 `Option<ServerMessage>` |
+| `impl/src/bin/mini-duckctl.rs` | `drive` → `move vx vy vyaw [--secs N]` 子命令 |
+| `impl/src/updater/ipc.rs` | id 类型适配（`Option<u64>`），解析失败回 `"id":null` |
+| `impl/src/updater/gate.rs` | 发请求 id 包 `Some` |
+| `impl/src/control.rs` | 两处注释改名（robot.drive → robot.move） |
+| `accept/m08-b01.sh` | 新建：a–h 八项断言 |
+| `accept/m04-b01.sh、accept/m05-b01.sh、accept/m06-b01.sh` | CLI 调用改名（vy=0） |
+| `impl/examples/jsonrpc_notification.py` | 新建：教程概念演示（request/notification 双形态） |
+| `book/concepts/jsonrpc-notification.md` | 新建：概念深读 |
+| `book/m08-convergence/{tutorial,acceptance}.md` | 本档案与教程章节 |
+| `book/m08-convergence/{arch,arch-diff}.{d2,svg}` | 架构图（M7 图改标签；变动示意灰化未动模块） |
 
 ### 偏差变动
 
-- **D43 部分收敛**（已更新 `docs/deviations.md`）：robot.drive {vx,vyaw} 请求式 → 原版 robot.move {vx,vy,vyaw} 通知/请求双形态，vy 侧向补齐。残余：① robot.head / robot.mouth 的通知语义未开（M8 后续 Bite）；② 原版对任何方法的 notification 都走 apply_intent 统一入口静默处理，我们只给 robot.move 开了通知语义（后续 Bite 随 enable/subscribe 收敛）；③ mini-duckctl 仍请求式逐条调用（教学工具，daemon 两种形态都收）。
+- **D43 部分收敛**（已更新 `spec/deviations.md`）：robot.drive {vx,vyaw} 请求式 → 原版 robot.move {vx,vy,vyaw} 通知/请求双形态，vy 侧向补齐。残余：① robot.head / robot.mouth 的通知语义未开（M8 后续 Bite）；② 原版对任何方法的 notification 都走 apply_intent 统一入口静默处理，我们只给 robot.move 开了通知语义（后续 Bite 随 enable/subscribe 收敛）；③ mini-duckctl 仍请求式逐条调用（教学工具，daemon 两种形态都收）。
 
 ---
 
@@ -78,18 +78,18 @@ M8（本 Bite）断言 a–h 全部通过
 
 ### 交付物
 
-- `src/lib.rs`：新增 `EnableParams`（`{on: bool}` 必填无 default、`toggle` 缺省 false、`deny_unknown_fields`，doc 注释承重：toggle=手柄 Start 语义、daemon 侧翻转、客户端信念会漂移）+ `parse_enable`（仿 `parse_move`，Err 文案即 INVALID_PARAMS message）；6 条新单测（on=true / toggle 缺省 / on+toggle 同帧 / 单发 toggle 拒 / 未知字段拒 / 缺 on 与 Null 拒）。
-- `src/main.rs`：notification 统一入口（`src/main.rs:282-302`）——任何方法的无 id 帧都不应答：move/head/mouth 解析合法静默应用、非法静默丢弃，非意图方法静默丢弃；整帧解析失败仍在 parse 分支回 PARSE_ERROR + `"id":null`。`robot.enable` 带 id 分支重写（`src/main.rs:319-340`）：toggle 优先（daemon 侧翻转，忽略 on）、永不拒绝、reason 文案逐字对齐原版；`robot.disable` 分支删除（→ METHOD_NOT_FOUND）。抽取 `parse_mouth`/`apply_mouth_intent`/`parse_head`/`apply_head_intent`（`src/main.rs:213-243`），通知/请求两路共用。
-- `src/control.rs`：状态机改造——`Phase::Stopped`（上电抱持 home）取代 `RampDown`；模块头 ASCII 状态图重写（`src/control.rs:1-29`）；转移规则抽纯函数 `edge_transition()`（`src/control.rs:307-319`，`EdgeAction` doc 注释逐条引原版证据）与 `ramp_done_phase()`（`src/control.rs:322-328`）；`StopToHome` 边沿处理（`src/control.rs:447-457`：scheduler.reset + 锚点/last_action 清零 + 切 Stopped）；Stopped 臂当拍写 `DEFAULT_POSITION`、gain 维持 200、torque 保持 on（`src/control.rs:530-537`）；全文件无 `set_torque(false)` 路径。顺带修掉"RampDown 途中再 enable 卡死 Held"的自家 bug。6 条新单测（`src/control.rs:723-776`）。
-- `src/scheduler.rs`：`Scheduler::reset()`（`src/scheduler.rs:398-413`）清全部已加载槽 LSTM；Cascade 窗口/坐姿锁存不动【残余存疑，见偏差变动】；单测 `reset_clears_every_loaded_slot`（`src/scheduler.rs:488-523`，增量断言）。
-- `src/bin/mini-duckctl.rs`：`enable [on|off]`（缺省 on）发 `robot.enable {on}`；`disable` 子命令删除（用户裁决，不留别名）。
-- `scripts/accept-m5.sh`：A1c 重写（`scripts/accept-m5.sh:99-116`）——`enable off` 后断言 positions 精确等于 home（阈值 1e-6）、enabled=false、**torque=true**（原版语义：卸 torque 是 relax 的活）。
-- `scripts/accept-m8.sh`：追加断言 i–p + n2 + o2（`scripts/accept-m8.sh:210-333`）；等 Driving 改用推送 `skill` 字段而非 gain（gain=200 在 RampUp/Stopped 同样成立）。
+- `impl/src/lib.rs`：新增 `EnableParams`（`{on: bool}` 必填无 default、`toggle` 缺省 false、`deny_unknown_fields`，doc 注释承重：toggle=手柄 Start 语义、daemon 侧翻转、客户端信念会漂移）+ `parse_enable`（仿 `parse_move`，Err 文案即 INVALID_PARAMS message）；6 条新单测（on=true / toggle 缺省 / on+toggle 同帧 / 单发 toggle 拒 / 未知字段拒 / 缺 on 与 Null 拒）。
+- `impl/src/main.rs`：notification 统一入口（`impl/src/main.rs:282-302`）——任何方法的无 id 帧都不应答：move/head/mouth 解析合法静默应用、非法静默丢弃，非意图方法静默丢弃；整帧解析失败仍在 parse 分支回 PARSE_ERROR + `"id":null`。`robot.enable` 带 id 分支重写（`impl/src/main.rs:319-340`）：toggle 优先（daemon 侧翻转，忽略 on）、永不拒绝、reason 文案逐字对齐原版；`robot.disable` 分支删除（→ METHOD_NOT_FOUND）。抽取 `parse_mouth`/`apply_mouth_intent`/`parse_head`/`apply_head_intent`（`impl/src/main.rs:213-243`），通知/请求两路共用。
+- `impl/src/control.rs`：状态机改造——`Phase::Stopped`（上电抱持 home）取代 `RampDown`；模块头 ASCII 状态图重写（`impl/src/control.rs:1-29`）；转移规则抽纯函数 `edge_transition()`（`impl/src/control.rs:307-319`，`EdgeAction` doc 注释逐条引原版证据）与 `ramp_done_phase()`（`impl/src/control.rs:322-328`）；`StopToHome` 边沿处理（`impl/src/control.rs:447-457`：scheduler.reset + 锚点/last_action 清零 + 切 Stopped）；Stopped 臂当拍写 `DEFAULT_POSITION`、gain 维持 200、torque 保持 on（`impl/src/control.rs:530-537`）；全文件无 `set_torque(false)` 路径。顺带修掉"RampDown 途中再 enable 卡死 Held"的自家 bug。6 条新单测（`impl/src/control.rs:723-776`）。
+- `impl/src/scheduler.rs`：`Scheduler::reset()`（`impl/src/scheduler.rs:398-413`）清全部已加载槽 LSTM；Cascade 窗口/坐姿锁存不动【残余存疑，见偏差变动】；单测 `reset_clears_every_loaded_slot`（`impl/src/scheduler.rs:488-523`，增量断言）。
+- `impl/src/bin/mini-duckctl.rs`：`enable [on|off]`（缺省 on）发 `robot.enable {on}`；`disable` 子命令删除（用户裁决，不留别名）。
+- `accept/m05-b01.sh`：A1c 重写（`accept/m05-b01.sh:99-116`）——`enable off` 后断言 positions 精确等于 home（阈值 1e-6）、enabled=false、**torque=true**（原版语义：卸 torque 是 relax 的活）。
+- `accept/m08-b01.sh`：追加断言 i–p + n2 + o2（`accept/m08-b01.sh:210-333`）；等 Driving 改用推送 `skill` 字段而非 gain（gain=200 在 RampUp/Stopped 同样成立）。
 - **进程边界与模块零增删**；变化全在模块内部（main.rs 分发结构、control.rs 状态机、CLI 子命令）。
 
 ### 验收实测
 
-`docker compose exec rust cargo test`（2026-10-06 主 agent 复跑）：
+`docker compose -f impl/docker-compose.yml exec rust cargo test`（2026-10-06 主 agent 复跑）：
 
 ```text
 test result: ok. 81 passed; 0 failed
@@ -97,7 +97,7 @@ test result: ok. 81 passed; 0 failed
 
 构成：Bite 1 的 68 条 + 本 Bite 新增 13 条（lib 6 + control 6 + scheduler 1）。
 
-`docker compose exec rust bash scripts/accept-m8.sh`（2026-10-06 主 agent 复跑）——断言 a–p + n2 + o2 全过，Bite 2 新增部分关键实测行：
+`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b01.sh`（2026-10-06 主 agent 复跑）——断言 a–p + n2 + o2 全过，Bite 2 新增部分关键实测行：
 
 ```text
 i. enable on → 'enabled — driving'，推送 enabled=true  OK
@@ -115,31 +115,31 @@ p2. robot.disable → METHOD_NOT_FOUND  OK
 M8 断言 a–p 全部通过
 ```
 
-断言要点：j 的 obs head 块偏移 `OFF_HEAD=51`（直通 command.head 无低通）；k 的 `MOUTH_INDEX=9`，0..1 → −5°..+30°，position=1 目标 0.524rad；n2 的 home 逐位相等阈值 1e-9 依赖 FakeIo 精确回写（`src/io.rs:100-102`、`src/io.rs:340-344`）；o2 的 1s 预算 < 旧斜坡 2s，只可能是 Stopped→Driving 直回；i/n/o 的 reason 文案逐字对齐原版（`reference/robotd/src/main.rs:4500-4510`）。
+断言要点：j 的 obs head 块偏移 `OFF_HEAD=51`（直通 command.head 无低通）；k 的 `MOUTH_INDEX=9`，0..1 → −5°..+30°，position=1 目标 0.524rad；n2 的 home 逐位相等阈值 1e-9 依赖 FakeIo 精确回写（`impl/src/io.rs:100-102`、`impl/src/io.rs:340-344`）；o2 的 1s 预算 < 旧斜坡 2s，只可能是 Stopped→Driving 直回；i/n/o 的 reason 文案逐字对齐原版（`upstream/robotd/src/main.rs:4500-4510`）。
 
 **回归**（2026-10-06 复跑）：
 
-- `accept-m5.sh` 全过：A1c 实测 `|positions-home|max=0.00e+00`，enabled=false，torque=true——Stopped 上电抱持 home 的端到端证据。
-- `accept-m4.sh` PASS（10 秒行走位移 0.764m，过 0.5m 门槛）、`accept-m6.sh` 全过——控制链路行为不变。
-- `accept-m7.sh` 本机 D1/E1 两处时序断言 flake（**预先存在**：新机器更快，Busy 窗口抓空），与本 Bite 无关——教训已记入 tutorial「常见坑」4。
+- `accept/m05-b01.sh` 全过：A1c 实测 `|positions-home|max=0.00e+00`，enabled=false，torque=true——Stopped 上电抱持 home 的端到端证据。
+- `accept/m04-b01.sh` PASS（10 秒行走位移 0.764m，过 0.5m 门槛）、`accept/m06-b01.sh` 全过——控制链路行为不变。
+- `accept/m07-b01.sh` 本机 D1/E1 两处时序断言 flake（**预先存在**：新机器更快，Busy 窗口抓空），与本 Bite 无关——教训已记入 tutorial「常见坑」4。
 
-**实现期坑位记录**：① gain==200 判不出 Driving（RampUp/Stopped 同样 200），改用推送 skill 字段（`scripts/accept-m8.sh:219-223`）；② `Policy::load` 自带一次 reset，reset_calls 断言用增量（`src/scheduler.rs:511-523`）；③ FakeIo 是精确回写不是一阶滞后，收敛断言可用严阈值（`scripts/accept-m8.sh:244` 注释写"一阶滞后"与 io.rs 自述矛盾，以 io.rs 为准，疑似历史遗留待清理）。
+**实现期坑位记录**：① gain==200 判不出 Driving（RampUp/Stopped 同样 200），改用推送 skill 字段（`accept/m08-b01.sh:219-223`）；② `Policy::load` 自带一次 reset，reset_calls 断言用增量（`impl/src/scheduler.rs:511-523`）；③ FakeIo 是精确回写不是一阶滞后，收敛断言可用严阈值（`accept/m08-b01.sh:244` 注释写"一阶滞后"与 io.rs 自述矛盾，以 io.rs 为准，疑似历史遗留待清理）。
 
 ### 涉及代码文件清单
 
 | 文件 | 变动 |
 |---|---|
-| `src/lib.rs` | +`EnableParams`/`parse_enable`；+6 单测 |
-| `src/main.rs` | notification 统一入口（无 id 帧提前拦截）；robot.enable 重写（toggle daemon 翻转/永不拒绝/reason 对齐）；删 robot.disable；+`parse_mouth`/`apply_mouth_intent`/`parse_head`/`apply_head_intent` 抽取 |
-| `src/control.rs` | `Phase::Stopped` 取代 `RampDown`；`edge_transition()`/`ramp_done_phase()` 纯函数；模块头 ASCII 图重写；+6 单测 |
-| `src/scheduler.rs` | +`Scheduler::reset()`；+1 单测 |
-| `src/bin/mini-duckctl.rs` | `enable [on|off]`；删 `disable` 子命令 |
-| `scripts/accept-m8.sh` | 追加断言 i–p + n2 + o2 |
-| `scripts/accept-m5.sh` | A1c 重写（torque=true + positions 精确等于 home） |
-| `docs/deviations.md` | D43 更新（残余①②收敛）、+D64（新登记即收敛） |
-| `docs/feature-inventory.md` | D44 标注 M8 Bite 2 收敛 |
-| `docs/milestones/m8-convergence/{tutorial,acceptance}.md` | 本档案与教程章节追加 |
-| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 更新到 Bite 2 状态（阶段机 Stopped、enable{on,toggle}、disable 消失） |
+| `impl/src/lib.rs` | +`EnableParams`/`parse_enable`；+6 单测 |
+| `impl/src/main.rs` | notification 统一入口（无 id 帧提前拦截）；robot.enable 重写（toggle daemon 翻转/永不拒绝/reason 对齐）；删 robot.disable；+`parse_mouth`/`apply_mouth_intent`/`parse_head`/`apply_head_intent` 抽取 |
+| `impl/src/control.rs` | `Phase::Stopped` 取代 `RampDown`；`edge_transition()`/`ramp_done_phase()` 纯函数；模块头 ASCII 图重写；+6 单测 |
+| `impl/src/scheduler.rs` | +`Scheduler::reset()`；+1 单测 |
+| `impl/src/bin/mini-duckctl.rs` | `enable [on|off]`；删 `disable` 子命令 |
+| `accept/m08-b01.sh` | 追加断言 i–p + n2 + o2 |
+| `accept/m05-b01.sh` | A1c 重写（torque=true + positions 精确等于 home） |
+| `spec/deviations.md` | D43 更新（残余①②收敛）、+D64（新登记即收敛） |
+| `spec/features.md` | D44 标注 M8 Bite 2 收敛 |
+| `book/m08-convergence/{tutorial,acceptance}.md` | 本档案与教程章节追加 |
+| `book/m08-convergence/{arch,arch-diff}.{d2,svg}` | 更新到 Bite 2 状态（阶段机 Stopped、enable{on,toggle}、disable 消失） |
 
 ### 偏差变动
 
@@ -154,24 +154,24 @@ M8 断言 a–p 全部通过
 
 ### 交付物
 
-- `src/lib.rs`：新增 `SubscribeParams`（`hz: Option<u32>`，`default` + `deny_unknown_fields`）与 `SubscribeResult`（`accepted` 恒 true；`walk` / `sitstand` / `ground_pick` 为文件名；`stand` 恒 `None` 并省略；`unavailable` 仅加载失败时为 `policy would not load: …`；`skills` 为配置技能名，空则省略）。`parse_subscribe` 把 JSON null 当成 `{}`。`assemble_subscribe_ack` 组进程生命周期内的 ack，不回显 hz。5 个新测试函数（`src/lib.rs:332-401`）。
-- `src/scheduler.rs`：`SITSTAND_FILE` / `GROUND_PICK_FILE`（`src/scheduler.rs:339-340`）同时给 `load` 和 `loaded_slots` 用。`LoadedSlots`（`:345-349`）的 skills 是 `SKILLS[i].name`（`roulade`、`kick_left`），不含 `ground_pick` / `sit_toggle`。`loaded_slots`（`:409-420`）在 spawn 前取一次。
-- `src/main.rs`：`load_failure`（PolicyError 的 Display）与 `policy_error`（`policy unavailable: …`）分开（`:77-90`）。`make_subscribe_ack` 取 walk 文件名（`:261-278`）。ack 在 `control::spawn` 前组好（`:101-104`）。带 id 的 `robot.subscribe` 解析成功即订阅并回这份 ack，hz 丢掉；解析失败不改 `subscribed`（`:354-367`）。无 id 的 `robot.subscribe` 走 notification 统一入口，静默丢弃，不开始推送（`:335-337`）。带 id 的 `robot.state` 落到 `METHOD_NOT_FOUND`（`:486-490`）。推送 method 仍是 `robot.state`，无 id（`:506-507`）。
-- `src/bin/mini-duckctl.rs`：`state` / `subscribe` 子命令名不变，内部改发 `robot.subscribe {}`（`:60-73`）。没有 hz 旗标。hello 仍走 stderr（`:266`），第一行 stdout 仍是 ack（`:283`），accept-m5 / accept-m6 的 `tail -n +2` 契约保持。
-- `scripts/accept-m8.sh`：入场握手改为 `robot.subscribe` + SubscribeResult 断言（`:106-121`）；追加 q–t（`:356-390`）。
+- `impl/src/lib.rs`：新增 `SubscribeParams`（`hz: Option<u32>`，`default` + `deny_unknown_fields`）与 `SubscribeResult`（`accepted` 恒 true；`walk` / `sitstand` / `ground_pick` 为文件名；`stand` 恒 `None` 并省略；`unavailable` 仅加载失败时为 `policy would not load: …`；`skills` 为配置技能名，空则省略）。`parse_subscribe` 把 JSON null 当成 `{}`。`assemble_subscribe_ack` 组进程生命周期内的 ack，不回显 hz。5 个新测试函数（`impl/src/lib.rs:332-401`）。
+- `impl/src/scheduler.rs`：`SITSTAND_FILE` / `GROUND_PICK_FILE`（`impl/src/scheduler.rs:339-340`）同时给 `load` 和 `loaded_slots` 用。`LoadedSlots`（`:345-349`）的 skills 是 `SKILLS[i].name`（`roulade`、`kick_left`），不含 `ground_pick` / `sit_toggle`。`loaded_slots`（`:409-420`）在 spawn 前取一次。
+- `impl/src/main.rs`：`load_failure`（PolicyError 的 Display）与 `policy_error`（`policy unavailable: …`）分开（`:77-90`）。`make_subscribe_ack` 取 walk 文件名（`:261-278`）。ack 在 `control::spawn` 前组好（`:101-104`）。带 id 的 `robot.subscribe` 解析成功即订阅并回这份 ack，hz 丢掉；解析失败不改 `subscribed`（`:354-367`）。无 id 的 `robot.subscribe` 走 notification 统一入口，静默丢弃，不开始推送（`:335-337`）。带 id 的 `robot.state` 落到 `METHOD_NOT_FOUND`（`:486-490`）。推送 method 仍是 `robot.state`，无 id（`:506-507`）。
+- `impl/src/bin/mini-duckctl.rs`：`state` / `subscribe` 子命令名不变，内部改发 `robot.subscribe {}`（`:60-73`）。没有 hz 旗标。hello 仍走 stderr（`:266`），第一行 stdout 仍是 ack（`:283`），accept-m5 / accept-m6 的 `tail -n +2` 契约保持。
+- `accept/m08-b01.sh`：入场握手改为 `robot.subscribe` + SubscribeResult 断言（`:106-121`）；追加 q–t（`:356-390`）。
 - **无新增、无删除模块，无改向。** 控制循环、调度器仲裁、Safety、RobotIo 未改行为。ack 冻在 RPC 层内部。
 
 ### 验收实测
 
-`docker compose exec rust cargo test`（2026-10-09 主 agent 复跑）：
+`docker compose -f impl/docker-compose.yml exec rust cargo test`（2026-10-09 主 agent 复跑）：
 
 ```text
 test result: ok. 86 passed; 0 failed
 ```
 
-构成：Bite 2 的 81 条 + 本 Bite 在 `src/lib.rs` 新增的 5 个测试函数（空对象与缺省 params、hz=0 与 hz=10、非法形状、成功时省略 stand/unavailable/空 skills/hz、失败仍报 walk 文件名）。
+构成：Bite 2 的 81 条 + 本 Bite 在 `impl/src/lib.rs` 新增的 5 个测试函数（空对象与缺省 params、hz=0 与 hz=10、非法形状、成功时省略 stand/unavailable/空 skills/hz、失败仍报 walk 文件名）。
 
-`docker compose exec rust bash scripts/accept-m8.sh`（2026-10-09 主 agent 复跑；先 `cargo build --bins`，见 tutorial 常见坑 1）关键行：
+`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b01.sh`（2026-10-09 主 agent 复跑；先 `cargo build --bins`，见 tutorial 常见坑 1）关键行：
 
 ```text
 握手 + robot.subscribe ack walk=velstand.onnx skills=['roulade', 'kick_left']  OK
@@ -184,21 +184,21 @@ M8 断言 a–t 全部通过
 
 旧断言 a–p 仍绿（与 Bite 2 相同的 move/enable 断言，此处不重复实录）。
 
-断言要点：握手断言 `accepted`、四个名单字段，且没有 `stand` / `unavailable`（`scripts/accept-m8.sh:114-120`）；q 的 -32601 之后推送仍在，订阅没被拆掉（`:356-363`）；r 的 26 帧 / 0.5s 高于 10Hz 约 5 帧的量级，且 ack 不含 `hz`（`:365-374`）；s 的 -32602 之后推送仍在，解析失败不退订（`:376-384`）；t 的 0.3s 内只有 `robot.state`，无响应行（`:386-390`）。
+断言要点：握手断言 `accepted`、四个名单字段，且没有 `stand` / `unavailable`（`accept/m08-b01.sh:114-120`）；q 的 -32601 之后推送仍在，订阅没被拆掉（`:356-363`）；r 的 26 帧 / 0.5s 高于 10Hz 约 5 帧的量级，且 ack 不含 `hz`（`:365-374`）；s 的 -32602 之后推送仍在，解析失败不退订（`:376-384`）；t 的 0.3s 内只有 `robot.state`，无响应行（`:386-390`）。
 
 ### 涉及代码文件清单
 
 | 文件 | 变动 |
 |---|---|
-| `src/lib.rs` | +`SubscribeParams` / `SubscribeResult` / `parse_subscribe` / `assemble_subscribe_ack`；+5 测试函数 |
-| `src/scheduler.rs` | +`SITSTAND_FILE` / `GROUND_PICK_FILE` / `LoadedSlots` / `loaded_slots`；`load` 改用这两个常量 |
-| `src/main.rs` | `load_failure` 与 `policy_error` 分开；+`make_subscribe_ack`；`robot.subscribe` 分支；带 id 的 `robot.state` → METHOD_NOT_FOUND |
-| `src/bin/mini-duckctl.rs` | `state` / `subscribe` 内部改发 `robot.subscribe {}` |
-| `scripts/accept-m8.sh` | 入场握手改为 SubscribeResult；追加断言 q–t |
-| `docs/milestones/m8-convergence/{tutorial,acceptance}.md` | 第 11 章与本档案 |
-| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 标签与边契约更新到 Bite 3（dagre，无新增/删除模块） |
+| `impl/src/lib.rs` | +`SubscribeParams` / `SubscribeResult` / `parse_subscribe` / `assemble_subscribe_ack`；+5 测试函数 |
+| `impl/src/scheduler.rs` | +`SITSTAND_FILE` / `GROUND_PICK_FILE` / `LoadedSlots` / `loaded_slots`；`load` 改用这两个常量 |
+| `impl/src/main.rs` | `load_failure` 与 `policy_error` 分开；+`make_subscribe_ack`；`robot.subscribe` 分支；带 id 的 `robot.state` → METHOD_NOT_FOUND |
+| `impl/src/bin/mini-duckctl.rs` | `state` / `subscribe` 内部改发 `robot.subscribe {}` |
+| `accept/m08-b01.sh` | 入场握手改为 SubscribeResult；追加断言 q–t |
+| `book/m08-convergence/{tutorial,acceptance}.md` | 第 11 章与本档案 |
+| `book/m08-convergence/{arch,arch-diff}.{d2,svg}` | 标签与边契约更新到 Bite 3（dagre，无新增/删除模块） |
 
-`docs/deviations.md` 由主 agent 另行更新，本档案不改那个文件。
+`spec/deviations.md` 由主 agent 另行更新，本档案不改那个文件。
 
 ### 偏差变动
 
@@ -214,28 +214,28 @@ M8 断言 a–t 全部通过
 
 ### 交付物
 
-- `src/lib.rs`：新增 `pub const MODEL_API: u32 = 2`（`:30`，对齐原版 `reference/robotd/src/main.rs:58`）、`SafeToRestartResult { safe, reason: Option<String> }`（`:36`，`reason` 为 `None` 时序列化省略，`skip_serializing_if`，对齐 `reference/duck-ipc-proto/src/lib.rs:3241-3247`）、`ModelApiResult { model_api: u32 }`（`:43`）。
-- `src/main.rs`：`safe_to_restart(stats)` 纯函数（`:206`）——`moving && !fallen` → `safe:false, reason:"the robot is walking"`（文案逐字对齐 `reference/robotd/src/main.rs:903-906`），否则 `safe:true` 且不带 `reason`；RPC 分发表加 `robot.safeToRestart`（`:502`）与 `robot.modelApi`（`:507`，返回 `MODEL_API`）。两个方法都是请求式，带 id 应答、无 id 走 notification 统一入口静默丢弃。
-- `src/control.rs`：`Stats` 加 `moving` / `fallen` 两个 `AtomicBool`（`:79`、`:81`）；控制循环每拍在发 `FrameSnapshot` 之前算 `moving` 并写两个原子量（`:594-604`）——`Limp` / `RampUp` 恒 true，`Driving` 取 `busy || |twist| > 0`，`Held` / `Stopped` 恒 false。口径对齐原版 `reference/robotd/src/main.rs:2822-2883`（跌倒序列与 homing 斜坡算移动、Driving 取 `busy || twist_magnitude > 0`、held 不算）。原版的 `force_busy`（`--busy` 调试旗标）没有对应实现。
-- `src/updater/robot.rs`（**新增模块**，160 行）：updaterd 视角的 robotd 客户端。`SafeToRestart` 四态枚举 `Yes / No(String) / Incompatible(String) / Unreachable` 与 `permits_restart()`（不可达放行、不可读拒绝），`ask()` 收发一行 JSON-RPC 并套 `tokio::time::timeout`，`safe_to_restart()` 把应答按四种结果归类（形状不对 → `Incompatible`，不猜、不按安全处理），`model_api()` 解析 `Option<u32>`。5 个测试函数（`:88-159`）。
-- `src/updater/engine.rs`：`apply()` 开头加预检（`:255` safeToRestart、`:261` modelApi），位于 `let from = store::current_version(&self.paths);` 之后、`set_phase(Phase::Verifying)` 之前——早于 manifest 校验、早于解包，拒绝时对持久状态零副作用（对齐原版 preflight 是 apply 第 0 步，`reference/updater/src/engine.rs:662-667`）。文案 `not safe to restart: {reason}` 与 `model api mismatch: expected 2, got {actual:?}`，都走既有的 `self.reject(...)`（-32003）。
-- `src/updater/mod.rs`：加 `pub mod robot;`。
-- `scripts/accept-m8.sh`：追加断言 u / v / w（`:392`、`:400`、`:416`），a–t 未动。
-- `scripts/accept-m8-updater.sh`（**新建**，177 行）：本 Bite 专属的 updater 侧端到端验收（造 1.0.0/2.0.0 两个 release、bootstrap 出厂 current=1.0.0、起 updaterd、走 Driving + 持续 move 让机器人走路、apply 2.0.0 应被拒、再静止后 apply 应成功）。
+- `impl/src/lib.rs`：新增 `pub const MODEL_API: u32 = 2`（`:30`，对齐原版 `upstream/robotd/src/main.rs:58`）、`SafeToRestartResult { safe, reason: Option<String> }`（`:36`，`reason` 为 `None` 时序列化省略，`skip_serializing_if`，对齐 `upstream/duck-ipc-proto/src/lib.rs:3241-3247`）、`ModelApiResult { model_api: u32 }`（`:43`）。
+- `impl/src/main.rs`：`safe_to_restart(stats)` 纯函数（`:206`）——`moving && !fallen` → `safe:false, reason:"the robot is walking"`（文案逐字对齐 `upstream/robotd/src/main.rs:903-906`），否则 `safe:true` 且不带 `reason`；RPC 分发表加 `robot.safeToRestart`（`:502`）与 `robot.modelApi`（`:507`，返回 `MODEL_API`）。两个方法都是请求式，带 id 应答、无 id 走 notification 统一入口静默丢弃。
+- `impl/src/control.rs`：`Stats` 加 `moving` / `fallen` 两个 `AtomicBool`（`:79`、`:81`）；控制循环每拍在发 `FrameSnapshot` 之前算 `moving` 并写两个原子量（`:594-604`）——`Limp` / `RampUp` 恒 true，`Driving` 取 `busy || |twist| > 0`，`Held` / `Stopped` 恒 false。口径对齐原版 `upstream/robotd/src/main.rs:2822-2883`（跌倒序列与 homing 斜坡算移动、Driving 取 `busy || twist_magnitude > 0`、held 不算）。原版的 `force_busy`（`--busy` 调试旗标）没有对应实现。
+- `impl/src/updater/robot.rs`（**新增模块**，160 行）：updaterd 视角的 robotd 客户端。`SafeToRestart` 四态枚举 `Yes / No(String) / Incompatible(String) / Unreachable` 与 `permits_restart()`（不可达放行、不可读拒绝），`ask()` 收发一行 JSON-RPC 并套 `tokio::time::timeout`，`safe_to_restart()` 把应答按四种结果归类（形状不对 → `Incompatible`，不猜、不按安全处理），`model_api()` 解析 `Option<u32>`。5 个测试函数（`:88-159`）。
+- `impl/src/updater/engine.rs`：`apply()` 开头加预检（`:255` safeToRestart、`:261` modelApi），位于 `let from = store::current_version(&self.paths);` 之后、`set_phase(Phase::Verifying)` 之前——早于 manifest 校验、早于解包，拒绝时对持久状态零副作用（对齐原版 preflight 是 apply 第 0 步，`upstream/updater/src/engine.rs:662-667`）。文案 `not safe to restart: {reason}` 与 `model api mismatch: expected 2, got {actual:?}`，都走既有的 `self.reject(...)`（-32003）。
+- `impl/src/updater/mod.rs`：加 `pub mod robot;`。
+- `accept/m08-b01.sh`：追加断言 u / v / w（`:392`、`:400`、`:416`），a–t 未动。
+- `accept/m08-b04.sh`（**新建**，177 行）：本 Bite 专属的 updater 侧端到端验收（造 1.0.0/2.0.0 两个 release、bootstrap 出厂 current=1.0.0、起 updaterd、走 Driving + 持续 move 让机器人走路、apply 2.0.0 应被拒、再静止后 apply 应成功）。
 - **新增模块 1 个（`updater/robot.rs`），无删除，无数据流改向。** `robot.state` 推送仍 50Hz，CLI 未动，CLI 也没有新增子命令。
 
 ### 验收实测
 
-`docker compose exec rust cargo test`（2026-10-11 主 agent 复跑）：
+`docker compose -f impl/docker-compose.yml exec rust cargo test`（2026-10-11 主 agent 复跑）：
 
 ```text
 running 91 tests
 test result: ok. 91 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
 ```
 
-构成：Bite 3 的 86 条 + `src/updater/robot.rs` 的 5 个（safe:true→Yes、safe:false+reason→No、缺 `safe` 字段→Incompatible 且不许可重启、socket 不存在→Unreachable 且许可重启、modelApi 取值）。
+构成：Bite 3 的 86 条 + `impl/src/updater/robot.rs` 的 5 个（safe:true→Yes、safe:false+reason→No、缺 `safe` 字段→Incompatible 且不许可重启、socket 不存在→Unreachable 且许可重启、modelApi 取值）。
 
-`docker compose exec rust bash scripts/accept-m8.sh` 关键行：
+`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b01.sh` 关键行：
 
 ```text
 u. 静止时 safeToRestart safe:true，reason 省略  OK
@@ -249,7 +249,7 @@ M8 验收（robot.move + robot.enable + robot.subscribe + safeToRestart/modelApi
 
 旧断言 a–t 仍绿（此处不重复实录）。断言要点：u 同时验 `safe is True` 且 `"reason" not in res`（省略不是 `null`）；v 先发无 id 的 `robot.move {vx:0.1}`、等推送里的 twist 收敛到 `[0.1,0,0]` 再问，避免在 deadman 还没生效的窗口里问空；w 验数值 2 而不是"有该字段"。
 
-`docker compose exec rust bash scripts/accept-m8-updater.sh`：
+`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b04.sh`：
 
 ```text
 release 1.0.0/2.0.0 就绪，出厂 current=1.0.0
@@ -270,7 +270,7 @@ PASS: current->2.0.0
 
 断言要点：错误码 `-32003`、文案含 `not safe to restart`、拒绝后 `current` 仍是 `1.0.0`；后半段先 `kill` 掉后台 move 进程再补发一次 `move 0 0 0`，等 deadman 清零（0.7s）才 apply，第二次才 `committed`。
 
-**回归**（`apply()` 的顺序改过，必须重跑 M7）：`docker compose exec rust bash scripts/accept-m7.sh` → `===== M7 汇总：PASS=39 FAIL=0 =====`，此前已知的 D1/E1 时序 flake 本次未复现。
+**回归**（`apply()` 的顺序改过，必须重跑 M7）：`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m07-b01.sh` → `===== M7 汇总：PASS=39 FAIL=0 =====`，此前已知的 D1/E1 时序 flake 本次未复现。
 
 **边界自查**（coder subagent 实测，主 agent 未复验）：只起 updaterd、不起 miniduckd 时 apply 的真实输出是
 
@@ -284,25 +284,25 @@ PASS: current->2.0.0
 
 | 文件 | 变动 |
 |---|---|
-| `src/lib.rs` | +`MODEL_API` / `SafeToRestartResult` / `ModelApiResult` |
-| `src/main.rs` | +`safe_to_restart(stats)` 纯函数；+`robot.safeToRestart` / `robot.modelApi` 两个 RPC 分支 |
-| `src/control.rs` | `Stats` +`moving` / `fallen`；控制循环每拍记账（`:594-604`） |
-| `src/updater/robot.rs` | **新增模块**：`SafeToRestart` 枚举 + `permits_restart` + `ask` + `safe_to_restart` + `model_api` + 5 测试 |
-| `src/updater/engine.rs` | `apply()` 开头加预检（`:255`、`:261`） |
-| `src/updater/mod.rs` | +`pub mod robot;` |
-| `scripts/accept-m8.sh` | 追加断言 u–w |
-| `scripts/accept-m8-updater.sh` | **新建**：updater 侧端到端验收（6 断言） |
-| `docs/milestones/m8-convergence/tutorial-bite-4-safe-to-restart.html` | 第 12 章（本 Bite 教程页面） |
-| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 相对 Bite 3 重出：新增 robot 客户端、engine/RPC/Stats/控制循环改动、预检边 |
+| `impl/src/lib.rs` | +`MODEL_API` / `SafeToRestartResult` / `ModelApiResult` |
+| `impl/src/main.rs` | +`safe_to_restart(stats)` 纯函数；+`robot.safeToRestart` / `robot.modelApi` 两个 RPC 分支 |
+| `impl/src/control.rs` | `Stats` +`moving` / `fallen`；控制循环每拍记账（`:594-604`） |
+| `impl/src/updater/robot.rs` | **新增模块**：`SafeToRestart` 枚举 + `permits_restart` + `ask` + `safe_to_restart` + `model_api` + 5 测试 |
+| `impl/src/updater/engine.rs` | `apply()` 开头加预检（`:255`、`:261`） |
+| `impl/src/updater/mod.rs` | +`pub mod robot;` |
+| `accept/m08-b01.sh` | 追加断言 u–w |
+| `accept/m08-b04.sh` | **新建**：updater 侧端到端验收（6 断言） |
+| `book/m08-convergence/b04-safe-to-restart.html` | 第 12 章（本 Bite 教程页面） |
+| `book/m08-convergence/{arch,arch-diff}.{d2,svg}` | 相对 Bite 3 重出：新增 robot 客户端、engine/RPC/Stats/控制循环改动、预检边 |
 
-`docs/deviations.md` 与 `docs/feature-inventory.md` 由主 agent 另行更新，本档案不改那两个文件。
+`spec/deviations.md` 与 `spec/features.md` 由主 agent 另行更新，本档案不改那两个文件。
 
 ### 偏差变动
 
 - **D47 部分收敛**（功能清单两条 RPC 缺口）。两个方法上线，载荷、METHOD 名、`MODEL_API=2`、拒绝文案、`permits_restart` 语义全部对齐原版。残余拆成三条新登记。
-- **D65 新登记**：`model_api` 返回 `None` 时 apply 拒绝，原版视为兼容（`reference/updater/src/policy.rs:1032-1039`）。影响面仅限 daemon 不可达路径——而那恰恰是原版认为"控制循环没跑、没什么会动、这正是需要更新的机器人"的情形。待裁决。
+- **D65 新登记**：`model_api` 返回 `None` 时 apply 拒绝，原版视为兼容（`upstream/updater/src/policy.rs:1032-1039`）。影响面仅限 daemon 不可达路径——而那恰恰是原版认为"控制循环没跑、没什么会动、这正是需要更新的机器人"的情形。待裁决。
 - **D66 新登记**：预检内联在 `apply()` 里，没有原版 `preflight.rs` 的 `Check` 枚举框架，也没有 SideloadDir / NoRemoteSession / 空间检查（M9/M10 视需要再拆）。
-- **D67 新登记**：`Incompatible` 分支不打日志，原版打 `tracing::warn!`（`reference/updater/src/robot.rs:201-203`）。契约漂移是排障第一现场，静默会让"更新莫名被拒"无从追查。M10 收敛。
+- **D67 新登记**：`Incompatible` 分支不打日志，原版打 `tracing::warn!`（`upstream/updater/src/robot.rs:201-203`）。契约漂移是排障第一现场，静默会让"更新莫名被拒"无从追查。M10 收敛。
 - **不算偏差的两处**：`moving` / `fallen` 落在 `control::Stats` 而非原版 daemon 内部的 state struct（因为我们的 RPC 层与健康门共享同一个 `Stats`，是模块切分差异不是行为差异）；原版的 `force_busy`（`--busy` 调试旗标）没有对应实现——教学复刻里没有教学价值。
 - **Bite 4 之后 C1 收口**，M8 转入 C2（BAM 移植）。
 
@@ -312,14 +312,14 @@ PASS: current->2.0.0
 
 ### 交付物
 
-- `sim/duck_body.py`：`_apply_gains` 基线增益改读 `MINIDUCK_SIM_KP` / `MINIDUCK_SIM_KV`，缺省仍 `8.0` / `0.25`；注释写明 0.55/0（no-bam XML）、8/0.25（M4 扫参）、训练真值 BAM `kp_fw=200`。
-- `scripts/accept-m8-bam-diag.sh`（**新建**）：端口 7805，A/B 两组对照（站立 / sit_toggle / roulade），打印对照表；B 组站立失败是合法证据，整场 exit 0。
+- `impl/sim/duck_body.py`：`_apply_gains` 基线增益改读 `MINIDUCK_SIM_KP` / `MINIDUCK_SIM_KV`，缺省仍 `8.0` / `0.25`；注释写明 0.55/0（no-bam XML）、8/0.25（M4 扫参）、训练真值 BAM `kp_fw=200`。
+- `accept/m08-b05.sh`（**新建**）：端口 7805，A/B 两组对照（站立 / sit_toggle / roulade），打印对照表；B 组站立失败是合法证据，整场 exit 0。
 - **未改**：Rust、`robot_walk.xml` 永久 kp、accept-m4/m5/m6、bam 包、碰撞/timestep。
-- 教程：`docs/milestones/m8-convergence/tutorial-bite-5-bam-diag.html`（第 13 章）；`arch.svg` / `arch-diff.svg` 标注无架构变动（仅仿真体内 PD env 钩子）。
+- 教程：`book/m08-convergence/b05-bam-diag.html`（第 13 章）；`arch.svg` / `arch-diff.svg` 标注无架构变动（仅仿真体内 PD env 钩子）。
 
 ### 验收实测
 
-主 agent 2026-10-12 复跑 `docker compose exec rust bash scripts/accept-m8-bam-diag.sh`：
+主 agent 2026-10-12 复跑 `docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b05.sh`：
 
 ```text
 ===== 组 A：kp=8 kv=0.25（教程默认） =====
@@ -334,16 +334,16 @@ sit/roulade：已 fallen → accepted=False
 结论：A 能站却技能摔；B 连站不住 → 指向 BAM 缺失，非「教程增益过大」
 ```
 
-回归：`cargo test` → 91 passed；`accept-m8.sh` → 断言 a–w 全部通过。
+回归：`cargo test` → 91 passed；`accept/m08-b01.sh` → 断言 a–w 全部通过。
 
 ### 涉及代码文件清单
 
 | 文件 | 变动 |
 |---|---|
-| `sim/duck_body.py` | `_apply_gains` 读 env 基线增益 |
-| `scripts/accept-m8-bam-diag.sh` | **新建**诊断脚本 |
-| `docs/milestones/m8-convergence/tutorial-bite-5-bam-diag.html` | 第 13 章 |
-| `docs/milestones/m8-convergence/{arch,arch-diff}.{d2,svg}` | 无架构变动；diff 标 duck_body 内部改动 |
+| `impl/sim/duck_body.py` | `_apply_gains` 读 env 基线增益 |
+| `accept/m08-b05.sh` | **新建**诊断脚本 |
+| `book/m08-convergence/b05-bam-diag.html` | 第 13 章 |
+| `book/m08-convergence/{arch,arch-diff}.{d2,svg}` | 无架构变动；diff 标 duck_body 内部改动 |
 
 ### 偏差变动
 
@@ -356,13 +356,13 @@ sit/roulade：已 fallen → accepted=False
 
 ### 交付物
 
-- `sim/duck_body.py`：默认 BAM M6 XL330（`MjSpec`→motor、`MujocoController`、timestep 0.005、冻结至 `set_torque(true)`、gait nudge 兜底）；`--no-bam` 回退
-- `sim/assets/scene_groundcontact.xml` + `robot_groundcontact.xml`；`PROVENANCE.md` 更新
-- `src/control.rs`：`--sim` 时 `skip_bringup_ramp`；twist 行走带上升沿 `push_base_velocity(0.30)`（D68）
-- `src/scheduler.rs`：roulade `duration_ticks` 50→100（对齐官方 2.0s）
-- `src/io.rs` / `src/safety.rs`：`push_base_velocity`
-- `scripts/accept-m8-bam.sh`；`docker/Dockerfile` 建 `/opt/sim-venv`（uv + py3.12 + bam）
-- 教程 `tutorial-bite-6-bam.html`（第 14 章）
+- `impl/sim/duck_body.py`：默认 BAM M6 XL330（`MjSpec`→motor、`MujocoController`、timestep 0.005、冻结至 `set_torque(true)`、gait nudge 兜底）；`--no-bam` 回退
+- `impl/sim/assets/scene_groundcontact.xml` + `robot_groundcontact.xml`；`PROVENANCE.md` 更新
+- `impl/src/control.rs`：`--sim` 时 `skip_bringup_ramp`；twist 行走带上升沿 `push_base_velocity(0.30)`（D68）
+- `impl/src/scheduler.rs`：roulade `duration_ticks` 50→100（对齐官方 2.0s）
+- `impl/src/io.rs` / `impl/src/safety.rs`：`push_base_velocity`
+- `accept/m08-b06.sh`；`docker/Dockerfile` 建 `/opt/sim-venv`（uv + py3.12 + bam）
+- 教程 `b06-bam.html`（第 14 章）
 
 ### 验收实测（主 agent 2026-10-12）
 
@@ -374,7 +374,7 @@ roulade：PASS  100 帧（中段 fallen=36），结束后 upright z=0.117
 M8 BAM 物理验收全部通过
 ```
 
-回归：`cargo test` 91；`accept-m8.sh` a–w 全绿。
+回归：`cargo test` 91；`accept/m08-b01.sh` a–w 全绿。
 
 ### 偏差变动
 
@@ -388,11 +388,11 @@ M8 BAM 物理验收全部通过
 
 ### 交付物
 
-- `sim/duck_body.py`：BAM 路径改为 `write` 本拍先写 `q_target` 再 `update`+`mj_step`（与官方 infer_policy.py 主循环同序；read 无副作用，缺 write 时物理冻结。**订正 2026-10-14**：曾记录为"起身交接修复"——读者推导 + 回退实验证明读/写两种步进顺序化简是同一递推，读时步进四项验收同样全绿（起身 z=0.1160、行走 4.929m），该机制解释作废，见 questions.md Q83）
-- `scripts/accept-m8-bam.sh`：行走场景 vx=0.15→**0.8**、门槛 0.4m→**2.0m**（实测 4.9m，留 >2× 余量；裁决依据见下）
-- `docs/verify-official-walk.md`：**新建**——官方 infer_policy.py 肉眼验证流程（用户亲测），含 ↑ 上限 0.3→0.8 的本地补丁步骤
+- `impl/sim/duck_body.py`：BAM 路径改为 `write` 本拍先写 `q_target` 再 `update`+`mj_step`（与官方 infer_policy.py 主循环同序；read 无副作用，缺 write 时物理冻结。**订正 2026-10-14**：曾记录为"起身交接修复"——读者推导 + 回退实验证明读/写两种步进顺序化简是同一递推，读时步进四项验收同样全绿（起身 z=0.1160、行走 4.929m），该机制解释作废，见 questions.md Q83）
+- `accept/m08-b06.sh`：行走场景 vx=0.15→**0.8**、门槛 0.4m→**2.0m**（实测 4.9m，留 >2× 余量；裁决依据见下）
+- `tutor/verify-official-walk.md`：**新建**——官方 infer_policy.py 肉眼验证流程（用户亲测），含 ↑ 上限 0.3→0.8 的本地补丁步骤
 - `docker/Dockerfile` 的 `/opt/sim-venv` 层首次真正进镜像（2026-10-14 重建；此前只存在于旧容器层，容器重建即丢）。mujoco 3.14→3.16，四项物理验收在新版上全绿
-- 教程 `tutorial-bite-8-walk-verdict.html`（第 15 章）
+- 教程 `b08-walk-verdict.html`（第 15 章）
 
 ### 关键实验记录（裁决证据链）
 
@@ -414,7 +414,7 @@ roulade：100 帧窗口（中段 fallen=40），结束后 walk/fallen=false/gain
 M8 BAM 物理验收全部通过
 ```
 
-回归：`cargo test` → 91 passed；`accept-m8.sh` → 断言 a–w 全部通过；`accept-m8-updater.sh` → 6/6。
+回归：`cargo test` → 91 passed；`accept/m08-b01.sh` → 断言 a–w 全部通过；`accept/m08-b04.sh` → 6/6。
 
 ### 偏差变动
 

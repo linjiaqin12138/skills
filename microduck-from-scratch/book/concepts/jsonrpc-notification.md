@@ -11,16 +11,16 @@ JSON-RPC 的帧分两种：带 `id` 字段的是 **request**，服务端必须�
 - 是纯开销——50Hz 的意图配 50Hz 的应答，回程流量翻倍，而应答的内容（"收到了"）没有任何信息量：下一帧马上就到，这一帧的答案已经过期；
 - 更糟的是应答会引诱调用方等它——一等，发送节奏就从"我有新值就发"退化成"上一个被确认才发下一个"，流变成了停走协议，延迟反而变大。
 
-所以 JSON-RPC 在协议层面就准备了无应答形态：不写 `id`，服务端就知道这帧不用回。原版协议文档把消息家族和传输特性直接挂钩：连续意图（`move`/`head`）发 notification，"50Hz 下每帧一个应答是纯开销；重传的 80ms 前摇杆位置比没有更糟"（`reference/duck-ipc-proto/src/lib.rs:586-592`）；离散命令（`stop`/`enable`）发 request，因为调用方必须知道有没有被接受、为什么没接受（`:593-594`）。
+所以 JSON-RPC 在协议层面就准备了无应答形态：不写 `id`，服务端就知道这帧不用回。原版协议文档把消息家族和传输特性直接挂钩：连续意图（`move`/`head`）发 notification，"50Hz 下每帧一个应答是纯开销；重传的 80ms 前摇杆位置比没有更糟"（`upstream/duck-ipc-proto/src/lib.rs:586-592`）；离散命令（`stop`/`enable`）发 request，因为调用方必须知道有没有被接受、为什么没接受（`:593-594`）。
 
 配套的两条规范细则，本 Bite 都用到了：
 
-1. **带 `id` 的连续意图也要应答**——规范允许两种写法，客户端拿 `robot.move` 当一次性调用发（带 id）时，服务端照常执行并回 accepted；不能因为"你 framing 选错了"就静默不理（`reference/robotd/src/main.rs:3747-3749` 的注释原话）。
-2. **解析失败的请求回 `"id":null`**——帧本身没解析出来，就没有 id 可回显，规范规定错误响应的 id 填 null（`src/lib.rs:54-55`）。
+1. **带 `id` 的连续意图也要应答**——规范允许两种写法，客户端拿 `robot.move` 当一次性调用发（带 id）时，服务端照常执行并回 accepted；不能因为"你 framing 选错了"就静默不理（`upstream/robotd/src/main.rs:3747-3749` 的注释原话）。
+2. **解析失败的请求回 `"id":null`**——帧本身没解析出来，就没有 id 可回显，规范规定错误响应的 id 填 null（`impl/src/lib.rs:54-55`）。
 
 ## 最小示例
 
-`examples/jsonrpc_notification.py` 单文件自包含：一个线程当 server（Unix socket + NDJSON，和 miniduckd 同构），client 依次发四种帧。host 直接跑 `python3 examples/jsonrpc_notification.py`，实测输出：
+`impl/examples/jsonrpc_notification.py` 单文件自包含：一个线程当 server（Unix socket + NDJSON，和 miniduckd 同构），client 依次发四种帧。host 直接跑 `python3 impl/examples/jsonrpc_notification.py`，实测输出：
 
 ```text
 1. request：带 id，服务端应答并回显 id
@@ -45,17 +45,17 @@ JSON-RPC 的帧分两种：带 `id` 字段的是 **request**，服务端必须�
 ## 素材
 
 - [JSON-RPC 2.0 规范](https://www.jsonrpc.org/specification)：notification 一节只有两句话——"服务端不得应答，包括出错时"。
-- 原版协议文档的 continuous/discrete 分类（`reference/duck-ipc-proto/src/lib.rs:580-594`）是这个概念落到机器人域的样子：它还顺手回答了"将来走 WebRTC 时该上哪条通道"——notification 形态的意图天然属于不可靠通道，消息家族已经替传输层做了选择。
-- 原版服务端的实现（`reference/robotd/src/main.rs:3708-3716`）：`let Some(id) = request.id else { ...apply_intent...; continue; }`——无 id 直接跳过整个响应路径。
+- 原版协议文档的 continuous/discrete 分类（`upstream/duck-ipc-proto/src/lib.rs:580-594`）是这个概念落到机器人域的样子：它还顺手回答了"将来走 WebRTC 时该上哪条通道"——notification 形态的意图天然属于不可靠通道，消息家族已经替传输层做了选择。
+- 原版服务端的实现（`upstream/robotd/src/main.rs:3708-3716`）：`let Some(id) = request.id else { ...apply_intent...; continue; }`——无 id 直接跳过整个响应路径。
 
 ## 回到项目
 
-- `src/lib.rs:33-44`：`Request.id` 是 `Option<u64>`，`skip_serializing_if = "Option::is_none"`——无 id 的帧序列化回去也不带 `"id"` 字段（单测 `request_without_id_is_notification`，`src/lib.rs:185-194`）。
-- `src/lib.rs:56-72`：`ServerMessage::Response.id` 同为 `Option<u64>`——解析失败时回 `"id":null`（单测 `parse_error_response_has_null_id`，`:197-201`）。
-- `src/main.rs:239`：分发 match 返回 `Option<ServerMessage>`，`None` = 本帧无回复；`src/main.rs:392-397`：`if let Some(resp)` 才 send。
-- `src/main.rs:266-284`：`robot.move` 分支——`req.id.map(...)` 把"有没有 id"翻译成"回不回包"，通知与请求共用 `apply_move_intent`（`src/main.rs:200-204`）。
-- 验收脚本不得不用 python3 裸 socket 发帧：`scripts/accept-m8.sh:36-38`——mini-duckctl 只会发带 id 的请求，发不了 notification。
+- `impl/src/lib.rs:33-44`：`Request.id` 是 `Option<u64>`，`skip_serializing_if = "Option::is_none"`——无 id 的帧序列化回去也不带 `"id"` 字段（单测 `request_without_id_is_notification`，`impl/src/lib.rs:185-194`）。
+- `impl/src/lib.rs:56-72`：`ServerMessage::Response.id` 同为 `Option<u64>`——解析失败时回 `"id":null`（单测 `parse_error_response_has_null_id`，`:197-201`）。
+- `impl/src/main.rs:239`：分发 match 返回 `Option<ServerMessage>`，`None` = 本帧无回复；`impl/src/main.rs:392-397`：`if let Some(resp)` 才 send。
+- `impl/src/main.rs:266-284`：`robot.move` 分支——`req.id.map(...)` 把"有没有 id"翻译成"回不回包"，通知与请求共用 `apply_move_intent`（`impl/src/main.rs:200-204`）。
+- 验收脚本不得不用 python3 裸 socket 发帧：`accept/m08-b01.sh:36-38`——mini-duckctl 只会发带 id 的请求，发不了 notification。
 
 ## 自测
 
-如果客户端把 50Hz 的 `robot.move` 全部以 request（带 id）形式发出，daemon 行为上哪里会和 notification 流不同？（提示：从 `src/main.rs:266-284` 出发想——语义一样吗？回程流量呢？）机器人为什么仍然应该按 notification 发？
+如果客户端把 50Hz 的 `robot.move` 全部以 request（带 id）形式发出，daemon 行为上哪里会和 notification 流不同？（提示：从 `impl/src/main.rs:266-284` 出发想——语义一样吗？回程流量呢？）机器人为什么仍然应该按 notification 发？

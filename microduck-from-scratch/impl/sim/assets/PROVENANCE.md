@@ -12,7 +12,7 @@
   `scene_groundcontact.xml` 是本教程自写的场景包装（地板/灯光/`imu_gyro`/
   STAND keyframe；视觉照搬同仓库 `scene.xml`）。BAM 默认加载此场景。
 - 旧版教程骨架（主仓库 kinematics 的无 geom 版本 + 自补碰撞盒）已被替换，
-  历史见 `docs/deviations.md` D21 行与 `docs/milestones/m4-sim-walk/acceptance.md`。
+  历史见 `spec/deviations.md` D21 行与 `book/m04-sim-walk/acceptance.md`。
 - `duck_handmade.xml`（M9a Bite 1，2026-10-20；同日视觉修订）：本教程**从零手写**的鸭子身体
   MJCF。惯量（质量/质心/惯量主轴）取自官方 `robot_groundcontact.xml` 编译输出
   （Apache-2.0 数值数据），显式 `<inertial>` 写入；碰撞盒取官方 10 个碰撞网格的
@@ -22,6 +22,6 @@
   STL；视觉 geom contype=0/conaffinity=0 不进物理，碰撞/惯量/关节树仍是自建
   零 STL 数据。物理核心（碰撞+惯量）不依赖 STL；视觉层与本仓已在用的
   `robot_walk.xml`/`robot_groundcontact.xml` 同级依赖同一批 STL。
-  数据提取工具：`scripts/m9a_extract_official.py`。目的：收敛 D26（mesh 接触穿透）。
+  数据提取工具：`impl/scripts/m9a_extract_official.py`。目的：收敛 D26（mesh 接触穿透）。
 - `scene_handmade.xml`：本教程自写的场景包装（地板/灯光/`imu_gyro`/STAND
   keyframe），组织方式对齐 `scene_groundcontact.xml`。

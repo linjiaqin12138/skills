@@ -319,7 +319,7 @@ $$
 
 下面这段可以直接抄下来跑：只用 Python 3 标准库，`q_mul`、`rotate`、`z_axis_q`、`full_angle` 四个函数都在里面，`rotate` 用到的 `q_mul` 也在同一段里。`q_mul` 就是 C 面板那条乘法公式的逐项写法。
 
-```python src=docs/concepts/assets/quaternion/quat_demo.py lines=10-41
+```python src=book/concepts/figures/quaternion/quat_demo.py lines=10-41
 ```
 
 ## G 双覆盖：转 360° 就回到原样
@@ -535,10 +535,10 @@ $$
 
 ## I 自己跑一遍
 
-脚本只用 Python 3 标准库，四组输出各管一件事。完整文件：[docs/concepts/assets/quaternion/quat_demo.py](assets/quaternion/quat_demo.py)。在仓库根目录运行：
+脚本只用 Python 3 标准库，四组输出各管一件事。完整文件：[book/concepts/figures/quaternion/quat_demo.py](figures/quaternion/quat_demo.py)。在仓库根目录运行：
 
 ```bash
-python3 docs/concepts/assets/quaternion/quat_demo.py
+python3 book/concepts/figures/quaternion/quat_demo.py
 ```
 
 第 4 组的漂移是真实实验，没有人为给每步乘系数。循环就是 `q = q_mul(q, step)` 连做 1e5 次，中间不归一化。`step` 每步由轴角生成，轴的方向每步有微小变化，模拟物体在空中连续转动。

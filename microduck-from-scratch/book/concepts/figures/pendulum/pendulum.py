@@ -1,5 +1,5 @@
 # mujoco 最小示例：一个单摆自由下落 1 秒，每 0.1s 打印摆角。
-# 跑法（容器内）：python3 docs/concepts/assets/pendulum.py
+# 跑法（容器内）：python3 book/concepts/figures/pendulum.py
 import math
 import mujoco
 

@@ -1,6 +1,6 @@
 # M9 批次规划 · 仿真与训练（2026-10-16 用户裁决 v2：GPU 后置）
 
-> 依据：docs/user-prefs.md 四批路线、deviations.md Phase 4 挂账、docs/recon-microduck-rl.md 侦察结论。
+> 依据：tutor/user-prefs.md 四批路线、spec/deviations.md Phase 4 挂账、tutor/recon-microduck-rl.md 侦察结论。
 > 用户裁决：**GPU 步骤全部后置**——先在本 VM（CPU）学搭建仿真与训练管线，上云机器时再开训练里程碑。
 
 ## 算力裁决（2026-10-16）
@@ -12,7 +12,7 @@
 
 ### M9a · 自建 MJCF 仿真模型（CPU，2-3 Bite）— 当前
 
-- 目标：从零写鸭子 MJCF（基本几何体，绕开 STL 的 CC BY-NC-SA），接入我们 sim/duck_body.py，用现有 velstand 权重验收
+- 目标：从零写鸭子 MJCF（基本几何体，绕开 STL 的 CC BY-NC-SA），接入我们 impl/sim/duck_body.py，用现有 velstand 权重验收
 - 内容：MJCF 建模（运动树/惯量/碰撞几何取舍/keyframe）；BAM M6 参数与 microduck_constants.py:163-176 逐项对账；**D4 收敛**——sim 协议面对齐官方 body_server.py（op 名 gain/torque、15 槽含嘴、PROTOCOL=1 握手、trunk 系投影重力）
 - 验收：自建 MJCF 在本机 sim 站立 + vx=0.8 行走 ≥2.0m（复现 M8 Bite 8 门槛）
 - 收敛：D4、D26（接触模型随重建）

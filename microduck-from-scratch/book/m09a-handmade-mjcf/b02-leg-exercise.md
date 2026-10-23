@@ -5,7 +5,7 @@ subtitle: 从空白文件写到能跑的 MJCF：契约、三组验收、六个�
 source: clone-from-scratch-tutor · 第 19 章
 ---
 
-交付一个文件：`sim/assets/exercise_leg.xml`——一条 2 关节腿链。
+交付一个文件：`impl/sim/assets/exercise_leg.xml`——一条 2 关节腿链。
 
 验收脚本替你查三组断言：结构、执行器跟踪、keyframe 还原。全绿才算过。
 
@@ -70,7 +70,7 @@ source: clone-from-scratch-tutor · 第 19 章
 
 ## 任务书：一个文件，一条腿
 
-**交付物就一个文件**：`sim/assets/exercise_leg.xml`，一条 2 关节腿链，悬空挂在挂载点上。
+**交付物就一个文件**：`impl/sim/assets/exercise_leg.xml`，一条 2 关节腿链，悬空挂在挂载点上。
 
 先看它长什么样。左边是 `STRAIGHT` 存档姿势，qpos 全 0。右边是 B 组要它追到的角度：大腿转 +0.5 rad，小腿转 -0.5 rad。两者抵消，小腿在世界系里仍竖直。
 
@@ -149,7 +149,7 @@ worldbody
 
 box 的 `size` 写半长。见方 1.6cm 写 `0.008`，长 5cm 写 `0.025`。
 
-写完走一遍[第 18 章的五步循环](tutorial-bite1-handmade-mjcf.html#panel-D)：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。
+写完走一遍[第 18 章的五步循环](b01-handmade-mjcf.html#panel-D)：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。
 
 ## 怎么跑：验收在容器，眼睛在宿主机
 
@@ -157,13 +157,13 @@ box 的 `size` 写半长。见方 1.6cm 写 `0.008`，长 5cm 写 `0.025`。
 
 ```bash
 # 验收（容器内）
-docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh              # 你的作业
-docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh --solution   # 参考解答
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b02.sh              # 你的作业
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b02.sh --solution   # 参考解答
 ```
 
 ```bash
 # 看它甩（宿主机）
-.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/exercise_leg.xml
+.venv/bin/python -m mujoco.viewer --mjcf=impl/sim/assets/exercise_leg.xml
 ```
 
 仓库根的 `.venv` 只为 viewer 而建，验收别在宿主机跑。脚本自带解释器探测：容器内用 `/opt/sim-venv/bin/python`，宿主机回落仓内 `.venv/bin/python`，两个都没有就报错退出。
@@ -279,7 +279,7 @@ C 组（keyframe）检查存档姿势能精确复位：
 
 ```html
 <details>
-<summary><b>卡住了再看：对照 <code>sim/assets/exercise_leg_solution.xml</code>，先自己查这五处</b></summary>
+<summary><b>卡住了再看：对照 <code>impl/sim/assets/exercise_leg_solution.xml</code>，先自己查这五处</b></summary>
 <p>1. 关节嵌套层级：<code>shank</code> 要写在 <code>thigh</code> 内部，不是平级。</p>
 <p>2. ctrl 声明顺序：<code>&lt;actuator&gt;</code> 里 hip 的 <code>&lt;position&gt;</code> 写在 knee 前面。</p>
 <p>3. knee 的 range 要覆盖跟踪目标 -0.5 rad。</p>
@@ -290,7 +290,7 @@ C 组（keyframe）检查存档姿势能精确复位：
 
 ## 细节展开
 
-读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在[第 18 章的细节展开](tutorial-bite1-handmade-mjcf.html#panel-K)，不重复记在这里。
+读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在[第 18 章的细节展开](b01-handmade-mjcf.html#panel-K)，不重复记在这里。
 
 ```html
 <details>

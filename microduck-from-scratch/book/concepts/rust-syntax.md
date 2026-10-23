@@ -2,14 +2,14 @@
 
 按语言本身归类。库函数（`tokio`、`serde`、`ort`）只在它们逼出某种语法时带一句。
 
-项目结构：`src/lib.rs` 是库 `miniduck`，`src/main.rs` 是守护进程，`src/bin/mini-duckctl.rs` 是另一个可执行文件，`examples/` 是独立示例。库和二进制是两个 crate，二进制通过 `use miniduck::...` 调用库。crate 本身见 [crate 是什么](crate.md)。
+项目结构：`impl/src/lib.rs` 是库 `miniduck`，`impl/src/main.rs` 是守护进程，`impl/src/bin/mini-duckctl.rs` 是另一个可执行文件，`impl/examples/` 是独立示例。库和二进制是两个 crate，二进制通过 `use miniduck::...` 调用库。crate 本身见 [crate 是什么](crate.md)。
 
 ## 1. 模块、路径、`use`
 
 `lib.rs` 用 `pub mod` 把同目录下的 `control.rs`、`io.rs` 等挂进库，并对外公开：
 
 ```rust
-// src/lib.rs
+// impl/src/lib.rs
 pub mod control;
 pub mod io;
 pub mod model;
@@ -26,7 +26,7 @@ pub mod policy;
 `use` 的几种写法都出现了：
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
@@ -52,7 +52,7 @@ use miniduck::{API_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request, ServerMessag
 常量在编译期就定死，类型必须写出来：
 
 ```rust
-// src/lib.rs
+// impl/src/lib.rs
 pub const JSONRPC: &str = "2.0";
 pub const API_VERSION: u32 = 1;
 ```
@@ -62,7 +62,7 @@ pub const API_VERSION: u32 = 1;
 函数的形状是 `fn 名字(参数) -> 返回类型`。没有返回值时写成 `()`，通常省略。参数默认是不可变的；要改就加 `mut`：
 
 ```rust
-// src/control.rs
+// impl/src/control.rs
 pub fn spawn(
     mut io: impl RobotIo + 'static,
     mut policy: Policy,
@@ -86,7 +86,7 @@ pub fn spawn(
 普通结构体，字段有名字：
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 pub struct Policy {
     session: Session,
     state: Option<LstmState>,
@@ -100,7 +100,7 @@ pub struct Policy {
 元组结构体，字段靠序号访问。`IoError(pub String)` 的字符串是 `self.0`：
 
 ```rust
-// src/io.rs
+// impl/src/io.rs
 #[derive(Debug, Clone)]
 pub struct IoError(pub String);
 
@@ -116,7 +116,7 @@ impl fmt::Display for IoError {
 还有结构体更新语法，没写到的字段从另一个值抄来：
 
 ```rust
-// src/io.rs
+// impl/src/io.rs
 Ok(Sensors {
     positions: self.position,
     ..Sensors::default()
@@ -126,7 +126,7 @@ Ok(Sensors {
 枚举的每个变体可以长得不一样。`ServerMessage` 的两个变体都是带名字字段的结构体变体；`PolicyError::Inference(String)` 是元组变体：
 
 ```rust
-// src/lib.rs
+// impl/src/lib.rs
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ServerMessage {
@@ -197,7 +197,7 @@ pub enum ServerMessage {
 参数和 `let` 前面的 `mut` 只表示这个绑定可以重新赋值或通过它改内容：
 
 ```rust
-// src/control.rs
+// impl/src/control.rs
 let mut ramp_origin: Option<(u64, [f64; NUM_JOINTS])> = None;
 let mut tick: u64 = 0;
 let mut last_action = [0.0f32; ACTION_LEN];
@@ -207,7 +207,7 @@ let mut previous_targets: Option<[f64; NUM_JOINTS]> = None;
 共享引用 `&T` 可以同时有很多个，不能通过它改值。独占引用 `&mut T` 同时只能有一个，可以通过它改。
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 pub fn infer(&mut self, observation: &Observation) -> Result<[f32; ACTION_LEN], PolicyError> {
 ```
 
@@ -216,7 +216,7 @@ pub fn infer(&mut self, observation: &Observation) -> Result<[f32; ACTION_LEN], 
 `*` 是解引用，从引用回到值。`Copy` 类型解引用得到副本：
 
 ```rust
-// src/obs.rs
+// impl/src/obs.rs
 for (slot, value) in action.iter().enumerate() {
     out[joint_of(slot)] = *value as f64;
 }
@@ -244,7 +244,7 @@ for (slot, value) in action.iter().enumerate() {
 大多数引用的生命周期由编译器自动推断（生命周期省略）。函数签名里同时出现输入引用和输出引用、编译器无法唯一对应时，就要写出名字。
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 fn require_named<'a>(
     path: &Path,
     outlets: &'a [ort::value::Outlet],
@@ -261,7 +261,7 @@ fn require_named<'a>(
 结构体字段里放引用时，生命周期不能省略，必须写出来：
 
 ```rust
-// src/scheduler.rs
+// impl/src/scheduler.rs
 pub struct SkillDef {
     pub name: &'static str,
     pub file: &'static str,
@@ -278,7 +278,7 @@ pub struct SkillDef {
 Trait 是一组方法约定。`RobotIo` 还带了一个超 trait `Send`，表示实现者可以安全地跨线程移交：
 
 ```rust
-// src/io.rs
+// impl/src/io.rs
 pub trait RobotIo: Send {
     fn read(&mut self) -> Result<Sensors>;
     fn write(&mut self, targets: &JointTargets) -> Result<()>;
@@ -290,7 +290,7 @@ pub trait RobotIo: Send {
 `impl Trait` 写在参数位置，表示任何实现了这个 trait 的类型，调用点不用写出具体类型名：
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 pub fn load(path: impl AsRef<Path>) -> Result<Self, PolicyError> {
 ```
 
@@ -305,7 +305,7 @@ pub fn load(path: impl AsRef<Path>) -> Result<Self, PolicyError> {
 `match` 必须覆盖所有可能。每个分支是 `模式 => 表达式`。
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 let resp = match req.method.as_str() {
     "hello" => ServerMessage::ok(...),
     "robot.health" => ServerMessage::ok(...),
@@ -319,7 +319,7 @@ let resp = match req.method.as_str() {
 嵌套模式一次拆两层：
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 let line = match frame {
     Some(Ok(line)) => line,
     _ => break,
@@ -331,7 +331,7 @@ let line = match frame {
 结构体模式可以只写出关心的字段，`..` 忽略其余：
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 match self {
     PolicyError::Read { source, .. } => Some(source),
     PolicyError::Load { source, .. } => Some(source),
@@ -342,26 +342,26 @@ match self {
 `if let` 只处理一种成功形态，其余什么都不做：
 
 ```rust
-// src/control.rs
+// impl/src/control.rs
 if let Some(previous) = previous {
 ```
 
 ```rust
-// src/control.rs
+// impl/src/control.rs
 if let Some(prev) = last_tick_at {
 ```
 
 `while let` 在模式还能配上时继续循环：
 
 ```rust
-// src/bin/mini-duckctl.rs
+// impl/src/bin/mini-duckctl.rs
 while let Some(frame) = framed.next().await {
 ```
 
 带守卫的 `match` 分支（`policy.rs` 测试里）：
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 match std::env::var("ORT_DYLIB_PATH") {
     Ok(p) if !p.is_empty() => Path::new(&p).exists(),
 ```
@@ -377,14 +377,14 @@ match std::env::var("ORT_DYLIB_PATH") {
 `?` 用在返回 `Result` 或 `Option` 的函数里：遇到 `Err` / `None` 立刻用同样的失败返回，遇到 `Ok` / `Some` 则解包出里面的值。
 
 ```rust
-// examples/ex_onnx_session.rs
+// impl/examples/ex_onnx_session.rs
 let mut session = Session::builder()?.commit_from_file(&path)?;
 ```
 
 类型不一致时先转换再 `?`。`map_err` 把错误换成另一种，成功值原样通过：
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 let session = Session::builder()
     .and_then(|b| b.with_optimization_level(GraphOptimizationLevel::Level3))
     .and_then(|b| b.with_intra_threads(INTRA_THREADS))
@@ -400,7 +400,7 @@ let session = Session::builder()
 可选值的一条链（环境变量解析）：
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 let failing_reads = std::env::var("MINIDUCK_FAKE_FAILING_READS")
     .ok()
     .and_then(|s| s.parse().ok())
@@ -424,7 +424,7 @@ let failing_reads = std::env::var("MINIDUCK_FAKE_FAILING_READS")
 闭包是可以捕获周围变量的匿名函数：`|参数| 表达式`。
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 let policy = Policy::load(&policy_path).map_err(|e| {
     eprintln!("failed to load policy {policy_path}: {e}");
     e
@@ -440,7 +440,7 @@ let policy = Policy::load(&policy_path).map_err(|e| {
 迭代器是惰性的链式变换，碰到 `collect`、`any`、`all`、`find` 才真正跑：
 
 ```rust
-// examples/ex_onnx_session.rs
+// impl/examples/ex_onnx_session.rs
 let input_meta: Vec<_> = session
     .inputs()
     .iter()
@@ -477,7 +477,7 @@ let input_meta: Vec<_> = session
 花括号里可以直接写变量名和表达式：
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 eprintln!("failed to load policy {policy_path}: {e}");
 ```
 
@@ -511,20 +511,20 @@ eprintln!("failed to load policy {policy_path}: {e}");
 `select!` 每个分支是 `模式 = 异步表达式 => 处理`，还可以加前置条件：
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 _ = push.tick(), if subscribed => {
 ```
 
 `if subscribed` 为假时这个分支不参与竞争。谁先完成就执行谁，其余分支在这一轮取消。
 
-`examples/ex_select.rs` 里还有模式分支 `Some(msg) = rx.recv()`：收到 `None`（通道关闭）时这个分支不算成功，`select!` 会继续等别的分支。
+`impl/examples/ex_select.rs` 里还有模式分支 `Some(msg) = rx.recv()`：收到 `None`（通道关闭）时这个分支不算成功，`select!` 会继续等别的分支。
 
 ## 15. 异步语法
 
 `async fn` 把函数变成返回未来的函数，函数体在遇到 `.await` 之前不会往下执行：
 
 ```rust
-// src/main.rs
+// impl/src/main.rs
 async fn serve(
     stream: UnixStream,
     stats: Arc<control::Stats>,
@@ -544,7 +544,7 @@ async fn serve(
 全项目只有一处，在测试里设置环境变量：
 
 ```rust
-// src/policy.rs
+// impl/src/policy.rs
 // SAFETY: 测试进程内设置一次查找路径；ort 首次 API 调用前必须就绪。
 unsafe {
     std::env::set_var("ORT_DYLIB_PATH", &so);
@@ -556,7 +556,7 @@ unsafe {
 ## 17. 测试模块与其它零碎语法
 
 ```rust
-// src/control.rs
+// impl/src/control.rs
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -580,7 +580,7 @@ mod tests {
 `control.rs` 的 `apply_action` 几乎把日常语法压在一个函数里：
 
 ```rust
-// src/control.rs
+// impl/src/control.rs
 pub fn apply_action(
     action: &[f32; ACTION_LEN],
     previous: Option<&[f64; NUM_JOINTS]>,

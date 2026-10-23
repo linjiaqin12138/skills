@@ -8,7 +8,7 @@
 ## Q2（Phase 1 后）：硬件会开源吗？只学 release 能学到什么？
 - 官方 Press Kit 明确：开源仅限软件栈，机械/电子设计文件不开源，且无未来承诺
 - 旁证：前身 Open Duck Mini v2 完全开源硬件（35+ STL），想搓硬件走那条路
-- 可学：daemon 架构、RL 训练栈（microduck_rl）、策略权重（HF Hub v5 共 8 个 ONNX）、MJCF 身体物理规格（在 reference/kinematics/assets 内）、浏览器仿真器、12 篇设计文档
+- 可学：daemon 架构、RL 训练栈（microduck_rl）、策略权重（HF Hub v5 共 8 个 ONNX）、MJCF 身体物理规格（在 upstream/kinematics/assets 内）、浏览器仿真器、12 篇设计文档
 - 结论：验收走 FakeIo/仿真路线，硬件闭源不影响任何里程碑
 
 ## Q3（Bite 1 后）：怎么理解 tokio interval 第一拍立即触发？
@@ -19,7 +19,7 @@
 ## Q4（追问）："节奏相位永久错位一拍"没理解
 - 澄清：稳态节奏两种语义完全相同，唯一差别是 tokio 在 t=0 多执行一次循环体
 - "错位"仅指 tick 计数→时间换算恒差一拍（记账问题），真风险是第一拍输入垃圾
-- 附原版证据：MissedTickBehavior::Delay 实测只跑到 43.1Hz（reference/robotd/src/main.rs:1794 注释）
+- 附原版证据：MissedTickBehavior::Delay 实测只跑到 43.1Hz（upstream/robotd/src/main.rs:1794 注释）
 
 ## Q5（Bite 2 后）：流程偏好更正
 - TS/Node 替代 Python 做类比映射（已落 user-prefs.md）
@@ -48,7 +48,7 @@
 - 直立、没转：`[1,0,0,0]`。转到 180° 时 w = 0，xyz 变成转轴本身。转到 360° 得到 `[-1,0,0,0]`，和 `[1,0,0,0]` 是同一个姿态
 - 反着读：角度 = `2·arccos(w)`，`(x,y,z)` 的方向是转轴。先不用管 i/j/k 乘法
 - 绕上轴左转 180°：`[0,0,0,1]`，鼻子朝后。绕左轴（+y）前倾 θ：`[cos(θ/2), 0, sin(θ/2), 0]`
-- 深读页：`docs/concepts/quaternion.html`（2026-10-21 新增；含 wxyz/xyzw 顺序约定、半角由来、q 与 -q 双覆盖、slerp vs nlerp、可运行示例 `docs/concepts/assets/quaternion/quat_demo.py`）。M1 背景卡片与 M9a 第 18 章（惯量张量卡片 + 坑 5）均已挂链接
+- 深读页：`book/concepts/quaternion.html`（2026-10-21 新增；含 wxyz/xyzw 顺序约定、半角由来、q 与 -q 双覆盖、slerp vs nlerp、可运行示例 `book/concepts/figures/quaternion/quat_demo.py`）。M1 背景卡片与 M9a 第 18 章（惯量张量卡片 + 坑 5）均已挂链接
 
 ## Q10（读 control.rs:59-61）：插值为什么不从进程启动起算？
 - 常见坑 3 的时间线。`RAMP_TICKS = 100`。`MINIDUCK_FAKE_FAILING_READS=100` 时，前 100 次 read 失败只做 `tick += 1` 然后 `continue`，`ramp_origin` 仍是 `None`，此时变量 `tick` 已经是 100
@@ -100,7 +100,7 @@
 
 ## Q16（读 obs 命令块）：`command.twist/head/body` 的数字代表什么？
 - 字段是躯干系物理量：x 前、y 左、z 上。`twist` = 前进 m/s、向左 m/s、左转 rad/s。`head` = neck_pitch、head_pitch、head_yaw、head_roll，单位弧度，是关节目标不是注视点。`body.z` = 身高偏移（米，负值下蹲），`pitch` 正值前倾，`roll` 正值左侧抬起（向右倒）。零是名义站姿
-- 示意动画：`docs/concepts/assets/command-motion/index.html`（俯视积分速度，侧面/正面画姿态）。俯视图曾把世界 x 的屏幕符号取反，正 vy 会往画面右侧走；已改成画面左 = 机器人的左，和正 vyaw 的逆时针一致
+- 示意动画：`book/concepts/figures/command-motion/index.html`（俯视积分速度，侧面/正面画姿态）。俯视图曾把世界 x 的屏幕符号取反，正 vy 会往画面右侧走；已改成画面左 = 机器人的左，和正 vyaw 的逆时针一致
 - 训练范围很小：z 约 −0.025..+0.010 m，roll/pitch ±0.26 rad。超出这个范围策略没见过
 - 单测里的 0.1、0.2、…、1.0 是互不相同的记号，用来钉下标，不是一条真的运动指令。M2 控制循环传的是 `Command::default()`，全 0
 - 同一组 twist 槽在别的技能里会被改义（坐下时 vx=1 表示坐，不是 1 m/s）。那是 M6 的事，行走/站立策略读到的仍是速度
@@ -114,7 +114,7 @@
 - 卡在术语 LSTM，不是卡在 `match` 语法。诊断：缺背景，不是缺这段 Rust
 - 纯函数：同样输入永远同样输出。LSTM 多两张便签 `h`（露出的）和 `c`（内部传送带），下一拍由调用方再喂回去，所以同样的观测可以出不同动作。三道门先不用管
 - `inputs.len()` / `outputs.len()` 数的是图上的命名张量块，不是 obs 里的 61 个数。(1,1) 是 velstand：只塞 `obs`，`state = None`。(3,3) 才是 `obs/h_in/c_in → actions/h_out/c_out`。其他个数 load 失败
-- 这条分支当前不执行（D20）。深读：`docs/concepts/lstm.md`。动画：https://nndl.ai/viz/lstm-gates/ 与 https://www.bilibili.com/video/BV1ih4y147YQ/
+- 这条分支当前不执行（D20）。深读：`book/concepts/lstm.md`。动画：https://nndl.ai/viz/lstm-gates/ 与 https://www.bilibili.com/video/BV1ih4y147YQ/
 
 ## Q21：只加载 velstand，为什么还要区分 (1,1) 和 (3,3)？
 - velstand 实测是 1 入 1 出，只会走进 `(1, 1)`，`state = None`。`(3, 3)` 当前不会执行
@@ -135,7 +135,7 @@
 - 公式 `targets = α·新值 + (1−α)·上一拍目标`，头 α=0.5（更钝，脖子高频动作更刺眼）、腿 α=0.7；嘴和策略第一拍（previous=None）跳过
 - 系数来自训练侧（0.5/0.7），推理必须一致——动作后处理是训练-推理闭环的一部分，改系数 = 改变策略输入分布。失效边界：换用对后处理不敏感的训练管线时可推翻
 - 低通锚点是「上一拍目标」而非「实际关节位置」：滤的是命令信号本身，保证训练/推理一致
-- 配套演示动画：docs/concepts/assets/lowpass/index.html（方波+毛刺信号，α 滑块可调；实测 α=0.5 阶跃 95% 收敛需 5 拍、α=0.7 需 3 拍 @50Hz）
+- 配套演示动画：book/concepts/figures/lowpass/index.html（方波+毛刺信号，α 滑块可调；实测 α=0.5 阶跃 95% 收敛需 5 拍、α=0.7 需 3 拍 @50Hz）
 
 ## Q26（追问低通）：滤波是不是"把前一拍关节位置按比例混入下一拍目标"？
 - 方向对，但混入的是「上一拍的滤波后目标值」（previous_targets，命令信号历史），不是关节实际位置——滤波与物理世界解耦，仿真/真机/单测可复现（control.rs:193-194, 294-320）
@@ -241,13 +241,13 @@
 - 失效边界：M6 多技能后「谁来 enable」变成调度问题，需重审
 
 ## Q43（读 servo-gain-torque 概念文档）：spring_demo 没看懂，gain=200 哪来的？theta/omega 太抽象
-- gain=200/50：原型 alpha 调好后写进舵机增益寄存器的两个数（src/safety.rs:50-55），固件自定义标度、无 SI 单位；只有相对关系 200:50=4:1 有物理意义。到物理世界的桥是仿真体映射 kp_sim = 8 × gain/200（sim/duck_body.py:85-100），所以演示里 200→kp=8、50→kp=2
-- 真机写入路径：write_position_p_gain + I/D 钉 0，RAM 寄存器上电恢复出厂（reference/duck-control/src/bus.rs:541-561）；寄存器量程 reference 未载，以 e-Manual 为准
+- gain=200/50：原型 alpha 调好后写进舵机增益寄存器的两个数（impl/src/safety.rs:50-55），固件自定义标度、无 SI 单位；只有相对关系 200:50=4:1 有物理意义。到物理世界的桥是仿真体映射 kp_sim = 8 × gain/200（impl/sim/duck_body.py:85-100），所以演示里 200→kp=8、50→kp=2
+- 真机写入路径：write_position_p_gain + I/D 钉 0，RAM 寄存器上电恢复出厂（upstream/duck-control/src/bus.rs:541-561）；寄存器量程 reference 未载，以 e-Manual 为准
 - theta/omega 只是角度/角速度代号
-- 处置：新增网页实体演示 docs/concepts/assets/servo-gain-torque/index.html（三臂同屏对照：站立-31°/软倒-63°/卸力-92°，滑块+torque 开关+预设），概念文档新增「gain=200 是哪来的？」一节，网页优先 python 降为数字对照；教程 m5 卡片已加链接
+- 处置：新增网页实体演示 book/concepts/figures/servo-gain-torque/index.html（三臂同屏对照：站立-31°/软倒-63°/卸力-92°，滑块+torque 开关+预设），概念文档新增「gain=200 是哪来的？」一节，网页优先 python 降为数字对照；教程 m5 卡片已加链接
 
 ## Q44：IMU 动起来时 gyro/gravity/quat 怎么变化？
-- 处置：新增动画演示 docs/concepts/assets/imu/index.html（三轴姿态动画+三组变量实时条形表+4 秒滚动波形+跌倒判定 200ms 去抖联动），四个预设：原地转圈（gyro.z 平台、gravity 全平）/前倾点头/侧翻 90°（gravity→[0,-1,0]，fallen 锁存全过程）/三轴乱晃；手动滑块模式
+- 处置：新增动画演示 book/concepts/figures/imu/index.html（三轴姿态动画+三组变量实时条形表+4 秒滚动波形+跌倒判定 200ms 去抖联动），四个预设：原地转圈（gyro.z 平台、gravity 全平）/前倾点头/侧翻 90°（gravity→[0,-1,0]，fallen 锁存全过程）/三轴乱晃；手动滑块模式
 - 数值锚点（python 交叉对表验证过）：直立 gravity=[0,0,-1]/quat=[1,0,0,0]；前倾 θ quat=[cos θ/2,0,sin θ/2,0]、gravity.x=sin θ；侧躺（向右 90°）gravity=[0,-1,0]
 - 核心直觉：gyro 只在"正在转"时非零（停住归零）；gravity 只在乎"歪不歪"（停着也在）；quat 是姿态打包（w≈1=没怎么转）
 - 副产品修正：safety.rs 注释与 m5 教程原写"去抖，双向"，实际代码起身方向是立即清零（直立样本即解除 fallen）——已改为如实描述（倒下方向去抖、起身立即，不对称是故意：误判倒的代价远高于多躺一拍）
@@ -293,7 +293,7 @@
 
 ## Q51（追问）：官方发布的策略没有 LSTM，但官方源码有 LSTM 吗？
 - 权重：v5 官方集**全部 10 份**都 probe 过（本次补测 alpha_stand/alpha_walking/ball_kick_right/roller/roller_crouch），清一色 feedforward，文件都 ~793KB 同构
-- 源码：有完整 LSTM 支持——reference/duck-control/src/policy.rs:459-522（LstmState、h_in/c_in 按名接线、load 按张量数判别 :601）+ 专门契约文档 reference/docs/recurrent-policies.md（张量契约、记忆生命周期：换网/disable/跌倒恢复/链式重开全清零，同网内换命令保留；热换按 SHA-256 摘要决定去留；recurrent 权重须标 model_api:2）
+- 源码：有完整 LSTM 支持——upstream/duck-control/src/policy.rs:459-522（LstmState、h_in/c_in 按名接线、load 按张量数判别 :601）+ 专门契约文档 upstream/docs/recurrent-policies.md（张量契约、记忆生命周期：换网/disable/跌倒恢复/链式重开全清零，同网内换命令保留；热换按 SHA-256 摘要决定去留；recurrent 权重须标 model_api:2）
 - 定性：部署侧 LSTM 基建已通车、训练侧（mjlab/rsl_rl explicit-state 导出）也支持，但官方从未发布 recurrent 权重——是给未来留的接口，与观测里 4 个恒 0 的考古维度正好相反
 
 ## Q52（读 scheduler.rs:203-222）：往下坐的过程是 Rising 吗？
@@ -303,7 +303,7 @@
 - 派生行为：① 坐下过程 busy=false（坐着是停驻不是行进，原版同 control.rs:318-322），跌倒反射不抑制 ② label 当拍即 "sit"，描述锁存的命令状态而非物理完成度——M6 验收 sit 的 38 帧断言靠的就是这个
 
 ## Q53（读 scheduler.rs:559-567）：ground_pick 为什么 140 拍就交还 walk，不跑满 200 拍？
-- 原版注释直接写明（reference/robotd/src/control.rs:85-86）："Ending at 1.0 replays the reach on the way out"
+- 原版注释直接写明（upstream/robotd/src/control.rs:85-86）："Ending at 1.0 replays the reach on the way out"
 - 机制：拾取是**周期运动**（相位编码绕单位圆，φ=1.0≡0.0，轨迹可无限循环）。0→0.7 = 蹲下→伸手→抓→恢复直立（"捡一次"的全部有效动作）；0.7→1.0 是循环尾巴=在为下一次下蹲蓄力——跑满 200 拍会在收尾时又蹲一次
 - 140 = 0.7×200 是"动作完成点"不是"周期跑完点"；数值链 DEFAULT_GROUND_PICK_END_PHASE（robotd-params:872 "70% of the cycle, as the prototype does"）
 - 能硬切的前提：φ=0.7 时机器人已直立，velstand 接得住尾巴（与 sitstand_rise_s 同款逻辑 "velstand owns the tail of the rise fine"）
@@ -311,14 +311,14 @@
 ## Q54（追问 Q52）：坐下后马上再 toggle（只坐下去一点），起身还要固定 50 拍吗？
 - 要。Rising 是**开环计时窗口**，不读身体实际姿态——scheduler 全链路没有"站直了没有"的判据
 - 两层分开看：物理层自适应（sitstand 网络看得到关节位置，坐得浅纠正动作就小，0.2s 可能就回正）；调度层死板（剩余拍里 sitstand 当权、twist 强制全零、busy=true，期间 robot.drive 被吃掉）
-- 原版同款：sitstand_rise_s=1.0s 固定窗口，按"足够"而非"精确"取（reference/robotd/src/control.rs:92-93）
+- 原版同款：sitstand_rise_s=1.0s 固定窗口，按"足够"而非"精确"取（upstream/robotd/src/control.rs:92-93）
 - 【合理推断】为什么不做"直立检测提前交还"：姿态阈值+滞回多一类"阈值永不满足→卡死 Rising"的失败模式；开环窗口最坏代价只是多等几百毫秒+期间不理行走命令，代价有界行为可预测。原版的应对是把 sitstand_rise_s 做成配置项，而不是做成自适应
 
 ## Q55（追问 Q53）：ground_pick 为什么要用角度（相位）做输入，不能像 sit 一样一个 flag 吗？
 - 分界：sit 是"去一个状态并待在那"（静态目标，反馈闭环自己收敛，类似温控器只需设定值）；ground_pick 是"沿时间轨迹走一遍"（脚本化动作，必须知道走到哪了）
 - 核心论据（马尔可夫性，回指 Q34）：拾取轨迹在状态空间自相交——φ=0.25 下蹲中与 φ=0.6 起身中关节位置几乎相同，但正确动作相反；只给 flag 则前馈网络面对"同观测反动作"的死局。相位=给无记忆网络外接的时钟/剧本页码
 - 为什么 cos+sin 两个数：回绕连续（0.99≈0.0，线性标量每圈一次阶跃）；单 sin 分不出 φ 与 π−φ；幅值恒 1 不出训练分布
-- 编码分类（reference/robotd-params/src/lib.rs:1087-1094）：constant=kick/roulade 短促爆发；phase=ground_pick/roller_crouch 时间脚本；posture_flag=sit↔stand 双稳态驻留
+- 编码分类（upstream/robotd-params/src/lib.rs:1087-1094）：constant=kick/roulade 短促爆发；phase=ground_pick/roller_crouch 时间脚本；posture_flag=sit↔stand 双稳态驻留
 - 【合理推断】kick/roulade 不用相位：够短、从固定初始条件 rollout，时间角色被初始状态+动作惯性吸收；原版未逐字解释
 
 ## Q56（追问 Q55）：观测里有关节角速度，为什么还区分不了"正在下蹲"和"正在起身"？
@@ -341,7 +341,7 @@
 ## Q59：仿真里机器人摔倒了怎么办？
 - 自动链路（M5）：fallen（躯干系 gravity.z>−0.5 持续 200ms）→ Limp（策略停摆、目标跟随实测位置、gain 200→50 卸力）→ 若自行直立则自动渐变回站立回 Driving。技能运行中被 busy 抑制（D32），窗口结束下一拍接管
 - 躺平起不来（大多数情况）：velstand 没有"从躺平起立"技能（原版有 Posing 段，我们 D23 简化未做，M8 裁决），会一直躺在 Limp
-- 恢复=重启 duck_body.py（物理重置到站立 keyframe）；daemon 不用动，SimIo 自动重连（accept-m5 B4b 验过），重连后自动回 Driving。noVNC 栈重跑 scripts/duck-vnc.sh
+- 恢复=重启 duck_body.py（物理重置到站立 keyframe）；daemon 不用动，SimIo 自动重连（accept-m5 B4b 验过），重连后自动回 Driving。noVNC 栈重跑 impl/scripts/duck-vnc.sh
 - viewer 的 Reset 按钮无效【合理推断】：passive 模式 run_physics_thread=False，mujoco.viewer 源码全文无一处 mj_resetData，按钮请求没人服务
 - D26：推倒后可能穿透地板沉底，沉了只能重启 sim
 
@@ -354,7 +354,7 @@
 - 本节论点一句话：swap 是"改变现实"的时刻，arm 是"给改变留证"的时刻，记录必须先于改变——否则崩溃落在两者之间，现实变了没记录，恢复机制失明
 
 ## Q61（追问 Q60）：tutorial.md:44-54 那张表没看懂
-- 表是 `examples/boot_counter_order.py` 的沙盘推演（不跑真机器人）：模拟四步执行，每步后假设 updaterd 立刻被 kill -9，再看重启后 recover() 凭磁盘状态会做什么决定
+- 表是 `impl/examples/boot_counter_order.py` 的沙盘推演（不跑真机器人）：模拟四步执行，每步后假设 updaterd 立刻被 kill -9，再看重启后 recover() 凭磁盘状态会做什么决定
 - 三个变量：current=symlink 指向谁（下次启动起谁）；live=此刻实际在跑谁；pending=纸条在不在。recover() 唯一依据是纸条：在→"有版本在试用期没结账"→重跑健康门裁决；不在→照常从 current 起
 - 关键组（kill -9 落在 swap 之后）：arm 在前→纸条已写→重启发现未结账的试用→回滚得救；arm 在后→current 已指 2.0.0 而纸条还没写→recover 认为一切正常→把坏版当正式版起起来，永远没人撤回=变砖
 - 图解不变量：纸条的在场时间必须完整罩住"现实被改变"的区间（swap→confirm），先留证、再改变、最后销证
@@ -362,12 +362,12 @@
 ## Q62（追问 Q60）：kill -9 kill 的是谁？updaterd 还是什么？
 - 杀的是 updaterd 自己（mini-updaterd 进程），不是被更新的 miniduckd。设计前提：updaterd 必须假设自己会死在任何时候（断电/kill -9/OOM，tutorial.md:9），且死在 apply 任意一步都能收拾残局
 - 两个进程死活分开：miniduckd 由 updaterd 用 setsid() 拉起、脱离会话（engine.rs:116-123），kill -9 updaterd 不带走 daemon——验收 E0 专门验这条。所以 updaterd 死后 current 指向、纸条在不在、哪个版本还在跑是三件独立的事
-- 沙盘脚本里"kill -9 落在 X 之后"=循环 break 模拟（后面步骤永不执行）；真实验收靠场景 E 的故障注入（`MINIDUCK_UPDATER_EXIT_AFTER_SWAP=1` 让 updaterd 在最坏窗口 exit(1)，tutorial.md:92）和 accept-m7.sh 的真 kill -9
+- 沙盘脚本里"kill -9 落在 X 之后"=循环 break 模拟（后面步骤永不执行）；真实验收靠场景 E 的故障注入（`MINIDUCK_UPDATER_EXIT_AFTER_SWAP=1` 让 updaterd 在最坏窗口 exit(1)，tutorial.md:92）和 accept/m07-b01.sh 的真 kill -9
 
 ## Q63（追问 Q60）：这段是想说明 arm/swap/spawn 顺序的不可调换性吗？
 - 大方向对，但要收紧：不是"四步全都不可调换"，真正要证的是唯一看起来能挪、实际挪不得的那一对——arm 必须先于 swap
 - 分两类：① 数据依赖决定的顺序（显而易见）：swap→spawn（spawn 从 current 起进程，不先换指向起出来的还是旧版）、健康门→confirm（先销账再验收等于没验收）② 崩溃安全决定的顺序（隐蔽）：arm→swap——arm 与其他步无数据依赖，放后面单测和正常运行全看不出来，唯一差别只在"死在 swap 之后、arm 之前的缝里"才暴露
-- 原版把这条列为三条根本规则之一（reference/updater/src/engine.rs:1-18 "The boot counter is armed before the swap"）：其他顺序错误要么立刻报错要么逻辑说不通，唯独这条是"不写错就不知道它存在"的纪律，只能靠规则立住
+- 原版把这条列为三条根本规则之一（upstream/updater/src/engine.rs:1-18 "The boot counter is armed before the swap"）：其他顺序错误要么立刻报错要么逻辑说不通，唯独这条是"不写错就不知道它存在"的纪律，只能靠规则立住
 
 ## Q60–Q63 处置（2026-09-30）
 - 这四个疑问暴露了 m7 tutorial 原稿"arm、swap、spawn 新 daemon、confirm（删纸条）"一句信息密度过高（四个英文动词无就地展开、未说明 kill -9 的对象、未解释表头三个字段），已把解答吸收进章节：四步改为逐条展开的一句话列表；新增"kill -9 杀的是 updaterd 自己、daemon 因 setsid 存活"一段；表格前补三字段含义与 recover 只认纸条的规则；表后补"不是四步都不可调换，唯 arm→swap 是隐蔽纪律"的收紧段
@@ -384,7 +384,7 @@
 - 同句词：journald=systemd 的日志托管；unit 依赖编排=systemd 声明启动顺序关系
 
 ## Q66（读 m7 tutorial）：解释性括号打断阅读主线
-- 处置：立"主干/细节"分层规则并落 user-prefs「流程偏好」+ SKILL.md writer 约定——正文只留主线；一句话解释→句尾脚注；一段展开→章末细节小节；跨里程碑概念→docs/concepts；`文件:行号` 证据定位例外、必须留正文原地
+- 处置：立"主干/细节"分层规则并落 user-prefs「流程偏好」+ SKILL.md writer 约定——正文只留主线；一句话解释→句尾脚注；一段展开→章末细节小节；跨里程碑概念→book/concepts；`文件:行号` 证据定位例外、必须留正文原地
 - M7 章已按此改写：16 个解释性括号转脚注（章末统一定义），3 处重复展开改为指向"常见坑"的指针；旧章节不回改，M8 起生效
 
 ## Q67（读 m7 tutorial §CLI 分流）：这种事情有必要提吗？
@@ -434,7 +434,7 @@
 - Bite 6 口径：先 BAM 实测；不过再补 groundcontact（必要时 timestep）。次要项：观测噪声。排查顺序碰撞 → timestep → 噪声 → 权重
 
 ## Q76（M8 Bite 8）：切换到站立后，策略是不是接不住身体？
-- 接住了。坐姿起身结束交给 velstand：z=0.116，skill=walk，fallen=false，没有进 Limp。roulade 结束同样直立，z=0.117。节拍在 `sim/duck_body.py` 的 `handle_write`：本拍目标先写入 `q_target`，再 `update` + `mj_step`，起身最后一拍的姿态在交棒前已经进了物理
+- 接住了。坐姿起身结束交给 velstand：z=0.116，skill=walk，fallen=false，没有进 Limp。roulade 结束同样直立，z=0.117。节拍在 `impl/sim/duck_body.py` 的 `handle_write`：本拍目标先写入 `q_target`，再 `update` + `mj_step`，起身最后一拍的姿态在交棒前已经进了物理
 - **订正（2026-10-14，见 Q83）**：「先写目标再步进让交接接得住」的机制解释被推翻——两种拍序化简是同一递推，回退成读时步进四项验收（含起身 z=0.1160）同样全绿。起身从摔变过更可能是启动相位差被接触混沌放大（临界动作的运气）。保留 write 步进的真正理由：与官方 infer_policy.py 主循环同序 + read 无副作用 + 缺 write 时物理冻结。本条第四点「交接这条赌赢了」随之作废：不存在这场赌，两种拍序的交接行为相同
 - 行走失败时身体也一直站着。站稳后 `vx=0.15` 走 10 秒，z 从 0.117 到 0.116，前移 0.005 m。门槛量的是位移，不是有没有摔倒
 - 迈不开步的原因：直立且关节速度约 0.007 时，同一份 velstand 在 twist=0、0.15、0.30 下都输出几乎不变的小动作（`vx=0.15` 那段动作标准差均值 0.004）。观测、动作、下一拍观测都停在「抱住这个姿势」。速度命令写进观测，不足以离开这个状态。落地时的晃动若已经灭了，命令来得再晚也踢不动
@@ -442,8 +442,8 @@
 - Bite 8 教程尚未成页。成页时把本条移进该篇「细节展开」
 
 ## Q77（M8 Bite 8）：站稳后不迈步，是不是和原项目不对齐？
-- 节拍、观测、行走增益这几条对得上，解释不了这次失败。`obs[48]=0.15` 已经进了网络；原始动作标准差均值 0.004，低通和 `action_scale=0.9` 没有把一个步态滤掉。`vx=0.30`（官方键盘前进上限）同样几乎零位移。读时步进和写后步进都一样。这几项与 `reference/robotd/src/control.rs` 的行走档一致：scale 0.9，头低通 0.5，腿低通 0.7，命令块 48..51 是 vx,vy,vyaw（`reference/duck-control/src/obs.rs` 文件头）
-- 更正（Q78）：默认发行不加载 stand。`will_stand` 只在有人另外装上 `alpha_stand.onnx` 时才切换。v5 默认就是一份 velstand 兼站兼走（`reference/robotd-params/src/lib.rs:1578-1582`，测试在 :3160-3163 写明 "velstand stands on its own; no standing network by default"）。D33 是可选旧配对，不是这次迈不开步的原因
+- 节拍、观测、行走增益这几条对得上，解释不了这次失败。`obs[48]=0.15` 已经进了网络；原始动作标准差均值 0.004，低通和 `action_scale=0.9` 没有把一个步态滤掉。`vx=0.30`（官方键盘前进上限）同样几乎零位移。读时步进和写后步进都一样。这几项与 `upstream/robotd/src/control.rs` 的行走档一致：scale 0.9，头低通 0.5，腿低通 0.7，命令块 48..51 是 vx,vy,vyaw（`upstream/duck-control/src/obs.rs` 文件头）
+- 更正（Q78）：默认发行不加载 stand。`will_stand` 只在有人另外装上 `alpha_stand.onnx` 时才切换。v5 默认就是一份 velstand 兼站兼走（`upstream/robotd-params/src/lib.rs:1578-1582`，测试在 :3160-3163 写明 "velstand stands on its own; no standing network by default"）。D33 是可选旧配对，不是这次迈不开步的原因
 - 成页时把本条和 Q76、Q78 一起移进 Bite 8「细节展开」
 
 ## Q78（M8 Bite 8）：现在是能站走不动吗？velstand 是站立模型吗？走要换一份权重吗？以前能走是因为一直在追站立目标吗？
@@ -460,13 +460,13 @@
 - 要对齐到能走：让仿真在速度命令到来时，关节速度还留在策略训练见过的范围里，并用官方 `infer_policy.py` 同权重、同场景做一次对照，确认他们的残留确实能启动步态。在那之前，自动注速度不算对齐
 
 ## Q80（M8 Bite 8）：官方 infer_policy 站稳后再给 vx，走得动吗？
-- 走不动。同一份 `policies/velstand.onnx`，官方 `infer_policy.py`（microduck_rl `develop`）默认场景、BAM、`--action-scale 0.9`、`--new-cmd-obs`、投影重力。无 viewer、无按键、无 `random_push`。先零命令 2 s，再 `lin_vel_x=0.15` 走 10 s：dx=0.0052 m，z 从 0.1166 到 0.1158，命令到来时平均 |关节速度|=0.0026，10 s 动作标准差均值 0.0029，`obs[48]=0.15`
+- 走不动。同一份 `impl/policies/velstand.onnx`，官方 `infer_policy.py`（microduck_rl `develop`）默认场景、BAM、`--action-scale 0.9`、`--new-cmd-obs`、投影重力。无 viewer、无按键、无 `random_push`。先零命令 2 s，再 `lin_vel_x=0.15` 走 10 s：dx=0.0052 m，z 从 0.1166 到 0.1158，命令到来时平均 |关节速度|=0.0026，10 s 动作标准差均值 0.0029，`obs[48]=0.15`
 - 落下残留也踢不动。同一套从第一拍就给 `vx=0.15`（躯干 z 从 0.125 落到 0.116）：前 0.5 s 平均 |关节速度|峰值 0.32，10 s 仍 dx=0.0079 m。Q79 里「官方靠落地残留进吸引子」在这份脚本上不成立
-- 官方默认 `scene.xml` 包含的是 `robot_groundcontact.xml`，和我们仓库里那份逐字节相同。我们自己的 `sim/assets/scene.xml` 包的是 `robot_walk.xml`，不是这份默认场景
+- 官方默认 `scene.xml` 包含的是 `robot_groundcontact.xml`，和我们仓库里那份逐字节相同。我们自己的 `impl/sim/assets/scene.xml` 包的是 `robot_walk.xml`，不是这份默认场景
 - 不要装回 `push(0.30)`。官方这条路径和我们一样停在直立不动点。行走门槛 0.4 m 仍然过不了
 
 ## Q81（M8 Bite 8）：官方自己走不动，是不是他们的项目有问题？
-- 相对他们自己写下的契约，这条仿真回放是坏的。`reference/robotd-params/src/lib.rs:1579` 写明 v5 的 velstand「有 twist 就走，零命令就站」。Q80 里 twist 已经在 `obs[48]`，10 秒只走 5 mm，网络输出几乎是常数（标准差均值 0.0029）。乘 1.0 还是 0.9 都变不出步态
+- 相对他们自己写下的契约，这条仿真回放是坏的。`upstream/robotd-params/src/lib.rs:1579` 写明 v5 的 velstand「有 twist 就走，零命令就站」。Q80 里 twist 已经在 `obs[48]`，10 秒只走 5 mm，网络输出几乎是常数（标准差均值 0.0029）。乘 1.0 还是 0.9 都变不出步态
 - 坏的范围是这份权重在官方 MuJoCo CPU 回放里的行为，不是我们少对齐了一行。脚本、场景、BAM、61 维观测都是他们的
 - 真机不在这次实验里。robotd 不注速度，扰动来自传感器和脚底；训练推力和 `infer_policy.py` 的 P 键是另一条路。不能从这次仿真推出板子上的鸭子不会走
 
@@ -481,13 +481,13 @@
 - 实验证实（2026-10-14）：`duck_body.py` 临时改回读时步进，accept-m8-bam 四项全绿（坐姿起身 z=0.1160、行走前移 4.929 m）；恢复 write 步进复跑也全绿（4.862 m）。双向对照，轨迹等价成立
 - 真正的差别只在三个边界：① 启动第一拍——旧顺序先用初始抱持目标空走 20ms，daemon 第一个观测落后一拍；② read 失败/缺 write 的拍——旧顺序物理拿旧目标继续走，新顺序物理冻结；③ 旧顺序 read 有副作用——多一个只读客户端，物理就被轮询推着多走
 - 推论：Bite 7「坐姿起身 50 拍后进 Limp」不是「物理吃上一拍目标」造成的。最可能是启动相位差（边界①）经接触动力学混沌放大，临界动作成败翻转——单次观测，运气成分大
-- 保留 write 步进的真正理由：与官方 `infer_policy.py` 主循环同序（观测→推理→写目标→步进，:1683-1684、:1770-1777）+ 边界②③两条工程性质。教程「设计」一节、决策卡片 1、Q76 已按此订正；示意图在 `docs/milestones/m8-convergence/assets/dst/step-order.svg`，已嵌入该篇「细节展开」
+- 保留 write 步进的真正理由：与官方 `infer_policy.py` 主循环同序（观测→推理→写目标→步进，:1683-1684、:1770-1777）+ 边界②③两条工程性质。教程「设计」一节、决策卡片 1、Q76 已按此订正；示意图在 `book/m08-convergence/figures/step-order.svg`，已嵌入该篇「细节展开」
 - 教训：行为变了 ≠ 改动就是原因。临界动作的单次 A/B 不能建立因果；归因前先问「两者在数学上是否本就等价」
 
 ## Q84（M9a Bite 1，教程读者提问）：`<inertial>` 里的物理量是什么？
 - 四个字段 = 刚体的质量分布：`mass` 质量（kg）、`pos` 质心位置（body 局部系，不是原点，躯干偏后 2.3cm）、`quat` 惯量主轴系朝向（wxyz）、`diaginertia` 沿三个主轴的主转动惯量（kg·m²）
 - 分工：`mass` + `pos` 管平动（重力拉在哪、动量多少），`quat` + `diaginertia` 管转动（绕哪根轴好转、角动量怎么算）
-- 值不是手拍的：来自官方模型编译输出的 `body_mass/ipos/iquat/inertia`，逐位抄入（`scripts/m9a_extract_official.py`）
+- 值不是手拍的：来自官方模型编译输出的 `body_mass/ipos/iquat/inertia`，逐位抄入（`impl/scripts/m9a_extract_official.py`）
 - 已补进教程：第 18 章「背景：惯量为什么是『3 个数 + 一个朝向』」卡片新增四行字段表（字段/物理量/单位/本例数值）+ 平动与转动分工；「代码领读」躯干 body 段补分工指路
 
 ## Q85（M9a Bite 1，教程读者提问）：hinge / range / axis 怎么理解？
@@ -500,6 +500,6 @@
 ## Q86（M9a Bite 1，教程读者提问）：qpos 是什么，怎么这么多值？
 - qpos = 广义坐标向量，整个系统当前姿态，每个自由度一个分量。本模型 21 维 = freejoint 7（xyz 3 + 四元数 wxyz 4）+ 14 个 hinge 各 1
 - 「多」是因为 freejoint 一个就吃 7 维；后 14 维按关节文档序排列，策略权重按序读写，乱序等于把膝盖指令发给脚踝
-- `imu_gyro` 与 qpos 不是一回事：qpos 是状态（输入侧），gyro 是传感器读数（输出侧，角速度在 imu site 局部系下的三分量），`sim/duck_body.py:171`、`:284` 按名定位后取 `sensordata`
+- `imu_gyro` 与 qpos 不是一回事：qpos 是状态（输入侧），gyro 是传感器读数（输出侧，角速度在 imu site 局部系下的三分量），`impl/sim/duck_body.py:171`、`:284` 按名定位后取 `sensordata`
 - 已补进教程：第 18 章「代码领读」场景包装段新增 qpos 五段拆读表 + gyro 与 qpos 的区分；「背景：MJCF 是什么」元件表 `<keyframe>` 行补 qpos 说明
 - 遗留：writer 提出可能需要一篇「广义坐标」概念深读页（slug `generalized-coordinates`），未排期，等用户裁决

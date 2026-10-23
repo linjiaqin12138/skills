@@ -7,7 +7,7 @@ source: clone-from-scratch-tutor · 第 18 章
 
 M9 要自己训策略，先得有一个能随便摔、随便改、物理核心不依赖受限资产的仿真身体。本章从零手写一个：15 个刚体、14 个关节、80 个几何体。其中 10 个是自建碰撞盒、70 个是官方视觉网格，物理行为与官方模型逐项对账。
 
-![自建模型 STAND 姿态：官方 STL 视觉网格的鸭子站立在地板上](/home/jqlin/Project/skills/microduck-from-scratch/docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png)
+![自建模型 STAND 姿态：官方 STL 视觉网格的鸭子站立在地板上](/home/jqlin/Project/skills/microduck-from-scratch/book/m09a-handmade-mjcf/figures/handmade_stand.png)
 
 ```callout ok 本章交付
 `duck_handmade.xml`：碰撞全 box 基本几何体、惯量直写官方编译值、视觉挂官方 STL 网格（geom 逐字照抄）。总质量 0.737243 kg 与官方逐位一致；落体/推倒穿透 -0.0002m（官方对照 -0.0137m）。D26 收敛。
@@ -31,7 +31,7 @@ M9 批次开局的处境：
 
 - **一句话**：用 XML 把刚体树、关节、几何、惯量、执行器、传感器写成一个文件，物理引擎照着建模型。
 - **为什么需要**：物理引擎不猜。质量多少、转轴朝哪、哪里会撞，全部要显式给出。
-- **本项目在哪用**：`sim/assets/` 下官方模型与自建模型都是 MJCF；`sim/duck_body.py` 启动时加载场景 MJCF。
+- **本项目在哪用**：`impl/sim/assets/` 下官方模型与自建模型都是 MJCF；`impl/sim/duck_body.py` 启动时加载场景 MJCF。
 
 关键元件一张表：
 
@@ -130,7 +130,7 @@ keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复�
 **第 1 步 · 从官方模型提取数据。** 自建模型里每个数字都要有出处，出处就是官方模型的编译输出（无头计算，容器内跑）：
 
 ```bash
-docker compose exec -T rust /opt/sim-venv/bin/python scripts/m9a_extract_official.py
+docker compose -f impl/docker-compose.yml exec -T rust /opt/sim-venv/bin/python scripts/m9a_extract_official.py
 ```
 
 脚本打印官方关节树、逐 body 质量/质心/惯量、碰撞网格 AABB 尺寸，共 172 行。截取躯干两行：
@@ -147,7 +147,7 @@ trunk_base: mass=0.199224 ipos=[-2.26332e-02 -2.70828e-05  2.80064e-03] inertia=
 **第 3 步 · 编译验证。** MJCF 的「编译」就是把 XML 交给物理引擎建模型——语法错、网格路径错、引用不存在的名字，全在这一步报：
 
 ```bash
-docker compose exec -T rust /opt/sim-venv/bin/python -c "import mujoco; m = mujoco.MjModel.from_xml_path('sim/assets/scene_handmade.xml'); print('body =', m.nbody, ' 关节 =', m.njnt, ' 执行器 =', m.nu)"
+docker compose -f impl/docker-compose.yml exec -T rust /opt/sim-venv/bin/python -c "import mujoco; m = mujoco.MjModel.from_xml_path('impl/sim/assets/scene_handmade.xml'); print('body =', m.nbody, ' 关节 =', m.njnt, ' 执行器 =', m.nu)"
 ```
 
 实测输出：
@@ -161,17 +161,17 @@ body = 16  关节 = 15  执行器 = 14
 **第 4 步 · 眼睛验收。** 编译过 ≠ 长得对。viewer 打开宿主机原生窗口，鼠标可直接拖拽推鸭子：
 
 ```bash
-.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/scene_handmade.xml
+.venv/bin/python -m mujoco.viewer --mjcf=impl/sim/assets/scene_handmade.xml
 ```
 
-`.venv` 是仓库根的宿主机环境，只装 viewer 需要的东西（建法见 `docs/dev-container.md`「宿主机 viewer 环境」，里面也解释了为什么验收不跑它）。
+`.venv` 是仓库根的宿主机环境，只装 viewer 需要的东西（建法见 `tutor/dev-container.md`「宿主机 viewer 环境」，里面也解释了为什么验收不跑它）。
 
 本章「坑 5」的 8 处四元数符号抄错、右腿板件悬空，就是这步肉眼抓到的——位姿写错编译不报错，只有眼睛看得见。
 
 **第 5 步 · 行为验收。** 眼睛只能看姿势对不对，物理对不对靠断言（同样在容器里跑）：
 
 ```bash
-docker compose exec rust bash scripts/accept-m9a-bite1.sh
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b01.sh
 ```
 
 A 结构 / B 惯量 / C 贴地 / D 穿透四组，断言明细见「验收」一节。任何一组红，回第 2 步改 XML，重新走圈。
@@ -209,7 +209,7 @@ trunk_base | 躯干，挂 freejoint + imu site
           ankle_right | right_ankle
 ```
 
-**契约先行**：`duck_body.py` 不改一个字，但它点名依赖四个名字——STAND keyframe、`imu_gyro` 传感器、`imu` site、14 个关节名同序（`sim/duck_body.py:58-64`、`:171-173`）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。
+**契约先行**：`duck_body.py` 不改一个字，但它点名依赖四个名字——STAND keyframe、`imu_gyro` 传感器、`imu` site、14 个关节名同序（`impl/sim/duck_body.py:58-64`、`:171-173`）。策略权重按关节顺序读写，顺序错了动作就张冠李戴。自建模型的设计约束先由这份契约定死，再谈形状。
 
 ## 决策：数据、形状、外观各管各的
 
@@ -247,17 +247,17 @@ trunk_base | 躯干，挂 freejoint + imu site
 
 关节与执行器参数三件套写在 default 类里，全树继承。damping/frictionloss/armature 与 position kp/forcerange 取官方 chosen_actuator 编译值。视觉/碰撞两类几何的分离也写在这几行里：visual 类是 mesh 不进接触，collision 类是 box：
 
-```xml src=sim/assets/duck_handmade.xml lines=23-34 hl=25-26
+```xml src=impl/sim/assets/duck_handmade.xml lines=23-34 hl=25-26
 ```
 
 躯干 body：freejoint 提供 6 自由度；`<inertial>` 四字段直写官方编译值。`mass` + `pos` 决定平移动力学，`quat` + `diaginertia` 决定旋转动力学。逐字段解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表。`imu` site 是 duck_body.py 读 gyro 的安装点；视觉 geom 是官方 STL 网格行照抄（下面只贴第一行，躯干共 10 行），碰撞盒 = 官方电池网格的包围盒：
 
-```xml src=sim/assets/duck_handmade.xml lines=37-45 hl=39-41
+```xml src=impl/sim/assets/duck_handmade.xml lines=37-45 hl=39-41
 ```
 
 左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写。视觉网格行跟在关节声明后面：
 
-```xml src=sim/assets/duck_handmade.xml lines=59-67 hl=62-63
+```xml src=impl/sim/assets/duck_handmade.xml lines=59-67 hl=62-63
 ```
 
 joint 三个属性各管一件事：**type 管有几个自由度、axis 管绕哪转、range 管能转多远**。
@@ -271,17 +271,17 @@ joint 三个属性各管一件事：**type 管有几个自由度、axis 管绕�
 三点展开：
 
 - **axis 在 body 局部系里表达**。全模型 14 个关节的 axis 统一写 z 轴，这是 MJCF 常见手法，不是巧合。真实舵机轴的世界方向，由 body 上的 `quat` 转出来。本例 `yaw2roll` 用的是 `quat="0 -0.7071068 -0.7071068 0"`。关节朝向问题全部推给 body 姿态，joint 行因此个个长得一样。
-- **range 单位是弧度**（`<compiler angle="radian">`，`sim/assets/duck_handmade.xml:21`），数值对应真实舵机的机械限位；左右髋 yaw 互为镜像——左 -0.436/+0.524、右 -0.524/+0.436（`sim/assets/duck_handmade.xml:189-190`）。`autolimits="true"` 让 range 成为硬约束：关节角越界即被引擎拦下。
+- **range 单位是弧度**（`<compiler angle="radian">`，`impl/sim/assets/duck_handmade.xml:21`），数值对应真实舵机的机械限位；左右髋 yaw 互为镜像——左 -0.436/+0.524、右 -0.524/+0.436（`impl/sim/assets/duck_handmade.xml:189-190`）。`autolimits="true"` 让 range 成为硬约束：关节角越界即被引擎拦下。
 - **joint 标签上看不到 damping/frictionloss/armature**：这组舵机动力学参数从 `default class="duck"` 继承（前面 default 段），14 个关节共享同一份。这就是 `<default>` 机制的作用，改一处全树生效。
 
 14 个 position 执行器按 JOINT_NAMES 文档序逐个声明——ctrl 序即关节序（duck_body.py 启动时 assert 过）：
 
-```xml src=sim/assets/duck_handmade.xml lines=330-345
+```xml src=impl/sim/assets/duck_handmade.xml lines=330-345
 ```
 
 场景包装：`imu_gyro` 传感器挂 imu site；STAND 存档的 14 个关节角与官方逐位一致。躯干高度 0.12 沿用官方——包围盒最底面就是网格最底面，着地点不变：
 
-```xml src=sim/assets/scene_handmade.xml lines=31-43 hl=39-42
+```xml src=impl/sim/assets/scene_handmade.xml lines=31-43 hl=39-42
 ```
 
 STAND 的 `qpos` 那串数共 21 个：qpos 是**广义坐标向量**——整个系统的当前姿态，每个自由度占一个分量。拆开读是五段：
@@ -296,21 +296,21 @@ STAND 的 `qpos` 那串数共 21 个：qpos 是**广义坐标向量**——整�
 
 「多」是因为 freejoint 一个就吃掉 7 维（3 位置 + 4 姿态）。剩下 14 维是 14 个 hinge 各一维。排列顺序就是前文说的关节文档序——策略权重按这个序读写，乱序等于把膝盖指令发给脚踝。
 
-`imu_gyro` 和 qpos 别混。qpos 是**状态**：仿真的输入侧，决定系统此刻的姿态。`imu_gyro` 是**传感器读数**：输出侧，测的是角速度（躯干转动快慢）在 imu site 局部系下的三个分量。`duck_body.py` 按名字 `imu_gyro` 定位后，在 `sensordata` 里取这三个数（`sim/duck_body.py:171`、`:284`）。
+`imu_gyro` 和 qpos 别混。qpos 是**状态**：仿真的输入侧，决定系统此刻的姿态。`imu_gyro` 是**传感器读数**：输出侧，测的是角速度（躯干转动快慢）在 imu site 局部系下的三个分量。`duck_body.py` 按名字 `imu_gyro` 定位后，在 `sensordata` 里取这三个数（`impl/sim/duck_body.py:171`、`:284`）。
 
 验收的穿透探针：遍历所有碰撞 geom 的 8 个角点，取世界系最低 z。包围盒几何让「最低点」可以解析枚举，不用采样。视觉网格 contype/conaffinity 全 0，探针天然跳过：
 
-```python src=sim/accept_m9a_bite1.py lines=37-56 hl=49-52
+```python src=impl/sim/accept_m9a_bite1.py lines=37-56 hl=49-52
 ```
 
 「碰撞必须是 box」这条验收锁的是编译后的模型，不是 XML 文本。修订后文本里全是 `<mesh>`，但碰撞 geom 的类型集合仍然只能是 box：
 
-```python src=sim/accept_m9a_bite1.py lines=96-103 hl=96-100
+```python src=impl/sim/accept_m9a_bite1.py lines=96-103 hl=96-100
 ```
 
 视觉网格同样按编译后对账：按（body, 网格名）配对，geom 位姿与官方编译值逐位比。坑 5 的 8 处符号错误就是这条断言抓出来的：
 
-```python src=sim/accept_m9a_bite1.py lines=105-131 hl=131
+```python src=impl/sim/accept_m9a_bite1.py lines=105-131 hl=131
 ```
 
 ## 验收
@@ -318,7 +318,7 @@ STAND 的 `qpos` 那串数共 21 个：qpos 是**广义坐标向量**——整�
 入口命令（容器内跑；脚本在容器内自动用 `/opt/sim-venv/bin/python`，在宿主机则回落到仓内 `.venv/bin/python`）：
 
 ```bash
-docker compose exec rust bash scripts/accept-m9a-bite1.sh
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b01.sh
 ```
 
 四组断言，2026-10-20 宿主机实测（mujoco 3.16.0，视觉修订后复跑，全绿）：
@@ -374,7 +374,7 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 </details>
 <details>
 <summary><b>3.</b> 有人把右腿 5 个关节在 XML 里挪到左腿前面（名字没改）。验收和运行时分别会发生什么？（A）编译失败　（B）A 组「同名同序」抓出；假如没有 A 组，velstand 权重按序读写会张冠李戴，鸭子抽风但无报错　（C）没影响，反正名字对得上　（D）只是渲染顺序变了</summary>
-<p><b>答案：B。</b>MJCF 文档序决定关节序与 ctrl 序，duck_body.py 的 JOINT_NAMES 按序寻址（sim/duck_body.py:164-169）。名字全对、顺序错了，编译和加载都正常——错的是每个动作落到哪条腿上。</p>
+<p><b>答案：B。</b>MJCF 文档序决定关节序与 ctrl 序，duck_body.py 的 JOINT_NAMES 按序寻址（impl/sim/duck_body.py:164-169）。名字全对、顺序错了，编译和加载都正常——错的是每个动作落到哪条腿上。</p>
 </details>
 <details>
 <summary><b>4.</b> 脚掌包围盒比真实鞋底网格大一圈，STAND 贴地 z 为什么还能与官方逐位一致？（A）纯属巧合　（B）包围盒各方向只大不小，最底面就是网格最底面；官方 STAND 的躯干高度本来就按该着地点标定　（C）验收阈值 5mm 太松　（D）MuJoCo 自动吸附到地板</summary>

@@ -3,10 +3,10 @@
 构建：coder subagent 实现，主 agent 复跑验收确认。
 
 ## 交付
-- `src/model.rs`：15 关节表、DEFAULT_POSITION（左右腿等大反号）、MOUTH_INDEX=9
-- `src/io.rs`：Sensors（关节+IMU 同结构体，硬件上一次事务读出）、RobotIo trait（仅 read/write，其余 M5 再加）、FakeIo **完美跟踪**（不加惯性模型，那是过度设计）+ `failing_reads(n)` 故障注入
-- `src/control.rs`：50Hz 控制任务。`interval_at(now+period)` 避开首拍坑；插值起点锚定**第一次 read 成功**；每 5s stderr 打 `tick_rate=50.0Hz p99_jitter_ms=0.00`
-- `src/main.rs`：接线；health 暴露 reads/writes/skipped_reads；`MINIDUCK_FAKE_FAILING_READS` 环境变量故障注入
+- `impl/src/model.rs`：15 关节表、DEFAULT_POSITION（左右腿等大反号）、MOUTH_INDEX=9
+- `impl/src/io.rs`：Sensors（关节+IMU 同结构体，硬件上一次事务读出）、RobotIo trait（仅 read/write，其余 M5 再加）、FakeIo **完美跟踪**（不加惯性模型，那是过度设计）+ `failing_reads(n)` 故障注入
+- `impl/src/control.rs`：50Hz 控制任务。`interval_at(now+period)` 避开首拍坑；插值起点锚定**第一次 read 成功**；每 5s stderr 打 `tick_rate=50.0Hz p99_jitter_ms=0.00`
+- `impl/src/main.rs`：接线；health 暴露 reads/writes/skipped_reads；`MINIDUCK_FAKE_FAILING_READS` 环境变量故障注入
 
 ## 验收实测（主 agent 复跑）
 - 6 单测全过（镜像断言/表长/完美跟踪/failing_reads 恢复/插值端点/中点 1e-6）

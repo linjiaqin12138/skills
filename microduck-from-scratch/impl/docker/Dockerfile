@@ -37,5 +37,5 @@ ENV PATH=/usr/local/cargo/bin:/cargo/bin:${PATH}
 ENV SIM_PYTHON=/opt/sim-venv/bin/python
 
 USER dev
-WORKDIR /work
+WORKDIR /work/impl
 CMD ["sleep", "infinity"]

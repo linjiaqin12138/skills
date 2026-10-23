@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # M6 验收：技能调度器（多策略优先级链）。一键可重跑。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m6.sh
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m06-b01.sh
 # 全程在容器内跑。sim 端口 7804（accept-m4/m5 用 7802/7803，错开可串行）。
 #
 # 断言清单：
@@ -22,7 +22,7 @@
 #         不触发 Limp（gain 保持 200）、窗口结束后 Limp 接管（gain 50）
 #     B6. kick_left：skill 字段 + 窗口结束自动回 walk + 不摔倒
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 SIM_PORT=7804
 SIM_ADDR=127.0.0.1:$SIM_PORT

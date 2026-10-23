@@ -1,16 +1,16 @@
 # 第 8 章 · M7：迷你 updaterd——修复怎么到达机器人：原子切换、健康门与崩溃恢复
 
-> 本章对应里程碑 M7（已验收）。交付物：`src/updater/`（新建十个模块：mod/paths/manifest/store/journal/gate/lock/peer/engine/ipc.rs）、`src/bin/mini-updaterd.rs`（新建 daemon 入口）、`src/bin/mini-duckctl.rs`（+update 子命令组）、`Cargo.toml`（+sha2/+libc/+mini-updaterd bin）、`src/lib.rs`（+`pub mod updater`）、`scripts/accept-m7.sh`。miniduckd 一行未改，行为零变化。
+> 本章对应里程碑 M7（已验收）。交付物：`impl/src/updater/`（新建十个模块：mod/paths/manifest/store/journal/gate/lock/peer/engine/ipc.rs）、`impl/src/bin/mini-updaterd.rs`（新建 daemon 入口）、`impl/src/bin/mini-duckctl.rs`（+update 子命令组）、`Cargo.toml`（+sha2/+libc/+mini-updaterd bin）、`impl/src/lib.rs`（+`pub mod updater`）、`accept/m07-b01.sh`。miniduckd 一行未改，行为零变化。
 
 ## 1. 问题
 
 M0–M6 把「机器人怎么跑」这条链路走完了：观测进、策略算、调度选网、Safety 守门、电机出。本章是这条主链旁边的一条支线，回答另一个问题：**修复怎么到达机器人**。权重训出了新版、代码改了 bug，总不能每次都抱着电脑蹲到机器人旁边插线拷贝。
 
-原版的答案是 updaterd（设计文档 `reference/docs/design/updater-design.md`），它的核心承诺一句话：**never-brick——任何一步失败都回滚，机器人永远回得到上一个好版本**。整章的设计压力都来自这一句：更新这种事平时没用，出事时就是唯一的救命绳，所以它必须假设自己会死在任何时候（断电、kill -9、OOM），并且死在任何一步都能自己收拾残局。
+原版的答案是 updaterd（设计文档 `upstream/docs/design/updater-design.md`），它的核心承诺一句话：**never-brick——任何一步失败都回滚，机器人永远回得到上一个好版本**。整章的设计压力都来自这一句：更新这种事平时没用，出事时就是唯一的救命绳，所以它必须假设自己会死在任何时候（断电、kill -9、OOM），并且死在任何一步都能自己收拾残局。
 
 为什么排在控制链路全部完工之后才做：
 
-- **上游 M0**：updaterd 自己的 socket 服务和健康门都是 M0 那套 JSON-RPC/NDJSON 帧的复用——`src/updater/ipc.rs` 是服务端，`src/updater/gate.rs` 是客户端，协议一行新的都没发明。
+- **上游 M0**：updaterd 自己的 socket 服务和健康门都是 M0 那套 JSON-RPC/NDJSON 帧的复用——`impl/src/updater/ipc.rs` 是服务端，`impl/src/updater/gate.rs` 是客户端，协议一行新的都没发明。
 - **上游 M5**：健康门（health gate[^1]）要消费健康判定，而健康判定（stall 500ms / 频率地板 45Hz / 策略缺失报病）是 M5 才有的。更关键的是回滚的底气来自 D19：策略加载失败不退出、活着报病——没有这条，「坏版本会长什么样」和「回滚后旧版真的复活了吗」都无从判别。本章的投毒测试就是直接利用 D19 的既有行为（见代码领读）。
 - **支线定位**：它不依赖 M6[^2]，也不改 robot.* 面。miniduckd 一行不动是刻意的——更新系统的第一块试金石，就是「能不能在不改被更新对象的情况下把它换掉」。
 
@@ -24,7 +24,7 @@ M0–M6 把「机器人怎么跑」这条链路走完了：观测进、策略算
 
 直觉做法是「先删掉旧 symlink，再建一个新 symlink」。问题：这两步之间有一段窗口 `current` **不存在**，恰好此刻来读的人撞个正着。正确做法是「先建一个指向新版本的临时 symlink，再用 `rename(2)` 一把盖到 `current` 上」——rename 在同一目录内是原子的，任何时刻读者要么看到旧指向、要么看到新指向，没有中间态。
 
-光讲道理不算数，`examples/atomic_symlink_swap.py` 起两个线程：一个读者不停经 `current` 读指向，一个写者换 2000 次指向，两种做法各跑一遍。本机实测（python3 直接跑）：
+光讲道理不算数，`impl/examples/atomic_symlink_swap.py` 起两个线程：一个读者不停经 `current` 读指向，一个写者换 2000 次指向，两种做法各跑一遍。本机实测（python3 直接跑）：
 
 ```text
 先删再建        : 读者读 6850 次，撞见 current 不存在 3383 次
@@ -33,7 +33,7 @@ M0–M6 把「机器人怎么跑」这条链路走完了：观测进、策略算
 
 先删再建有近一半读取撞上空窗；rename 零次（次数随机器调度浮动，结论不变）。
 
-还有一个更隐蔽的坑：rename 只保证**原子**，不保证**持久**。目录项（「`current` 这个名字指向谁」）本身也是数据，先落在内核页缓存里；断电时没写盘，重启后 `current` 可能又指回旧版——所以 rename 之后要 fsync **父目录**，而不是 fsync 某个文件。这对组合（原子 rename + fsync 目录）值得单独读透，见 [docs/concepts/atomic-symlink-swap.md](../../concepts/atomic-symlink-swap.md)；原版把两件事分开写在同一段注释里（`reference/updater/src/store.rs:160-203`，"Durability, not just atomicity"）。
+还有一个更隐蔽的坑：rename 只保证**原子**，不保证**持久**。目录项（「`current` 这个名字指向谁」）本身也是数据，先落在内核页缓存里；断电时没写盘，重启后 `current` 可能又指回旧版——所以 rename 之后要 fsync **父目录**，而不是 fsync 某个文件。这对组合（原子 rename + fsync 目录）值得单独读透，见 [book/concepts/atomic-symlink-swap.md](../../concepts/atomic-symlink-swap.md)；原版把两件事分开写在同一段注释里（`upstream/updater/src/store.rs:160-203`，"Durability, not just atomicity"）。
 
 ### boot counter：记账的顺序是负载的
 
@@ -48,7 +48,7 @@ boot counter（开机计数[^3]）在磁盘上就是一张纸条 `state/pending.
 
 再明确一个前提：这里模拟的 kill -9 杀的是 **updaterd 自己**，不是 miniduckd——本章的设计前提就是 updaterd 可能死在任意一步（断电、OOM、kill -9）。daemon 是 setsid 脱离会话拉起的，updaterd 死了它还在跑（场景 E0 验的正是这条），所以 updaterd 死后「`current` 指向谁」「纸条在不在」「哪个版本还在跑」是三件独立的事。
 
-`examples/boot_counter_order.py` 做沙盘推演：对「arm 在 swap 前」「arm 在 swap 后」两种顺序，分别在每一步之后模拟 kill -9[^4]，然后扮演重启后的崩溃恢复逻辑——它**只认磁盘上的纸条**：纸条在就重跑健康门裁决，不在就照常从 `current` 起 daemon。输出里三个字段：current=symlink 指向谁、live=此刻实际在跑谁、pending=纸条在不在。本机实测：
+`impl/examples/boot_counter_order.py` 做沙盘推演：对「arm 在 swap 前」「arm 在 swap 后」两种顺序，分别在每一步之后模拟 kill -9[^4]，然后扮演重启后的崩溃恢复逻辑——它**只认磁盘上的纸条**：纸条在就重跑健康门裁决，不在就照常从 `current` 起 daemon。输出里三个字段：current=symlink 指向谁、live=此刻实际在跑谁、pending=纸条在不在。本机实测：
 
 ```text
 --- kill -9 落在 arm_pending 之后（新版 2.0.0 是坏的）---
@@ -64,13 +64,13 @@ boot counter（开机计数[^3]）在磁盘上就是一张纸条 `state/pending.
 
 看右边一列（arm 在 swap 后）的后两行：swap 已经发生、`current` 指向坏的新版，但纸条还没写——重启后崩溃恢复读不到 pending，以为天下太平，照常从 `current` 把坏版本起起来，**永远没人把它撤回去**。arm 晚了，崩溃落在 swap 之后 arm 之前 = 新代码在跑却没人记账。
 
-要精确理解这段论证的对象：它不是「四步全都不可调换」。swap→spawn、健康门→confirm 是数据依赖钉死的[^5]，没人会搞错；唯一看起来能随便挪的是 arm——它和谁都不互相依赖，放后面单测和正常运行全看不出来，差别只在「死在 swap 之后、arm 之前那条缝里」才暴露。本节要立住的纪律：**纸条的在场时间必须完整罩住「现实被改变」的区间（swap→confirm）——先留证、再改变、最后销证**。原版文件头注释把这条列为三条根本规则之一（`reference/updater/src/engine.rs:1-18`："The boot counter is armed before the swap … The reverse order would leave an unrecorded bad release live."）。
+要精确理解这段论证的对象：它不是「四步全都不可调换」。swap→spawn、健康门→confirm 是数据依赖钉死的[^5]，没人会搞错；唯一看起来能随便挪的是 arm——它和谁都不互相依赖，放后面单测和正常运行全看不出来，差别只在「死在 swap 之后、arm 之前那条缝里」才暴露。本节要立住的纪律：**纸条的在场时间必须完整罩住「现实被改变」的区间（swap→confirm）——先留证、再改变、最后销证**。原版文件头注释把这条列为三条根本规则之一（`upstream/updater/src/engine.rs:1-18`："The boot counter is armed before the swap … The reverse order would leave an unrecorded bad release live."）。
 
 ### 【背景卡片】SO_PEERCRED：内核告诉你对面是谁
 
 - **一句话**：Unix socket 的服务端可以问内核「这个连接对面进程的 uid/gid/pid 是什么」，内核直接给答案，不需要客户端自报家门。
 - **为什么需要**：鉴权不能信客户端自己报的身份——「我是管理员」这句话谁都会发。`peer_cred()` 拿到的 uid 是内核从进程凭证里抄的，伪造不了。
-- **本项目**：这是原版 updaterd/configd 的鉴权模式[^6]。我们缩成一条规则：uid==0 或 ==socket 文件 owner 放行，其余拒绝；连 `peer_cred()` 调用本身失败也拒绝——**unproven 不是 allowed**（`src/updater/peer.rs:8-10`、`src/updater/ipc.rs:161-177`；原版同款语义在 `reference/updater/src/ipc.rs:78-97`，且原版把这条规则集中在一个门口，新加方法不会漏过它，`reference/updater/src/ipc.rs:531-535`）。socket 文件 0660 是第一道门（谁连得上），SO_PEERCRED 是第二道（连上了让不让改）——两道门都在，因为 0660 管不住 root 之外的同组用户里「能连但不该改」的细粒度情形【合理推断：容器单用户下两道门几乎等效，第二道门主要是对齐原版语义，见 D40】。
+- **本项目**：这是原版 updaterd/configd 的鉴权模式[^6]。我们缩成一条规则：uid==0 或 ==socket 文件 owner 放行，其余拒绝；连 `peer_cred()` 调用本身失败也拒绝——**unproven 不是 allowed**（`impl/src/updater/peer.rs:8-10`、`impl/src/updater/ipc.rs:161-177`；原版同款语义在 `upstream/updater/src/ipc.rs:78-97`，且原版把这条规则集中在一个门口，新加方法不会漏过它，`upstream/updater/src/ipc.rs:531-535`）。socket 文件 0660 是第一道门（谁连得上），SO_PEERCRED 是第二道（连上了让不让改）——两道门都在，因为 0660 管不住 root 之外的同组用户里「能连但不该改」的细粒度情形【合理推断：容器单用户下两道门几乎等效，第二道门主要是对齐原版语义，见 D40】。
 
 **自测**：如果只留 0660 文件权限、删掉 peer 门控，本章验收的哪个场景行为会变？哪个场景完全不变？
 
@@ -142,7 +142,7 @@ flowchart TD
 
 模块为什么这样切见上一节「设计」；这里是逐文件的一句话职责与行号：
 
-- `paths.rs`：目录布局的唯一权威（`src/updater/paths.rs:1-13` 的模块注释就是整张图）：`<root>/source/` 放 release 源（`<ver>.manifest.json` + `<ver>.tar`），`<root>/install/releases/<ver>/` 放解包产物，`<root>/install/current` 是消费方经它读的 symlink，`<root>/state/` 放 pending.json / update-log.jsonl / update.lock。默认根 `/tmp/miniduck-update/`，env 覆盖给验收隔离用。
+- `paths.rs`：目录布局的唯一权威（`impl/src/updater/paths.rs:1-13` 的模块注释就是整张图）：`<root>/source/` 放 release 源（`<ver>.manifest.json` + `<ver>.tar`），`<root>/install/releases/<ver>/` 放解包产物，`<root>/install/current` 是消费方经它读的 symlink，`<root>/state/` 放 pending.json / update-log.jsonl / update.lock。默认根 `/tmp/miniduck-update/`，env 覆盖给验收隔离用。
 - `manifest.rs`：解析 + 形状校验 + sha256 比对。
 - `store.rs`：staging（暂存目录[^7]）解包、rename 落位、current 原子换指向。
 - `journal.rs`：update-log.jsonl 追加流水，兼作「上一个版本」的索引。
@@ -150,20 +150,20 @@ flowchart TD
 - `engine.rs`：编排（apply/rollback/崩溃恢复）+ 进程 supervisor（spawn/kill miniduckd）。
 - `ipc.rs`：update.* 方法面 + 鉴权 + 单飞锁。
 - `lock.rs` / `peer.rs`：flock 单飞锁 / SO_PEERCRED-lite，各自小到一个函数。
-- `mod.rs`：模块清单 + 四个 RPC 错误码（`src/updater/mod.rs:23-26`）。
+- `mod.rs`：模块清单 + 四个 RPC 错误码（`impl/src/updater/mod.rs:23-26`）。
 
-`src/bin/mini-updaterd.rs` 是薄壳：建目录 → `recover()` **先于** bind socket（`src/bin/mini-updaterd.rs:43-45`，注释原话「先把局面收拾到 confirm/rollback 之一，再开门接客」）→ bind `/tmp/mini-updaterd.sock` 0660 → serve。这个顺序是场景 E 的命门：恢复跑在接客之前，验收脚本的启动等待循环才会等到「恢复完毕」而不是「进程起来了」。
+`impl/src/bin/mini-updaterd.rs` 是薄壳：建目录 → `recover()` **先于** bind socket（`impl/src/bin/mini-updaterd.rs:43-45`，注释原话「先把局面收拾到 confirm/rollback 之一，再开门接客」）→ bind `/tmp/mini-updaterd.sock` 0660 → serve。这个顺序是场景 E 的命门：恢复跑在接客之前，验收脚本的启动等待循环才会等到「恢复完毕」而不是「进程起来了」。
 
 CLI 侧，`mini-duckctl update <check|status|log|apply|rollback>` 连的是 updaterd 的 socket 而不是 miniduckd 的——`mini-duckctl.rs:24-28` 解析完第一个参数就分流，在建立连接之前岔开。
 
 ### 一次 apply 的旅程
 
-`Engine::apply`（`src/updater/engine.rs:247-310`）七个阶段，Phase 枚举（`src/updater/engine.rs:33-42`）是原版 proto 命名的子集：
+`Engine::apply`（`impl/src/updater/engine.rs:247-310`）七个阶段，Phase 枚举（`impl/src/updater/engine.rs:33-42`）是原版 proto 命名的子集：
 
-1. **Verifying**：manifest 解析（`src/updater/manifest.rs:23-40`——任何字段不符都拒绝，注释立场「unproven is not healthy 的同款」）→ sha256 比对 artifact（`src/updater/manifest.rs:44-55`）。拒绝不留任何副作用。
-2. **Extracting**：验过才解包到 `.staging-<ver>`，完成后 rename 进 `releases/`（`src/updater/store.rs:38-71`）。staging 是 releases 的**邻居**而不是子目录——rename 要求同一文件系统，邻居关系保证这一点（`src/updater/paths.rs:45-49`）。任何一步失败清掉 staging 不留半成品。
-3. **arm pending**：swap 之前写盘 pending.json（`src/updater/engine.rs:267-272`，`save_pending` 写完即 `sync_all`，`engine.rs:421-425`）。上一章节的演示就是这一步为什么不能挪。
-4. **Applying/Swapping**：杀旧 daemon → `set_current` 原子换指向（`src/updater/store.rs:20-31`）→ 从 `current/bin/miniduckd` spawn 新 daemon（`engine.rs:274-282`）。
+1. **Verifying**：manifest 解析（`impl/src/updater/manifest.rs:23-40`——任何字段不符都拒绝，注释立场「unproven is not healthy 的同款」）→ sha256 比对 artifact（`impl/src/updater/manifest.rs:44-55`）。拒绝不留任何副作用。
+2. **Extracting**：验过才解包到 `.staging-<ver>`，完成后 rename 进 `releases/`（`impl/src/updater/store.rs:38-71`）。staging 是 releases 的**邻居**而不是子目录——rename 要求同一文件系统，邻居关系保证这一点（`impl/src/updater/paths.rs:45-49`）。任何一步失败清掉 staging 不留半成品。
+3. **arm pending**：swap 之前写盘 pending.json（`impl/src/updater/engine.rs:267-272`，`save_pending` 写完即 `sync_all`，`engine.rs:421-425`）。上一章节的演示就是这一步为什么不能挪。
+4. **Applying/Swapping**：杀旧 daemon → `set_current` 原子换指向（`impl/src/updater/store.rs:20-31`）→ 从 `current/bin/miniduckd` spawn 新 daemon（`engine.rs:274-282`）。
 5. **故障注入点**（`engine.rs:284-289`）：env `MINIDUCK_UPDATER_EXIT_AFTER_SWAP=1` 时在这里 `exit(1)`——swap 已落盘、pending 已 arm、新 daemon 已在跑，这是 kill -9 能落在的**最坏窗口**。场景 E 全靠它。
 6. **HealthGate**：轮询预算内等 healthy（见下一节）。
 7. **Committing / RollingBack**：门过则 confirm（删 pending + 写 Committed 行，`engine.rs:350-360`）；门否决则 `rollback_to`（换回 previous、respawn、**门再确认旧版 healthy**，`engine.rs:364-406`）然后清 pending（`engine.rs:302-304`，漏清的后果见「常见坑」2）。
@@ -178,18 +178,18 @@ CLI 侧，`mini-duckctl update <check|status|log|apply|rollback>` 连的是 upda
 
 ### 健康门：轮询，不信推送
 
-门（`src/updater/gate.rs`）的语义极简：预算内每 500ms 连一次 miniduckd 的 socket 问 `robot.health`（先 hello 再问，协议入场不特殊，`gate.rs:48-57`），拿到 healthy 立即放行，预算耗尽 = 失败。轮询间隔 500ms 直接对齐原版常量（`gate.rs:17-18`；`reference/updater/src/engine.rs:69`）。原版注释说透了为什么是轮询："The gate polls, so it will see the transition"——健康是个会变的量，问一次不算数；以及 timeout 即失败，"unproven is not healthy"（`reference/updater/src/engine.rs:2286-2305`）。预算默认 30s（`src/updater/engine.rs:23`，拍脑袋，原版来自配置无单一常量），验收用 env 压到 4s。
+门（`impl/src/updater/gate.rs`）的语义极简：预算内每 500ms 连一次 miniduckd 的 socket 问 `robot.health`（先 hello 再问，协议入场不特殊，`gate.rs:48-57`），拿到 healthy 立即放行，预算耗尽 = 失败。轮询间隔 500ms 直接对齐原版常量（`gate.rs:17-18`；`upstream/updater/src/engine.rs:69`）。原版注释说透了为什么是轮询："The gate polls, so it will see the transition"——健康是个会变的量，问一次不算数；以及 timeout 即失败，"unproven is not healthy"（`upstream/updater/src/engine.rs:2286-2305`）。预算默认 30s（`impl/src/updater/engine.rs:23`，拍脑袋，原版来自配置无单一常量），验收用 env 压到 4s。
 
 「unproven is not healthy」这条贯穿全模块：连不上 = 不健康，超时 = 不健康，manifest 说不清 = 不装，peer_cred 拿不到 = 不放行。更新系统里**没有中性结果**，答不上来一律按坏消息处理。
 
 ### 崩溃恢复：启动先收拾残局
 
-`recover()`（`src/updater/engine.rs:199-243`）每次启动先跑，四步：
+`recover()`（`impl/src/updater/engine.rs:199-243`）每次启动先跑，四步：
 
-1. 清上次 crash 的 staging 残留和 tmp symlink（`src/updater/store.rs:75-85`；原版对应物在 `reference/updater/src/engine.rs:1762` 附近）。
-2. 发现 pending 就 `boots += 1` 写回（`engine.rs:206-212`）——**先记账再行动**：再死一次计数也涨，`MAX_BOOT_ATTEMPTS = 2`（`engine.rs:19`，对齐原版 `reference/updater/src/engine.rs:38`）才兜得住「每次启动都死在门里」的循环。
+1. 清上次 crash 的 staging 残留和 tmp symlink（`impl/src/updater/store.rs:75-85`；原版对应物在 `upstream/updater/src/engine.rs:1762` 附近）。
+2. 发现 pending 就 `boots += 1` 写回（`engine.rs:206-212`）——**先记账再行动**：再死一次计数也涨，`MAX_BOOT_ATTEMPTS = 2`（`engine.rs:19`，对齐原版 `upstream/updater/src/engine.rs:38`）才兜得住「每次启动都死在门里」的循环。
 3. 收割上次 updaterd 死后留下的孤儿 daemon，然后从 `current` 起 daemon（见下一节）。
-4. 有 pending 就重跑健康门，按真值表裁决（`recovery_verdict`，`engine.rs:55-61`）：healthy 且预算没用完 → confirm；否则回滚。注意第二行：boots 预算用完，即使 healthy 也回滚（原版同：`BootCounter::exhausted`，`reference/updater/src/engine.rs:1839`）——预算决定的是「给你几次机会」，不是「你这次表现好不好」。
+4. 有 pending 就重跑健康门，按真值表裁决（`recovery_verdict`，`engine.rs:55-61`）：healthy 且预算没用完 → confirm；否则回滚。注意第二行：boots 预算用完，即使 healthy 也回滚（原版同：`BootCounter::exhausted`，`upstream/updater/src/engine.rs:1839`）——预算决定的是「给你几次机会」，不是「你这次表现好不好」。
 
 ### updaterd 兼任进程 supervisor
 
@@ -209,7 +209,7 @@ CLI 侧，`mini-duckctl update <check|status|log|apply|rollback>` 连的是 upda
 
 ### 原子换指向：为什么不是「停服→覆盖二进制→启服」
 
-`set_current`（`src/updater/store.rs:20-31`）四步：清上次残留的 `.current.tmp`（上次 crash 留下的不能挡住这次 swap，原版同 `reference/updater/src/store.rs:181`）→ 建**相对**临时链接（`releases/<ver>`）[^10] → rename 覆盖 → fsync 父目录。当前版本不另开状态文件，`readlink` 即真相（`store.rs:14-17`）。
+`set_current`（`impl/src/updater/store.rs:20-31`）四步：清上次残留的 `.current.tmp`（上次 crash 留下的不能挡住这次 swap，原版同 `upstream/updater/src/store.rs:181`）→ 建**相对**临时链接（`releases/<ver>`）[^10] → rename 覆盖 → fsync 父目录。当前版本不另开状态文件，`readlink` 即真相（`store.rs:14-17`）。
 
 **【决策卡片】symlink 切换 vs 覆盖式更新**
 
@@ -221,23 +221,23 @@ CLI 侧，`mini-duckctl update <check|status|log|apply|rollback>` 连的是 upda
 
 ### IPC 面：鉴权、单飞锁、只读不锁
 
-update.* 方法面五个（`src/updater/ipc.rs:66-149`）：`update.check`（列 source/ 里 manifest 能解析的版本——坏 manifest 列出来是误导，`ipc.rs:78-84`）、`update.status`（phase/current/previous/pending）、`update.log`（尾部 N 行）、`update.apply`、`update.rollback`。
+update.* 方法面五个（`impl/src/updater/ipc.rs:66-149`）：`update.check`（列 source/ 里 manifest 能解析的版本——坏 manifest 列出来是误导，`ipc.rs:78-84`）、`update.status`（phase/current/previous/pending）、`update.log`（尾部 N 行）、`update.apply`、`update.rollback`。
 
 两个 mutating 方法过两道闸，顺序刻意：**先 peer 门控再拿锁**（`ipc.rs:127-137`）——没权限的人不该能制造 Busy。只读路径**不锁 engine**（`ipc.rs:101` 注释）：apply 全程持锁，status 必须仍能读——否则「更新进行到哪了」这个问题在更新进行时恰恰问不了。
 
-「上一个版本」不存状态文件，从 log 推导：最后一行 `to == current` 的 Committed 的 `from`（`src/updater/journal.rs:87-93`）。出厂镜像直接建 symlink 无 log 行，previous = None——log 就是唯一的账。
+「上一个版本」不存状态文件，从 log 推导：最后一行 `to == current` 的 Committed 的 `from`（`impl/src/updater/journal.rs:87-93`）。出厂镜像直接建 symlink 无 log 行，previous = None——log 就是唯一的账。
 
 **【决策卡片】单飞锁选 flock 而非 O_EXCL 锁文件**
 
 - **决策点**：「同一时刻只许一个更新在飞」怎么落地（单飞 = single-flight，原版 preflight 第一条，updater-design.md §7.2）。
 - **备选**：1. `open(O_CREAT|O_EXCL)` 锁文件——创建成功即持锁，存在即 Busy；2. `flock(LOCK_EX|LOCK_NB)`——给文件加内核级劝告锁。
-- **选择**：备选 2（`src/updater/lock.rs:24-41`）。场景 E 故意 kill -9 updaterd，O_EXCL 文件会**残留**——进程死了文件还在，重启后所有 apply 永远卡 Busy，直到有人手动 rm。flock 的锁挂在打开的 fd 上，进程一死内核自动释放，天然免疫 stale lock。fs2 crate 是同一语义的封装，但 libc 已在依赖树里，不为此多一个依赖（`lock.rs:1-6` 注释）。
+- **选择**：备选 2（`impl/src/updater/lock.rs:24-41`）。场景 E 故意 kill -9 updaterd，O_EXCL 文件会**残留**——进程死了文件还在，重启后所有 apply 永远卡 Busy，直到有人手动 rm。flock 的锁挂在打开的 fd 上，进程一死内核自动释放，天然免疫 stale lock。fs2 crate 是同一语义的封装，但 libc 已在依赖树里，不为此多一个依赖（`lock.rs:1-6` 注释）。
 - **放弃的成本**（O_EXCL 的好处没要到）：① 跨机器可见性——锁文件躺在磁盘上，管理员 ls 一下就知道「有更新在跑/上次死在这」，flock 锁从外面看不可见（只能试拿）；② NFS 语义简单——O_EXCL 在 NFS 上有 create 语义兜底，flock 在某些 NFS 配置下形同虚设（机器人是本地 eMMC，这条用不上）；③ 无 unsafe——O_EXCL 纯 safe Rust，flock 要走 libc FFI。
 - **失效边界**：如果 updaterd 变成多进程互斥之外的分布式互斥（多台机器人协调更新窗口），劝告锁完全不够，那是另一个问题；单机上这张卡没有失效条件。
 
 ### 投毒：不改 miniduckd 一行的坏版本
 
-场景 B/E2 需要一个「装得上、跑不起来、能被门识别为坏」的版本。做法（`scripts/accept-m7.sh:69-77`）：tar 里的 `bin/miniduckd` 是个 wrapper 脚本——`export MINIDUCK_POLICY=/nonexistent.onnx` 再 `exec` 真二进制（改名 `miniduckd-real`）。策略加载失败报病是 M5 收敛的 D19 既有行为，daemon 活着、healthy=false、reason 是 "policy unavailable: …"，健康门原样识别。**miniduckd 一行没改。**
+场景 B/E2 需要一个「装得上、跑不起来、能被门识别为坏」的版本。做法（`accept/m07-b01.sh:69-77`）：tar 里的 `bin/miniduckd` 是个 wrapper 脚本——`export MINIDUCK_POLICY=/nonexistent.onnx` 再 `exec` 真二进制（改名 `miniduckd-real`）。策略加载失败报病是 M5 收敛的 D19 既有行为，daemon 活着、healthy=false、reason 是 "policy unavailable: …"，健康门原样识别。**miniduckd 一行没改。**
 
 **【决策卡片】投毒用 wrapper + D19 既有行为 vs 给 miniduckd 加测试钩子**
 
@@ -251,14 +251,14 @@ update.* 方法面五个（`src/updater/ipc.rs:66-149`）：`update.check`（列
 
 ```bash
 # 容器内（miniduck-rust，工作目录 /work）
-docker compose exec rust cargo build    # 0 警告
-docker compose exec rust cargo test
+docker compose -f impl/docker-compose.yml exec rust cargo build    # 0 警告
+docker compose -f impl/docker-compose.yml exec rust cargo test
 ```
 
 实测：`test result: ok. 60 passed; 0 failed`——M6 的 49 条 + 新增 11 条[^14]。
 
 ```bash
-docker compose exec rust bash scripts/accept-m7.sh
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m07-b01.sh
 ```
 
 实测 39 PASS / 0 FAIL（2026-09-29 复跑；完整输出见 acceptance.md）。五个场景关键行：
@@ -297,7 +297,7 @@ PASS: E2 投毒 daemon 报病（D19）/ current 回滚到 2.0.1
 - **A3 apply**：RPC 回 committed 之外还断三件事——readlink 指向 2.0.0（swap 真落了）、pending 已清（confirm 真跑了）、log 末行带 `peer_uid=1000`（放行也记账，SO_PEERCRED-lite 真的在问内核）。
 - **A5 rollback↔apply 往返**：rollback 回 1.0.0 再 apply 回 2.0.0 成功——证明 install 幂等（2.0.0 已在 releases/，跳过解包直接 swap），这条是踩坑后补的（见「常见坑」3）。
 - **B 门否决**：`reason` 里的 "policy unavailable: reading /nonexistent.onnx" 是 D19 报病的原文——证明拦下它的是真实健康判定路径，不是 updaterd 自己编的罪名。B2b 断 pending 已清是**回归断言**（坑本身见「常见坑」2）。B4 要求 log 里有 `rolled_back 2.0.0→3.0.0-bad` 行——回滚也是一次记账，不是悄悄换回去。
-- **C 篡改**：错误码 -32003（ERR_REJECTED）+ "sha256 mismatch"；C2/C3/C4 三连证明拒绝**无副作用**——current 没动、releases/ 没创建、staging 清空。场景 C 的 setup 有个细节：B 已经把 3.0.0-bad 装进 releases/（装是成功的，是门否决了它），所以 C 先手动卸掉它（`scripts/accept-m7.sh:204-206`），否则 C3 断的就不是「篡改的 apply 不创建版本目录」。
+- **C 篡改**：错误码 -32003（ERR_REJECTED）+ "sha256 mismatch"；C2/C3/C4 三连证明拒绝**无副作用**——current 没动、releases/ 没创建、staging 清空。场景 C 的 setup 有个细节：B 已经把 3.0.0-bad 装进 releases/（装是成功的，是门否决了它），所以 C 先手动卸掉它（`accept/m07-b01.sh:204-206`），否则 C3 断的就不是「篡改的 apply 不创建版本目录」。
 - **D 并发**：错误码 -32001（ERR_BUSY）。`sleep 1` 让第一个 apply 先进持锁段再发第二个——Busy 断言的是锁的互斥，不是时序运气。
 - **E0**：kill -9 updaterd 后 daemon 仍 healthy——setsid 脱离会话的直接证据。
 - **E1**：注入版 updaterd 在 swap 后 exit(1)，apply 的 RPC 拿不到响应（客户端 EOF 是预期）；磁盘上 pending `{version:2.0.1, previous:2.0.0, boots:0}` 逐字段断言——arm 的内容就是恢复的全部依据。重启后 pending 消失、current 保持 2.0.1、log 写 "recovered after crash: healthy"——恢复走的是 confirm 分支。
@@ -311,11 +311,11 @@ miniduckd 零改动，robot.* 面不变；M6 的 49 条单测在 60 总数里原
 
 ### 实验 1：把 arm 挪到 swap 之后——崩溃恢复失明
 
-`src/updater/engine.rs` 把 arm pending 那段（`:267-272`）整块移到 `set_current`（`:277`）之后，跑 `docker compose exec rust bash scripts/accept-m7.sh`。预期：场景 E1 在「pending 已 arm」断言处 FAIL——updaterd exit(1) 时磁盘上根本没有 pending.json；E2 更糟：重启后恢复读不到 pending 直接返回，投毒版 3.0.0-bad 留在 current 上永远没人撤（后续 current 断言连环 FAIL）。这就是背景概念里那张表演示的生产版：arm 的顺序是负载的。
+`impl/src/updater/engine.rs` 把 arm pending 那段（`:267-272`）整块移到 `set_current`（`:277`）之后，跑 `docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m07-b01.sh`。预期：场景 E1 在「pending 已 arm」断言处 FAIL——updaterd exit(1) 时磁盘上根本没有 pending.json；E2 更糟：重启后恢复读不到 pending 直接返回，投毒版 3.0.0-bad 留在 current 上永远没人撤（后续 current 断言连环 FAIL）。这就是背景概念里那张表演示的生产版：arm 的顺序是负载的。
 
 ### 实验 2：把 flock 换成 O_EXCL 锁文件——kill -9 卡死所有后续更新
 
-`src/updater/lock.rs` 的 `try_acquire` 改用 `OpenOptions::new().create_new(true)`（O_EXCL 语义）：创建成功即持锁。注意 `UpdateLock` 的 Drop 不会删文件[^15]。跑 accept-m7.sh：场景 D 照常过[^16]，真正的杀手是场景 E1：updaterd exit(1) 时锁文件残留，重启后 E2 的 apply 永远拿 Busy。这就是 flock 那张决策卡的实证版：锁的生命周期必须挂在进程上，不能挂在文件上。
+`impl/src/updater/lock.rs` 的 `try_acquire` 改用 `OpenOptions::new().create_new(true)`（O_EXCL 语义）：创建成功即持锁。注意 `UpdateLock` 的 Drop 不会删文件[^15]。跑 accept/m07-b01.sh：场景 D 照常过[^16]，真正的杀手是场景 E1：updaterd exit(1) 时锁文件残留，重启后 E2 的 apply 永远拿 Busy。这就是 flock 那张决策卡的实证版：锁的生命周期必须挂在进程上，不能挂在文件上。
 
 ## 7. 与原版差异
 
@@ -328,16 +328,16 @@ miniduckd 零改动，robot.* 面不变；M6 的 49 条单测在 60 总数里原
 | D40 | SO_PEERCRED 缩为 uid==0 \|\| socket owner 单点门控，无 allow_uids/allow_gids 配置（容器单用户，配置面无教学价值） | **本章新开**，M8 裁决或永久豁免 |
 | D41 | 无 hooks/orphan 检查/transcript/Degraded 裁决（健康判定是布尔）/subscribe 推送/self-update；Phase 枚举只取 proto 子集（Idle/Verifying/Extracting/Swapping/Applying/HealthGate/Committing/RollingBack） | **本章新开**，M8 |
 
-对齐原版的内核机制（不算偏差）：原子 symlink swap（`reference/updater/src/store.rs:160-203` 同款 rename+fsync）、boot counter 先 arm 后 swap（`reference/updater/src/engine.rs:1-18` 三条根本规则之一）、MAX_BOOT_ATTEMPTS=2（`engine.rs:38`）、健康门 500ms 轮询 + timeout 即失败（`engine.rs:69`/`:2286-2305`）、mutating 单点门控（`ipc.rs:531-535`）。
+对齐原版的内核机制（不算偏差）：原子 symlink swap（`upstream/updater/src/store.rs:160-203` 同款 rename+fsync）、boot counter 先 arm 后 swap（`upstream/updater/src/engine.rs:1-18` 三条根本规则之一）、MAX_BOOT_ATTEMPTS=2（`engine.rs:38`）、健康门 500ms 轮询 + timeout 即失败（`engine.rs:69`/`:2286-2305`）、mutating 单点门控（`ipc.rs:531-535`）。
 
 ## 8. 常见坑与展望
 
-1. **kill -9 后旧 socket 文件会骗人**（本章验收脚本真实踩过）。`start_updaterd` 的等待循环是「socket 文件出现即放行」，但 kill -9 不会删 socket 文件——旧文件残留让等待循环在新 updaterd 还没 bind 时就放行，客户端连上去 ECONNREFUSED。修法：启动前 `rm -f`（`scripts/accept-m7.sh:101-103`）。Unix socket 的文件存在 ≠ 有人在听。
-2. **回滚路径漏清 pending.json**（本章真实踩过）。confirm 清了、rollback 没清——已结束的 trial 被下次启动重复裁决（重启后把已经回滚过的版本再「恢复」一遍）。两条回滚路径都补了 `clear_pending`（`src/updater/engine.rs:239` 恢复裁决分支、`:302-304` 门否决分支），场景 B2b 是钉住它的回归断言。教训：「谁创建谁销毁」在有多条退出路径时不够，要在每条路径终点都问一句「纸条撕了吗」。
-3. **install 幂等：拒绝重装已安装版本会咬到回滚**（本章真实踩过）。原实现见 `releases/<ver>` 已存在就报错——听起来合理，但「回滚到 1.0.0 之后再 apply 回 2.0.0」时 2.0.0 已在 releases/ 里，直接被拒。改为已安装则跳过解包（`src/updater/store.rs:41-46`）：artifact 已过 sha256 校验，releases/ 里的目录视为同一内容的物化。场景 A5 的往返断的就是这条。
-4. **E1 里 apply 拿不到响应是预期行为**。注入的 updaterd 在 swap 后 exit(1)，响应还没发出去连接就断了——客户端看到 EOF 不是 bug，是故障注入的定义（`scripts/accept-m7.sh:251` 注释）。自己写探针时别把 EOF 当失败重试。
-5. **容器 PID 1 不收割僵尸**。kill -9 updaterd 留下的 daemon 死后变僵尸，`/proc` 里 comm 还在——孤儿收割不跳过 Z 状态就会对僵尸重复发信号刷日志（`src/updater/engine.rs:177-181`）。投毒版的进程名是 `miniduckd-real`（wrapper exec 出来的），匹配用 `starts_with("miniduckd")` 才罩得住两个名字（`engine.rs:172`）。
-6. **「装上了」和「能跑」是两回事，别合并断言**。场景 B 里 3.0.0-bad 的解包、rename、swap、spawn 全部成功——它死在健康门。所以场景 C 要断言「篡改的 apply 不创建版本目录」时必须先手动卸掉 B 装好的那份（`scripts/accept-m7.sh:204-206`）。验证管道的每个阶段都要能单独断言，混在一起的验收分不清是哪一环拦的。
+1. **kill -9 后旧 socket 文件会骗人**（本章验收脚本真实踩过）。`start_updaterd` 的等待循环是「socket 文件出现即放行」，但 kill -9 不会删 socket 文件——旧文件残留让等待循环在新 updaterd 还没 bind 时就放行，客户端连上去 ECONNREFUSED。修法：启动前 `rm -f`（`accept/m07-b01.sh:101-103`）。Unix socket 的文件存在 ≠ 有人在听。
+2. **回滚路径漏清 pending.json**（本章真实踩过）。confirm 清了、rollback 没清——已结束的 trial 被下次启动重复裁决（重启后把已经回滚过的版本再「恢复」一遍）。两条回滚路径都补了 `clear_pending`（`impl/src/updater/engine.rs:239` 恢复裁决分支、`:302-304` 门否决分支），场景 B2b 是钉住它的回归断言。教训：「谁创建谁销毁」在有多条退出路径时不够，要在每条路径终点都问一句「纸条撕了吗」。
+3. **install 幂等：拒绝重装已安装版本会咬到回滚**（本章真实踩过）。原实现见 `releases/<ver>` 已存在就报错——听起来合理，但「回滚到 1.0.0 之后再 apply 回 2.0.0」时 2.0.0 已在 releases/ 里，直接被拒。改为已安装则跳过解包（`impl/src/updater/store.rs:41-46`）：artifact 已过 sha256 校验，releases/ 里的目录视为同一内容的物化。场景 A5 的往返断的就是这条。
+4. **E1 里 apply 拿不到响应是预期行为**。注入的 updaterd 在 swap 后 exit(1)，响应还没发出去连接就断了——客户端看到 EOF 不是 bug，是故障注入的定义（`accept/m07-b01.sh:251` 注释）。自己写探针时别把 EOF 当失败重试。
+5. **容器 PID 1 不收割僵尸**。kill -9 updaterd 留下的 daemon 死后变僵尸，`/proc` 里 comm 还在——孤儿收割不跳过 Z 状态就会对僵尸重复发信号刷日志（`impl/src/updater/engine.rs:177-181`）。投毒版的进程名是 `miniduckd-real`（wrapper exec 出来的），匹配用 `starts_with("miniduckd")` 才罩得住两个名字（`engine.rs:172`）。
+6. **「装上了」和「能跑」是两回事，别合并断言**。场景 B 里 3.0.0-bad 的解包、rename、swap、spawn 全部成功——它死在健康门。所以场景 C 要断言「篡改的 apply 不创建版本目录」时必须先手动卸掉 B 装好的那份（`accept/m07-b01.sh:204-206`）。验证管道的每个阶段都要能单独断言，混在一起的验收分不清是哪一环拦的。
 
 **展望**：本章留下的 D37–D41 五项待收敛全部指向 M8——supervisor 是否交回 systemd、验签与网络源、鉴权配置面、hooks/Degraded 等机制，都会在 M8 对照原版逐项裁决；各项现状与取舍已列在「与原版差异」表，此处不重复。
 

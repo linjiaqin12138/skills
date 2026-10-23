@@ -6,7 +6,7 @@
 #       → duck_body.py --viewer（GLFW 渲染进 :99，llvmpipe 软件 GL）
 # 宿主机浏览器打开 http://localhost:6080/vnc.html 即可看到并操作仿真。
 #
-# 用法：bash scripts/duck-vnc.sh [--port 7801 ...]（参数原样透传给 duck_body.py）
+# 用法：docker compose -f impl/docker-compose.yml exec rust bash scripts/duck-vnc.sh [--port 7801 ...]
 # 退出（Ctrl+C 或 viewer 关窗）时 trap 清掉整串子进程。
 set -u
 
@@ -57,4 +57,4 @@ echo "duck-vnc: 物理节拍仍由 daemon 驱动（miniduckd --sim 127.0.0.1:<po
 
 # sim 跑前台：stderr 直接可见，它退出（关 viewer 窗）时 trap 把整串一起收。
 # 不能 exec：exec 会替换掉 shell，EXIT trap 就不生效了。
-python3 /work/sim/duck_body.py --viewer "$@"
+python3 "$(cd "$(dirname "$0")/.." && pwd)/sim/duck_body.py" --viewer "$@"

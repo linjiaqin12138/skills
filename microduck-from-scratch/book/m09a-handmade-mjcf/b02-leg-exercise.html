@@ -761,7 +761,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
 <main class="am-sheet">
-<header class="am-head"><h1>M9a 动手练习：手搓一条 2 关节腿链（第 19 章）</h1><p class="am-sub">从空白文件写到能跑的 MJCF：契约、三组验收、六个破坏实验</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 19 章</span></div><div class="am-intro am-md"><div class="am-md"><p>交付一个文件：<code>sim/assets/exercise_leg.xml</code>——一条 2 关节腿链。</p>
+<header class="am-head"><h1>M9a 动手练习：手搓一条 2 关节腿链（第 19 章）</h1><p class="am-sub">从空白文件写到能跑的 MJCF：契约、三组验收、六个破坏实验</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 19 章</span></div><div class="am-intro am-md"><div class="am-md"><p>交付一个文件：<code>impl/sim/assets/exercise_leg.xml</code>——一条 2 关节腿链。</p>
 <p>验收脚本替你查三组断言：结构、执行器跟踪、keyframe 还原。全绿才算过。</p>
 <p>写完这一个文件，第 18 章那套五步循环你就亲手走了一遍。</p>
 </div>
@@ -824,7 +824,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-grid" style="--cols: 3">
 <section class="am-panel am-span-wide" id="panel-A" style="grid-column: span 3">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>任务书：一个文件，一条腿</h2></header>
-<div class="am-panel-body"><div class="am-md"><p><strong>交付物就一个文件</strong>：<code>sim/assets/exercise_leg.xml</code>，一条 2 关节腿链，悬空挂在挂载点上。</p>
+<div class="am-panel-body"><div class="am-md"><p><strong>交付物就一个文件</strong>：<code>impl/sim/assets/exercise_leg.xml</code>，一条 2 关节腿链，悬空挂在挂载点上。</p>
 <p>先看它长什么样。左边是 <code>STRAIGHT</code> 存档姿势，qpos 全 0。右边是 B 组要它追到的角度：大腿转 +0.5 rad，小腿转 -0.5 rad。两者抵消，小腿在世界系里仍竖直。</p>
 <p>契约一共七条。这七条是验收脚本逐条检查的东西，也是下游代码读这个模型时依赖的接口。</p>
 <div class="am-table-wrap"><table>
@@ -923,15 +923,15 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </tr>
 </tbody></table></div>
 <p>box 的 <code>size</code> 写半长。见方 1.6cm 写 <code>0.008</code>，长 5cm 写 <code>0.025</code>。</p>
-<p>写完走一遍<a href="tutorial-bite1-handmade-mjcf.html#panel-D">第 18 章的五步循环</a>：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。</p>
+<p>写完走一遍<a href="b01-handmade-mjcf.html#panel-D">第 18 章的五步循环</a>：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。</p>
 </div></div>
 </section>
 <section class="am-panel am-span-wide" id="panel-B" style="grid-column: span 2">
 <header class="am-panel-head"><span class="am-panel-id">B</span><h2>怎么跑：验收在容器，眼睛在宿主机</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>两个动作，两个地方。</strong> 验收脚本在容器里跑，viewer 在宿主机跑。</p>
 </div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln"># 验收（容器内）</span><span class="am-ln">docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh              # 你的作业</span><span class="am-ln">docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh --solution   # 参考解答</span></code></pre></figure>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln"># 看它甩（宿主机）</span><span class="am-ln">.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/exercise_leg.xml</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln"># 验收（容器内）</span><span class="am-ln">docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b02.sh              # 你的作业</span><span class="am-ln">docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b02.sh --solution   # 参考解答</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln"># 看它甩（宿主机）</span><span class="am-ln">.venv/bin/python -m mujoco.viewer --mjcf=impl/sim/assets/exercise_leg.xml</span></code></pre></figure>
 <div class="am-md"><p>仓库根的 <code>.venv</code> 只为 viewer 而建，验收别在宿主机跑。脚本自带解释器探测：容器内用 <code>/opt/sim-venv/bin/python</code>，宿主机回落仓内 <code>.venv/bin/python</code>，两个都没有就报错退出。</p>
 <p>退出码告诉你现在处在哪一步：</p>
 <div class="am-table-wrap"><table>
@@ -1166,7 +1166,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <section class="am-panel" id="panel-G">
 <header class="am-panel-head"><span class="am-panel-id">G</span><h2>参考解答：卡住时的对照清单</h2></header>
 <div class="am-panel-body"><details>
-<summary><b>卡住了再看：对照 <code>sim/assets/exercise_leg_solution.xml</code>，先自己查这五处</b></summary>
+<summary><b>卡住了再看：对照 <code>impl/sim/assets/exercise_leg_solution.xml</code>，先自己查这五处</b></summary>
 <p>1. 关节嵌套层级：<code>shank</code> 要写在 <code>thigh</code> 内部，不是平级。</p>
 <p>2. ctrl 声明顺序：<code>&lt;actuator&gt;</code> 里 hip 的 <code>&lt;position&gt;</code> 写在 knee 前面。</p>
 <p>3. knee 的 range 要覆盖跟踪目标 -0.5 rad。</p>
@@ -1176,7 +1176,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </section>
 <section class="am-panel" id="panel-H">
 <header class="am-panel-head"><span class="am-panel-id">H</span><h2>细节展开</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在<a href="tutorial-bite1-handmade-mjcf.html#panel-K">第 18 章的细节展开</a>，不重复记在这里。</p>
+<div class="am-panel-body"><div class="am-md"><p>读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在<a href="b01-handmade-mjcf.html#panel-K">第 18 章的细节展开</a>，不重复记在这里。</p>
 </div>
 <details>
 <summary><b>常见卡点：三条验收抓不住的坑</b></summary>
@@ -1212,7 +1212,7 @@ subtitle: 从空白文件写到能跑的 MJCF：契约、三组验收、六个�
 source: clone-from-scratch-tutor · 第 19 章
 ---
 
-交付一个文件：`sim/assets/exercise_leg.xml`——一条 2 关节腿链。
+交付一个文件：`impl/sim/assets/exercise_leg.xml`——一条 2 关节腿链。
 
 验收脚本替你查三组断言：结构、执行器跟踪、keyframe 还原。全绿才算过。
 
@@ -1277,7 +1277,7 @@ source: clone-from-scratch-tutor · 第 19 章
 
 ## 任务书：一个文件，一条腿
 
-**交付物就一个文件**：`sim/assets/exercise_leg.xml`，一条 2 关节腿链，悬空挂在挂载点上。
+**交付物就一个文件**：`impl/sim/assets/exercise_leg.xml`，一条 2 关节腿链，悬空挂在挂载点上。
 
 先看它长什么样。左边是 `STRAIGHT` 存档姿势，qpos 全 0。右边是 B 组要它追到的角度：大腿转 +0.5 rad，小腿转 -0.5 rad。两者抵消，小腿在世界系里仍竖直。
 
@@ -1356,7 +1356,7 @@ worldbody
 
 box 的 `size` 写半长。见方 1.6cm 写 `0.008`，长 5cm 写 `0.025`。
 
-写完走一遍[第 18 章的五步循环](tutorial-bite1-handmade-mjcf.html#panel-D)：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。
+写完走一遍[第 18 章的五步循环](b01-handmade-mjcf.html#panel-D)：编译验证 → 眼睛验收 → 行为验收。本章下面两节就是第 4 步和第 5 步的命令。
 
 ## 怎么跑：验收在容器，眼睛在宿主机
 
@@ -1364,13 +1364,13 @@ box 的 `size` 写半长。见方 1.6cm 写 `0.008`，长 5cm 写 `0.025`。
 
 ```bash
 # 验收（容器内）
-docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh              # 你的作业
-docker compose exec rust bash scripts/accept-m9a-leg-exercise.sh --solution   # 参考解答
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b02.sh              # 你的作业
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b02.sh --solution   # 参考解答
 ```
 
 ```bash
 # 看它甩（宿主机）
-.venv/bin/python -m mujoco.viewer --mjcf=sim/assets/exercise_leg.xml
+.venv/bin/python -m mujoco.viewer --mjcf=impl/sim/assets/exercise_leg.xml
 ```
 
 仓库根的 `.venv` 只为 viewer 而建，验收别在宿主机跑。脚本自带解释器探测：容器内用 `/opt/sim-venv/bin/python`，宿主机回落仓内 `.venv/bin/python`，两个都没有就报错退出。
@@ -1486,7 +1486,7 @@ C 组（keyframe）检查存档姿势能精确复位：
 
 ```html
 &lt;details&gt;
-&lt;summary&gt;&lt;b&gt;卡住了再看：对照 &lt;code&gt;sim/assets/exercise_leg_solution.xml&lt;/code&gt;，先自己查这五处&lt;/b&gt;&lt;/summary&gt;
+&lt;summary&gt;&lt;b&gt;卡住了再看：对照 &lt;code&gt;impl/sim/assets/exercise_leg_solution.xml&lt;/code&gt;，先自己查这五处&lt;/b&gt;&lt;/summary&gt;
 &lt;p&gt;1. 关节嵌套层级：&lt;code&gt;shank&lt;/code&gt; 要写在 &lt;code&gt;thigh&lt;/code&gt; 内部，不是平级。&lt;/p&gt;
 &lt;p&gt;2. ctrl 声明顺序：&lt;code&gt;&amp;lt;actuator&amp;gt;&lt;/code&gt; 里 hip 的 &lt;code&gt;&amp;lt;position&amp;gt;&lt;/code&gt; 写在 knee 前面。&lt;/p&gt;
 &lt;p&gt;3. knee 的 range 要覆盖跟踪目标 -0.5 rad。&lt;/p&gt;
@@ -1497,7 +1497,7 @@ C 组（keyframe）检查存档姿势能精确复位：
 
 ## 细节展开
 
-读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在[第 18 章的细节展开](tutorial-bite1-handmade-mjcf.html#panel-K)，不重复记在这里。
+读者提问留白。本章暂未收到读者提问。上一轮那条「想学仿真模型怎么搭建，但里面没有构建命令」记在[第 18 章的细节展开](b01-handmade-mjcf.html#panel-K)，不重复记在这里。
 
 ```html
 &lt;details&gt;

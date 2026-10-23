@@ -1,6 +1,6 @@
 # microduck_rl 侦察报告（2026-10-16，M9 规划用）
 
-> 来源：subagent 对 `reference/microduck_rl/`（pollen-robotics/microduck_rl 浅克隆）的彻底侦察。
+> 来源：subagent 对 `upstream/microduck_rl/`（pollen-robotics/microduck_rl 浅克隆）的彻底侦察。
 > 下文 `rl:` 前缀指该仓库内路径。全部结论带行号证据；【合理推断】已显式标注。
 
 ## 1. 训练管线

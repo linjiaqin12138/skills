@@ -4,19 +4,19 @@
 
 ## 交付
 
-- `src/policy.rs`：`Policy::load` / `infer`；load 时校验 obs 61、action 14；warmup；错宽拒绝
-- `src/control.rs`：`apply_action`（home + 0.9×scatter，头 0.5 / 腿 0.7 低通）；插值 100 拍不推理；`MissedTickBehavior::Skip`；真实 `last_action` 回灌
-- `src/main.rs`：启动加载 `policies/velstand.onnx`（或 `MINIDUCK_POLICY`）；失败在 bind socket 之前退出；`robot.state` 增加 `action`
-- `src/lib.rs`：`pub mod policy`
+- `impl/src/policy.rs`：`Policy::load` / `infer`；load 时校验 obs 61、action 14；warmup；错宽拒绝
+- `impl/src/control.rs`：`apply_action`（home + 0.9×scatter，头 0.5 / 腿 0.7 低通）；插值 100 拍不推理；`MissedTickBehavior::Skip`；真实 `last_action` 回灌
+- `impl/src/main.rs`：启动加载 `impl/policies/velstand.onnx`（或 `MINIDUCK_POLICY`）；失败在 bind socket 之前退出；`robot.state` 增加 `action`
+- `impl/src/lib.rs`：`pub mod policy`
 - `Cargo.toml`：`ort = "=2.0.0-rc.11"`，`load-dynamic`
-- `scripts/fetch-m3.sh`：velstand + ONNX Runtime ≥ 1.23（代理下载）
-- `examples/ex_onnx_session.rs`：概念示例，不是收敛对照项
+- `impl/scripts/fetch-m3.sh`：velstand + ONNX Runtime ≥ 1.23（代理下载）
+- `impl/examples/ex_onnx_session.rs`：概念示例，不是收敛对照项
 
 ## 验收实测
 
-`docker compose exec rust cargo test`：15 passed, 0 failed。新增：`apply_action` 两条、`rejects_wrong_observation_width`、`velstand_zero_obs_then_feedback_stays_finite`。
+`docker compose -f impl/docker-compose.yml exec rust cargo test`：15 passed, 0 failed。新增：`apply_action` 两条、`rejects_wrong_observation_width`、`velstand_zero_obs_then_feedback_stays_finite`。
 
-宿主机（`ORT_DYLIB_PATH` → `third_party/onnxruntime/lib/libonnxruntime.so`）health：
+宿主机（`ORT_DYLIB_PATH` → `impl/third_party/onnxruntime/lib/libonnxruntime.so`）health：
 
 ```text
 hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
@@ -40,4 +40,4 @@ subscribe 第一帧（tick=198）：
 - **D19**（新）：load 失败直接退出，不做抱住姿态 + unhealthy → M5（与 D11）
 - **D20**（新）：`policy.rs` 含 LSTM 分支，velstand 为 1-in/1-out 不执行 → 首次加载 recurrent 文件时核销；若 M8 仍无则删死代码
 
-教程资产（`examples/`、测试用 python3-onnx 写坏图）不对原版结构计偏差。
+教程资产（`impl/examples/`、测试用 python3-onnx 写坏图）不对原版结构计偏差。

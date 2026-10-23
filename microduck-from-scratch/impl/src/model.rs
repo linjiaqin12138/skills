@@ -33,12 +33,12 @@ pub const JOINT_NAMES: [&str; NUM_JOINTS] = [
 pub const MOUTH_INDEX: usize = 9;
 
 /// 嘴的行程端点（弧度）：闭 −5°、全开 +30°。数值来自原版
-/// reference/duck-control/src/model.rs:62-63（alpha 沿用 v1.6 的量程）。
+/// upstream/duck-control/src/model.rs:62-63（alpha 沿用 v1.6 的量程）。
 pub const MOUTH_CLOSED: f64 = -5.0 * std::f64::consts::PI / 180.0;
 pub const MOUTH_OPEN: f64 = 30.0 * std::f64::consts::PI / 180.0;
 
 /// robot.mouth 的 0..1 开度 → 绝对关节角。夹紧在行程内；NaN 当 0（闭嘴）——
-/// 与原版 mouth_target 逐行为一致（reference/duck-control/src/model.rs:67-74）。
+/// 与原版 mouth_target 逐行为一致（upstream/duck-control/src/model.rs:67-74）。
 pub fn mouth_target(open: f64) -> f64 {
     let open = if open.is_finite() { open.clamp(0.0, 1.0) } else { 0.0 };
     MOUTH_CLOSED + open * (MOUTH_OPEN - MOUTH_CLOSED)
@@ -64,7 +64,7 @@ mod tests {
     }
 
     /// 嘴映射端点与夹紧：对照原版 mouth_target 的同款测试
-    /// （reference/duck-control/src/model.rs:250-256）。
+    /// （upstream/duck-control/src/model.rs:250-256）。
     #[test]
     fn mouth_target_spans_the_prototype_range() {
         assert!((mouth_target(0.0) - (-5.0f64.to_radians())).abs() < 1e-12);

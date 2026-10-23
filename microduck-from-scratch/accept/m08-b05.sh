@@ -2,7 +2,7 @@
 # M8 Bite 5 诊断：对照教程增益 vs 官方 no-bam 增益，验证 sit/roulade
 # 摔倒归因是否仍指向 BAM 动力学缺失（D21/D34/D35）。不是验收门槛。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m8-bam-diag.sh
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b05.sh
 # 全程在容器内跑。sim 端口 7805（避开 accept-m4/m5/m6 的 7802/7803/7804）。
 #
 # 重要（Bite 6 后）：duck_body.py 默认开 BAM。本诊断测的是 XML PD 增益对照，
@@ -15,13 +15,13 @@
 # 整场 exit 0：脚本跑完并打出对照表即成功；B 组站立失败是合法证据，
 # 不因此 exit 1。仅 daemon/sim 起不来才失败。
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 SIM_PORT=7805
 SIM_ADDR=127.0.0.1:$SIM_PORT
 SIM_PID=""
 DAEMON_PID=""
-# 诊断可走系统 python3（--no-bam，无需 bam）；BAM 验收用 accept-m8-bam.sh。
+# 诊断可走系统 python3（--no-bam，无需 bam）；BAM 验收用 accept/m08-b06.sh。
 SIM_PYTHON="${SIM_PYTHON:-python3}"
 # 结果行：label|gain|stand|sit_skill|sit_fall|rou_fallen|note
 RESULTS=()

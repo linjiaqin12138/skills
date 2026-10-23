@@ -2,7 +2,7 @@
 
 ## 直接下载不重写
 - 8 个 ONNX 策略权重：HF Hub `pollen-robotics/microduck-policies` @ v5（velstand/sitstand/ground_pick/ball_kick×2/roller/roller_crouch/roulade）
-- MJCF 身体模型（reference/kinematics/assets/alpha/robot_walk.xml）
+- MJCF 身体模型（upstream/kinematics/assets/alpha/robot_walk.xml）
 - ONNX Runtime、MuJoCo
 
 ## 里程碑（依赖树序）

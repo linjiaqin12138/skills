@@ -348,7 +348,7 @@ async fn serve(
                 };
 
                 // M8：notification（无 id 帧）统一入口。JSON-RPC 规定无 id
-                // 不应答，原版对任何方法都不回（reference/robotd/src/main.rs:
+                // 不应答，原版对任何方法都不回（upstream/robotd/src/main.rs:
                 // 3554-3562）：连续意图静默应用（解析失败也静默——50Hz 意图流
                 // 里报错没有意义，下一帧 20ms 后就到），其他方法静默丢弃。
                 // 整帧 JSON 解析失败仍在上面的 parse 分支回 PARSE_ERROR——
@@ -403,7 +403,7 @@ async fn serve(
                         }
                         Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
                     },
-                    // 使能开关（M8 收敛为原版语义，reference/robotd/src/main.rs:
+                    // 使能开关（M8 收敛为原版语义，upstream/robotd/src/main.rs:
                     // 4486-4512）：toggle 在 daemon 侧翻转——客户端不持有开关
                     // 信念（信念随对端重启/relax 漂移，漂移的信念让手柄 Start
                     // 隔次失灵）；toggle:true 时 on 被忽略。永不拒绝：躺在地上
@@ -443,7 +443,7 @@ async fn serve(
                         }
                         Err(reason) => ServerMessage::err(req.id, INVALID_PARAMS, reason),
                     },
-                    // M6：技能请求。M8-B10 D36 对齐原版（reference/robotd/src/
+                    // M6：技能请求。M8-B10 D36 对齐原版（upstream/robotd/src/
                     // main.rs:4184-4219）：门口按情形拒 !enabled（:4196-4200）
                     // 与 !homed（:4201-4204，我们的 RampUp），名字没配置过也
                     // 拒绝（accepted:false 附名单）；fallen/Limp 照收——"a

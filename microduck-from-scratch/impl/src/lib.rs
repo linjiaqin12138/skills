@@ -146,7 +146,7 @@ impl MoveParams {
 }
 
 /// robot.enable 参数（原版 EnableParams 形状：deny_unknown_fields，
-/// toggle 缺省 false——reference/duck-ipc-proto/src/lib.rs:2685-2704）。
+/// toggle 缺省 false——upstream/duck-ipc-proto/src/lib.rs:2685-2704）。
 ///
 /// toggle 是手柄 Start 语义：daemon 侧翻转当前 enabled（此时 on 被忽略），
 /// 因为客户端自己持有的开关信念会随对端重启、robot.relax 等漂移——信念

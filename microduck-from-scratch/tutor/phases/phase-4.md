@@ -8,15 +8,15 @@
 **验收电池（2026-10-15 当天复跑，容器内，mujoco 3.16 + bam@62bd8ce）全绿**：
 
 - `cargo test`：102 单测全绿（M0 基线 0 → M8 末 102）
-- `accept-m8.sh`：断言 a–w（C1 接口对齐）+ x/y（D24 滑行）+ z1–z5（D36 门口裁决）全绿
-- `accept-m8-updater.sh`：8/8（预检 + D65 不可达放行）
-- `accept-m8-bam.sh`：站立 / sit 坐稳起身 / roulade 结束直立 / 行走 vx=0.8 前移 4.762m（门槛 2.0m）四项全绿
+- `accept/m08-b01.sh`：断言 a–w（C1 接口对齐）+ x/y（D24 滑行）+ z1–z5（D36 门口裁决）全绿
+- `accept/m08-b04.sh`：8/8（预检 + D65 不可达放行）
+- `accept/m08-b06.sh`：站立 / sit 坐稳起身 / roulade 结束直立 / 行走 vx=0.8 前移 4.762m（门槛 2.0m）四项全绿
 
-**清单对账**：73 个 RPC 方法面（v0.14.1 的 Call 枚举全部变体）与 feature-inventory.md §2 全覆盖，无清单外缺口，不触发流程失败。44 项已交付项账实相符。
+**清单对账**：73 个 RPC 方法面（v0.14.1 的 Call 枚举全部变体）与 spec/features.md §2 全覆盖，无清单外缺口，不触发流程失败。44 项已交付项账实相符。
 
 **发现的流程级问题（已裁决）**：reference 版本漂移——清单写于 API_VERSION=37 检出，换机重克隆后磁盘为 daemon-v0.14.1（API 31）。用户裁决以 v0.14.1 为终态基准；行号证据已回填（~190 处），2 项高版本新增（fast_sync_read、publish_velocity_and_load 连带 velocities/currents_ma）标 ⚠ 留 M10 盘点 API 32–37 差量。
 
-**偏差簿裁决汇总**（明细见 deviations.md 顶部 Phase 4 段）：
+**偏差簿裁决汇总**（明细见 spec/deviations.md 顶部 Phase 4 段）：
 
 | 处置 | 条目 |
 |---|---|

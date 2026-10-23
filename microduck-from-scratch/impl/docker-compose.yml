@@ -12,17 +12,18 @@ services:
     # 才能写 target/，且产物落回宿主机仍属当前用户。传统（rootful）
     # docker 下应删掉这行并改用 build args UID/GID=宿主机 uid/gid。
     user: "0:0"
-    working_dir: /work
+    # /work 是教程仓库根，代码在 /work/impl。这样容器看得到 accept/。
+    working_dir: /work/impl
     environment:
-      # ort load-dynamic；与 scripts/fetch-m3.sh 摊平后的路径一致。
-      ORT_DYLIB_PATH: /work/third_party/onnxruntime/lib/libonnxruntime.so
+      # ort load-dynamic；与 impl/scripts/fetch-m3.sh 摊平后的路径一致。
+      ORT_DYLIB_PATH: /work/impl/third_party/onnxruntime/lib/libonnxruntime.so
     volumes:
-      - .:/work
+      - ..:/work
       - cargo-home:/cargo
     ports:
-      # 7802：sim/duck_body.py --view-port 的 MJPEG 网页画面（浏览器看鸭子）
+      # 7802：impl/sim/duck_body.py --view-port 的 MJPEG 网页画面（浏览器看鸭子）
       - "127.0.0.1:7802:7802"
-      # 6080：scripts/duck-vnc.sh 的 noVNC 远程桌面（浏览器交互推鸭子）：
+      # 6080：impl/scripts/duck-vnc.sh 的 noVNC 远程桌面（浏览器交互推鸭子）：
       # 容器里跑 bash scripts/duck-vnc.sh，浏览器打开 http://localhost:6080/vnc.html
       - "127.0.0.1:6080:6080"
     tty: true

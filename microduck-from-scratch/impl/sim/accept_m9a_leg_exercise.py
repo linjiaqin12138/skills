@@ -65,7 +65,7 @@ def main():
     if not os.path.isfile(xml_path):
         print(f"找不到文件: {xml_path}")
         if xml_path == HOMEWORK_XML:
-            print("还没创建作业文件——任务说明见教程 docs/milestones/m9a-handmade-mjcf/")
+            print("还没创建作业文件——任务说明见教程 book/m09a-handmade-mjcf/")
             print("（动手练习：手搓一条 2 关节腿链）。从零手写，别复制参考解答；")
             print("卡住可以对照 sim/assets/exercise_leg_solution.xml 找差距。")
         sys.exit(2)

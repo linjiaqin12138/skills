@@ -179,7 +179,7 @@ p_daemon: "进程 3：miniduckd（守护进程）【B10：control/scheduler/RPC 
 # ---------- 进程 4：仿真体（未动） ----------
 p_sim: "进程 4：duck_body.py（MuJoCo 仿真体）" {
   class: procbox
-  body: "duck_body.py\n(sim/duck_body.py)\n默认 BAM：better-actuator-models\nMujocoController（M6 XL330）\n场景 scene_groundcontact.xml\ntimestep=0.005，每拍 4 子步\n--no-bam / MINIDUCK_SIM_BAM=0\n→ 回退 XML PD + scene.xml\nTCP NDJSON op 帧\nread / write / set_gain / set_torque\npush = 躯干 qvel 扰动\n（control 踢步态入口）\n模型资产：sim/assets/" {
+  body: "duck_body.py\n(impl/sim/duck_body.py)\n默认 BAM：better-actuator-models\nMujocoController（M6 XL330）\n场景 scene_groundcontact.xml\ntimestep=0.005，每拍 4 子步\n--no-bam / MINIDUCK_SIM_BAM=0\n→ 回退 XML PD + scene.xml\nTCP NDJSON op 帧\nread / write / set_gain / set_torque\npush = 躯干 qvel 扰动\n（control 踢步态入口）\n模型资产：impl/sim/assets/" {
     class: unchanged
   }
 }
@@ -199,10 +199,10 @@ fs_root: "<root>/ 更新资产\n（MINIDUCK_UPDATER_ROOT，默认 /tmp/miniduck-
 }
 
 # ---------- 外部资源（未动） ----------
-onnx: "policies/ 五份权重\nvelstand / alpha_sitstand\nalpha_ground_pick\nroulade / ball_kick_left" {
+onnx: "impl/policies/ 五份权重\nvelstand / alpha_sitstand\nalpha_ground_pick\nroulade / ball_kick_left" {
   class: unchanged
 }
-ort: "ONNX Runtime\nlibonnxruntime.so\n（third_party/onnxruntime，\nORT_DYLIB_PATH 指向）" {
+ort: "ONNX Runtime\nlibonnxruntime.so\n（impl/third_party/onnxruntime，\nORT_DYLIB_PATH 指向）" {
   class: unchanged
 }
 

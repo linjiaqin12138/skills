@@ -1,6 +1,6 @@
 # 第 4 章 · M3：加载 velstand，闭环站立
 
-> 本章对应里程碑 M3（Bite 4，已验收）。交付物：`src/policy.rs`（ONNX 会话）、`src/control.rs` 的 `apply_action` 与 Skip 控制循环，以及 `src/main.rs` 在 bind 之前加载权重。权重与 Runtime：`scripts/fetch-m3.sh`。
+> 本章对应里程碑 M3（Bite 4，已验收）。交付物：`impl/src/policy.rs`（ONNX 会话）、`impl/src/control.rs` 的 `apply_action` 与 Skip 控制循环，以及 `impl/src/main.rs` 在 bind 之前加载权重。权重与 Runtime：`impl/scripts/fetch-m3.sh`。
 
 ## 1. 动机
 
@@ -20,12 +20,12 @@ M2 已经能每拍拼出一条 61 维观测，但电机目标仍是插值到 hom
 
 - **一句话定义**：打开 `.onnx` 得到一个会话；每拍把 `[1, 61]` 的 `float32` 观测塞进去，取出 `[1, 14]` 的动作。像无 HTTP 的本地函数调用。
 - **为什么需要**：控制循环要 50 Hz 前向。部署端只跑 Runtime，不装训练框架。velstand 是 feed-forward（1 入 1 出），不是 LSTM——同输入同输出，没有隐藏状态要跨拍保存。
-- **和 TS/Node 的差异**：可类比 `const actions = await localModel(obs)`，但没有 JSON、没有 URL；维数是硬契约。crate `ort` 像一个 npm 包，真正算图的是动态加载的 `libonnxruntime.so`（`load-dynamic`）。tokio 是多线程运行时，和 Node 单线程事件循环不同；本仓库把推理线程数钉成 1（`src/policy.rs:18`），避免和控制循环抢核。
-- **最小示例**（不经过 `src/policy.rs`）：
+- **和 TS/Node 的差异**：可类比 `const actions = await localModel(obs)`，但没有 JSON、没有 URL；维数是硬契约。crate `ort` 像一个 npm 包，真正算图的是动态加载的 `libonnxruntime.so`（`load-dynamic`）。tokio 是多线程运行时，和 Node 单线程事件循环不同；本仓库把推理线程数钉成 1（`impl/src/policy.rs:18`），避免和控制循环抢核。
+- **最小示例**（不经过 `impl/src/policy.rs`）：
 
 ```bash
-export ORT_DYLIB_PATH=third_party/onnxruntime/lib/libonnxruntime.so
-docker compose exec -e ORT_DYLIB_PATH=/work/third_party/onnxruntime/lib/libonnxruntime.so \
+export ORT_DYLIB_PATH=impl/third_party/onnxruntime/lib/libonnxruntime.so
+docker compose -f impl/docker-compose.yml exec -e ORT_DYLIB_PATH=/work/impl/third_party/onnxruntime/lib/libonnxruntime.so \
   rust cargo run --example ex_onnx_session
 ```
 
@@ -49,41 +49,41 @@ all_finite: true
 - **备选**：
   1. 只加载 `velstand.onnx`（walk 槽），`action_scale = 0.9`；
   2. 同时加载独立 stand 网络，站立时用 `standing_action_scale = 1.0`。
-- **选择**：备选 1。HF v5 写明 velstand 是 *default walk policy since v5, with no separate standing network*；零指令时自己站着。`0.9` 来自原版 `Tuning::default` 的原型 alpha 默认值（`reference/robotd/src/control.rs:66-76`）。本仓库**没有**测量说明为什么不是 1.0。站立网络注释里的 1.0 是「该策略按完整幅度训练」——本里程碑没加载那份权重。
+- **选择**：备选 1。HF v5 写明 velstand 是 *default walk policy since v5, with no separate standing network*；零指令时自己站着。`0.9` 来自原版 `Tuning::default` 的原型 alpha 默认值（`upstream/robotd/src/control.rs:66-76`）。本仓库**没有**测量说明为什么不是 1.0。站立网络注释里的 1.0 是「该策略按完整幅度训练」——本里程碑没加载那份权重。
 - **放弃的成本**：没有「站立专用」增益/幅度切换；多策略调度（stand 槽、优先级链）整段推到 M6（D3）。若将来权重改回「walk 不会原地站、必须另挂 stand」，本章的单一文件假设失效。
-- **失效边界**：换一套不是围绕这组 home / 0.9 / 低通系数训练的权重；或命令不再恒零却仍假定「零指令 = 站立」。低通必须和训练一致——注释写在 `src/control.rs:27-31`。
+- **失效边界**：换一套不是围绕这组 home / 0.9 / 低通系数训练的权重；或命令不再恒零却仍假定「零指令 = 站立」。低通必须和训练一致——注释写在 `impl/src/control.rs:27-31`。
 
 ## 3. 实现走读
 
-**下载与 Runtime。** `scripts/fetch-m3.sh` 经代理 `http://127.0.0.1:7890` 拉 `velstand.onnx` 和 ONNX Runtime ≥ 1.23（脚本钉 1.23.2）。`Cargo.toml` 里 `ort = "=2.0.0-rc.11"`，`load-dynamic`：进程用 `ORT_DYLIB_PATH` 找到 `libonnxruntime.so`，不是把 Runtime 静态链进二进制。
+**下载与 Runtime。** `impl/scripts/fetch-m3.sh` 经代理 `http://127.0.0.1:7890` 拉 `velstand.onnx` 和 ONNX Runtime ≥ 1.23（脚本钉 1.23.2）。`Cargo.toml` 里 `ort = "=2.0.0-rc.11"`，`load-dynamic`：进程用 `ORT_DYLIB_PATH` 找到 `libonnxruntime.so`，不是把 Runtime 静态链进二进制。
 
-**load 时校验维数。** `Policy::load`（`src/policy.rs:85-144`）先读文件（打不开就 `Read` 错误），再建 Session，对名为 `obs` 的输入和动作输出跑 `check_matrix`（`src/policy.rs:263-278`）：必须是 float32、两维、宽分别为 61 和 14。错了现在失败，而不是跑起来像调参问题。随后用全零观测 warmup 一次，把冷启动挡在控制循环外，再 `reset_state`。
+**load 时校验维数。** `Policy::load`（`impl/src/policy.rs:85-144`）先读文件（打不开就 `Read` 错误），再建 Session，对名为 `obs` 的输入和动作输出跑 `check_matrix`（`impl/src/policy.rs:263-278`）：必须是 float32、两维、宽分别为 61 和 14。错了现在失败，而不是跑起来像调参问题。随后用全零观测 warmup 一次，把冷启动挡在控制循环外，再 `reset_state`。
 
-**为什么在 bind 之前退出。** `main`（`src/main.rs:27-31`）加载失败就 `eprintln` 并返回错误；Unix socket 在更后面才 `bind`（`src/main.rs:45-46`）。权重坏了不会出现「socket 活着、健康恒 true、机器人却没有策略」的半活状态。这和原版「抱住姿态 + unhealthy」不同，记为 D19，预定 M5 与 D11 一起收敛。
+**为什么在 bind 之前退出。** `main`（`impl/src/main.rs:27-31`）加载失败就 `eprintln` 并返回错误；Unix socket 在更后面才 `bind`（`impl/src/main.rs:45-46`）。权重坏了不会出现「socket 活着、健康恒 true、机器人却没有策略」的半活状态。这和原版「抱住姿态 + unhealthy」不同，记为 D19，预定 M5 与 D11 一起收敛。
 
-**插值 100 拍不推理。** 控制循环（`src/control.rs:187-189`）在 `tick_in_ramp < RAMP_TICKS` 时只跑 `ramp_target`，`action_out` 全 0，`last_action` 保持 0（`src/control.rs:132-133`）。策略的 `entry_pose` 是 standing——先走到 home 再交给网络。满 100 拍后才 `policy.infer`（`src/control.rs:191-197`）。
+**插值 100 拍不推理。** 控制循环（`impl/src/control.rs:187-189`）在 `tick_in_ramp < RAMP_TICKS` 时只跑 `ramp_target`，`action_out` 全 0，`last_action` 保持 0（`impl/src/control.rs:132-133`）。策略的 `entry_pose` 是 standing——先走到 home 再交给网络。满 100 拍后才 `policy.infer`（`impl/src/control.rs:191-197`）。
 
-**目标怎么从动作来。** `apply_action`（`src/control.rs:59-86`）：`scatter_action` 把 14 维铺回 15 关节（嘴保持 0），再 `home + 0.9 * offset`。有 `previous` 时头关节 5..8 用 alpha 0.5、腿用 0.7 做一阶低通；嘴始终等于 home。第一拍 `previous` 为 `None`，不滤波（`src/control.rs:134-135`、`69-81`）。常量对齐原版 `Tuning::default` / walk 模式。
+**目标怎么从动作来。** `apply_action`（`impl/src/control.rs:59-86`）：`scatter_action` 把 14 维铺回 15 关节（嘴保持 0），再 `home + 0.9 * offset`。有 `previous` 时头关节 5..8 用 alpha 0.5、腿用 0.7 做一阶低通；嘴始终等于 home。第一拍 `previous` 为 `None`，不滤波（`impl/src/control.rs:134-135`、`69-81`）。常量对齐原版 `Tuning::default` / walk 模式。
 
-**上一拍动作回灌。** 观测用**当前** `last_action` 组装，成功推理**之后**才更新（`src/control.rs:176-185`、`195`）。因此订阅帧里 `obs[34..48]` 是上一拍输出，与本帧 `action` 不相同——这是回灌，不是同一拍拷贝。D17 在本里程碑收敛。
+**上一拍动作回灌。** 观测用**当前** `last_action` 组装，成功推理**之后**才更新（`impl/src/control.rs:176-185`、`195`）。因此订阅帧里 `obs[34..48]` 是上一拍输出，与本帧 `action` 不相同——这是回灌，不是同一拍拷贝。D17 在本里程碑收敛。
 
-**MissedTickBehavior::Skip。** `src/control.rs:124-125`。原版实测 `Delay` 掉到 43.1 Hz（`reference/robotd/src/main.rs` 约 1834–1849）。本项目仍用 `interval_at`，第一拍推迟一个周期（`src/control.rs:119-123`）。D16 收敛。
+**MissedTickBehavior::Skip。** `impl/src/control.rs:124-125`。原版实测 `Delay` 掉到 43.1 Hz（`upstream/robotd/src/main.rs` 约 1834–1849）。本项目仍用 `interval_at`，第一拍推迟一个周期（`impl/src/control.rs:119-123`）。D16 收敛。
 
-**不要顺着 LSTM 分支学。** `src/policy.rs:105-130` 按张量个数区分 feed-forward / recurrent，并分配 `LstmState`；`infer` 里有拷回状态的路径（`src/policy.rs:180-189`）。velstand 是 1 入 1 出，`state` 为 `None`，这些行当前不执行。铁律：当前里程碑不提前实现。记为 D20——第一次真正加载 recurrent 文件时核销；若到 M8 仍没有，删掉死代码。LSTM 本身见 [带便签的函数](../../concepts/lstm.md)。
+**不要顺着 LSTM 分支学。** `impl/src/policy.rs:105-130` 按张量个数区分 feed-forward / recurrent，并分配 `LstmState`；`infer` 里有拷回状态的路径（`impl/src/policy.rs:180-189`）。velstand 是 1 入 1 出，`state` 为 `None`，这些行当前不执行。铁律：当前里程碑不提前实现。记为 D20——第一次真正加载 recurrent 文件时核销；若到 M8 仍没有，删掉死代码。LSTM 本身见 [带便签的函数](../../concepts/lstm.md)。
 
 ## 4. 验收
 
 ```bash
 # 容器内（不要包 bash -lc，否则 PATH 可能丢，见常见坑）
-docker compose exec rust cargo test
+docker compose -f impl/docker-compose.yml exec rust cargo test
 ```
 
 15 passed, 0 failed。新增：`apply_action` 两条、`rejects_wrong_observation_width`、`velstand_zero_obs_then_feedback_stays_finite`。
 
-宿主机（`ORT_DYLIB_PATH` 指向 `third_party/onnxruntime/lib/libonnxruntime.so`）：
+宿主机（`ORT_DYLIB_PATH` 指向 `impl/third_party/onnxruntime/lib/libonnxruntime.so`）：
 
 ```bash
-export ORT_DYLIB_PATH=third_party/onnxruntime/lib/libonnxruntime.so
+export ORT_DYLIB_PATH=impl/third_party/onnxruntime/lib/libonnxruntime.so
 ./target/debug/miniduckd &
 sleep 4
 ./target/debug/mini-duckctl health
@@ -110,7 +110,7 @@ subscribe 第一帧（tick=198）原文：
 
 - `obs` 长 61，下标 5 为 -1（重力 z）。
 - `action` 长 14。
-- 相对 home（`src/model.rs` `DEFAULT_POSITION`）最大偏差在左踝：`|0.2730705444580334 − 0.4530| ≈ 0.180 < 0.25`。这是「没走掉」的上界，不是逐关节精确答案。
+- 相对 home（`impl/src/model.rs` `DEFAULT_POSITION`）最大偏差在左踝：`|0.2730705444580334 − 0.4530| ≈ 0.180 < 0.25`。这是「没走掉」的上界，不是逐关节精确答案。
 - `obs[34..48]` 与本帧 `action` 不相同——上一拍回灌，不是同一拍拷贝。
 
 ## 5. 与原版差异
@@ -124,10 +124,10 @@ subscribe 第一帧（tick=198）原文：
 | D19 | load 失败直接退出，不做抱住姿态 + unhealthy | M5（与 D11） |
 | D20 | `policy.rs` 含 LSTM 分支，velstand 不走；当前死代码 | 首次加载 recurrent 文件时核销；否则 M8 删除 |
 
-`examples/ex_onnx_session.rs` 与测试用的 python3-onnx 写坏图，是教程/测试资产，不计入对原版结构的偏差。
+`impl/examples/ex_onnx_session.rs` 与测试用的 python3-onnx 写坏图，是教程/测试资产，不计入对原版结构的偏差。
 
 ## 6. 常见坑
 
-1. **代理下载。** HF / GitHub 直连常超时。用 `scripts/fetch-m3.sh`（默认代理 `http://127.0.0.1:7890`）。已迁回原生 Linux 环境，代理在 127.0.0.1:7890（容器内 PyPI 直连可达，无需代理）。
-2. **`docker compose exec` 不要包 `bash -lc`。** 登录 shell 可能丢掉容器里为 `cargo` 配好的 PATH，表现为找不到 `cargo`。直接 `docker compose exec rust cargo test`。
-3. **`SessionOutputs` 要先 drop 才能改 LSTM 状态。** `src/policy.rs:180-189` 先拷结果再 `drop(outputs)`。这是死分支上的坑——velstand 不走进去；真加载 recurrent 权重时再认真看，现在不要把它当成必需实现。
+1. **代理下载。** HF / GitHub 直连常超时。用 `impl/scripts/fetch-m3.sh`（默认代理 `http://127.0.0.1:7890`）。已迁回原生 Linux 环境，代理在 127.0.0.1:7890（容器内 PyPI 直连可达，无需代理）。
+2. **`docker compose -f impl/docker-compose.yml exec` 不要包 `bash -lc`。** 登录 shell 可能丢掉容器里为 `cargo` 配好的 PATH，表现为找不到 `cargo`。直接 `docker compose -f impl/docker-compose.yml exec rust cargo test`。
+3. **`SessionOutputs` 要先 drop 才能改 LSTM 状态。** `impl/src/policy.rs:180-189` 先拷结果再 `drop(outputs)`。这是死分支上的坑——velstand 不走进去；真加载 recurrent 权重时再认真看，现在不要把它当成必需实现。

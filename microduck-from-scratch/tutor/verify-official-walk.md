@@ -20,9 +20,9 @@ git clone https://github.com/pollen-robotics/microduck_rl.git
 git -C microduck_rl checkout b02fdea
 
 mkdir -p policies
-curl -fL --retry 5 --connect-timeout 30 -o policies/velstand.onnx \
+curl -fL --retry 5 --connect-timeout 30 -o impl/policies/velstand.onnx \
   "https://huggingface.co/pollen-robotics/microduck-policies/resolve/v5/velstand.onnx"
-ls -l policies/velstand.onnx
+ls -l impl/policies/velstand.onnx
 ```
 
 `b02fdea` 是 microduck_rl `develop`（2026-10-12）。`velstand.onnx` 大约 800 KB。只有几十字节就是下载失败，不要往下走。

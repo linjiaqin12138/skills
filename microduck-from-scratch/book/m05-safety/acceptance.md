@@ -2,18 +2,18 @@
 
 ## 交付物
 
-- `src/safety.rs`（新建，555 行含 14 条单测）：`Safety<T: RobotIo>` 私有化拥有唯一 RobotIo 写句柄（借用检查器强制，读透传）。`SafetyConfig`（fall_gravity_z=-0.5 / fall_debounce=200ms / deadman=500ms / gain_running=200 / gain_limp=50，原型 alpha 默认）。`observe`（跌倒去抖双向判定；`imu_ready=false` 直接 return 不投票——原版血泪回归；判定翻转必报不限流）。`gate`（deadman 只清 twist 不动 head；deadman_armed：从没司机不是新闻，司机失联才是）。`apply`（set_gain 缓存去重 → 任一 NaN/Inf 整包拒绝写 hold（不是夹紧）→ ±π 执行器行程夹紧并上报 → 写总线；无跌倒门控，fallen 是报告）。`LimitRuns` 三条独立 run 计数，首拍+每 50 拍日志限流，NaN 拍不清 range run。
-- `src/control.rs`：主循环重写为五阶段状态机 `Phase::Held/RampUp/Driving/Limp/RampDown`。每拍顺序 read→observe→gate→策略→apply。Held 抱启动姿态绝不调 set_torque；enable 边沿→set_torque(true)→100 拍斜坡回 home→Driving；Driving 中 fallen→Limp（目标跟随实测位置+gain 50，策略停摆）；直立后斜坡回 home 恢复；disable→斜坡回 home→set_torque(false)→Held。policy=None 永远 Held（D19）。边沿检测先于跌倒判定。Stats 记账供 health。FrameSnapshot 增 fallen/enabled/gain/torque。
-- `src/io.rs`：trait 补 `set_gain`/`set_torque`/`imu_ready`（默认 true）；quat 严格长度校验 ≠4 即 Err（D22），copy3 长度不符的 panic 隐患顺手改 Err。FakeIo 记录 gain/torque/gain_writes/imu_ready 供测试断言。
-- `src/main.rs`：Policy::load 失败不退出（policy=None，health 报 "policy unavailable"，D19——Restart=always 下退出=crashloop）；socket chmod 0660（D8——原版 robotd 无 SO_PEERCRED，文件权限即鉴权）；robot.enable/disable；robot.health 真实判定（stall 500ms=25 拍 / achieved_hz≥45 / 连续读错误≥10 / policy_ok，阈值来自原版 robotd-params；暖机豁免）；robot.state 改 frame_rx.changed() 驱动 50Hz（D14），载荷增 fallen/enabled/gain/torque。
-- `src/bin/mini-duckctl.rs`：enable/disable；`drive --secs N` 期间每 100ms 重发意图（deadman 500ms 下单次意图只能驱动半秒，CLI 扮演持续发意图的手柄）；`state --every N`（默认 50 帧打一行）。
-- `sim/duck_body.py`：`set_gain`（kp_sim=8×gain/200，改 gainprm/biasprm 不缩 ctrl）；`set_torque`（增益清零=卸力）；`push {vx,vy}`（qvel 加水平扰动推倒鸭子）；启动默认 torque on/gain=200（模拟舵机 RAM 跨进程存活）；read 回显 gain/torque。
-- `scripts/accept-m5.sh`（新建，六项断言）；`scripts/accept-m4.sh`（加 enable 步骤保持回归绿）。
-- `docs/milestones/m5-safety/tutorial.md`、`docs/concepts/servo-gain-torque.md`（+ assets 下两个概念演示脚本）。
+- `impl/src/safety.rs`（新建，555 行含 14 条单测）：`Safety<T: RobotIo>` 私有化拥有唯一 RobotIo 写句柄（借用检查器强制，读透传）。`SafetyConfig`（fall_gravity_z=-0.5 / fall_debounce=200ms / deadman=500ms / gain_running=200 / gain_limp=50，原型 alpha 默认）。`observe`（跌倒去抖双向判定；`imu_ready=false` 直接 return 不投票——原版血泪回归；判定翻转必报不限流）。`gate`（deadman 只清 twist 不动 head；deadman_armed：从没司机不是新闻，司机失联才是）。`apply`（set_gain 缓存去重 → 任一 NaN/Inf 整包拒绝写 hold（不是夹紧）→ ±π 执行器行程夹紧并上报 → 写总线；无跌倒门控，fallen 是报告）。`LimitRuns` 三条独立 run 计数，首拍+每 50 拍日志限流，NaN 拍不清 range run。
+- `impl/src/control.rs`：主循环重写为五阶段状态机 `Phase::Held/RampUp/Driving/Limp/RampDown`。每拍顺序 read→observe→gate→策略→apply。Held 抱启动姿态绝不调 set_torque；enable 边沿→set_torque(true)→100 拍斜坡回 home→Driving；Driving 中 fallen→Limp（目标跟随实测位置+gain 50，策略停摆）；直立后斜坡回 home 恢复；disable→斜坡回 home→set_torque(false)→Held。policy=None 永远 Held（D19）。边沿检测先于跌倒判定。Stats 记账供 health。FrameSnapshot 增 fallen/enabled/gain/torque。
+- `impl/src/io.rs`：trait 补 `set_gain`/`set_torque`/`imu_ready`（默认 true）；quat 严格长度校验 ≠4 即 Err（D22），copy3 长度不符的 panic 隐患顺手改 Err。FakeIo 记录 gain/torque/gain_writes/imu_ready 供测试断言。
+- `impl/src/main.rs`：Policy::load 失败不退出（policy=None，health 报 "policy unavailable"，D19——Restart=always 下退出=crashloop）；socket chmod 0660（D8——原版 robotd 无 SO_PEERCRED，文件权限即鉴权）；robot.enable/disable；robot.health 真实判定（stall 500ms=25 拍 / achieved_hz≥45 / 连续读错误≥10 / policy_ok，阈值来自原版 robotd-params；暖机豁免）；robot.state 改 frame_rx.changed() 驱动 50Hz（D14），载荷增 fallen/enabled/gain/torque。
+- `impl/src/bin/mini-duckctl.rs`：enable/disable；`drive --secs N` 期间每 100ms 重发意图（deadman 500ms 下单次意图只能驱动半秒，CLI 扮演持续发意图的手柄）；`state --every N`（默认 50 帧打一行）。
+- `impl/sim/duck_body.py`：`set_gain`（kp_sim=8×gain/200，改 gainprm/biasprm 不缩 ctrl）；`set_torque`（增益清零=卸力）；`push {vx,vy}`（qvel 加水平扰动推倒鸭子）；启动默认 torque on/gain=200（模拟舵机 RAM 跨进程存活）；read 回显 gain/torque。
+- `accept/m05-b01.sh`（新建，六项断言）；`accept/m04-b01.sh`（加 enable 步骤保持回归绿）。
+- `book/m05-safety/b01-safety.md`、`book/concepts/servo-gain-torque.md`（+ assets 下两个概念演示脚本）。
 
 ## 验收实测
 
-`docker compose exec rust cargo build`：0 警告。`docker compose exec rust cargo test`：
+`docker compose -f impl/docker-compose.yml exec rust cargo build`：0 警告。`docker compose -f impl/docker-compose.yml exec rust cargo test`：
 
 ```
 test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
@@ -21,7 +21,7 @@ test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 
 构成（`cargo test -- --list` 实测）：M4 的 18 条 + 新增 17 条 = safety 14（去抖双向、imu_ready 不投票双向、跌倒不抢占、软倒增益透传、NaN 拒绝非夹紧、越界夹紧上报、普通目标原样通过、gain 缓存去重、deadman 只清 twist、armed 语义、run 独立计数、限流节奏）+ io 3（quat 严格校验、set_gain/set_torque 帧、FakeIo 记忆 gain/torque）。（注：交接文档称「原 19 + 新增 16」，实测名单为 18 + 17，以 `cargo test -- --list` 为准。）
 
-`docker compose exec rust bash scripts/accept-m5.sh`（教程写作时复跑原文，2026-09-27）：
+`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m05-b01.sh`（教程写作时复跑原文，2026-09-27）：
 
 ```text
 ===== 阶段 A：FakeIo（无 sim）=====
@@ -59,7 +59,7 @@ M5 验收全部通过：启动不动/deadman/跌倒卸力/health 真话/50Hz sta
 
 主 agent 独立复跑（交接记录）：enable 3s 后距 home 最大偏差 0.1799 rad；跌倒捕获 151 帧第 76 帧起 fallen=true 且 gain=50；杀 sim 后 healthy=false、reason=["consecutive read errors: 26"]；2 秒 100 帧通知；10s 位移 0.682m。两遍数值略有差异（FakeIo 漂移与 MuJoCo 起步时序），全部在阈值内。
 
-**回归**：`docker compose exec rust bash scripts/accept-m4.sh`（M5 加 enable 步骤后）复跑原文（2026-09-27）：
+**回归**：`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m04-b01.sh`（M5 加 enable 步骤后）复跑原文（2026-09-27）：
 
 ```text
 == 3b. enable（M5 起启动抱持不动，必须显式使能）==
@@ -78,23 +78,23 @@ PASS
 
 **破坏实验（教程第 5 节，写作时实测）**：
 
-1. deadman 收紧到 50ms（`src/safety.rs:52` 临时改值）：CLI 每 100ms 重发意图，观测到 obs twist 以 3 拍通/2 拍断抽搐——101 帧中 vx=0.15 的 49 帧、vx=0 的 52 帧；daemon 日志 5 秒 29 行 `intents stale 68ms > deadman 50ms (run 1) — twist zeroed`。deadman=100ms（恰等于重发间隔）时 101 帧仅 1 帧清零——竞态边缘偶发。实验后已改回 500ms 并重新 build。
-2. 策略输出注入 NaN（`src/control.rs` Driving 分支临时 `targets[3] = f64::NAN`）：Driving 期间每拍整包拒绝写 hold，51 帧位置逐位不变（冻结在 home）；日志限流节奏可见——run 1 / run 50 / run 100 三行。实验后已复原并重新 build，`cargo test` 35 passed 确认无损。
+1. deadman 收紧到 50ms（`impl/src/safety.rs:52` 临时改值）：CLI 每 100ms 重发意图，观测到 obs twist 以 3 拍通/2 拍断抽搐——101 帧中 vx=0.15 的 49 帧、vx=0 的 52 帧；daemon 日志 5 秒 29 行 `intents stale 68ms > deadman 50ms (run 1) — twist zeroed`。deadman=100ms（恰等于重发间隔）时 101 帧仅 1 帧清零——竞态边缘偶发。实验后已改回 500ms 并重新 build。
+2. 策略输出注入 NaN（`impl/src/control.rs` Driving 分支临时 `targets[3] = f64::NAN`）：Driving 期间每拍整包拒绝写 hold，51 帧位置逐位不变（冻结在 home）；日志限流节奏可见——run 1 / run 50 / run 100 三行。实验后已复原并重新 build，`cargo test` 35 passed 确认无损。
 
 ## 涉及代码文件清单
 
 | 文件 | 变动 |
 |---|---|
-| `src/safety.rs` | 新建（555 行含测试） |
-| `src/control.rs` | 五阶段状态机重写；Stats 扩账；FrameSnapshot 增安全字段 |
-| `src/io.rs` | trait +3 方法；quat/copy3 严格校验（D22）；FakeIo 记账字段 |
-| `src/main.rs` | D19 不退出；0660（D8）；enable/disable；health 真实判定（D11）；state 50Hz（D14） |
-| `src/bin/mini-duckctl.rs` | enable/disable；drive --secs 重发；state --every |
-| `sim/duck_body.py` | set_gain/set_torque/push；启动默认 torque on/gain=200；read 回显 |
-| `scripts/accept-m5.sh` | 新建，六项断言 |
-| `scripts/accept-m4.sh` | 加 enable 步骤 |
-| `docs/concepts/servo-gain-torque.md` | 新建概念深读 + `docs/concepts/assets/{servo-gain-torque,deadman}/` 两个演示脚本 |
-| `docs/milestones/m5-safety/{tutorial,acceptance}.md` | 本档案与教程章节 |
+| `impl/src/safety.rs` | 新建（555 行含测试） |
+| `impl/src/control.rs` | 五阶段状态机重写；Stats 扩账；FrameSnapshot 增安全字段 |
+| `impl/src/io.rs` | trait +3 方法；quat/copy3 严格校验（D22）；FakeIo 记账字段 |
+| `impl/src/main.rs` | D19 不退出；0660（D8）；enable/disable；health 真实判定（D11）；state 50Hz（D14） |
+| `impl/src/bin/mini-duckctl.rs` | enable/disable；drive --secs 重发；state --every |
+| `impl/sim/duck_body.py` | set_gain/set_torque/push；启动默认 torque on/gain=200；read 回显 |
+| `accept/m05-b01.sh` | 新建，六项断言 |
+| `accept/m04-b01.sh` | 加 enable 步骤 |
+| `book/concepts/servo-gain-torque.md` | 新建概念深读 + `book/concepts/figures/{servo-gain-torque,deadman}/` 两个演示脚本 |
+| `book/m05-safety/{tutorial,acceptance}.md` | 本档案与教程章节 |
 
 ## 偏差变动
 

@@ -5,7 +5,7 @@
 ## 验收命令
 
 ```bash
-docker compose exec rust bash scripts/accept-m9a-bite1.sh
+docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b01.sh
 # 脚本自带解释器探测：容器内 /opt/sim-venv/bin/python，宿主机回落仓内 .venv/bin/python
 ```
 
@@ -24,14 +24,14 @@ docker compose exec rust bash scripts/accept-m9a-bite1.sh
 
 | 文件 | 说明 |
 |---|---|
-| `sim/assets/duck_handmade.xml` | 自建身体 MJCF：15 body、14 hinge、14 position 执行器、10 碰撞盒（自建 AABB）+ 70 视觉网格 geom（官方 STL 照抄） |
-| `sim/assets/scene_handmade.xml` | 场景包装：地板/灯光/imu_gyro/STAND keyframe |
-| `sim/accept_m9a_bite1.py` | 验收核心（A–D 四组断言） |
-| `scripts/accept-m9a-bite1.sh` | 验收入口（SIM_PYTHON 可换容器 venv） |
-| `scripts/m9a_extract_official.py` | 官方模型数据提取一次性工具（惯量/AABB 数据来源） |
-| `sim/assets/PROVENANCE.md` | 资产来源台账（视觉 STL 的 CC BY-NC-SA 许可登记在此） |
-| `docs/deviations.md` | D26 标记已收敛 |
-| `assets/src/render_stand.py` + `assets/dst/handmade_stand.png` | STAND 渲染脚本与产物（视觉抽查） |
+| `impl/sim/assets/duck_handmade.xml` | 自建身体 MJCF：15 body、14 hinge、14 position 执行器、10 碰撞盒（自建 AABB）+ 70 视觉网格 geom（官方 STL 照抄） |
+| `impl/sim/assets/scene_handmade.xml` | 场景包装：地板/灯光/imu_gyro/STAND keyframe |
+| `impl/sim/accept_m9a_bite1.py` | 验收核心（A–D 四组断言） |
+| `accept/m09a-b01.sh` | 验收入口（SIM_PYTHON 可换容器 venv） |
+| `impl/scripts/m9a_extract_official.py` | 官方模型数据提取一次性工具（惯量/AABB 数据来源） |
+| `impl/sim/assets/PROVENANCE.md` | 资产来源台账（视觉 STL 的 CC BY-NC-SA 许可登记在此） |
+| `spec/deviations.md` | D26 标记已收敛 |
+| `figures/render_stand.py` + `figures/handmade_stand.png` | STAND 渲染脚本与产物（视觉抽查） |
 
 ## 与官方模型的残余差异（供偏差簿参考）
 

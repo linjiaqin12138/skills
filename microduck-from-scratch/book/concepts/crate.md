@@ -8,10 +8,10 @@
 
 | crate | 根文件 | 谁能 `use` 它 |
 |---|---|---|
-| 库 `miniduck` | `src/lib.rs` | 同包里的二进制、示例，以及以后别的项目 |
-| 二进制 `miniduckd` | `src/main.rs` | 不能被别人 `use`，只能运行 |
-| 二进制 `mini-duckctl` | `src/bin/mini-duckctl.rs` | 同上 |
-| 各个示例 | `examples/*.rs` | 同上，用 `cargo run --example ...` 跑 |
+| 库 `miniduck` | `impl/src/lib.rs` | 同包里的二进制、示例，以及以后别的项目 |
+| 二进制 `miniduckd` | `impl/src/main.rs` | 不能被别人 `use`，只能运行 |
+| 二进制 `mini-duckctl` | `impl/src/bin/mini-duckctl.rs` | 同上 |
+| 各个示例 | `impl/examples/*.rs` | 同上，用 `cargo run --example ...` 跑 |
 
 库内部写 `crate::io::RobotIo` 时，`crate` 就是当前这个库的根，也就是 `lib.rs`。所以 `policy.rs` 里的 `crate::obs::Observation` 指的是本库的 `obs` 模块。
 

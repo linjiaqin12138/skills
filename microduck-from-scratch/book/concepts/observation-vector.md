@@ -12,10 +12,10 @@ TypeScript 里最接近的东西是一个没有 key 的 `number[]`，下标就�
 
 ## 最小示例
 
-`examples/obs_layout.mjs` 用 15 个数模拟关节角。嘴在下标 9，策略不要它。跳过嘴之后，左髋多出来的 0.25 落在位置块第一格，嘴张开的 1.0 不出现。不跳过的话，1.0 会占住下一格，后面的关节全体串一位。
+`impl/examples/obs_layout.mjs` 用 15 个数模拟关节角。嘴在下标 9，策略不要它。跳过嘴之后，左髋多出来的 0.25 落在位置块第一格，嘴张开的 1.0 不出现。不跳过的话，1.0 会占住下一格，后面的关节全体串一位。
 
 ```bash
-node examples/obs_layout.mjs
+node impl/examples/obs_layout.mjs
 ```
 
 实测输出：
@@ -31,11 +31,11 @@ node examples/obs_layout.mjs
 
 ## 素材
 
-这条布局没有通用科普视频。它是 microduck 策略的输入契约，对照在 `reference/duck-control/src/obs.rs` 文件头的那张表。
+这条布局没有通用科普视频。它是 microduck 策略的输入契约，对照在 `upstream/duck-control/src/obs.rs` 文件头的那张表。
 
 ## 回到项目
 
-拼装发生在 `src/obs.rs` 的 `Observation::build`。嘴的跳过只写在 `joint_of`（`src/obs.rs:51`），读关节和 `scatter_action` 都走它。
+拼装发生在 `impl/src/obs.rs` 的 `Observation::build`。嘴的跳过只写在 `joint_of`（`impl/src/obs.rs:51`），读关节和 `scatter_action` 都走它。
 
 ## 自测
 

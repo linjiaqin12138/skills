@@ -190,16 +190,16 @@ p_daemon: "进程 2：miniduckd（守护进程）" {
 # ---------- 进程 3：仿真体 ----------
 p_sim: "进程 3：duck_body.py（MuJoCo 仿真体）" {
   class: procbox
-  body: "duck_body.py\n(sim/duck_body.py)\nTCP 服务器，NDJSON op 帧\nread = 步进 20ms 物理\n回 15 关节位置/速度 + IMU\n+ body_pos + gain/torque 回显\npush = 躯干 qvel 扰动\n模型资产：sim/assets/" {
+  body: "duck_body.py\n(impl/sim/duck_body.py)\nTCP 服务器，NDJSON op 帧\nread = 步进 20ms 物理\n回 15 关节位置/速度 + IMU\n+ body_pos + gain/torque 回显\npush = 躯干 qvel 扰动\n模型资产：impl/sim/assets/" {
     class: sim
   }
 }
 
 # ---------- 外部资源 ----------
-onnx: "policies/ 五份权重\nvelstand / alpha_sitstand\nalpha_ground_pick\nroulade / ball_kick_left" {
+onnx: "impl/policies/ 五份权重\nvelstand / alpha_sitstand\nalpha_ground_pick\nroulade / ball_kick_left" {
   class: ext
 }
-ort: "ONNX Runtime\nlibonnxruntime.so\n（third_party/onnxruntime，\nORT_DYLIB_PATH 指向）" {
+ort: "ONNX Runtime\nlibonnxruntime.so\n（impl/third_party/onnxruntime，\nORT_DYLIB_PATH 指向）" {
   class: ext
 }
 

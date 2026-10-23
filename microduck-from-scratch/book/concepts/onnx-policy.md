@@ -21,11 +21,11 @@ velstand 是 feed-forward（1 入 1 出），不是 LSTM。同输入同输出；
 
 ## 最小示例
 
-不经过 `src/policy.rs`，只打开权重文件看契约并推理一次：
+不经过 `impl/src/policy.rs`，只打开权重文件看契约并推理一次：
 
 ```bash
-export ORT_DYLIB_PATH=third_party/onnxruntime/lib/libonnxruntime.so
-docker compose exec -e ORT_DYLIB_PATH=/work/third_party/onnxruntime/lib/libonnxruntime.so \
+export ORT_DYLIB_PATH=impl/third_party/onnxruntime/lib/libonnxruntime.so
+docker compose -f impl/docker-compose.yml exec -e ORT_DYLIB_PATH=/work/impl/third_party/onnxruntime/lib/libonnxruntime.so \
   rust cargo run --example ex_onnx_session
 ```
 
@@ -51,10 +51,10 @@ all_finite: true
 
 ## 回到项目
 
-- 打开、校验、warmup：`Policy::load`（`src/policy.rs:85-144`）
-- 每拍前向：`Policy::infer`（`src/policy.rs:147-193`）
-- 维数常量：`OBS_LEN` / `ACTION_LEN`（`src/obs.rs:10-11`）
-- 动作铺到关节并缩放低通：`apply_action`（`src/control.rs:59-86`）
+- 打开、校验、warmup：`Policy::load`（`impl/src/policy.rs:85-144`）
+- 每拍前向：`Policy::infer`（`impl/src/policy.rs:147-193`）
+- 维数常量：`OBS_LEN` / `ACTION_LEN`（`impl/src/obs.rs:10-11`）
+- 动作铺到关节并缩放低通：`apply_action`（`impl/src/control.rs:59-86`）
 
 `policy.rs` 里有 LSTM 状态分支（3 入 3 出）。velstand 是 1 入 1 出，`state` 为 `None`，那条路径当前不执行。现在不要顺着它学；见偏差 D20。
 

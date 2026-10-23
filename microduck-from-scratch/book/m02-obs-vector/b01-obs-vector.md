@@ -1,6 +1,6 @@
 # 第 3 章 · M2：61 维观测向量
 
-> 本章对应里程碑 M2（Bite 3，已验收）。交付物：`src/obs.rs`，以及 `src/control.rs` / `src/main.rs` 把向量送进 `robot.state`。
+> 本章对应里程碑 M2（Bite 3，已验收）。交付物：`impl/src/obs.rs`，以及 `impl/src/control.rs` / `impl/src/main.rs` 把向量送进 `robot.state`。
 
 ## 1. 动机
 
@@ -15,7 +15,7 @@ M1 的控制循环每拍能读到传感器，但读到的是结构体：关节�
 - **一句话定义**：观测向量是策略的唯一输入，一条定长小数数组。下标就是协议，写错不会报错。
 - **为什么需要**：网络是按训练时的列顺序学的。部署时把「关节速度」填进「上一拍动作」那一列，前向计算照样返回 14 个数，看起来像一次成功的推理。
 - **和 TS 的差异**：对象多一个拼错的 key，类型检查会拦。`number[]` 多写一位，类型仍是 `number[]`。这里更像后者。另外训练分布是统计约束，不是 JSON Schema：数值合法，含义可以完全错。
-- **最小示例**：`node examples/obs_layout.mjs`。跳过嘴时，偏离 home 的 0.25 在第 7 格，嘴的 1.0 不出现。不跳过时，1.0 占据下一格。实测：
+- **最小示例**：`node impl/examples/obs_layout.mjs`。跳过嘴时，偏离 home 的 0.25 在第 7 格，嘴的 1.0 不出现。不跳过时，1.0 占据下一格。实测：
 
 ```text
 跳过嘴，前 8 维: 0,0,0,0,0,-1,0.25,0
@@ -37,9 +37,9 @@ M1 的控制循环每拍能读到传感器，但读到的是结构体：关节�
 | 34..48 | 14 | 上一拍动作，策略原始输出 |
 | 48..61 | 13 | 命令，见下 |
 
-命令块：`vx,vy,vyaw`（48..51），四个头关节（51..55），然后 body x、y 恒为 0（55..57），body z、roll、pitch（57..60），body yaw 恒为 0（60）。顺序是 z、roll、pitch。每个数拉动时机身怎么动，打开 [命令量示意](../../concepts/assets/command-motion/index.html)。
+命令块：`vx,vy,vyaw`（48..51），四个头关节（51..55），然后 body x、y 恒为 0（55..57），body z、roll、pitch（57..60），body yaw 恒为 0（60）。顺序是 z、roll、pitch。每个数拉动时机身怎么动，打开 [命令量示意](../../concepts/figures/command-motion/index.html)。
 
-前 6 维（陀螺仪 + 重力方向）随姿态怎么动——为什么"停住但已经歪了"时 gyro 全 0 而 gravity 不归零、原地转圈时刚好相反——动手玩 [IMU 演示网页](../../concepts/assets/imu/index.html) 最直观。
+前 6 维（陀螺仪 + 重力方向）随姿态怎么动——为什么"停住但已经歪了"时 gyro 全 0 而 gravity 不归零、原地转圈时刚好相反——动手玩 [IMU 演示网页](../../concepts/figures/imu/index.html) 最直观。
 
 ### 【决策卡片】关节角先减 home
 
@@ -59,18 +59,18 @@ M1 的控制循环每拍能读到传感器，但读到的是结构体：关节�
 
 ## 3. 实现走读
 
-`joint_of`（`src/obs.rs:51`）是嘴的唯一映射：策略槽小于 9 时关节下标相同，大于等于 9 时关节下标加 1。位置、速度、home 的抽取和 `scatter_action`（`src/obs.rs:124`）都调用它。两套映射会让嘴后面的关节集体错一格，而且类型系统看不出来。
+`joint_of`（`impl/src/obs.rs:51`）是嘴的唯一映射：策略槽小于 9 时关节下标相同，大于等于 9 时关节下标加 1。位置、速度、home 的抽取和 `scatter_action`（`impl/src/obs.rs:124`）都调用它。两套映射会让嘴后面的关节集体错一格，而且类型系统看不出来。
 
-`build`（`src/obs.rs:75`）按命名常量往 `[f32; 61]` 里填。位置块是「策略关节 − home 的策略关节」（`src/obs.rs:90-94`），不是绝对角。`last_action` 已经是 `f32`，直接拷贝（`src/obs.rs:102`）。body x/y 和 yaw 不读调用方，字面量写 0（`src/obs.rs:111-117`）。`BodyPose` 上根本没有 x/y/yaw 字段（`src/obs.rs:42`），避免有人以为传了就会生效。
+`build`（`impl/src/obs.rs:75`）按命名常量往 `[f32; 61]` 里填。位置块是「策略关节 − home 的策略关节」（`impl/src/obs.rs:90-94`），不是绝对角。`last_action` 已经是 `f32`，直接拷贝（`impl/src/obs.rs:102`）。body x/y 和 yaw 不读调用方，字面量写 0（`impl/src/obs.rs:111-117`）。`BodyPose` 上根本没有 x/y/yaw 字段（`impl/src/obs.rs:42`），避免有人以为传了就会生效。
 
-控制循环在 read 成功后调用 `build`（`src/control.rs:129`）。这一章没有策略，所以上一拍动作是全 0，命令是 `Command::default()`。不在循环里留一个永不写入的 `last_action` 变量：那样读代码的人会以为动作已经在闭环里。电机目标仍走 M1 的 `ramp_target`。
+控制循环在 read 成功后调用 `build`（`impl/src/control.rs:129`）。这一章没有策略，所以上一拍动作是全 0，命令是 `Command::default()`。不在循环里留一个永不写入的 `last_action` 变量：那样读代码的人会以为动作已经在闭环里。电机目标仍走 M1 的 `ramp_target`。
 
-快照经 watch 送到 RPC。`robot.state` 在原有 `tick` 和 `positions` 之外加上 `imu` 和 `obs`（`src/main.rs:128`、`src/main.rs:133`），频率仍是 1 Hz。读失败时不发新快照（`src/control.rs:113-122`）：本拍没有样本，watch 里留着上一帧成功的数据，订阅端会重复那一帧，而不是收到一帧空观测。
+快照经 watch 送到 RPC。`robot.state` 在原有 `tick` 和 `positions` 之外加上 `imu` 和 `obs`（`impl/src/main.rs:128`、`impl/src/main.rs:133`），频率仍是 1 Hz。读失败时不发新快照（`impl/src/control.rs:113-122`）：本拍没有样本，watch 里留着上一帧成功的数据，订阅端会重复那一帧，而不是收到一帧空观测。
 
 ## 4. 验收
 
 ```bash
-docker compose exec rust cargo test
+docker compose -f impl/docker-compose.yml exec rust cargo test
 ```
 
 11 passed，0 failed。和布局直接相关的五条：宽度之和为 61；用一组互不相同的数钉住每个块的起点；站在 home 上位置块约为 0；只动嘴，位置块不变；`scatter_action` 让嘴保持 0，下标 10 的关节拿到策略的第 10 个数。

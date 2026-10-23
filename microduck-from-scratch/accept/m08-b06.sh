@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # M8 Bite 6 物理验收：BAM + groundcontact 下站立 / 行走 / sit / roulade。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m8-bam.sh
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b06.sh
 # 全程在容器内跑。sim 端口 7806（避开 accept-m4/m5/m6/bam-diag 的 7801–7805）。
 #
 # 仿真进程：/opt/sim-venv/bin/python（或 SIM_PYTHON）；系统 python3.11 无 bam。
@@ -19,7 +19,7 @@
 #            裁决（实测）：窗口内允许短暂 fallen（前滚翻中段躯干贴地），
 #            结束后 2s 内必须 upright：skill=walk、z>0.08、fallen=false、gain=200。
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 SIM_PORT=7806
 SIM_ADDR=127.0.0.1:$SIM_PORT

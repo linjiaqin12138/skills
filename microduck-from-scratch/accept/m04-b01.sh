@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # M4 验收：sim 行走。一键可重跑。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m4.sh
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m04-b01.sh
 # 全程在容器内跑：sim（MuJoCo）、miniduckd --sim、mini-duckctl 都只见
 # 127.0.0.1，不需要跨容器网络。容器里已有 ORT_DYLIB_PATH。
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 SIM_ADDR=127.0.0.1:7801
 SIM_PID=""

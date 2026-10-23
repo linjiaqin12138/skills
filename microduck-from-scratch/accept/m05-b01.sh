@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # M5 验收：安全层。一键可重跑。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m5.sh
-# 全程在容器内跑。与 accept-m4.sh 错开端口（7803），socket 同一文件
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m05-b01.sh
+# 全程在容器内跑。与 accept/m04-b01.sh 错开端口（7803），socket 同一文件
 # （同一时刻只跑一个 daemon，阶段间杀掉再起）。
 #
 # 六项断言：
@@ -13,7 +13,7 @@
 #   5. robot.state 50Hz：2 秒 ≥90 帧通知
 #   6. 行走回归：move 10s 位移 ≥0.5m
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 SIM_PORT=${MINIDUCK_SIM_PORT:-7803}
 SIM_ADDR=127.0.0.1:$SIM_PORT

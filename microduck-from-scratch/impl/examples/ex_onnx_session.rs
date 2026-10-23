@@ -3,7 +3,7 @@
 //!
 //! ```bash
 //! export ORT_DYLIB_PATH=third_party/onnxruntime/lib/libonnxruntime.so
-//! docker compose exec rust cargo run --example ex_onnx_session
+//! docker compose -f impl/docker-compose.yml exec rust cargo run --example ex_onnx_session
 //! ```
 
 use ort::session::Session;

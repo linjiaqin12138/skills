@@ -2,8 +2,8 @@
 
 用法（容器内）：
     MUJOCO_GL=osmesa /opt/sim-venv/bin/python \
-        docs/milestones/m9a-handmade-mjcf/assets/src/render_stand.py
-产物：docs/milestones/m9a-handmade-mjcf/assets/dst/handmade_stand.png
+        book/m09a-handmade-mjcf/figures/render_stand.py
+产物：book/m09a-handmade-mjcf/figures/handmade_stand.png
 """
 import os
 

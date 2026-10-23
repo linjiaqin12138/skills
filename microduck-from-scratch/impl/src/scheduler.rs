@@ -1,7 +1,7 @@
 //! 技能调度器（M6）：多策略优先级链。
 //!
 //! 原版没有独立的调度器对象——调度是控制循环里每拍的一段 if-else 级联
-//!（reference/robotd/src/control.rs:483-539）。我们把它收进本模块，是为了让
+//!（upstream/robotd/src/control.rs:483-539）。我们把它收进本模块，是为了让
 //! 优先级、command 重编码、窗口计时可以在 `cargo test` 里脱离 ONNX 直接断言：
 //! `Cascade` 是纯状态机（不碰策略文件），`Scheduler` 在它外面裹上各槽位的
 //! `Policy` 实例。
@@ -9,7 +9,7 @@
 //! 优先级链（对齐原版）：
 //!   一次性技能（窗口未到期） > ground_pick（跑满周期相位） > sit/rise > walk
 //!
-//! "技能"的全部含义 = 换网络 + 重编码 command 块（reference/duck-control/src/
+//! "技能"的全部含义 = 换网络 + 重编码 command 块（upstream/duck-control/src/
 //! policy.rs:6-8：所有网络共享同一个 61 维观测布局，差异只在 command 块）。
 //!
 //! 刻意不做的（偏差簿）：chain/unwind 窗口、ground_pick 的 end_phase 提前交还
@@ -23,7 +23,7 @@ use crate::policy::{Policy, PolicyError};
 
 /// 技能请求边沿位掩码的位分配：bit0=ground_pick、bit1=sit_toggle、
 /// bit(2+i)=配置技能 i。与原版 intents.rs 的 SkillRequests 同构
-///（reference/robotd/src/intents.rs:105-117：位掩码而非队列——同拍两个
+///（upstream/robotd/src/intents.rs:105-117：位掩码而非队列——同拍两个
 /// 不同请求都该被看到，优先级顺序决定谁先）。
 pub const EDGE_GROUND_PICK: u32 = 1 << 0;
 pub const EDGE_SIT_TOGGLE: u32 = 1 << 1;
@@ -42,7 +42,7 @@ pub fn request_bit(name: &str) -> Option<u32> {
 }
 
 /// robot.do 的门口裁决（M8-B10，D36），判定顺序与文案逐字对齐原版
-/// dispatch（reference/robotd/src/main.rs:4196-4217）：
+/// dispatch（upstream/robotd/src/main.rs:4196-4217）：
 ///
 /// 1. 未 enable → 拒绝（:4196-4200；原文 "the policy is not driving —
 ///    press Start on the pad"，原版只有 pad 能 Start，我们没有 pad 也照抄
@@ -78,16 +78,16 @@ pub fn do_verdict(enabled: bool, homed: bool, name: &str, known: &[&str]) -> Res
 
 /// 一个一次性技能的静态配置。Vec 顺序就是优先级（原版注释："Order is
 /// priority, replacing the hardcoded roulade > kick precedence"，
-/// reference/robotd-params/src/lib.rs:1326）。
+/// upstream/robotd-params/src/lib.rs:1326）。
 pub struct SkillDef {
     /// robot.do {skill: "..."} 请求用的名字。
     pub name: &'static str,
     /// onnx 文件名（相对策略目录）。kick 的文件名是训练 run 名而非角色名
-    /// （reference/robotd-params/src/lib.rs:1312-1317 的注释专门解释了这个坑）。
+    /// （upstream/robotd-params/src/lib.rs:1312-1317 的注释专门解释了这个坑）。
     pub file: &'static str,
     /// 窗口长度（50Hz 拍数）。roulade 2.0s / kick 0.5s
     /// （roulade 对齐官方 infer_policy --roulade-duration 默认 2.0s；
-    /// kick 仍 reference/robotd-params/src/lib.rs:1318）。
+    /// kick 仍 upstream/robotd-params/src/lib.rs:1318）。
     pub duration_ticks: u64,
 }
 
@@ -106,14 +106,14 @@ pub const SKILLS: [SkillDef; 2] = [
     },
 ];
 
-/// ground_pick 周期 4.0s（reference/robotd/src/control.rs:105
+/// ground_pick 周期 4.0s（upstream/robotd/src/control.rs:105
 /// SkillTuning::default ground_pick_period）。
 pub const GROUND_PICK_PERIOD_TICKS: u64 = 200; // 4.0s × 50Hz
-/// 跑到周期相位的 0.7 交还（reference/robotd-params/src/lib.rs:1256
+/// 跑到周期相位的 0.7 交还（upstream/robotd-params/src/lib.rs:1256
 /// DEFAULT_GROUND_PICK_END_PHASE；D29：无 end_phase 之外的提前交还形态）。
 pub const GROUND_PICK_END_TICKS: u64 = 140; // 0.7 × 200
 
-/// 起身过程时长 1.0s（reference/robotd-params/src/lib.rs:1259
+/// 起身过程时长 1.0s（upstream/robotd-params/src/lib.rs:1259
 /// DEFAULT_SITSTAND_RISE_S）。
 pub const SIT_RISE_TICKS: u64 = 50; // 1.0s × 50Hz
 
@@ -121,15 +121,15 @@ pub const SIT_RISE_TICKS: u64 = 50; // 1.0s × 50Hz
 /// ACTION_SCALE；原型 alpha 默认 0.9，不是 standing 的 1.0）。
 pub const WALK_ACTION_SCALE: f64 = 0.9;
 /// sitstand 槽 action_scale：原版 start_sit_toggle 把整个坐/起周期钉在 1.0
-///（reference/robotd/src/control.rs:582-584 注释）。
+///（upstream/robotd/src/control.rs:582-584 注释）。
 pub const SITSTAND_ACTION_SCALE: f64 = 1.0;
-/// ground_pick 槽 action_scale（reference/robotd/src/control.rs:107
+/// ground_pick 槽 action_scale（upstream/robotd/src/control.rs:107
 /// SkillTuning::default ground_pick_action_scale）。
 pub const GROUND_PICK_ACTION_SCALE: f64 = 1.0;
 /// 配置技能槽 action_scale：原版 SkillOverrides 默认 None → 回落到站姿
 /// tuning；技能 command 全零 → standing_tuned 成立 → standing_action_scale=1.0
-///（reference/robotd/src/control.rs:560-578；默认值在
-/// reference/robotd-params/src/lib.rs:1749）。
+///（upstream/robotd/src/control.rs:560-578；默认值在
+/// upstream/robotd-params/src/lib.rs:1749）。
 pub const SKILL_ACTION_SCALE: f64 = 1.0;
 
 /// 网络槽位。
@@ -163,7 +163,7 @@ struct ActiveSkill {
     remaining_ticks: u64,
 }
 
-/// 坐姿锁存（reference/robotd/src/control.rs:227-230：锁存在控制器里，
+/// 坐姿锁存（upstream/robotd/src/control.rs:227-230：锁存在控制器里，
 /// 直到下次 toggle）。Sitting 不算 busy——坐着的机器人是停驻，不是行进。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Sit {
@@ -200,7 +200,7 @@ impl Cascade {
     }
 
     /// busy = 脚本动作在飞：ground_pick / 一次性技能 / 起身中。
-    ///（reference/robotd/src/control.rs:318-322）。M6 用它抑制 Driving→Limp
+    ///（upstream/robotd/src/control.rs:318-322）。M6 用它抑制 Driving→Limp
     /// 转移（原版门的是 FallPredictor，简化见偏差 D32）。坐着不算 busy。
     pub fn busy(&self) -> bool {
         self.ground_pick_ticks.is_some()
@@ -219,7 +219,7 @@ impl Cascade {
     }
 
     /// 处理一拍取到的技能请求边沿（每拍取一次清零，取在 control.rs）。
-    /// 顺序对齐原版（reference/robotd/src/main.rs:2182-2208）：
+    /// 顺序对齐原版（upstream/robotd/src/main.rs:2182-2208）：
     /// ground_pick → sit_toggle → 配置技能按优先级（表序）。
     ///
     /// 抢占简化（偏差 D29）：技能/ground_pick 运行中拒绝新技能/ground_pick
@@ -252,7 +252,7 @@ impl Cascade {
                         remaining_ticks: SIT_RISE_TICKS,
                     };
                 }
-                // 起身途中拒绝 toggle（原版同：reference/robotd/src/control.rs:391-393）。
+                // 起身途中拒绝 toggle（原版同：upstream/robotd/src/control.rs:391-393）。
                 Sit::Rising { .. } => eprintln!("scheduler: sit_toggle refused: already rising"),
             }
         }
@@ -278,7 +278,7 @@ impl Cascade {
     }
 
     /// 一拍调度：先到期的窗口先交还（"到期后的那一拍跑下一个东西而不是
-    /// 多跑一帧已结束的动作"，reference/robotd/src/control.rs:437-440），
+    /// 多跑一帧已结束的动作"，upstream/robotd/src/control.rs:437-440），
     /// 然后按优先级链选网并重编码 command。窗口倒计时在 advance() 里做
     ///（用过本拍之后再推进，与原版"电机写完后推进相位"同序）。
     pub fn step(&mut self, client: &Command) -> Decision {
@@ -300,12 +300,12 @@ impl Cascade {
 
         let (net, command, action_scale) = if let Some(active) = self.active_skill {
             // 一次性技能窗口内：twist/head/body 全清零——这些网络的训练环境
-            // 是 zero_command_padding（reference/robotd/src/control.rs:485-495）。
+            // 是 zero_command_padding（upstream/robotd/src/control.rs:485-495）。
             // roulade 与 kick 的 command 都是全零
-            //（reference/robotd-params/src/lib.rs:1320,1334）。
+            //（upstream/robotd-params/src/lib.rs:1320,1334）。
             (Net::Skill(active.index), Command::default(), SKILL_ACTION_SCALE)
         } else if let Some(t) = self.ground_pick_ticks {
-            // twist 槽载周期相位编码（reference/robotd/src/control.rs:497-505）；
+            // twist 槽载周期相位编码（upstream/robotd/src/control.rs:497-505）；
             // head/body 清零，同训练环境的 zero_command_padding。
             let phase = t as f64 / GROUND_PICK_PERIOD_TICKS as f64;
             let angle = std::f64::consts::TAU * phase;
@@ -317,14 +317,14 @@ impl Cascade {
         } else {
             match self.sit {
                 Sit::Sitting => {
-                    // 姿态标志搭在 twist 的 vx 槽：1=坐（reference/robotd/src/
+                    // 姿态标志搭在 twist 的 vx 槽：1=坐（upstream/robotd/src/
                     // control.rs:511-516）。head/body 保持客户端活值。
                     let mut c = *client;
                     c.twist = [1.0, 0.0, 0.0];
                     (Net::SitStand, c, SITSTAND_ACTION_SCALE)
                 }
                 Sit::Rising { .. } => {
-                    // 起身过程 twist 全零（reference/robotd/src/control.rs:517-520）。
+                    // 起身过程 twist 全零（upstream/robotd/src/control.rs:517-520）。
                     let mut c = *client;
                     c.twist = [0.0; 3];
                     (Net::SitStand, c, SITSTAND_ACTION_SCALE)
@@ -360,7 +360,7 @@ impl Cascade {
 
     /// 忘掉活跃网选择：下一拍按换网处理（新 episode 从头开始）。
     /// 对应原版 PolicySet 的 active=None（推理失败路径
-    /// reference/duck-control/src/policy.rs:362-365、reset :415-416）。
+    /// upstream/duck-control/src/policy.rs:362-365、reset :415-416）。
     fn forget_active_net(&mut self) {
         self.last_net = None;
     }
@@ -426,7 +426,7 @@ impl Scheduler {
     }
 
     /// robot.skills 的名单：内置两个（ground_pick、sit_toggle）在前，配置技能
-    /// 在后——顺序对齐原版 do_names（reference/robotd/src/main.rs:4262-4273）。
+    /// 在后——顺序对齐原版 do_names（upstream/robotd/src/main.rs:4262-4273）。
     /// 内置两个不是配置表条目但必须在名单里，这是原版实测踩过的坑
     ///（main.rs:4255-4261 注释：pad.bindings 曾因此拒掉五个绑定里的两个）。
     /// 只列加载成功的槽。
@@ -470,10 +470,10 @@ impl Scheduler {
 
     /// 清空所有已加载槽的 LSTM 状态：disable 结束 recurrent episode
     ///（原版 was_driving && !driving && !enabled 边沿的 controller.reset()，
-    /// reference/robotd/src/main.rs:2791-2793）。Cascade 的窗口/坐姿锁存
+    /// upstream/robotd/src/main.rs:2791-2793）。Cascade 的窗口/坐姿锁存
     /// 不动——它们不是 episode 记忆，且非 Driving 阶段不推进；活跃网选择
     /// 清零（原版 PolicySet::reset 的 active=None，
-    /// reference/duck-control/src/policy.rs:415-427），enable 回来的第一拍
+    /// upstream/duck-control/src/policy.rs:415-427），enable 回来的第一拍
     /// 按换网处理（幂等：reset 已清零，再清一次无代价）。
     pub fn reset(&mut self) {
         self.cascade.forget_active_net();
@@ -517,8 +517,8 @@ impl Scheduler {
     }
 
     /// 在 decision 选中的网络上推理。换网即 reset 新网络的 LSTM 状态
-    ///（reference/duck-control/src/policy.rs:350-360）；last_action 与低通
-    /// 锚点不归这里管，跨切换保留（reference/robotd/src/control.rs:211-214）。
+    ///（upstream/duck-control/src/policy.rs:350-360）；last_action 与低通
+    /// 锚点不归这里管，跨切换保留（upstream/robotd/src/control.rs:211-214）。
     /// 推理失败也 reset 该网络并忘掉活跃选择（原版 :361-365：
     /// 失败的推理状态绝不带进下一拍，下一拍按换网处理）。
     pub fn infer(
@@ -571,7 +571,7 @@ mod tests {
 
     /// disable 的 policy reset 覆盖所有已加载槽（原版 controller.reset()
     /// 结束整个 recurrent episode，不只是当前活跃网，
-    /// reference/robotd/src/main.rs:2791-2793）。
+    /// upstream/robotd/src/main.rs:2791-2793）。
     #[test]
     fn reset_clears_every_loaded_slot() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("policies");
@@ -788,7 +788,7 @@ mod tests {
     }
 
     /// D36：门口裁决 gate 的是 enabled 与 homed（原版 dispatch 的两种
-    /// 情形拒绝，reference/robotd/src/main.rs:4196-4204），fallen 不是
+    /// 情形拒绝，upstream/robotd/src/main.rs:4196-4204），fallen 不是
     /// 入参——原版单测 :5771-5785 断言 fallen=true 仍 accepted 且入队。
     /// 我们的 Limp（fallen 软倒）期间 enabled/homed 皆 true，即下面
     /// 第一个分支：照收，丢弃是控制循环的事（control.rs
@@ -947,7 +947,7 @@ mod tests {
     }
 
     /// 推理失败即 reset 该网络，且忘掉活跃选择——下一拍按换网处理
-    ///（原版 PolicySet::infer 失败路径，reference/duck-control/src/policy.rs:361-365）。
+    ///（原版 PolicySet::infer 失败路径，upstream/duck-control/src/policy.rs:361-365）。
     #[test]
     fn failed_inference_resets_the_network() {
         let Some(mut s) = load_scheduler() else { return };

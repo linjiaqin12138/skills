@@ -4,15 +4,15 @@
 
 ## 交付
 
-- `src/obs.rs`：`Observation::build` / `scatter_action`，命名偏移，嘴的映射只有 `joint_of`
-- `src/control.rs`：每拍成功 read 后组观测，`FrameSnapshot` 经 watch 送出。电机目标仍是插值。`last_action` 与 `Command` 传零
-- `src/main.rs`：`robot.state` 增加 `imu` 与 `obs`，仍 1 Hz
-- `src/lib.rs`：`pub mod obs`
-- `examples/obs_layout.mjs`：概念示例，不是收敛对照项
+- `impl/src/obs.rs`：`Observation::build` / `scatter_action`，命名偏移，嘴的映射只有 `joint_of`
+- `impl/src/control.rs`：每拍成功 read 后组观测，`FrameSnapshot` 经 watch 送出。电机目标仍是插值。`last_action` 与 `Command` 传零
+- `impl/src/main.rs`：`robot.state` 增加 `imu` 与 `obs`，仍 1 Hz
+- `impl/src/lib.rs`：`pub mod obs`
+- `impl/examples/obs_layout.mjs`：概念示例，不是收敛对照项
 
 ## 验收实测
 
-`docker compose exec rust cargo test`：11 passed, 0 failed。新增 5 个 obs 测试（宽度、六块边界、home 相对角为 0、嘴不进观测、scatter 跳过嘴）。
+`docker compose -f impl/docker-compose.yml exec rust cargo test`：11 passed, 0 failed。新增 5 个 obs 测试（宽度、六块边界、home 相对角为 0、嘴不进观测、scatter 跳过嘴）。
 
 站稳后 `mini-duckctl subscribe` 的一帧（tick=200）：
 

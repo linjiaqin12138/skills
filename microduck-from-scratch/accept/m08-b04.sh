@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # M8-C1 updater 验收：apply 预检 robot.safeToRestart / robot.modelApi。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m8-updater.sh
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b04.sh
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 ROOT=/tmp/m8-updater-demo
 UPDSOCK=/tmp/mini-updaterd.sock
 DUCKSOCK=/tmp/miniduckd.sock
 export MINIDUCK_UPDATER_ROOT=$ROOT
 export MINIDUCK_UPDATER_GATE_MS=4000
-export MINIDUCK_POLICY=/work/policies/velstand.onnx
+export MINIDUCK_POLICY=$PWD/policies/velstand.onnx
 export MINIDUCK_UPDATER_SOCK=$UPDSOCK
 
 PASS=0
@@ -174,7 +174,7 @@ wait_health 15 || fatal "升级后 daemon 不健康"
 
 echo
 echo "===== 场景：daemon 不可达时 apply 不被 model_api 拒（D65）====="
-# 原版语义（reference/updater/src/policy.rs:1026-1039）：model_api 未知
+# 原版语义（upstream/updater/src/policy.rs:1026-1039）：model_api 未知
 # （None）= 兼容，只在已知版本不匹配时才拒。杀掉 daemon 让两个预检都
 # 拿到不可达/None，apply 1.0.0 应照常走完：swap + respawn + 健康门 → committed。
 pkill -9 -x miniduckd; sleep 0.5

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # M8 验收：接口对齐。一键可重跑。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m8.sh
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m08-b01.sh
 # 全程在容器内跑。FakeIo（miniduckd 无 --sim 即 FakeIo，不需要仿真），
 # socket 同一文件（同一时刻只跑一个 daemon）。
 #
@@ -59,7 +59,7 @@
 #   IMU/gravity 注入面，fallen 诱发不了；该路径由单测覆盖
 #   （edges_when_driving / phase_homed / do_verdict，见 z2 处注释）。
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 DAEMON_PID=""
 
@@ -79,7 +79,7 @@ sleep 1
 
 # 全部断言在一条连接上按时间线走完（notification 语义要看帧间关系，
 # 分段重连反而说不清）。发帧用 python3 裸 socket——mini-duckctl 只会发
-# 请求式帧，发不了无 id 通知（与 accept-m5.sh 的 python 助手同款做法）。
+# 请求式帧，发不了无 id 通知（与 accept/m05-b01.sh 的 python 助手同款做法）。
 python3 - <<'PY'
 import json, socket, time
 
@@ -259,7 +259,7 @@ print(f"i. enable on → {res['reason']!r}，推送 enabled=true  OK")
 
 # ── 断言 z5：斜坡途中（未 homed）robot.do → 拒绝，原版文案 ──
 # D36 只放开 fallen/Limp；门口仍按情形拒 !enabled/!homed（原版
-# reference/robotd/src/main.rs:4196-4204）。此刻处于 RampUp（100 拍=2s）
+# upstream/robotd/src/main.rs:4196-4204）。此刻处于 RampUp（100 拍=2s）
 # 窗口内，homed=false。时间线要求此断言只能在 i 之后、斜坡结束前跑，
 # 故编号在 z 段而位置在这里。
 send({"jsonrpc": "2.0", "id": 28, "method": "robot.do", "params": {"skill": "kick_left"}})
@@ -468,7 +468,7 @@ print("z1. Driving 中 do kick_left → accepted 且推送 skill=kick_left→wal
 
 # ── 断言 z2：Stopped（未 enable）中 robot.do → 拒绝，原版文案 ──
 # D36 只放开 fallen/Limp：enabled=false 仍在门口拒绝（原版
-# reference/robotd/src/main.rs:4196-4200）。「Limp 中 do accepted:true
+# upstream/robotd/src/main.rs:4196-4200）。「Limp 中 do accepted:true
 # 但静默丢」的端到端断言 FakeIo 做不了——FakeIo 无 IMU/gravity 注入面
 #（src/io.rs:142-187，read 恒报直立重力 [0,0,-1]），fallen 诱发不了；
 # 该路径维持单测覆盖（control.rs edges_when_driving 的 Limp 分支 +
@@ -521,7 +521,7 @@ print("M8 断言 a–w + z1–z5 全部通过")
 PY
 RC=$?
 
-# ── 断言 x/y：D24 读失败滑行（COAST_TICKS=3，reference/robotd/src/main.rs:137）──
+# ── 断言 x/y：D24 读失败滑行（COAST_TICKS=3，upstream/robotd/src/main.rs:137）──
 # 重启 daemon 注入一次性中途连挂。MINIDUCK_FAKE_FAIL_AFTER=300:k：
 # 前 300 次 read 正常（enable+斜坡 ~165 次，进入 Driving 后 ~2.8s 爆发），
 # 之后连挂 k 次。帧流在 Driving 中采 4s，覆盖爆发与恢复。

@@ -48,7 +48,7 @@ same input 1, notepad starts at 0:
 
 ## 回到项目
 
-`src/policy.rs:105-130` 数的是 **图上有几块命名张量**，不是 `obs` 里面那 61 个数。
+`impl/src/policy.rs:105-130` 数的是 **图上有几块命名张量**，不是 `obs` 里面那 61 个数。
 
 | 输入块数, 输出块数 | 判定 | velstand |
 |---|---|---|
@@ -56,7 +56,7 @@ same input 1, notepad starts at 0:
 | 3, 3 | 带便签。输入 `obs` / `h_in` / `c_in`，输出 `actions` / `h_out` / `c_out` | 不会走到 |
 | 其他 | load 直接报错 | 不会走到 |
 
-`h` 是露出给外面的那张便签，`c` 是内部传送带。下一拍调用方把 `h_out`、`c_out` 抄回 `h_in`、`c_in`（`src/policy.rs:158-165` 和 `:180-189`）。velstand 的 `state` 是 `None`，推理只塞 `obs`。
+`h` 是露出给外面的那张便签，`c` 是内部传送带。下一拍调用方把 `h_out`、`c_out` 抄回 `h_in`、`c_in`（`impl/src/policy.rs:158-165` 和 `:180-189`）。velstand 的 `state` 是 `None`，推理只塞 `obs`。
 
 ## 自测
 

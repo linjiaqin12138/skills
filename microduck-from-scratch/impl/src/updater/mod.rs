@@ -1,7 +1,7 @@
-//! mini-updaterd 的核心库：M7 对原版 `reference/updater/` 的迷你复刻。
+//! mini-updaterd 的核心库：M7 对原版 `upstream/updater/` 的迷你复刻。
 //!
-//! 设计对照 `reference/docs/design/updater-design.md`，代码全部从零写。
-//! 砍掉的机制（登记在 docs/deviations.md D37–D41）：systemd（改为直接
+//! 设计对照 `upstream/docs/design/updater-design.md`，代码全部从零写。
+//! 砍掉的机制（登记在 spec/deviations.md D37–D41）：systemd（改为直接
 //! spawn/kill miniduckd 子进程）、minisign 验签（只 sha256）、GitHub/HF
 //! 网络源（只 LocalDir）、hooks/orphan 检查/transcript/Degraded 裁决/
 //! subscribe 推送/self-update、allow_uids/allow_gids（SO_PEERCRED 缩为

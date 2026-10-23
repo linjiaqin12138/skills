@@ -1,6 +1,6 @@
 //! mini-updaterd：M7 的迷你更新守护进程。
 //!
-//! 职责（对照 reference/docs/design/updater-design.md，偏差 D37–D41）：
+//! 职责（对照 upstream/docs/design/updater-design.md，偏差 D37–D41）：
 //! 崩溃恢复（boot counter 重跑健康门）→ 进程 supervisor（spawn/kill
 //! miniduckd 子进程，替代 systemd）→ 自己的 NDJSON socket 服务
 //! update.* 方法面。updaterd 退出不杀 daemon（setsid 脱离会话）。

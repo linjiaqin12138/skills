@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # M7 验收：mini-updaterd（迷你 updater）。一键可重跑。
 #
-# 用法（宿主机）：docker compose exec rust bash scripts/accept-m7.sh
+# 用法（宿主机）：docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m07-b01.sh
 # 全程在容器内跑，MINIDUCK_UPDATER_ROOT=/tmp/m7-demo 全程隔离。
 #
 # 断言清单：
@@ -18,14 +18,14 @@
 #     daemon 仍在跑 → 重启 → pending 驱动重跑门 → confirm；E2 同注入 apply
 #     投毒版 → 重启后裁决回滚 previous
 set -u
-cd /work
+cd "$(cd "$(dirname "$0")/../impl" && pwd)"
 
 ROOT=/tmp/m7-demo
 UPDSOCK=/tmp/mini-updaterd.sock
 DUCKSOCK=/tmp/miniduckd.sock
 export MINIDUCK_UPDATER_ROOT=$ROOT
 export MINIDUCK_UPDATER_GATE_MS=4000          # 测试预算（生产默认 30s）
-export MINIDUCK_POLICY=/work/policies/velstand.onnx  # 让 spawn 的 daemon 健康
+export MINIDUCK_POLICY=$PWD/policies/velstand.onnx  # 让 spawn 的 daemon 健康
 
 PASS=0
 FAILED=0

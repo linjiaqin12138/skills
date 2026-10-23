@@ -37,7 +37,7 @@
 <body>
 <header>
   <h2>IMU 演示：动起来时，gyro / gravity / quat 各怎么变</h2>
-  <p>躯干坐标系：<b>x 朝前、y 朝左、z 朝上</b>（和项目 <code>src/io.rs</code> 的 <code>ImuData</code> 同一套约定）。
+  <p>躯干坐标系：<b>x 朝前、y 朝左、z 朝上</b>（和项目 <code>impl/src/io.rs</code> 的 <code>ImuData</code> 同一套约定）。
   左边鸭子按预设自己动，或者切手动拖滑块；右边三组数是这颗想象中的芯片每一拍读到的东西，下面是最近 4 秒的波形。</p>
   <p class="note">盯住一件事就够了：<b>角速度只在"正在转"时非零，停住立刻归零；gravity 管"歪没歪"，停住了也留在坡上。</b>这是三组数里最容易搞混的一条。</p>
 </header>
@@ -78,7 +78,7 @@
       </div>
       <div class="panel">
         <h4>跌倒判定（M5 安全层同款规则）</h4>
-        <p class="rule">gravity[2] 高过 −0.5 就开始计时，连续 200ms 锁存 fallen；回到线内任意一拍立刻清零（<code>src/safety.rs</code>）。</p>
+        <p class="rule">gravity[2] 高过 −0.5 就开始计时，连续 200ms 锁存 fallen；回到线内任意一拍立刻清零（<code>impl/src/safety.rs</code>）。</p>
         <div class="meter"><span>越线计时</span><div class="bar"><i id="fallFill" style="background:#d62728"></i></div><b id="fallMs">0 / 200 ms</b></div>
         <p id="fallState">状态：站得稳</p>
       </div>

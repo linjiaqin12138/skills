@@ -6,13 +6,13 @@
 
 ## 「gain=200 是哪来的？」
 
-200 和 50 不是算出来的物理量，是原型 alpha 调好后写进舵机**增益寄存器**的两个数（`src/safety.rs:50-55`，注释标明是原型 alpha 默认值）。这个寄存器是舵机固件自己定义的一个标度——不是牛顿米、不是度数，没有 SI 单位，单看「200」说不出它有多硬。
+200 和 50 不是算出来的物理量，是原型 alpha 调好后写进舵机**增益寄存器**的两个数（`impl/src/safety.rs:50-55`，注释标明是原型 alpha 默认值）。这个寄存器是舵机固件自己定义的一个标度——不是牛顿米、不是度数，没有 SI 单位，单看「200」说不出它有多硬。
 
 所以教程里真正有物理意义的只有**相对关系**：200:50 = 4:1，站立弹簧是软倒弹簧的 4 倍硬。
 
-它到物理世界的桥是仿真体的映射 `kp_sim = 8 × gain/200`（`sim/duck_body.py:85-100`）：gain=200 对应 kp=8，gain=50 对应 kp=2。下面网页演示里的「弹簧硬度」走的就是这条映射。
+它到物理世界的桥是仿真体的映射 `kp_sim = 8 × gain/200`（`impl/sim/duck_body.py:85-100`）：gain=200 对应 kp=8，gain=50 对应 kp=2。下面网页演示里的「弹簧硬度」走的就是这条映射。
 
-真机侧，这个数经 `write_position_p_gain` 写进 XL330 的 Position P Gain 寄存器，I/D 同时被钉在 0；代码注释说明这些是 RAM 寄存器、每次上电恢复出厂值（`reference/duck-control/src/bus.rs:541-561`）。寄存器的具体量程和出厂默认值以官方 e-Manual 为准（链接见「素材」一节）。
+真机侧，这个数经 `write_position_p_gain` 写进 XL330 的 Position P Gain 寄存器，I/D 同时被钉在 0；代码注释说明这些是 RAM 寄存器、每次上电恢复出厂值（`upstream/duck-control/src/bus.rs:541-561`）。寄存器的具体量程和出厂默认值以官方 e-Manual 为准（链接见「素材」一节）。
 
 ## 为什么需要
 
@@ -29,12 +29,12 @@
 
 ## 最小示例
 
-**网页演示（推荐）**：浏览器直接打开 [assets/servo-gain-torque/index.html](assets/servo-gain-torque/index.html)（单文件、无依赖，双击即开）。三只机械臂同屏摆：硬弹簧扛在高位、软弹簧明显下垂、卸力自由垂落挂住。拖「弹簧硬度」滑块、开关 torque、按预设，随便折腾中间那只实验臂。页面上还有独立的 kv（刹车强度）滑块和一个「硬弹簧 + 无刹车」破坏实验按钮——点它能亲眼看到 Q48 里说的「没有 kv 就振荡」：腿冲过目标来回荡，停不下来。
+**网页演示（推荐）**：浏览器直接打开 [assets/servo-gain-torque/index.html](figures/servo-gain-torque/index.html)（单文件、无依赖，双击即开）。三只机械臂同屏摆：硬弹簧扛在高位、软弹簧明显下垂、卸力自由垂落挂住。拖「弹簧硬度」滑块、开关 torque、按预设，随便折腾中间那只实验臂。页面上还有独立的 kv（刹车强度）滑块和一个「硬弹簧 + 无刹车」破坏实验按钮——点它能亲眼看到 Q48 里说的「没有 kv 就振荡」：腿冲过目标来回荡，停不下来。
 
 **数字版对照**：同一个单关节仿真的 python 版，不碰项目代码——一根杆、目标水平、重力下拽，舵机力矩 = `kp×(目标−角度) − kd×角速度`。三种工况各跑一遍：
 
 ```bash
-docker compose exec rust python3 docs/concepts/assets/servo-gain-torque/spring_demo.py
+docker compose -f impl/docker-compose.yml exec rust python3 /work/book/concepts/figures/servo-gain-torque/spring_demo.py
 ```
 
 容器内实测输出：
@@ -55,18 +55,18 @@ kp=2 （软倒增益 gain=50）
 
 ## 素材
 
-- 网页交互演示（弹簧硬度滑块 + torque 开关 + 三个预设）：[assets/servo-gain-torque/index.html](assets/servo-gain-torque/index.html)
+- 网页交互演示（弹簧硬度滑块 + torque 开关 + 三个预设）：[assets/servo-gain-torque/index.html](figures/servo-gain-torque/index.html)
 - XL330 官方控制表（Position P Gain、Torque Enable 寄存器）：[ROBOTIS e-Manual XL330-M288-T](https://emanual.robotis.com/docs/en/dxl/x/xl330-m288-t/)
 
 通用概念官方手册已讲清；自制素材只有上面的网页（给「弹簧硬度」一个直观手感），本项目特有的是「200/50 这两个数」和「仿真里怎么映射」。
 
 ## 回到项目
 
-- trait 上的两个方法：`set_gain` / `set_torque`（`src/io.rs:71-78`；`imu_ready` 也在这一段）
-- 两个安全数字：`gain_running=200` / `gain_limp=50`（`src/safety.rs:50-55`，原型 alpha 默认值）
-- 软倒阶段主动要 50：`Phase::Limp` 的 apply（`src/control.rs:402-405`）
-- 增益缓存去重（值不变不重写总线）：`src/safety.rs:293-300`
-- 仿真侧映射：`kp_sim = 8 × gain/200`，torque off 清零执行器三参数（`sim/duck_body.py:85-100`）；启动默认 torque on、gain=200，模拟舵机 RAM 跨进程存活（`sim/duck_body.py:74-77`）
+- trait 上的两个方法：`set_gain` / `set_torque`（`impl/src/io.rs:71-78`；`imu_ready` 也在这一段）
+- 两个安全数字：`gain_running=200` / `gain_limp=50`（`impl/src/safety.rs:50-55`，原型 alpha 默认值）
+- 软倒阶段主动要 50：`Phase::Limp` 的 apply（`impl/src/control.rs:402-405`）
+- 增益缓存去重（值不变不重写总线）：`impl/src/safety.rs:293-300`
+- 仿真侧映射：`kp_sim = 8 × gain/200`，torque off 清零执行器三参数（`impl/sim/duck_body.py:85-100`）；启动默认 torque on、gain=200，模拟舵机 RAM 跨进程存活（`impl/sim/duck_body.py:74-77`）
 
 ## 自测
 

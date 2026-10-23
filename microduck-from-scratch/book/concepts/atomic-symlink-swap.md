@@ -14,7 +14,7 @@
 
 ## 最小示例
 
-`examples/atomic_symlink_swap.py` 起两个线程：一个读者不停经 `current` 读指向，一个写者换 2000 次指向。先删再建 vs 临时链接+rename 各跑一遍。本机实测：
+`impl/examples/atomic_symlink_swap.py` 起两个线程：一个读者不停经 `current` 读指向，一个写者换 2000 次指向。先删再建 vs 临时链接+rename 各跑一遍。本机实测：
 
 ```text
 先删再建        : 读者读 6850 次，撞见 current 不存在 3383 次
@@ -27,13 +27,13 @@
 
 - `man 2 rename`：「newpath 已存在则原子地替换它」。
 - `man 2 fsync` 与 [PostgreSQL 关于 fsync 目录的说明](https://www.postgresql.org/docs/current/wal-reliability.html)（数据库圈把这件事写得最透：目录项也是数据）。
-- 原版注释把「原子」与「持久」两件事分开讲：`reference/updater/src/store.rs:160-203`（rename 保证前者，末尾 fsync 父目录保证后者，注释明写 "Durability, not just atomicity"）。
+- 原版注释把「原子」与「持久」两件事分开讲：`upstream/updater/src/store.rs:160-203`（rename 保证前者，末尾 fsync 父目录保证后者，注释明写 "Durability, not just atomicity"）。
 
 ## 回到项目
 
-`src/updater/store.rs:20-31`（`set_current`）：先清上次崩溃残留的 `.current.tmp`（`store.rs:24`，原版同 `store.rs:181`）→ 建指向 `releases/<ver>` 的**相对**临时链接（`store.rs:26`，相对路径让整个 root 搬走后链接仍有效）→ rename 覆盖（`store.rs:27-29`）→ fsync 父目录（`store.rs:30`）。
+`impl/src/updater/store.rs:20-31`（`set_current`）：先清上次崩溃残留的 `.current.tmp`（`store.rs:24`，原版同 `store.rs:181`）→ 建指向 `releases/<ver>` 的**相对**临时链接（`store.rs:26`，相对路径让整个 root 搬走后链接仍有效）→ rename 覆盖（`store.rs:27-29`）→ fsync 父目录（`store.rs:30`）。
 
-同一对「原子+持久」还出现在两处：`install_release` 解包完成后 rename 进 `releases/` 并 fsync（`store.rs:62-63`）；pending.json 写盘后 `sync_all`（`src/updater/engine.rs:421-425`）——pending 是文件不是链接，fsync 文件本身就够。
+同一对「原子+持久」还出现在两处：`install_release` 解包完成后 rename 进 `releases/` 并 fsync（`store.rs:62-63`）；pending.json 写盘后 `sync_all`（`impl/src/updater/engine.rs:421-425`）——pending 是文件不是链接，fsync 文件本身就够。
 
 ## 自测
 

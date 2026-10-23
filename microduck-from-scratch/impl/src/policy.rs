@@ -75,7 +75,7 @@ pub struct Policy {
     action_name: String,
     path: PathBuf,
     /// reset() 被调次数。调度器每换一次网络必须 reset 一次
-    /// （reference/duck-control/src/policy.rs:350-360），这个计数让
+    /// （upstream/duck-control/src/policy.rs:350-360），这个计数让
     /// "切换时 reset 真的发生了"可断言——对 feedforward 网络 reset 是
     /// 空操作，没有它这条契约就测不到。
     pub(crate) reset_calls: u64,
@@ -201,7 +201,7 @@ impl Policy {
 
     /// 清空 LSTM 状态（feedforward 网络无事发生，仅计数）。M6 起 pub：
     /// 调度器换网络时调用——新网络的 episode 记忆必须从零开始
-    /// （reference/duck-control/src/policy.rs:350-360）。
+    /// （upstream/duck-control/src/policy.rs:350-360）。
     pub fn reset(&mut self) {
         self.reset_calls += 1;
         if let Some(state) = &mut self.state {
@@ -442,7 +442,7 @@ save(model, sys.argv[1])
     }
 
     /// 手写最小 (3,3) LSTM 策略（obs[1,61] → LSTM(hidden=4) → actions[1,14]
-    /// + h/c 状态回环），给原版 LSTM 加载契约（reference/duck-control/src/
+    /// + h/c 状态回环），给原版 LSTM 加载契约（upstream/duck-control/src/
     /// policy.rs:601-611 (3,3) 分支）一个运行时测试夹具——官方 v1–v8+main 与
     /// 7 个社区采样权重全是 1-in/1-out feedforward，没有现成 LSTM 可借（D20）。
     /// W/R 全零：观测不进状态，状态演化只由偏置驱动（i/o/f 门偏置 +1 常开，

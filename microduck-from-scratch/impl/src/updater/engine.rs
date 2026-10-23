@@ -68,7 +68,7 @@ pub enum RecoveryVerdict {
     Rollback,
 }
 
-/// model_api 放行判定（D65，reference/updater/src/policy.rs:1026-1039）：
+/// model_api 放行判定（D65，upstream/updater/src/policy.rs:1026-1039）：
 /// None = 未知 → 兼容；Some(v) 只在 v != 契约版本时拒。
 fn model_api_verdict(api: Option<u32>) -> Result<(), String> {
     match api {
@@ -268,7 +268,7 @@ impl Engine {
             SafeToRestart::Yes | SafeToRestart::Unreachable => {}
         }
         // D65：None = 未知（daemon 不可达/应答形状不对）→ 兼容放行；只在已知
-        // 版本不匹配时才拒（reference/updater/src/policy.rs:1026-1039：未知回落
+        // 版本不匹配时才拒（upstream/updater/src/policy.rs:1026-1039：未知回落
         // 契约自身版本——控制循环没在跑就没什么会动，预检不该因此拒绝）。
         let api = robot::model_api(&self.daemon_sock, robot::ROBOT_RPC_TIMEOUT).await;
         if let Err(reason) = model_api_verdict(api) {
