@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>texrepeat / texuniform 直觉示意</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --ink: #1a1a1a;
+    --muted: #5a5a5a;
+    --line: #cfcbc3;
+    --panel: #fffefb;
+    --accent: #0b5fff;
+    --on: #1a7a4c;
+    --warn-bg: #fff3cd;
+    --warn-border: #e0c36a;
+    --chk1: #1a3344;
+    --chk2: #3a5566;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.45 "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 16px 18px 28px;
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .sub {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  .banner {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    font-size: 0.95rem;
+    font-weight: 650;
+  }
+  .banner a { color: var(--accent); font-weight: 500; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 14px;
+  }
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 12px;
+  }
+  .panel h2 {
+    margin: 0 0 10px;
+    font-size: 0.95rem;
+    font-weight: 650;
+  }
+  .stage-wrap {
+    position: relative;
+    border: 1px solid var(--line);
+    background: #e8ecf1;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 16px;
+  }
+  canvas#floor {
+    display: block;
+    max-width: 100%;
+    box-shadow: 0 1px 0 rgba(0,0,0,.08);
+  }
+  .caption {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #f0f4fa;
+    border: 1px solid var(--line);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    min-height: 3.2em;
+  }
+  .xml {
+    margin-top: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    background: #1e2430;
+    color: #d7e0ea;
+    padding: 8px 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .xml .k { color: #7eb8ff; }
+  .xml .v { color: #9ddea8; }
+  label.row {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr 3.2rem;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+  }
+  label.row span.val {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--muted);
+  }
+  input[type="range"] { width: 100%; }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 4px 0 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: #faf9f6;
+  }
+  .toggle-row .name { font-weight: 650; }
+  .toggle-row .hint { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+  .switch {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: #b8b4aa;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .slider:before {
+    content: "";
+    position: absolute;
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    transition: .15s;
+  }
+  .switch input:checked + .slider { background: var(--on); }
+  .switch input:checked + .slider:before { transform: translateX(24px); }
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .presets button {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+  .presets button:hover { border-color: var(--accent); color: var(--accent); }
+  .presets button.active {
+    background: #e8f0ff;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .legend {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend code {
+    font-size: 0.78rem;
+    background: #eeebe4;
+    padding: 1px 4px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>texrepeat / texuniform</h1>
+    <p class="sub">MuJoCo material 贴图如何在平面上铺 —— 拖滑块看格子变化（对照 step05）</p>
+
+    <div class="banner">
+      示意，非 MuJoCo 渲染器逐比特复现。
+      官方：<a href="https://mujoco.readthedocs.io/en/stable/XMLreference.html#material" target="_blank" rel="noopener">material</a>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <h2>地板（棋盘贴图）</h2>
+        <div class="stage-wrap">
+          <canvas id="floor" width="640" height="400"></canvas>
+        </div>
+        <div class="caption" id="caption">…</div>
+        <div class="xml" id="xml">…</div>
+        <p class="legend">
+          深蓝 / 灰蓝 = checker 两色。平面半尺寸对应 geom <code>size="hx hy …"</code>；
+          材质对应 <code>texrepeat</code> / <code>texuniform</code>。
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2>控件</h2>
+
+        <div class="presets" id="presets">
+          <button type="button" data-preset="tutorial">教程 2×2 + uniform</button>
+          <button type="button" data-preset="dense">密格子 6×6</button>
+          <button type="button" data-preset="flat-off">扁长地板 + uniform 关</button>
+          <button type="button" data-preset="flat-on">扁长地板 + uniform 开</button>
+        </div>
+
+        <label class="row">
+          <span>repeatX</span>
+          <input id="rx" type="range" min="0.5" max="8" step="0.1" value="2" />
+          <span class="val" id="rxV">2.0</span>
+        </label>
+        <label class="row">
+          <span>repeatY</span>
+          <input id="ry" type="range" min="0.5" max="8" step="0.1" value="2" />
+          <span class="val" id="ryV">2.0</span>
+        </label>
+
+        <div class="toggle-row">
+          <div>
+            <div class="name">texuniform</div>
+            <div class="hint" id="uniformHint">关：格子跟平面宽高比拉伸</div>
+          </div>
+          <label class="switch" title="texuniform">
+            <input id="uniform" type="checkbox" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <label class="row">
+          <span>半尺寸 X</span>
+          <input id="hx" type="range" min="0.5" max="4" step="0.05" value="2" />
+          <span class="val" id="hxV">2.00</span>
+        </label>
+        <label class="row">
+          <span>半尺寸 Y</span>
+          <input id="hy" type="range" min="0.5" max="4" step="0.05" value="2" />
+          <span class="val" id="hyV">2.00</span>
+        </label>
+
+        <p class="legend">
+          <strong>texrepeat</strong>：U/V 各重复几次，越大越密。<br />
+          <strong>texuniform</strong>：关=格子被平面扯扁；开≈世界尺度均匀、格子更方。
+        </p>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("floor");
+  const ctx = canvas.getContext("2d");
+
+  const els = {
+    rx: document.getElementById("rx"),
+    ry: document.getElementById("ry"),
+    hx: document.getElementById("hx"),
+    hy: document.getElementById("hy"),
+    uniform: document.getElementById("uniform"),
+    rxV: document.getElementById("rxV"),
+    ryV: document.getElementById("ryV"),
+    hxV: document.getElementById("hxV"),
+    hyV: document.getElementById("hyV"),
+    caption: document.getElementById("caption"),
+    xml: document.getElementById("xml"),
+    uniformHint: document.getElementById("uniformHint"),
+    presets: document.getElementById("presets"),
+  };
+
+  const C1 = "#1a3344";
+  const C2 = "#3a5566";
+  const EDGE = "#0d1a22";
+
+  /** 示意：uniform 关 → UV 固定铺满平面（格子随宽高比拉伸）；
+   *  uniform 开 → 按世界半尺寸缩放重复次数，格子近似正方形。 */
+  function cellCounts(rx, ry, hx, hy, uniform) {
+    if (!uniform) {
+      return { nx: rx, ny: ry };
+    }
+    // 以「参考半尺寸 1」为世界单位：半尺寸越大，同方向上重复越多
+    return { nx: rx * hx, ny: ry * hy };
+  }
+
+  function draw() {
+    const rx = +els.rx.value;
+    const ry = +els.ry.value;
+    const hx = +els.hx.value;
+    const hy = +els.hy.value;
+    const uniform = els.uniform.checked;
+
+    els.rxV.textContent = rx.toFixed(1);
+    els.ryV.textContent = ry.toFixed(1);
+    els.hxV.textContent = hx.toFixed(2);
+    els.hyV.textContent = hy.toFixed(2);
+    els.uniformHint.textContent = uniform
+      ? "开：近似世界尺度均匀，格子更方"
+      : "关：格子跟平面宽高比拉伸";
+
+    const pad = 28;
+    const maxW = canvas.width - pad * 2;
+    const maxH = canvas.height - pad * 2;
+    // 平面像素尺寸：相对半尺寸，整体塞进画布
+    const worldW = hx * 2;
+    const worldH = hy * 2;
+    const scale = Math.min(maxW / worldW, maxH / worldH);
+    const fw = worldW * scale;
+    const fh = worldH * scale;
+    const ox = (canvas.width - fw) / 2;
+    const oy = (canvas.height - fh) / 2;
+
+    const { nx, ny } = cellCounts(rx, ry, hx, hy, uniform);
+    const cellW = fw / nx;
+    const cellH = fh / ny;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 画布背景轻微网格
+    ctx.fillStyle = "#e8ecf1";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 棋盘（按 UV 单元交替；非整数 repeat 时裁切在平面边界）
+    const ix0 = Math.floor(0);
+    const iy0 = Math.floor(0);
+    const ix1 = Math.ceil(nx);
+    const iy1 = Math.ceil(ny);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ox, oy, fw, fh);
+    ctx.clip();
+
+    for (let iy = iy0; iy < iy1; iy++) {
+      for (let ix = ix0; ix < ix1; ix++) {
+        const x = ox + ix * cellW;
+        const y = oy + iy * cellH;
+        ctx.fillStyle = ((ix + iy) & 1) === 0 ? C1 : C2;
+        ctx.fillRect(x, y, cellW + 0.5, cellH + 0.5);
+      }
+    }
+    ctx.restore();
+
+    // 平面边框
+    ctx.strokeStyle = EDGE;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(ox + 0.5, oy + 0.5, fw - 1, fh - 1);
+
+    // 尺寸标注
+    ctx.fillStyle = "#333";
+    ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("半尺寸 X = " + hx.toFixed(2) + "  →  宽 " + worldW.toFixed(2), canvas.width / 2, oy - 8);
+    ctx.save();
+    ctx.translate(ox - 10, canvas.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("半尺寸 Y = " + hy.toFixed(2) + "  →  高 " + worldH.toFixed(2), 0, 0);
+    ctx.restore();
+
+    // 一句话说明
+    const aspect = (hx / hy).toFixed(2);
+    let line;
+    if (uniform) {
+      line =
+        "texuniform 开：重复次数随半尺寸缩放（约 " +
+        nx.toFixed(1) +
+        " × " +
+        ny.toFixed(1) +
+        " 格），格子接近正方形；拉长地板只会多铺几格，不会把方格扯扁。";
+    } else {
+      const flat = Math.abs(hx - hy) > 0.15;
+      line = flat
+        ? "texuniform 关：整张图固定铺 " +
+          rx.toFixed(1) +
+          " × " +
+          ry.toFixed(1) +
+          " 次；平面宽高比 " +
+          aspect +
+          "，格子被扯成扁长方形。"
+        : "texuniform 关：贴图按平面局部 UV 铺 " +
+          rx.toFixed(1) +
+          " × " +
+          ry.toFixed(1) +
+          " 次。把半尺寸 X/Y 拉成一大一小，格子就会变形。";
+    }
+    if (rx !== ry && !uniform) {
+      line += "（repeatX≠repeatY 时还会额外改变疏密比。）";
+    }
+    els.caption.textContent = line;
+
+    const uStr = uniform ? "true" : "false";
+    els.xml.innerHTML =
+      '&lt;<span class="k">material</span> … ' +
+      '<span class="k">texrepeat</span>=<span class="v">"' +
+      rx.toFixed(1) +
+      " " +
+      ry.toFixed(1) +
+      '"</span> ' +
+      '<span class="k">texuniform</span>=<span class="v">"' +
+      uStr +
+      '"</span>/&gt;  ·  geom size≈' +
+      hx.toFixed(2) +
+      " " +
+      hy.toFixed(2);
+
+    // 预设高亮：粗匹配
+    highlightPreset(rx, ry, hx, hy, uniform);
+  }
+
+  const PRESETS = {
+    tutorial: { rx: 2, ry: 2, hx: 2, hy: 2, uniform: true },
+    dense: { rx: 6, ry: 6, hx: 2, hy: 2, uniform: true },
+    "flat-off": { rx: 2, ry: 2, hx: 3.5, hy: 1, uniform: false },
+    "flat-on": { rx: 2, ry: 2, hx: 3.5, hy: 1, uniform: true },
+  };
+
+  function applyPreset(name) {
+    const p = PRESETS[name];
+    if (!p) return;
+    els.rx.value = p.rx;
+    els.ry.value = p.ry;
+    els.hx.value = p.hx;
+    els.hy.value = p.hy;
+    els.uniform.checked = p.uniform;
+    draw();
+  }
+
+  function highlightPreset(rx, ry, hx, hy, uniform) {
+    const buttons = els.presets.querySelectorAll("button");
+    buttons.forEach(function (btn) {
+      const p = PRESETS[btn.dataset.preset];
+      const match =
+        p &&
+        Math.abs(p.rx - rx) < 0.05 &&
+        Math.abs(p.ry - ry) < 0.05 &&
+        Math.abs(p.hx - hx) < 0.06 &&
+        Math.abs(p.hy - hy) < 0.06 &&
+        p.uniform === uniform;
+      btn.classList.toggle("active", !!match);
+    });
+  }
+
+  ["rx", "ry", "hx", "hy"].forEach(function (id) {
+    els[id].addEventListener("input", draw);
+  });
+  els.uniform.addEventListener("change", draw);
+  els.presets.addEventListener("click", function (e) {
+    const btn = e.target.closest("button[data-preset]");
+    if (btn) applyPreset(btn.dataset.preset);
+  });
+
+  applyPreset("tutorial");
+})();
+</script>
+</body>
+</html>
