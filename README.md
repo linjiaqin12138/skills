@@ -26,4 +26,4 @@
 
 源自《The Minimalist Entrepreneur》一书的 10 个 Skill：`find-community`、`validate-idea`、`mvp`、`processize`、`first-customers`、`pricing`、`marketing-plan`、`grow-sustainably`、`company-values`、`minimalist-review`。
 
-另有体验中的第三方 Skill：`agent-browser`（浏览器自动化）、`redditlens`（Reddit 调研）。
+另有体验中的第三方 Skill：`agent-browser`（浏览器自动化）、`redditlens`（Reddit 调研）、`claude-replay`（把 agent 会话历史做成可播放的 HTML 网页）。

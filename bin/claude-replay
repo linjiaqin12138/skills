@@ -1,0 +1,69 @@
+#!/bin/bash
+# Project-local wrapper for claude-replay.
+# The CLI is vendored in vendor/claude-replay/ (not installed globally), so this
+# wrapper points at the vendored entry point and adds Kimi Code session lookup.
+#
+# Usage:
+#   bin/claude-replay                     launch the web editor (default)
+#   bin/claude-replay --list              list recent Kimi Code sessions
+#   bin/claude-replay <session-id>        replay a Kimi Code session
+#   bin/claude-replay <path/to/wire.jsonl> replay a transcript file
+#   bin/claude-replay <args...>           pass through to the vendored CLI
+#
+# Extra flags (--theme, --speed, --turns, --title, ...) are forwarded as-is.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VENDOR="$ROOT/vendor/claude-replay"
+CLI="$VENDOR/bin/claude-replay.mjs"
+SESSIONS_DIR="${KIMI_SESSIONS_DIR:-$HOME/.kimi-code/sessions}"
+OUT_DIR="${KIMI_REPLAY_OUT:-$ROOT/replays}"
+
+[[ -f "$CLI" ]] || { echo "vendored claude-replay missing at $CLI" >&2; exit 1; }
+command -v node >/dev/null || { echo "node not found (need Node 18+)" >&2; exit 1; }
+
+list_sessions() {
+  find "$SESSIONS_DIR" -name wire.jsonl -printf '%T@ %p\n' 2>/dev/null |
+    sort -rn | head -20 | while read -r ts path; do
+      printf '%s  %s\n' "$(date -d "@${ts%.*}" '+%Y-%m-%d %H:%M')" "${path#"$SESSIONS_DIR"/}"
+    done
+}
+
+if [[ "${1:-}" == "--list" ]]; then
+  list_sessions
+  exit 0
+fi
+
+# Split args into positionals and flags, knowing which flags consume a value.
+positional=()
+flags=()
+expect_value=0
+for arg in "$@"; do
+  if [[ $expect_value -eq 1 ]]; then
+    flags+=("$arg"); expect_value=0; continue
+  fi
+  case "$arg" in
+    -o|--output|--turns|--exclude-turns|--from|--to|--speed|--font-size|--mark|\
+    --bookmarks|--redact|--title|--description|--og-image|--user-label|\
+    --assistant-label|--timing|--pacing|--reading-wpm|--theme|--theme-file|\
+    --port|--format)
+      flags+=("$arg"); expect_value=1 ;;
+    -*) flags+=("$arg") ;;
+    *)  positional+=("$arg") ;;
+  esac
+done
+set -- ${positional[@]+"${positional[@]}"}
+
+if [[ -n "${1:-}" && -f "$1" ]]; then
+  exec node "$CLI" "$1" ${flags[@]+"${flags[@]}"}
+elif [[ -n "${1:-}" ]]; then
+  id="$1"
+  target="$(find "$SESSIONS_DIR" -path "*/session_${id}*/agents/main/wire.jsonl" -print -quit)"
+  [[ -n "$target" ]] || { echo "session not found: $id" >&2; exit 1; }
+  mkdir -p "$OUT_DIR"
+  out="$OUT_DIR/$(date '+%Y-%m-%d-%H%M%S')-$id.html"
+  node "$CLI" "$target" -o "$out" ${flags[@]+"${flags[@]}"}
+  echo "→ $out"
+else
+  exec node "$CLI" ${flags[@]+"${flags[@]}"}
+fi
