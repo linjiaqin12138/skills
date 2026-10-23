@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# manim 链路一键搭建：建 venv + pip 安装本 skill 的 requirements.txt。
+# manim 链路：建 venv 并安装本 skill 的 requirements.txt。
 # 用法：scripts/setup-manim.sh [venv 目录，默认 ./.venv]
 #
-# 系统依赖需要 sudo，先让用户手动执行一次：
+# 系统依赖需要 sudo，先让用户执行一次：
 #   sudo apt-get update && sudo apt-get install -y ffmpeg \
 #     texlive-latex-base texlive-latex-recommended texlive-fonts-recommended \
 #     texlive-latex-extra pkg-config libcairo2-dev python3-dev libpango1.0-dev
