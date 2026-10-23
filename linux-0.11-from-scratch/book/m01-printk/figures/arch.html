@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>M1 Bite1 架构图</title>
+  <style>
+    body { margin: 0; font-family: "Noto Sans CJK SC", "PingFang SC", sans-serif; background: #f8fafc; color: #111827; }
+    header { padding: 16px 24px; background: #fff; border-bottom: 1px solid #e5e7eb; }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    p { margin: 0; color: #6b7280; font-size: 14px; }
+    nav { margin-top: 12px; display: flex; gap: 12px; }
+    nav a { color: #7c3aed; text-decoration: none; font-weight: 600; font-size: 14px; }
+    nav a:hover { text-decoration: underline; }
+    main { padding: 16px; overflow: auto; }
+    img { max-width: 100%; height: auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; }
+    section { margin-bottom: 32px; }
+    h2 { font-size: 16px; margin: 0 0 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>M1 Bite1 架构图</h1>
+    <p>权威 SVG 由 d2 渲染；fireworks JSON 源在 <code>../src/</code> 供日后重渲。</p>
+    <nav>
+      <a href="#arch">全图 arch.svg</a>
+      <a href="#diff">变动 arch-diff.svg</a>
+    </nav>
+  </header>
+  <main>
+    <section id="arch">
+      <h2>当前权威全图</h2>
+      <img src="../arch.svg" alt="M1 Bite1 architecture" />
+    </section>
+    <section id="diff">
+      <h2>相对 M0 变动</h2>
+      <img src="arch-diff.svg" alt="M1 Bite1 architecture diff vs M0" />
+    </section>
+  </main>
+</body>
+</html>

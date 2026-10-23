@@ -1,0 +1,391 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "text_policy": "strict",
+  "quality_profile": "showcase",
+  "width": 1900,
+  "height": 1040,
+  "title": "M1 Bite1 相对 M0 的架构变动",
+  "subtitle": "新增：limine_fb / console / font / fb / 显存 / qemu 图形 ｜ 改动：_start、limine.conf ｜ 未动：构建链 / 引导 / serial / COM1",
+  "containers": [
+    {
+      "id": "kernel-box",
+      "x": 560,
+      "y": 320,
+      "width": 760,
+      "height": 360,
+      "label": "kernel",
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "docker",
+      "kind": "rect",
+      "x": 40,
+      "y": 90,
+      "width": 250,
+      "height": 80,
+      "label": "构建容器",
+      "sublabel": "未动 · cargo → xorriso",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "limine_conf",
+      "kind": "rect",
+      "x": 320,
+      "y": 40,
+      "width": 200,
+      "height": 60,
+      "label": "limine.conf",
+      "sublabel": "【改】resolution",
+      "fill": "#fef3c7",
+      "stroke": "#d97706",
+      "flat": true
+    },
+    {
+      "id": "iso",
+      "kind": "rect",
+      "x": 560,
+      "y": 90,
+      "width": 280,
+      "height": 80,
+      "label": "kernel.iso",
+      "sublabel": "未动 · ISO 流水线",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "seabios",
+      "kind": "rect",
+      "x": 40,
+      "y": 430,
+      "width": 180,
+      "height": 70,
+      "label": "SeaBIOS 固件",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "limine",
+      "kind": "rect",
+      "x": 320,
+      "y": 430,
+      "width": 180,
+      "height": 70,
+      "label": "Limine 引导器",
+      "sublabel": "未动 · 引导路径",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "start",
+      "kind": "rect",
+      "x": 600,
+      "y": 380,
+      "width": 160,
+      "height": 70,
+      "label": "_start 入口",
+      "sublabel": "【改】取 FB + 画字 + 串口",
+      "fill": "#fef3c7",
+      "stroke": "#d97706",
+      "flat": true
+    },
+    {
+      "id": "limine_fb",
+      "kind": "rect",
+      "x": 600,
+      "y": 500,
+      "width": 180,
+      "height": 70,
+      "label": "limine_fb",
+      "sublabel": "【新】请求/响应",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "console",
+      "kind": "rect",
+      "x": 860,
+      "y": 380,
+      "width": 170,
+      "height": 70,
+      "label": "console",
+      "sublabel": "【新】光标 + write_str",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "font",
+      "kind": "rect",
+      "x": 1080,
+      "y": 340,
+      "width": 160,
+      "height": 70,
+      "label": "font",
+      "sublabel": "【新】8×16 glyph",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "fb",
+      "kind": "rect",
+      "x": 1080,
+      "y": 440,
+      "width": 160,
+      "height": 70,
+      "label": "fb",
+      "sublabel": "【新】put_pixel / clear",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "serial",
+      "kind": "rect",
+      "x": 860,
+      "y": 560,
+      "width": 160,
+      "height": 70,
+      "label": "serial",
+      "sublabel": "未动 · 16550",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "vram",
+      "kind": "rect",
+      "x": 1400,
+      "y": 420,
+      "width": 200,
+      "height": 70,
+      "label": "线性 framebuffer",
+      "sublabel": "【新】Limine 显存",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "qemu_gfx",
+      "kind": "rect",
+      "x": 1680,
+      "y": 420,
+      "width": 170,
+      "height": 70,
+      "label": "qemu 图形窗口",
+      "sublabel": "【新】screendump",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "com1",
+      "kind": "rect",
+      "x": 1400,
+      "y": 560,
+      "width": 180,
+      "height": 70,
+      "label": "COM1 串口",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "qemu_term",
+      "kind": "rect",
+      "x": 1680,
+      "y": 560,
+      "width": 170,
+      "height": 70,
+      "label": "qemu 串口终端",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "diff-badge",
+      "kind": "rect",
+      "x": 1520,
+      "y": 40,
+      "width": 320,
+      "height": 40,
+      "label": "Bite1 新增：FB console 通路",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    }
+  ],
+  "arrows": [
+    {
+      "id": "mkbuild",
+      "source": "docker",
+      "target": "iso",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "make -C impl build"
+    },
+    {
+      "id": "pack_conf",
+      "source": "limine_conf",
+      "target": "iso",
+      "source_port": "right",
+      "target_port": "top",
+      "flow": "data",
+      "label": "【改】打进 ISO"
+    },
+    {
+      "id": "attach",
+      "source": "iso",
+      "target": "seabios",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "qemu -boot d -cdrom 挂载"
+    },
+    {
+      "id": "eltorito",
+      "source": "seabios",
+      "target": "limine",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "El Torito 引导"
+    },
+    {
+      "id": "handoff",
+      "source": "limine",
+      "target": "start",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "交付 CPU：长模式 + 高半区"
+    },
+    {
+      "id": "fb_resp",
+      "source": "limine",
+      "target": "limine_fb",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "【新】填写 framebuffer response"
+    },
+    {
+      "id": "first_fb",
+      "source": "start",
+      "target": "limine_fb",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "write",
+      "label": "【新】first_framebuffer()"
+    },
+    {
+      "id": "drive_console",
+      "source": "start",
+      "target": "console",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "【新】clear + write_str"
+    },
+    {
+      "id": "glyph",
+      "source": "console",
+      "target": "font",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "【新】glyph(ch)"
+    },
+    {
+      "id": "put_pixel",
+      "source": "console",
+      "target": "fb",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "【新】put_pixel"
+    },
+    {
+      "id": "pixels",
+      "source": "fb",
+      "target": "vram",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "【新】按 mask 写 RGB 像素"
+    },
+    {
+      "id": "gfx",
+      "source": "vram",
+      "target": "qemu_gfx",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "【新】guest FB → 宿主窗口"
+    },
+    {
+      "id": "serial_out",
+      "source": "start",
+      "target": "serial",
+      "source_port": "bottom",
+      "target_port": "left",
+      "flow": "data",
+      "label": "【改】同内容串 + FB 元数据"
+    },
+    {
+      "id": "tx",
+      "source": "serial",
+      "target": "com1",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "写 16550 寄存器发字节"
+    },
+    {
+      "id": "stdio",
+      "source": "com1",
+      "target": "qemu_term",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "qemu -serial 文本流"
+    }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 940,
+  "legend_locked": true,
+  "legend": [
+    {
+      "flow": "write",
+      "label": "新增（模块/边）"
+    },
+    {
+      "flow": "data",
+      "label": "改动"
+    },
+    {
+      "flow": "control",
+      "label": "未动"
+    }
+  ],
+  "footer": "Style 1 · Flat Icon · M1 Bite1 vs M0 · 紫=新增 琥珀=改动 灰=未动（权威源；SVG 以 d2 渲染为准）",
+  "footer_x": 48,
+  "footer_y": 1000
+}

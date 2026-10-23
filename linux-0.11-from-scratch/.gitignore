@@ -1,5 +1,8 @@
 # 容器内构建产物（属主可能是 root）
-/kernel/target/
+/impl/kernel/target/
+/impl/.cargo-home/
+/impl/build/
+/impl/user/target/
+# 迁移前留在仓库根、属主是 root，删不掉的旧缓存
 /.cargo-home/
-/build/
-/reference/
+/upstream/
