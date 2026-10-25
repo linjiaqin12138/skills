@@ -1,9 +1,9 @@
-"""M9a 动手练习「手搓一条 2 关节腿链」验收。
+"""项目内引导练习「手搓一条 2 关节腿链」验收。
 
-用法：
-  python sim/accept_m9a_leg_exercise.py               # 验收作业 sim/assets/exercise_leg.xml
-  python sim/accept_m9a_leg_exercise.py --solution    # 验收参考解答
-  python sim/accept_m9a_leg_exercise.py path/to.xml   # 验收任意文件
+用法（仓库根）：
+  python exercises/mjcf-leg-chain/accept.py               # 验收作业 exercise_leg.xml
+  python exercises/mjcf-leg-chain/accept.py --solution    # 验收参考解答
+  python exercises/mjcf-leg-chain/accept.py path/to.xml   # 验收任意文件
 
 断言组：
   A. 结构：编译通过；2 个动力 body（thigh/shank）+ 可选 1 个静态挂载 body；
@@ -25,9 +25,9 @@ import sys
 import mujoco
 import numpy as np
 
-ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-HOMEWORK_XML = os.path.join(ASSETS, "exercise_leg.xml")
-SOLUTION_XML = os.path.join(ASSETS, "exercise_leg_solution.xml")
+HERE = os.path.dirname(os.path.abspath(__file__))
+HOMEWORK_XML = os.path.join(HERE, "exercise_leg.xml")
+SOLUTION_XML = os.path.join(HERE, "exercise_leg_solution.xml")
 
 JOINT_NAMES = ["hip_pitch", "knee"]      # ctrl 序与关节序都应是这个
 DYNAMIC_BODIES = ["thigh", "shank"]
@@ -67,7 +67,7 @@ def main():
         if xml_path == HOMEWORK_XML:
             print("还没创建作业文件——任务说明见教程 book/m09a-handmade-mjcf/")
             print("（动手练习：手搓一条 2 关节腿链）。从零手写，别复制参考解答；")
-            print("卡住可以对照 sim/assets/exercise_leg_solution.xml 找差距。")
+            print("卡住可以对照 exercises/mjcf-leg-chain/exercise_leg_solution.xml 找差距。")
         sys.exit(2)
 
     try:

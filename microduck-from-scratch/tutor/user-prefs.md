@@ -1,6 +1,6 @@
 # 项目级偏好（microduck-from-scratch）
 
-> 只放本项目特有的目标与约束。
+> 只放本项目特有的目标与约束。跨项目的学习偏好在 `~/.clone-from-scratch-tutor/user-prefs.md`。内部路线依据与 audit 写到 `tutor/prerequisites/`，不抄进课文。
 
 - **架构图分层的顶层固定为** miniduckd / mini-duckctl / mini-updaterd / duck_body.py 四进程 + install/current 资产；高发图题材：执行器动力学链、调度仲裁、IPC 握手时序。
 
@@ -20,3 +20,11 @@
 - 官方硬件不开源（无 STL/BOM/装配文档；仅 `elec_RPI_Robot_HAT` 转接板开源）；代码即规格书：XL330×15（ID/波特率/寄存器见 upstream/duck-control/src/bus.rs）、LSM6DSV16X IMU、Radxa Zero 3W、NP-F550 电池
 - 第三方复刻生态：`fanhao375/microduck-replica(-cad)`（BOM+SolidWorks/STEP/3MF，Feetech 版已实体站立）、`LuwuDynamics/xgoduck_hardware`、前身 `apirrone/Open_Duck_Mini`（全开源）
 - BAM 执行器模型：Rhoban/bam（纯解析式，16 标量），官方 CPU 集成蓝图 microduck_rl `scripts/infer_policy.py`；移植进 impl/sim/duck_body.py 估 60–80 行 + 换 groundcontact 碰撞资产 + timestep 1ms→5ms。roulade/sitstand 训练用 `robot_groundcontact.xml`（11 碰撞 geom）
+
+## 先修能力评估
+
+只记录项目特定能力与路线。跨项目的学习偏好在用户级文件。
+
+| 能力 | 项目中要做什么 | 经验 | 路线 | 出口标准 | 状态 | 先修记录 |
+|---|---|---|---|---|---|---|
+| 从空白文件搭建带关节与执行器的 MJCF | M9a 自建身体模型前，亲手写出可编译、可跟踪的两关节腿链 | 完全没接触（读完第 18 章仍不知怎么搭） | 项目内引导 | 写出 `exercises/mjcf-leg-chain/exercise_leg.xml`，`accept/m09a-b02.sh` 全绿；能改关节轴并预测现象 | 脚手架已就位，待用户完成作业 | 无（项目内引导，不建 prerequisites/） |
