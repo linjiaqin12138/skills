@@ -23,7 +23,7 @@ M9 批次开局的处境：
 2. **官方身体由 43 个 STL 网格定义**，许可是 CC BY-NC-SA（禁止商用）。走自定义硬件路线，物理地基不能建在受限资产上。
 3. **网格接触本身有伤**（上面的穿透）。换基本几何体碰撞，顺手修掉 D26。
 
-穿透不是渲染错误：仿真里的接触是弹簧-阻尼软约束，穿透量就是弹簧压缩量。为什么穿透合法、多少算合理，见深读页 [接触求解与穿透](../../concepts/contact-penetration.html)。
+穿透不是渲染错误：仿真里的接触是弹簧-阻尼软约束，穿透量就是弹簧压缩量。为什么穿透合法、多少算合理，见深读页 [接触求解与穿透](../concepts/contact-penetration.html)。
 
 ## 背景：MJCF 是什么
 
@@ -112,7 +112,7 @@ keyframe 就是「存档姿势」：记一组关节角，任何时刻一键复�
 
 这些值不是手拍的：官方模型编译输出的 `body_mass/ipos/iquat/inertia` 是唯一数据源，逐位抄入（提取过程见「搭建实操」第 1 步）。
 
-这张卡是压缩版。卡片看不懂就先去读深读页 [惯量张量](../../concepts/inertia-tensor/inertia-tensor.html)，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。卡里那句「主轴朝向用一个四元数记录」里的四元数（wxyz 顺序、为什么是半角、转 360° 怎么读），另有深读页 [四元数](../../concepts/quaternion.html)。
+这张卡是压缩版。卡片看不懂就先去读深读页 [惯量张量](../concepts/inertia-tensor.html)，里面有从 3x3 矩阵到对角化的完整推导和可运行示例。卡里那句「主轴朝向用一个四元数记录」里的四元数（wxyz 顺序、为什么是半角、转 360° 怎么读），另有深读页 [四元数](../concepts/quaternion.html)。
 
 ## 搭建实操：从空白文件到能跑的模型
 
@@ -142,7 +142,7 @@ trunk_base: mass=0.199224 ipos=[-2.26332e-02 -2.70828e-05  2.80064e-03] inertia=
 
 `mass` `ipos` `inertia` `iquat` 四个数抄进 `<inertial>` 的四个字段，就是决策卡片 1 的「直写官方编译值」；碰撞 box 的 `size` 取 COLL-union 行打印值，就是决策卡片 2 的「包围盒」。这一步不抓错，但它是唯一「对」的数据源——手抖抄错一个数字，后面 B 组对账会红。
 
-**第 2 步 · 手写 XML。** 纯文本编辑，无命令。骨架 + 逐 body 填四个惯量数 + box 尺寸 + 视觉 geom 行，具体写法见「代码领读」。
+**第 2 步 · 手写 XML。** 纯文本编辑，无命令。骨架 + 逐 body 填四个惯量数 + box 尺寸；**视觉 geom 行整段从官方 XML 复制，不要手填 `pos`/`quat`**（出处与工具见「代码领读」）。
 
 **第 3 步 · 编译验证。** MJCF 的「编译」就是把 XML 交给物理引擎建模型——语法错、网格路径错、引用不存在的名字，全在这一步报：
 
@@ -255,6 +255,61 @@ trunk_base | 躯干，挂 freejoint + imu site
 ```xml src=impl/sim/assets/duck_handmade.xml lines=37-45 hl=39-41
 ```
 
+**这些 `pos`/`quat` 不是手算出来的，也不该手填。** 第 44–53 行视觉网格整行来自官方 `robot_groundcontact.xml` 的逐字照抄（决策卡片 3）；碰撞盒的位姿与 `size` 来自 `m9a_extract_official.py` 打出的 AABB。坑 5 那 8 处 quat 符号错误，就是「人工转抄 70 行」时踩的——人眼读不出 `0.5 -0.5` 和 `-0.5 0.5` 哪个对。
+
+行业常态也不是手写四元数：
+
+| 来源 | 干什么 | 本课用没用 |
+|---|---|---|
+| CAD → MJCF 导出 | 装配位姿由 CAD 算出，XML 里的 `pos`/`quat` 是导出结果。官方鸭子用 **Onshape**（浏览器 CAD），经 [onshape-to-robot](https://github.com/Rhoban/onshape-to-robot) 导出；`robot_groundcontact.xml` 文件头就挂着 Onshape 文档链接 | 官方原始流水线；本课只消费导出结果。硬件 CAD 本身不开源 |
+| 可视化 MJCF 编辑器 | 3D 窗口里拖 **gizmo**（选中零件后出现的箭头/圆环：拖箭头平移、拖圆环旋转）改位姿，写回 XML。例：[Robola](https://www.robolaweb.com/)（本地跑 MuJoCo、浏览器里编）、[mujoco-scene-editor](https://github.com/markusgrotz/mujoco-scene-editor)、IDE 插件 [MuJoCo Viewer](https://github.com/julien-blanchon/mujoco-viewer) | 本课没接——要对齐官方，复制比拖拽稳 |
+| 文本里换人读的朝向写法 | MJCF 除 `quat` 外还接受 `euler` / `axisangle` / `xyaxes` / `zaxis`（编译时再转成四元数） | 自建新件、需要肉眼改朝向时用；照抄官方则保持 `quat` |
+
+本仓自带的 `mujoco.viewer` 是**仿真目检**（推鸭子、看穿模），不是装配编辑器——拖了模型不会把位姿写回 XML。将来自研构型（决策卡片 1 失效边界）时，该上 CAD 导出或可视化编辑器，不要发明一串 `0.707107`。
+
+费用与本仓怎么试 Robola（可选，自学装配用；本课验收不依赖）：
+
+| 工具 | 免费吗 | 要点 |
+|---|---|---|
+| Onshape | 有 Free（非商用，文档**全部公开**）；学生/教师有 Education（可私有）；商用要付费 | 官方硬件 CAD 不开源，免费账号看不到他们的私有装配 |
+| Robola | 目前免费：`pip`/`uv` 装的本地桥是 MIT；网页编辑器 beta 阶段 free to use（以后是否收费未知） | 要注册登录；文件只在本机，经 WebSocket 流到浏览器 |
+
+本仓 `.venv` 是 **uv** 建的，里面没有系统那种 `pip`——直接 `pip install` 会打到系统 Python 并报 `externally-managed-environment`。正确装法与启动：
+
+```bash
+cd /home/jqlin/Project/skills/microduck-from-scratch
+uv pip install --python .venv robola
+
+cd impl/sim/assets
+../../.venv/bin/robola serve ./scene_handmade.xml
+# 保持终端开着 → 浏览器打开 https://www.robolaweb.com/editor
+# 登录后右上角 WebSocket Port 填 9527 → Connect
+# 选中零件，拖 gizmo 改位姿；Save / Run 在编辑器里
+```
+
+必须在 `impl/sim/assets/` 下 serve **场景**文件（`scene_handmade.xml`），`include` 与 `meshdir` 才能解析到 STL。作者说明 Save 可能**另存新 MJCF、不覆盖原文件**——改完对照一下写到哪。
+
+已知坑（2026-10-25 实测）：Robola 0.2.4 与 MuJoCo 3.16 不兼容——新版里 `joint.stiffness`/`damping` 变成数组、`limited` 变成枚举，打包 JSON 时报 `ndarray is not JSON serializable`；日志里仍可能打印 `Model data sent successfully`（误报）。本仓 `.venv` 里已给 `robola/handlers/model_data.py` 打过序列化补丁；`uv pip install --reinstall robola` 会盖掉补丁，需重打或等上游修复。本课对齐官方仍靠照抄 + 验收，Robola 只作自研装配试验。
+
+**视觉 mesh 怎么对上号：靠资产名，默认就是去掉扩展名的文件名。** `<asset>` 里写 `<mesh file="jaw.stl"/>` 且不写 `name` 时，MuJoCo 把资产名设成文件名去掉路径与扩展名 → `jaw`（[官方 XML 参考 · asset/mesh name](https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-mesh)）。geom 再用 `mesh="jaw"` 引用这个名字——不是靠 body 名碰巧相同，也不是运行时扫目录猜。本文件的对应链是三环：
+
+| 环 | 写在哪 | 本例 |
+|---|---|---|
+| 磁盘路径 | `<compiler meshdir="assets"/>` + `file="jaw.stl"` | 相对本 MJCF 所在目录找 `assets/jaw.stl`（`impl/sim/assets/duck_handmade.xml:21`、`:280`） |
+| 资产名 | `<mesh>` 省略 `name` → 默认 = 无扩展名文件名 | `jaw.stl` → 名 `jaw` |
+| 挂到刚体 | `<geom type="mesh" mesh="jaw" …/>` | 按**名字**取资产；`pos`/`quat` 定相对 body 的摆放（如 `:168`） |
+
+三点别混：
+
+1. **`mesh=` 对的是资产名，不是文件路径。** 路径只出现在 `<mesh file=…>`；geom 侧再也看不到 `.stl`。
+2. **body 名与 mesh 名是两套命名空间。** `body name="upper_leg_right"` 与 `mesh="upper_leg_right"` 碰巧同名是照抄官方的命名习惯，不是引擎的匹配规则。改其中一个，另一个不会自动跟着。
+3. **材质另走一条名：显式 `name=`。** `<material name="jaw_material" …/>` 必须写全名；geom 的 `material="jaw_material"` 对的是这个显式名，不会从 `jaw.stl` 自动推出来。同一 mesh 资产可被多个 geom 复用（本模型 `xl330` 挂了很多处）。
+
+`<asset>` 段本身只是「登记表」——登记网格与材质，不负责挂到哪个 body；挂靠全靠 geom 上的 `mesh=` / `material=`：
+
+```xml src=impl/sim/assets/duck_handmade.xml lines=280-284
+```
+
 左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写。视觉网格行跟在关节声明后面：
 
 ```xml src=impl/sim/assets/duck_handmade.xml lines=59-67 hl=62-63
@@ -357,7 +412,7 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 2. **`<inertial>` 的 quat 是惯量主轴朝向**，不是 geom 姿态，也不是 body 姿态。三个朝向各管各的。
 3. **包围盒只大不小是特性**。贴地验收靠的正是「最底面不变」；把盒子「修瘦」反而会改变着地点。
 4. **断言语义要跟着裁决变**。视觉换 STL 后，原来的「XML 文本零 `<mesh>`」断言直接变红。它锁的是旧决策的实现痕迹，不是真实意图。真实意图是「碰撞必须是 box」。改成编译后枚举碰撞 geom 类型，断言才重新对准意图。
-5. **四元数照抄会错在符号上，肉眼不可见**。视觉修订第一版转抄 70 行 geom，8 处 quat 符号抄错。XML diff 里不显眼，渲染出来右腿板件悬空。修复后把视觉位姿对账固化成 A 组断言，实测误差 0.00e+00，再犯当场变红。四元数怎么读、wxyz 顺序、符号约定（哪些位是负的）见深读页 [四元数](../../concepts/quaternion.html)。
+5. **四元数照抄会错在符号上，肉眼不可见**。视觉修订第一版转抄 70 行 geom，8 处 quat 符号抄错。XML diff 里不显眼，渲染出来右腿板件悬空。修复后把视觉位姿对账固化成 A 组断言，实测误差 0.00e+00，再犯当场变红。四元数怎么读、wxyz 顺序、符号约定（哪些位是负的）见深读页 [四元数](../concepts/quaternion.html)。
 
 展望：Bite 2 把 BAM 参数与 microduck_constants 对账，自建模型接 velstand 站立 + vx=0.8 走 10s 前移 ≥2.0m；Bite 3 仿真协议面对齐官方 duck-body。
 
@@ -402,5 +457,17 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 <details>
 <summary><b>inertial 四个字段是什么 / joint 的 hinge·axis·range 怎么理解 / qpos 为什么有 21 个数？</b></summary>
 <p>本轮三个提问已分别补进正文对应位置讲透，此处只做记录与指路：inertial 四字段（质量 / 质心 / 主轴朝向 / 主惯量）逐条解读见「背景：惯量为什么是『3 个数 + 一个朝向』」卡片的字段表与「代码领读」躯干 body 段；joint 三属性（type 管自由度个数、axis 管绕哪转、range 管能转多远）见「代码领读」左腿链段的属性表；qpos 的 21 维分段拆读（7 维 freejoint + 14 维关节文档序）与「gyro 传感器读数 ≠ qpos 状态」的区分见「代码领读」场景包装段。</p>
+</details>
+<details>
+<summary><b>&lt;asset&gt; 里的 &lt;mesh file="jaw.stl"/&gt; 怎么和 geom 对上？难道是靠文件名？</b></summary>
+<p>是的，默认就是靠去掉扩展名的文件名当资产名。省略 <code>name</code> 时 MuJoCo 把 <code>jaw.stl</code> 登记为名 <code>jaw</code>；geom 写 <code>mesh="jaw"</code> 按这个名字取资产。路径由 <code>compiler meshdir</code> + <code>file</code> 拼出；body 名与 mesh 名是两套命名空间（碰巧同名不是匹配规则）；材质必须显式 <code>name=</code>，不会从文件名自动推。完整三环表与三点展开见「代码领读」躯干 body 段之后。</p>
+</details>
+<details>
+<summary><b>视觉 geom 的 pos/quat 手写太反人类了，有没有编辑工具？</b></summary>
+<p>本课这些数本来就不是手写的：视觉行从官方 XML 照抄，碰撞盒位姿来自提取脚本。行业里位姿来自 CAD→MJCF 导出，或可视化编辑器拖拽写回；MuJoCo 自带 viewer 只做仿真目检不写回 XML。人手改朝向可改用 <code>euler</code>/<code>axisangle</code> 等人读属性。详见「代码领读」躯干段「这些 pos/quat 不是手算出来的」。</p>
+</details>
+<details>
+<summary><b>官方用什么 CAD？gizmo / Robola 是什么？免费吗？本仓怎么开？</b></summary>
+<p><b>Onshape</b>（浏览器 CAD）+ <b>onshape-to-robot</b> 导出 MJCF；硬件 CAD 不开源。<b>gizmo</b> = 选中零件后出现的箭头/圆环操作柄（拖箭头平移、拖圆环旋转）。<b>Robola</b> = 本地 MuJoCo + 浏览器可视化 MJCF 编辑器。Onshape 有 Free（文档全公开）与 Education；Robola 目前免费。本仓用 <code>uv pip install --python .venv robola</code>，在 <code>impl/sim/assets/</code> 下 <code>../../.venv/bin/robola serve ./scene_handmade.xml</code>，浏览器连 9527。Robola 0.2.4 × MuJoCo 3.16 有 JSON 序列化 bug，本仓 .venv 已打补丁。完整表、命令与坑见「代码领读」躯干段装配工具小节。</p>
 </details>
 ```

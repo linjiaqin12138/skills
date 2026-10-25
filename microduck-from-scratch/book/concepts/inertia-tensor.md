@@ -347,4 +347,4 @@ R.T @ I @ R：
 
 - [David Tong 动力学讲义 §3.2（英文）](https://www.damtp.cam.ac.uk/user/tong/dynamics/three.pdf)
 - [知乎：一般性刚体惯量主轴的选取](https://zhuanlan.zhihu.com/p/137394465)
-- [四元数概念页](../quaternion.html)：本页对朝向四元数一句带过，细节看这里
+- [四元数概念页](quaternion.html)：本页对朝向四元数一句带过，细节看这里
