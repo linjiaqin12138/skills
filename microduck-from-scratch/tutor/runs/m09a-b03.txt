@@ -1,0 +1,294 @@
+===== Final M9a Bite 3 verification with handmade sit cycles (rewritten record) =====
+$ docker compose -p microduck-from-scratch -f impl/docker-compose.yml exec -T rust bash /work/accept/m09a-b03.sh
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+== A. BAM 参数对账 ==
+  [PASS] motor_name=xl330
+  [PASS] model=m6
+  [PASS] kp_fw=200  实际 200.0
+  [PASS] 训练 vin_range=(6.5, 8.2)
+  [PASS] 训练 vin_drop_gain_range=(0.0, 0.2)
+  [PASS] 训练 delay lag range=(3, 6) 控制拍
+  [PASS] vin_min=6.0
+  [PASS] 训练/回放默认无电流限制
+  [PASS] BAM 物理步长 0.005s
+  [PASS] 默认实例 kp=200
+  [PASS] CPU 回放默认 vin=7.4
+  [PASS] 默认实例 max_current=None
+  [PASS] CPU 回放默认 vin_drop_gain=0.1
+  [PASS] 实例 vin_min=6.0
+  [PASS] 20ms 控制拍 = 4 个 BAM 子步
+  [PASS] CPU 回放默认 delay=0（对齐 infer_policy）
+  [PASS] left 脚掌碰撞拆成至少 2 个 primitive  实际 2
+  [PASS] left 脚掌碰撞仍全 box，不用 mesh
+  [PASS] left 脚掌滑动摩擦回到官方 CPU 值 1.0  实际 [np.float64(1.0), np.float64(1.0)]
+  [PASS] right 脚掌碰撞拆成至少 2 个 primitive  实际 2
+  [PASS] right 脚掌碰撞仍全 box，不用 mesh
+  [PASS] right 脚掌滑动摩擦回到官方 CPU 值 1.0  实际 [np.float64(1.0), np.float64(1.0)]
+  [PASS] 官方场景足底摩擦保持 1.0  实际 [np.float64(1.0), np.float64(1.0)]
+== B. 显式实验参数与延迟队列 ==
+  [PASS] kp_fw 可显式覆盖  实际 120.0
+  [PASS] vin 可显式覆盖
+  [PASS] vin_drop_gain 可显式覆盖
+  [PASS] forcerange 随 vin 重算  ±0.885288 N·m
+  [PASS] delay=3 控制拍已启用
+  [PASS] 前 3 拍仍执行 STAND，不提前使用新目标
+  [PASS] 第 4 拍执行第 1 拍目标（lag=3，15 槽总线契约不变）
+A/B 参数验收 PASS：BAM 对账 / 参数覆盖 / 延迟队列全绿
+===== M9a Bite 3 自建模型闭环：3 次独立运行 =====
+-- run 1 --
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+站立：PASS z=0.11703506467100583
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+行走样本 1：dx=2.605573 m, z=0.12452171440199018, skill/fallen=walk False
+-- run 2 --
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+站立：PASS z=0.11703502318271862
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+行走样本 2：dx=2.604251 m, z=0.12404367804420308, skill/fallen=walk False
+-- run 3 --
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+站立：PASS z=0.11703502318271862
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+行走样本 3：dx=2.604783 m, z=0.124043844896072, skill/fallen=walk False
+samples=[2.605573, 2.604251, 2.604783]; min=2.604; median=2.605
+== handmade sit_toggle：2 次全新进程，坐稳 + 起身 ==
+-- sit run 1 --
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+sit 样本 1：坐姿 z=0.06442370594755893，起身 z=0.11598605067014672，skill/fallen=walk False
+-- sit run 2 --
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+sit 样本 2：坐姿 z=0.06442370594755893，起身 z=0.11598605067014672，skill/fallen=walk False
+M9a Bite 3 验收 PASS：BAM 对账 / 延迟队列 / 3 次站立行走 / 2 次 sit 全循环全绿
+[exit_code=0]
+
+===== Regression 1: cargo test =====
+$ docker compose -p microduck-from-scratch -f impl/docker-compose.yml exec -T -w /work/impl rust cargo test
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (target/debug/deps/miniduck-f225a818787b921d)
+
+running 102 tests
+test control::tests::apply_action_lowpass_head_legs_mouth_stays_home ... ok
+test control::tests::coast_rides_out_up_to_coast_ticks_then_goes_blind ... ok
+test control::tests::driving_goes_straight_to_stopped_on_disable ... ok
+test control::tests::apply_action_no_previous_is_home_plus_scaled_scatter ... ok
+test control::tests::held_ramps_up_on_enable_only_with_policy ... ok
+test control::tests::homed_is_false_only_for_held_and_rampup ... ok
+test control::tests::level_changes_nowhere_else_do_nothing ... ok
+test control::tests::ramp_completion_lands_by_current_enabled ... ok
+test control::tests::ramp_endpoints ... ok
+test control::tests::ramp_midpoint_at_one_second ... ok
+test control::tests::skill_edges_are_dropped_unless_driving ... ok
+test io::tests::fake_io_failing_reads_recover_after_n ... ok
+test control::tests::edges_during_rampup_and_limp_are_deferred_not_dropped ... ok
+test io::tests::fake_io_injected_failure_is_simulated ... ok
+test io::tests::fake_io_remembers_gain_and_torque ... ok
+test io::tests::fake_io_tracks_writes_perfectly ... ok
+test control::tests::skill_edges_are_taken_once ... ok
+test control::tests::stopped_resumes_driving_immediately_on_enable ... ok
+test io::tests::sim_io_transport_failure_is_port ... ok
+test io::tests::sim_io_read_carries_sensors ... ok
+test model::tests::mouth_target_spans_the_prototype_range ... ok
+test model::tests::home_pose_legs_are_mirrored ... ok
+test io::tests::sim_io_reconnects_after_disconnect ... ok
+test obs::tests::at_home_position_block_is_near_zero ... ok
+test io::tests::sim_io_quat_must_have_exactly_four_numbers ... ok
+test obs::tests::layout_widths_sum_to_obs_len ... ok
+test io::tests::sim_io_refusal_is_an_error ... ok
+test obs::tests::every_block_lands_at_its_documented_offset ... ok
+test model::tests::table_lengths_are_consistent ... ok
+test obs::tests::scatter_action_skips_mouth ... ok
+test obs::tests::mouth_is_excluded_from_observation ... ok
+test io::tests::sim_io_bad_frame_and_eof_are_bus ... ok
+test safety::tests::brief_tilt_is_not_a_fall_and_upright_resets ... ok
+test safety::tests::caller_asking_for_limp_gain_gets_it ... ok
+test safety::tests::converged_imu_still_detects_a_fall ... ok
+test safety::tests::deadman_zeroes_twist_only ... ok
+test safety::tests::fall_does_not_preempt_the_caller ... ok
+test safety::tests::gain_is_written_only_when_it_changes ... ok
+test safety::tests::limit_runs_are_independent_and_reset_by_clean_ticks ... ok
+test safety::tests::never_driven_robot_reports_no_deadman ... ok
+test safety::tests::non_finite_target_is_refused_not_clamped ... ok
+test safety::tests::ordinary_target_passes_through_unchanged ... ok
+test safety::tests::out_of_range_targets_are_clamped_and_reported ... ok
+test safety::tests::sustained_tilt_is_a_fall ... ok
+test safety::tests::worth_logging_first_and_every_fifty ... ok
+test safety::tests::unconverged_imu_never_declares_a_fall ... ok
+test scheduler::tests::active_skill_outranks_sit_and_returns_to_it ... ok
+test scheduler::tests::busy_is_exactly_skill_or_ground_pick_or_rising ... ok
+test scheduler::tests::do_verdict_gates_on_enabled_and_homed_never_on_fallen ... ok
+test scheduler::tests::do_verdict_refuses_unknown_names_with_the_list ... ok
+test scheduler::tests::ground_pick_runs_the_phase_script_then_hands_back ... ok
+test scheduler::tests::priority_same_tick_requests_first_in_table_wins ... ok
+test scheduler::tests::sit_latches_and_carries_the_posture_flag_in_vx ... ok
+test scheduler::tests::sit_toggle_rises_with_zeroed_twist_then_latches_up ... ok
+test scheduler::tests::skill_window_zeroes_the_whole_command_then_hands_back ... ok
+test scheduler::tests::switch_flag_tracks_net_changes ... ok
+test policy::tests::velstand_zero_obs_then_feedback_stays_finite ... ok
+test scheduler::tests::unavailable_skills_are_refused ... ok
+test scheduler::tests::walk_is_the_default_and_passes_the_client_command_through ... ok
+test tests::enable_params_missing_on_rejected ... ok
+test tests::enable_params_on_true ... ok
+test tests::enable_params_toggle_alone_rejected ... ok
+test tests::enable_params_toggle_defaults_false ... ok
+test tests::enable_params_toggle_true_alongside_on ... ok
+test tests::enable_params_unknown_field_rejected ... ok
+test tests::move_params_full_triple_passes ... ok
+test scheduler::tests::failed_inference_resets_the_network ... ok
+test tests::move_params_json_overflow_rejected_at_parse ... ok
+test tests::move_params_missing_fields_default_zero ... ok
+test tests::move_params_non_finite_rejected ... ok
+test scheduler::tests::reset_clears_every_loaded_slot ... ok
+test tests::move_params_unknown_field_rejected ... ok
+test tests::move_params_wrong_type_rejected ... ok
+test scheduler::tests::switching_nets_resets_the_new_network ... ok
+test tests::parse_error_response_has_null_id ... ok
+test tests::request_without_id_is_notification ... ok
+test tests::subscribe_params_bad_shapes_rejected ... ok
+test tests::subscribe_params_empty_and_absent_mean_every_tick ... ok
+test tests::subscribe_params_hz_zero_and_ten_accepted ... ok
+test tests::subscribe_result_names_the_walk_file_that_failed ... ok
+test tests::subscribe_result_omits_stand_unavailable_and_empty_skills ... ok
+test updater::engine::tests::model_api_none_is_compatible ... ok
+test updater::engine::tests::recovery_verdict_truth_table ... ok
+test updater::lock::tests::second_holder_gets_busy ... ok
+test updater::manifest::tests::parses_well_formed_manifest ... ok
+test updater::manifest::tests::rejects_sha256_mismatch ... ok
+test updater::peer::tests::root_and_owner_pass_others_deny ... ok
+test updater::manifest::tests::rejects_unparseable_and_malformed ... ok
+test updater::engine::tests::pending_roundtrip ... ok
+test updater::robot::tests::safe_false_with_reason_means_no ... ok
+test updater::robot::tests::model_api_returns_value ... ok
+test updater::robot::tests::missing_safe_field_is_incompatible ... ok
+test updater::robot::tests::unreachable_socket_is_unreachable ... ok
+test updater::journal::tests::previous_comes_from_last_matching_commit ... ok
+test updater::robot::tests::safe_true_means_yes ... ok
+test updater::store::tests::cleanup_staging_removes_leftovers ... ok
+test updater::store::tests::leftover_tmp_link_does_not_block_swap ... ok
+test updater::store::tests::atomic_swap_repoints_current ... ok
+test io::tests::sim_io_set_gain_and_torque_frames ... ok
+test control::tests::net_switches_never_jump_targets ... ok
+test policy::tests::rejects_wrong_observation_width ... ok
+test policy::tests::lstm_state_carries_across_ticks_and_reset_replays_first_tick ... ok
+
+test result: ok. 102 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src/bin/mini-duckctl.rs (target/debug/deps/mini_duckctl-c178921bea13bc3f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/mini-updaterd.rs (target/debug/deps/mini_updaterd-5a61f3187ff9a427)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/miniduckd-025e530eb7069065)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests miniduck
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[exit_code=0]
+
+===== Regression 2: m09a-b01 =====
+$ docker compose -p microduck-from-scratch -f impl/docker-compose.yml exec -T -w /work rust bash /work/accept/m09a-b01.sh
+== A. 结构 ==
+  [PASS] 碰撞 geom 全 box（视觉 STL 不进物理）  实际类型: [6]
+  [PASS] 视觉网格 geom 数 = 70（官方 STL 照抄）  实际 70
+  [PASS] 视觉网格位姿与官方编译值对账  最差 0.00e+00
+  [PASS] 关节名同序（freejoint + 14 hinge）  实际: ['trunk_base_freejoint', 'left_hip_yaw', 'left_hip_roll', 'left_hip_pitch', 'left_knee', 'left_ankle', 'neck_pitch', 'head_pitch', 'head_yaw', 'head_roll', 'right_hip_yaw', 'right_hip_roll', 'right_hip_pitch', 'right_knee', 'right_ankle']
+  [PASS] 14 关节全 hinge
+  [PASS] body 树同构（15 body 同名）
+  [PASS] body 父子关系同构
+  [PASS] nu=14  实际 nu=14
+  [PASS] 执行器同序  实际: ['left_hip_yaw', 'left_hip_roll', 'left_hip_pitch', 'left_knee', 'left_ankle', 'neck_pitch', 'head_pitch', 'head_yaw', 'head_roll', 'right_hip_yaw', 'right_hip_roll', 'right_hip_pitch', 'right_knee', 'right_ankle']
+  [PASS] 关节 range 全对齐
+  [PASS] 关节 damping/frictionloss/armature 对齐 chosen_actuator 编译值
+  [PASS] 执行器 kp=0.55 / forcerange=±0.96 对齐
+== B. 惯量对账（左官方 / 右自建） ==
+  body                   质量%     质心mm    惯量max%
+  trunk_base          0.000%   0.000m    0.022%
+  yaw2roll            0.002%   0.000m    0.010%
+  hip_l               0.005%   0.000m    0.041%
+  upper_leg_left      0.001%   0.000m    0.024%
+  leg                 0.002%   0.000m    0.011%
+  ankle_left          0.001%   0.001m    0.020%
+  neck                0.001%   0.001m    0.014%
+  neck_pitch          0.000%   0.000m    0.013%
+  yaw_roll_motion     0.000%   0.001m    0.003%
+  jaw_soft            0.000%   0.000m    0.026%
+  bearing_roll        0.002%   0.000m    0.010%
+  hip_l_2             0.005%   0.000m    0.041%
+  upper_leg_right     0.001%   0.000m    0.024%
+  leg_2               0.002%   0.000m    0.011%
+  ankle_right         0.000%   0.000m    0.020%
+  总质量: 官方 0.737243 kg / 自建 0.737243 kg（差 0.000%）
+  [PASS] 总质量误差 ≤3%  实测 0.000%
+  [PASS] 逐 body 质量误差 ≤5%  最差 0.005%
+  [PASS] 逐 body 质心误差 ≤2mm  最差 0.001mm
+  [PASS] 逐 body 对角惯量误差 ≤15%（代理假设阈值）  最差 0.041%
+== C. STAND keyframe 贴地 ==
+  [官方] STAND 脚掌最低点 z=+0.00065
+  [自建] STAND 脚掌最低点 z=+0.00238
+  [PASS] STAND 脚掌贴地 |z| ≤5mm  实测 +0.00238
+== D. D26 穿透（阈值：稳定后最低碰撞角点 z ≥ -1mm） ==
+  [自建] 落体后: 最低碰撞角点 z=-0.0002 (geom#68), 躯干 z=+0.0490
+  [官方对照] 落体后: 最低碰撞角点 z=-0.0137 (geom#67), 躯干 z=+0.0349
+  [自建] 推倒后: 最低碰撞角点 z=-0.0002 (geom#68), 躯干 z=+0.0490
+  [官方对照] 推倒后: 最低碰撞角点 z=-0.0137 (geom#67), 躯干 z=+0.0350
+  [PASS] 自建·落体不穿透  z=-0.0002
+  [PASS] 自建·推倒不穿透  z=-0.0002
+  对照组记录：官方落体 z=-0.0137 / 官方推倒 z=-0.0137（D26 原状：官方网格接触在大冲击下可穿透至 z≈-0.111）
+
+M9a Bite 1 验收 PASS：结构 / 惯量对账 / 贴地 / 不穿透 全绿
+[exit_code=0]
+
+===== Regression 3: m08-b06 (explicit official scene_groundcontact.xml) =====
+$ docker compose -p microduck-from-scratch -f impl/docker-compose.yml exec -T -w /work rust bash /work/accept/m08-b06.sh
+===== M8 BAM 物理验收（端口 7806, python=/opt/sim-venv/bin/python）=====
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+站立：PASS  body z=0.11659355811354005  skill=walk  fallen=False
+== sit_toggle：坐稳 ≥2s + 起身 ==
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+sit：126 帧 skill=sit、fallen 恒 false、z=0.0596；起身 z=0.1157  OK
+sit 起身：skill=walk fallen=false  OK
+sit：PASS
+== roulade：窗口 ~100 拍（2.0s）；中段可 fallen，结束后 upright ==
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+roulade：100 帧窗口（中段 fallen=40），结束后 walk/fallen=false/gain=200 z=0.1170  OK
+roulade：PASS  post z=0.11703814032206926
+== 行走回归：vx=0.8 × 10s（公开权重对小命令不响应，0.8 才起步态；门槛见头部裁决）==
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+走前 body(x y z t): 0.002433742146314273 -9.524533142476719e-05 0.11658509681296254 2.0999999999999774
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+{"jsonrpc":"2.0","id":2,"result":{"accepted":true,"vx":0.8,"vy":0.0,"vyaw":0.0}}
+{"jsonrpc":"2.0","id":101,"result":{"accepted":true,"vx":0.0,"vy":0.0,"vyaw":0.0}}
+走后 body(x y z t): 4.876694859183309 -0.7458420424589134 0.13210611637668265 12.160000000000501
+前移 4.874 m
+行走：PASS
+
+M8 BAM 物理验收全部通过：站立 + sit 坐稳起身 + roulade 不摔 + 行走(vx=0.8 ≥2.0m)
+[exit_code=0]
+
+===== Final verifier summary =====
+结论：通过。含新增 D 组的 m09a-b03 主验收、cargo test、m09a-b01、显式固定官方 scene_groundcontact.xml 的 m08-b06 均退出码 0；无不通过项。
+A/B/C：全绿。左右脚掌各 2 个 box，滑动摩擦均为 1.0；BAM 对账、参数覆盖、15 槽 lag=3、默认 handmade、3 次站立与行走全部通过。行走 samples=[2.605573, 2.604251, 2.604783]m，min=2.604m，median=2.605m。
+D handmade sit：2 次全新进程全循环均通过。
+  样本 1：坐姿 z=0.06442370594755893，起身 z=0.11598605067014672，起身后 walk/fallen=false；坐姿阶段状态断言为 sit/fallen=false。
+  样本 2：坐姿 z=0.06442370594755893，起身 z=0.11598605067014672，起身后 walk/fallen=false；坐姿阶段状态断言为 sit/fallen=false。
+官方 groundcontact B06 sit：126 帧 skill=sit、fallen 恒 false，坐姿 z=0.0596，起身 z=0.1157，起身后 walk/fallen=false；roulade 与行走也通过，行走前移 4.874m。
+cargo test：102 passed / 0 failed。m09a-b01：结构、惯量、贴地、接触全绿。
+统计说明：3 次行走和 2 次 handmade sit 都是同一确定性配置的复跑，不是独立随机样本；不计算或伪造 p 值/置信区间，不据此声称统计成功率。
+残余覆盖缺口：handmade 未覆盖 roulade、其他速度、转向/横移、地形及外加扰动；D 组只取坐姿与起身后的端点状态，未像 B06 一样记录整个坐姿窗口的连续帧；全部结果来自仿真，不替代真机验证。

@@ -5,9 +5,9 @@
   read  → 回传感数据（响应带 gain/torque 回显，M5 起）。
           非 BAM 在此步进：目标上一拍已在 ctrl。BAM 不在此步进。
   write → 收 15 维总线序目标角（嘴在 index 9，仿真体没有嘴，丢弃）。
-          BAM 先把本拍目标写入 q_target 再步进（与官方 infer_policy.py
-          主循环同序，read 因而无副作用）。两种拍序闭环等价，2026-10-14
-          回退实验证实：读时步进四项验收同样全绿。
+          BAM 先把本拍目标经可选控制拍延迟后写入 q_target 再步进（与官方
+          infer_policy.py 主循环同序，read 因而无副作用）。两种拍序闭环等价，
+          2026-10-14 回退实验证实：读时步进四项验收同样全绿。
   set_gain/set_torque → 执行器增益缩放/卸力（M5：跌倒软倒验收用）
   push  → 给躯干加水平速度扰动（M5：把鸭子推倒的验收用）
   body  → 只查躯干位置不步进（验收测位移用）
@@ -20,7 +20,7 @@ protocol 版本号和关节数校验。帧格式细节是教程自定（偏差 D
 
 执行器（M8）：
   默认 BAM M6 XL330（better-actuator-models，对齐 microduck_rl
-  scripts/infer_policy.py）。场景默认 scene_groundcontact.xml。
+  scripts/infer_policy.py）。场景默认自建的 scene_handmade.xml。
   --no-bam / MINIDUCK_SIM_BAM=0 → 回退 XML position PD + scene.xml（诊断用）。
 
 可视化两路，互不冲突：
@@ -72,8 +72,12 @@ BAM_MODEL = "m6"
 # MINIDUCK_SIM_BAM_KP 可覆盖（诊断）。
 BAM_KP_FW = float(os.environ.get("MINIDUCK_SIM_BAM_KP", "200"))
 BAM_VIN = 7.4           # 名义 2S LiPo（蓝图 --vin 默认）
+BAM_VIN_RANGE = (6.5, 8.2)
 BAM_VIN_DROP_GAIN = 0.1 # V_drop = gain * sum|tau|（蓝图 --vin-drop-gain 默认）
+BAM_VIN_DROP_GAIN_RANGE = (0.0, 0.2)
+BAM_DELAY_RANGE = (3, 6)  # 训练随机延迟范围，单位为 20ms 控制拍
 BAM_VIN_MIN = 6.0       # 掉压后电压地板（蓝图 BAM_VIN_MIN）
+BAM_MAX_CURRENT = None  # 训练与 CPU 回放默认不限制电流
 BAM_TIMESTEP = 0.005    # BAM 开时物理步长；控制 20ms → 4 子步（蓝图 L1269/L1419）
 # infer_policy.py 初始化躯干高度 0.125（非 keyframe 的 0.12）；脚底更贴地。
 BAM_INIT_TRUNK_Z = 0.125
@@ -95,11 +99,11 @@ def _load_bam_model(kp_fw: float, vin: float):
     bam_model = load_model(motor_name=BAM_MOTOR_NAME, model=BAM_MODEL)
     bam_model.actuator.kp = kp_fw
     bam_model.actuator.vin = vin
-    bam_model.actuator.max_current = None
+    bam_model.actuator.max_current = BAM_MAX_CURRENT
     return bam_model
 
 
-def _compile_scene_with_bam(xml_path: str, bam_model):
+def _compile_scene_with_bam(xml_path: str, bam_model, vin_drop_gain: float):
     """MjSpec：position → motor+forcerange，关节阻尼清零，接 MujocoController。
 
     对齐蓝图 load_mujoco_with_bam（infer_policy.py L57–103），从零写，不整文件抄。
@@ -137,21 +141,27 @@ def _compile_scene_with_bam(xml_path: str, bam_model):
     data = mujoco.MjData(model)
     bam_ctrl = MujocoController(
         bam_model, names, model, data,
-        vin_drop_gain=BAM_VIN_DROP_GAIN, vin_min=BAM_VIN_MIN,
+        vin_drop_gain=vin_drop_gain, vin_min=BAM_VIN_MIN,
     )
     return model, data, bam_ctrl, names
 
 
 class DuckBody:
-    def __init__(self, scene_path: str, use_bam: bool = True):
+    def __init__(self, scene_path: str, use_bam: bool = True, *,
+                 kp_fw: float = BAM_KP_FW, vin: float = BAM_VIN,
+                 vin_drop_gain: float = BAM_VIN_DROP_GAIN, delay_lag: int = 0):
+        if not isinstance(delay_lag, int) or delay_lag < 0:
+            raise ValueError("delay_lag must be a non-negative integer")
         self.use_bam = use_bam
         self.bam_model = None
         self.bam_ctrl = None
+        self.bam_kp_fw = kp_fw
+        self.delay_lag = delay_lag
 
         if use_bam:
-            self.bam_model = _load_bam_model(BAM_KP_FW, BAM_VIN)
+            self.bam_model = _load_bam_model(kp_fw, vin)
             self.model, self.data, self.bam_ctrl, _names = _compile_scene_with_bam(
-                scene_path, self.bam_model)
+                scene_path, self.bam_model, vin_drop_gain)
         else:
             self.model = mujoco.MjModel.from_xml_path(scene_path)
             self.data = mujoco.MjData(self.model)
@@ -177,6 +187,7 @@ class DuckBody:
             self.data.qpos[2] = BAM_INIT_TRUNK_Z
         # 起步即有力矩：真机的舵机一直挂着，仿真从瘫软开始会在第一拍前摔地上。
         stand_q = self.data.qpos[self.joint_qadr].copy()
+        self.target_queue = [stand_q.copy() for _ in range(self.delay_lag)]
         if self.bam_ctrl is not None:
             self.bam_ctrl.reset(self.data.qpos)
             self.bam_ctrl.q_target[:] = stand_q
@@ -202,8 +213,8 @@ class DuckBody:
         """把 gain(0..200)/torque 落到执行器参数上。
 
         BAM 路径：
-          bam_model.actuator.kp = BAM_KP_FW * (gain/200)
-          → limp gain=50 → kp_fw=50。torque off → kp=0。
+          bam_model.actuator.kp = self.bam_kp_fw * (gain/200)
+          → limp gain=50 → 基准 kp_fw 的四分之一。torque off → kp=0。
           来源：蓝图「200*(gain/200)」+ 本教程 limp 语义。
 
         非 BAM（XML position PD）：
@@ -212,7 +223,7 @@ class DuckBody:
         """
         scale = (self.gain / 200.0) if self.torque else 0.0
         if self.bam_model is not None:
-            self.bam_model.actuator.kp = BAM_KP_FW * scale
+            self.bam_model.actuator.kp = self.bam_kp_fw * scale
             return
         kp_base = float(os.environ.get("MINIDUCK_SIM_KP", "8.0"))
         kv_base = float(os.environ.get("MINIDUCK_SIM_KV", "0.25"))
@@ -325,6 +336,10 @@ class DuckBody:
         joints = np.concatenate([t[:MOUTH_INDEX], t[MOUTH_INDEX + 1:]])
         with self.lock:
             if self.bam_ctrl is not None:
+                # 延迟按 20ms 写目标拍排队；5ms BAM 子步只执行本拍弹出的目标。
+                if self.delay_lag:
+                    self.target_queue.append(joints)
+                    joints = self.target_queue.pop(0)
                 # BAM：ctrl 是力矩；位置目标进 q_target（蓝图 set_position_targets）。
                 self.bam_ctrl.q_target[:] = joints
             else:
@@ -455,6 +470,13 @@ def serve_view(body: DuckBody, port: int):
     ThreadingHTTPServer(("0.0.0.0", port), View).serve_forever()
 
 
+def _non_negative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be a non-negative integer")
+    return parsed
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=7801)
@@ -463,6 +485,11 @@ def main():
     ap.add_argument("--no-bam", action="store_true",
                     help="回退 XML position PD + 默认 scene.xml（诊断；"
                          "也可用 MINIDUCK_SIM_BAM=0）")
+    ap.add_argument("--kp-fw", type=float, default=BAM_KP_FW)
+    ap.add_argument("--vin", type=float, default=BAM_VIN)
+    ap.add_argument("--vin-drop-gain", type=float, default=BAM_VIN_DROP_GAIN)
+    ap.add_argument("--delay", type=_non_negative_int, default=0,
+                    help="动作延迟，单位为 20ms 控制拍")
     ap.add_argument("--view-port", type=int, default=None,
                     help="开启 MJPEG 网页画面（浏览器看仿真），如 7802")
     ap.add_argument("--viewer", action="store_true",
@@ -474,11 +501,12 @@ def main():
     if args.scene:
         scene = args.scene
     elif use_bam:
-        scene = assets + "/scene_groundcontact.xml"
+        scene = assets + "/scene_handmade.xml"
     else:
         scene = assets + "/scene.xml"
 
-    body = DuckBody(scene, use_bam=use_bam)
+    body = DuckBody(scene, use_bam=use_bam, kp_fw=args.kp_fw, vin=args.vin,
+                    vin_drop_gain=args.vin_drop_gain, delay_lag=args.delay)
 
     if args.view_port:
         threading.Thread(target=serve_view, args=(body, args.view_port),

@@ -109,9 +109,13 @@
                 <geom type="mesh" class="visual" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" mesh="foot_left" material="foot_left_material"/>
                 <geom type="mesh" class="visual" pos="0 0 -0.0322" quat="0 0 0 1" mesh="seeed_bearing__configuration_default" material="seeed_bearing__configuration_default_material"/>
                 <geom type="mesh" class="visual" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" mesh="ankle_left" material="ankle_left_material"/>
-                <!-- 脚掌：官方 sole_left 网格 AABB，步态接触就靠它 -->
-                <geom name="left_foot_collision" class="collision" pos="-0.006832 -0.018218 -0.015741"
-                      quat="0.4924 -0.508108 -0.489826 0.509351" size="0.006788 0.021741 0.02723" />
+                <!-- 鞋底零 mesh：薄底层拟合官方 sole 承重带，上层保留主体包围盒 -->
+                <geom name="left_foot_collision" class="collision" pos="-0.007017464036 -0.02339401783 -0.0246288427"
+                      quat="0.4923998867 -0.5081082529 -0.489826422 0.5093509901"
+                      size="0.0015 0.0059159 0.01961095631" friction="1.0 0.005 0.0001" />
+                <geom name="left_foot_collision_part2" class="collision" pos="-0.006829835485 -0.01650534056 -0.01580097211"
+                      quat="0.4923998867 -0.5081082529 -0.489826422 0.5093509901"
+                      size="0.005073626526 0.02174140592 0.02722997068" friction="1.0 0.005 0.0001" />
               </body>
             </body>
           </body>
@@ -236,8 +240,12 @@
                 <geom type="mesh" class="visual" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" mesh="sole_right" material="sole_right_material"/>
                 <geom type="mesh" class="visual" pos="0 -0 -0.0292" quat="0 -1 -0 -0" mesh="seeed_bearing__configuration_default" material="seeed_bearing__configuration_default_material"/>
                 <geom type="mesh" class="visual" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" mesh="foot_right" material="foot_right_material"/>
-                <geom name="right_foot_collision" class="collision" pos="0.006832 -0.018218 -0.015741"
-                      quat="0.509351 0.489826 0.508109 0.492399" size="0.006788 0.021741 0.02723" />
+                <geom name="right_foot_collision" class="collision" pos="0.007017459827 -0.02339401257 -0.02462891956"
+                      quat="0.5093512617 0.4898263251 0.5081093808 0.4923985384"
+                      size="0.0015 0.0059159 0.01961095631" friction="1.0 0.005 0.0001" />
+                <geom name="right_foot_collision_part2" class="collision" pos="0.006829947801 -0.01650530462 -0.01580106801"
+                      quat="0.5093512617 0.4898263251 0.5081093808 0.4923985384"
+                      size="0.005073633045 0.02174145758 0.02722982717" friction="1.0 0.005 0.0001" />
               </body>
             </body>
           </body>

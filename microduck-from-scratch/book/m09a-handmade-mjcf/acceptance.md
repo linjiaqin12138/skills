@@ -1,4 +1,4 @@
-# M9a Bite 1 验收档案：自建 MJCF 身体模型（碰撞自建，视觉挂官方 STL）
+# M9a 验收档案：自建 MJCF 与 BAM 闭环
 
 日期：2026-10-20（初版同日，视觉修订同日）
 
@@ -35,7 +35,20 @@ docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b01.s
 
 ## 与官方模型的残余差异（供偏差簿参考）
 
-- 碰撞几何是官方碰撞网格的 AABB 包围盒，比真实网格**只大不小**；对行走/技能的影响在 Bite 2 闭环验收里实测判定
+- 碰撞几何是官方碰撞网格的 primitive 近似，比真实网格**只大不小**；Bite 3 把每侧鞋底细分为薄承重底层 + 主体上层两个 box，在官方摩擦 1.0 下实测站立/直走，其他技能仍未覆盖
 - 视觉挂官方 STL（CC BY-NC-SA 4.0）：用户裁决外观优先；视觉不进物理，物理核心零 STL 成果保留；商用分发需替换视觉资产
 - 官方 geom#7（trunk，contype=2/conaffinity=2）实际不与任何 geom 产生接触，自建模型未复制该无效 geom
 - 未移植官方 RL 传感器组（orientation/angular-velocity/imu_lin_vel/imu_accel/root_angmom）——duck_body.py 只读 `imu_gyro`；训练侧需要时在 M9b+ 再加
+
+## Bite 3：BAM 对账与自建模型闭环（2026-10-25）
+
+验收入口：`accept/m09a-b03.sh`；独立实测：`tutor/runs/m09a-b03.txt`。
+
+- A/B：BAM 电机、模型、增益、电压、压降、电流限制与 5ms 步长对账通过；每侧脚掌为 2 个 box、滑动摩擦均回到官方 1.0；显式参数覆盖和 15 槽总线上的 lag=3 目标队列通过
+- C：默认场景确认为 `scene_handmade.xml`；3 次全新进程均站立并以 vx=0.8 行走 10 秒，dx=2.604783/2.604783/2.605613m，最小值与中位数均为 2.605m
+- 回归：102 Rust tests、`accept/m09a-b01.sh`、显式固定官方 `scene_groundcontact.xml` 后的 `accept/m08-b06.sh` 全绿
+- D：handmade sit 两次全新进程全循环通过；坐姿 z=0.0644237，起身 z=0.1159861，均回 walk/fallen=false
+- D70 修订后收敛：摩擦代理值 2.0 已移除，残余是鞋底 primitive 近似；不声称接触点逐点等价
+- 覆盖边界：handmade roulade、连续坐姿窗口、非直走、横移、转向、扰动、随机种子与真机未验收；历史失败归因旧单 AABB 鞋底，当前 XML 修订后消失
+
+结论：**PASS（等用户确认本 Bite）**。决定见 `decisions/0001-handmade-bam-replay.md`，教程见 `b03-bam-handmade.html`。

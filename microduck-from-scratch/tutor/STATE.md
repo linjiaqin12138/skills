@@ -3,19 +3,18 @@
 > 新会话续传入口：读本文件 + user-prefs.md（项目级路线与先修能力表）+ spec/deviations.md + questions.md + spec/features.md + book/ 最新一章，然后从"下一步"继续。若当前模式是先修学习，再读 `tutor/prerequisites/<slug>.md`。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `upstream/`，只读）
-- **当前模式**：项目内引导（项目实现 / 项目内引导 / 先修学习）
-- **返回位置**：M9a 下一项目 Bite（BAM 参数对账 + 自建模型闭环行走）
-- **当前先修记录**：无（项目内引导练习在 `exercises/mjcf-leg-chain/`，不建 prerequisites/）
-- **当前位置**：**M9a Bite 1 已交付（2026-10-20）**——自建 MJCF 身体模型全绿，D26 收敛。M8/Phase 4 已收官（2026-10-15）。Bite 10（D36 对齐原版 robot.do 门口裁决）：102 单测 + accept-m8 a–w+z1–z5+x/y + accept-m8-updater 8/8 + accept-m8-bam 四项全绿，教程 `b10-do-verdict.html`（第 17 章）已抽查交付。**复盘落盘 `tutor/phases/phase-4.md`**：收敛验收结论 + 8 条原作者决策失效边界 + 5 条可迁移原则 + 检验题（机械臂 OTA 场景，待用户作答点评）。feature-inventory 批次归属回填完毕。
+- **当前模式**：项目实现（项目实现 / 项目内引导 / 先修学习）
+- **返回位置**：M9a 下一 Bite：D4 sim 协议面对齐官方 body_server.py
+- **当前先修记录**：无。用户 2026-10-25 报告已完成腿链练习与 MuJoCo 基础学习并明确继续；作业文件不在仓内，未复验，不记验收全绿
+- **当前位置**：**M9a Bite 3 已交付（2026-10-25，等用户确认）**——默认 BAM 场景切到 `scene_handmade.xml`，BAM 参数与官方训练/CPU 回放对账，新增 `--kp-fw/--vin/--vin-drop-gain/--delay`，20ms 目标队列默认零延迟。按用户要求细分鞋底：每侧薄承重底层 + 主体上层两个 box，滑动摩擦回到官方 1.0。3 次独立闭环站立 + vx=0.8 行走全过，dx=2.605573/2.604251/2.604783m；2 次 handmade sit 全循环全过（坐姿 z=0.0644237，起身 z=0.1159861）。102 Rust tests + m09a-b01 + 固定官方场景后的 m08-b06 全绿。**D70 已收敛**；残余是 primitive 近似，handmade roulade 未验收。教程 `b03-bam-handmade.html`（第 20 章）STE 0 warning、浏览器与图目检通过；决定 `decisions/0001-handmade-bam-replay.md` 仍为起草。
+- **M9a Bite 1 已交付（2026-10-20）**：自建 MJCF 身体模型全绿，D26 收敛。M8/Phase 4 已收官（2026-10-15），复盘在 `tutor/phases/phase-4.md`。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `book/m08-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `b06-bam.html`（第 14 章）
-- **M8 Bite 8 已交付（2026-10-14，用户裁决 0.8 方案收尾）**，教程 `b08-walk-verdict.html`（第 15 章）已发布。行走不动点结案：双侧实验坐实"0.15/0.3 不走"是公开 velstand 权重对训练分布内小命令不响应（官方 infer_policy.py 与我们 dx 都 ≈0.005；给初速度或 vx=0.8 双侧都能走，用户双边肉眼验证）。行走验收改为 vx=0.8 ×10s 前移 ≥2.0m（实测 4.9m 量级）。BAM 步进在 write（与官方主循环同序、read 无副作用；**机制订正 Q83**：读/写两种步进顺序递推等价，回退实验双向全绿，"先写再步进让起身接得住"的解释作废）。**D68 已收敛**（残余"0.3 不走"= 上游权重现状，M9 自训策略解决）。
-- **M8 Bite 9 已交付（2026-10-15，Phase 4 就地对齐组）**，教程 `b09-phase4-fixes.html`（第 16 章）：D13（IoError 四变体，对齐 duck-control/src/io.rs:50-71）、D20（**修订裁决：保留 LSTM 分支**=原版 loader 能力面，补合成 (3,3) LSTM 夹具运行时覆盖；实证：官方全 tag v1–v8+main + 7 社区采样模型全 FF）、D24（COAST_TICKS=3 滑行，robotd/src/main.rs:137；consecutive_read_errors 每次失败即计、skipped_reads 语义收窄为真瞎跳拍）、D65（model_api None 放行）。**新登记 D69**（盲拍 hold 写入 + RESET_AFTER_PAUSE=200ms + BUS_DROP_QUIET 未移植，挂 M10）。
-- **2026-10-20 补漏（用户反馈「看了有点懵，不知道学了什么；想学仿真模型怎么搭建，里面没有构建命令」）**：① 第 18 章补「搭建实操」五步循环节；② 用户裁决「教程补实操 + 动手练习」双补，练习脚手架已就位（当时落在 `impl/sim/`，见 2026-10-25 迁移）。实测：`--solution` 全绿；作业缺失 exit=2；破坏样本 FAIL 带「→ 怎么办」。verifier 因 429 未跑，主 agent 自跑。
-- **2026-10-20 练习教程页已交付（第 19 章，`b02-leg-exercise.html`）**：8 面板，STE 0 warning，浏览器抽查通过。**待用户裁决**：旧目录 `~/microduck-verify/.venv` 是否删。
-- **2026-10-25 对齐 clone-from-scratch-tutor 先修/练习布局**：练习迁出 `impl/` → `exercises/mjcf-leg-chain/`；`accept/m09a-b02.sh` 与第 19 章路径已改；`tutor/prerequisites/` 空目录就位；`tutor/user-prefs.md` 补先修能力表（路线=项目内引导）。作业文件 `exercises/mjcf-leg-chain/exercise_leg.xml`（读者产出，允许提交）。
-- **2026-10-22 第 18 章读者三问补讲**（Q84–Q86，记入 `tutor/questions.md`）：读者在第 18 章标注了三处「没讲透」——① `<inertial>` 四字段是什么物理量；② joint 的 hinge/range/axis 怎么理解；③ qpos 是什么、怎么 21 个值。按 skill「互动规则」**优先补进正文对应位置**（writer subagent 改草稿，主 agent 拆句过 STE strict、整页重渲、浏览器目检）：惯量背景卡片新增四行字段表（字段/物理量/单位/本例数值）+ 平动与转动分工；代码领读左腿链段新增 joint 三属性表 + 三点展开（axis 统一 z 轴由 body quat 转出、range 弧度制与左右镜像、default 继承）；代码领读场景包装段新增 qpos 五段拆读表 + gyro 传感器读数 ≠ qpos 状态。「细节展开」面板加一条提问记录（只指路不抄答案）。STE 0 warning / 11 面板 / 7 张表 / 图片非零，主 agent 浏览器抽查三处表格渲染正常。**待用户裁决**：writer 提出可能需要一篇「广义坐标」概念深读页（slug `generalized-coordinates`），未排期。
-- **下一步**：当前停在 **项目内引导**——用户亲手完成 `exercises/mjcf-leg-chain/exercise_leg.xml`（教程第 19 章；验收 `bash accept/m09a-b02.sh`）。出口达标或用户明确跳过后，回到 **项目实现**：下一项目 Bite = BAM 参数对账（microduck_constants.py:163-176）+ 自建模型闭环（velstand 站立 + vx=0.8 ×10s ≥2.0m）。M9a Bite 1 已交付（`duck_handmade.xml` / D26 / `accept/m09a-b01.sh`）。M9 拆分见 `tutor/m9-plan.md`。**环境备注**：验收与数据提取容器内跑；viewer 用仓内 `.venv/`（见决策 20）。跑 accept 前先 `cargo build --bins`。
+- **M8 Bite 8 已交付（2026-10-14，用户裁决 0.8 方案收尾）**，教程 `b08-walk-verdict.html`（第 15 章）已发布。行走验收为 vx=0.8 ×10s ≥2.0m；0.15/0.3 不走是公开 velstand 权重现状。BAM 步进在 write，读/写拍序递推等价（Q83）。D68 已收敛。
+- **M8 Bite 9 已交付（2026-10-15）**：教程 `b09-phase4-fixes.html`（第 16 章），D13/D20/D24/D65 收敛；新登记 D69 挂 M10。
+- **2026-10-20 补漏与练习**：第 18 章补搭建实操；第 19 章 `b02-leg-exercise.html` 已交付。练习 2026-10-25 迁到 `exercises/mjcf-leg-chain/`；用户报告已完成，仓内无作业文件，未复验。
+- **2026-10-22 第 18 章读者三问补讲**（Q84–Q86）：惯量字段、joint 三属性、qpos 已补正文；广义坐标概念页未排期。
+- **下一步**：等用户确认 M9a Bite 3 后，把 `decisions/0001-handmade-bam-replay.md` 改为已采纳，再做 **M9a 下一 Bite：D4 sim 协议面对齐官方 `body_server.py`**（op 名 gain/torque、15 槽含嘴、PROTOCOL=1 握手、trunk 系投影重力）。M9 拆分见 `tutor/m9-plan.md`。**环境备注**：验收与数据提取容器内跑；viewer 用仓内 `.venv/`。当前 compose 项目名 `microduck-from-scratch`。
 
 ## 里程碑进度
 
@@ -30,7 +29,7 @@
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（book/m06-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（book/m07-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：impl/src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept/m07-b01.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
 | M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 tutor/phases/phase-4.md |
-| M9 仿真与训练（批次 2） | **进行中（2026-10-16 开工）**：拆 M9a–M9e 五个里程碑、GPU 后置（方案 tutor/m9-plan.md）。**M9a Bite 1 已交付（2026-10-20）**：自建 MJCF 身体模型（碰撞盒+惯量自建、视觉挂官方 STL，D26 收敛），验收 accept/m09a-b01.sh 全绿；Bite 2（BAM 对账+闭环行走）当前。后续：M9b 训练管线解剖（CPU）；M9c 调度对齐① FallPredictor/odometry（CPU）；M9d 云上训练（GPU，Vast.ai 5090）；M9e Velocity 全链路闭环+调度对齐② |
+| M9 仿真与训练（批次 2） | **进行中（2026-10-16 开工）**：M9a Bite 1 身体/D26、Bite 2 腿链练习、Bite 3 BAM 对账+细分鞋底+自建模型站立行走已交付；D70 已收敛。下一项目 Bite 收敛 D4 sim 协议面。后续：M9b 训练管线、M9c FallPredictor/odometry、M9d 云训练、M9e 自训闭环 |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
 
@@ -49,8 +48,8 @@
 - M4 验收：`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m04-b01.sh`。M5：`accept/m05-b01.sh`（sim 端口 7803）。M6：`accept/m06-b01.sh`（sim 端口 7804；权重先跑 `bash impl/scripts/fetch-m6.sh`）。M7：`accept/m07-b01.sh`（五场景 39 断言；根目录 /tmp/m7-demo 隔离，不需要仿真；**本机 D1/E1 有时序 flake，见下**）。M8：`accept/m08-b01.sh`（FakeIo 无需仿真；断言 a–w）+ `accept/m08-b04.sh`（Bite 4 updater 预检端到端，6 断言，根目录 /tmp/m8-updater-demo 隔离，不需要仿真）。两者都先 `cargo build --bins`：`cargo test` 不更新 `impl/target/debug/miniduckd`
 - 最新架构图：`book/arch/src/current.d2` + `arch.svg`（Bite 6：BAM+groundcontact；arch-diff 相对 Bite 5：duck_body 醒目，control/scheduler/io 次醒目）
 - 概念深读页（`book/concepts/`，`.draft.md` 为源稿、`.html` 为产物；**新页按 skill 现行规范走「一概念一文件夹」**：`book/concepts/<slug>/<slug>.draft.md` + `<slug>.html` + `assets/`）：`inertia-tensor/inertia-tensor.html`（2026-10-22 按 concept-writer 现行规范重写：教学合同 + 验收承诺开篇、8 面板学习链、4 张图（F1 哑铃手算 / F2 串轴 / F3 绕 z 旋转滑块交互 / F4 主轴与最终存法）、LaTeX 公式、5 题自测、4 个工程坑；冷读评审过一轮并按断点修订——图号补 F3、F2 箭头改双头不声明正负、观察任务③改「转到主轴系」、滑块矩阵加 x/y/z 表头、自测改覆盖三件事且选项不可抄正文。演示脚本 `book/concepts/figures/inertia-tensor/inertia_demo.py`；旧平铺文件 `concepts/inertia-tensor.{draft.md,html}` 已删，第 18 章链接改指新路径并整页重渲）、`quaternion.html`（2026-10-21 新增：wxyz/xyzw 顺序、半角、双覆盖 q≡-q、slerp vs nlerp、演示脚本 `figures/quaternion/quat_demo.py`；M1 背景卡片 + M9a 第 18 章惯量张量卡与坑 5 已挂链接）、`contact-penetration.html`、`servo-gain-torque.html`
-- 仿真：默认 `/opt/sim-venv/bin/python sim/duck_body.py`（BAM，容器内，工作目录是 `/work/impl`）；宿主机仅在需要 viewer 交互时用仓内 `.venv/bin/python impl/sim/duck_body.py --viewer`，`--no-bam` 回退。物理验收：`bash accept/m08-b06.sh`（端口 7806；行走 vx=0.8 ≥2.0m）。诊断：`bash accept/m08-b05.sh`（强制 no-bam）
-- **当前仿真行为（Bite 8 已验收）**：默认仍是 BAM+groundcontact，roulade 窗口 2.0s。冻结和 push 0.30 不在代码里。`--sim` 且策略已加载时第一拍就是 Driving。假总线仍是 Held→RampUp。BAM 的 `read` 不步进，`write` 写入 `q_target` 后再 `step_tick`；非 BAM 仍是读时步进。站立、坐姿起身、roulade 结束直立、vx=0.8 行走（10s 前移 ≈4.9m）都过。vx=0.15/0.3 不迈步是上游 velstand 权重现状（官方双侧一致），M9 自训策略解决。
+- 仿真：默认 `/opt/sim-venv/bin/python sim/duck_body.py`（BAM + `scene_handmade.xml`，容器内，工作目录 `/work/impl`）；宿主机仅 viewer 用仓内 `.venv/bin/python impl/sim/duck_body.py --viewer`，`--no-bam` 回退 scene.xml。M9a 闭环验收 `accept/m09a-b03.sh`（端口 7809，3 次站立+行走 + 2 次 sit）；M8 官方物理回归 `accept/m08-b06.sh` 已显式固定 scene_groundcontact.xml。诊断：`accept/m08-b05.sh`（强制 no-bam）
+- **当前仿真行为（M9a Bite 3 已验收）**：BAM 默认自建身体，固定 kp=200/vin=7.4/vin_drop=0.1/delay=0；可用 CLI 显式改参数和 20ms 拍延迟。每侧鞋底细分为两个 box，滑动摩擦回到官方 1.0，D70 已收敛。3 次 vx=0.8 行走均约 2.605m；2 次 handmade sit 全循环通过；handmade roulade 未验收。官方 groundcontact 的 sit/roulade/行走回归仍全绿。BAM read 不步进、write 后 step_tick，非 BAM 读时步进；vx=0.15/0.3 不迈步仍是上游 velstand 权重现状。
 - Rust 工具链：容器 `miniduck-rust`，rustc 1.99.1（`rust:1-bookworm`，DaoCloud 镜像；2026-10-06 换机重建后从 1.98.1 升到 1.99.0；2026-10-20 为补 /opt/sim-venv 重建镜像，基础镜像更新到 1.99.1）。宿主机不装 rustup
 - HF Hub 直连本机超时，下载走镜像或上述代理
 

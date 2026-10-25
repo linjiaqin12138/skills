@@ -80,8 +80,9 @@ fresh_sim() {
     kill $SIM_PID 2>/dev/null; SIM_PID=""
     sleep 1
     rm -f /tmp/miniduckd.sock
+    # M8 的验收对象是官方 groundcontact；M9a 起默认场景已切到自建身体。
     env MUJOCO_GL=disable "$SIM_PYTHON" sim/duck_body.py --port $SIM_PORT \
-        2>/tmp/m8-bam-sim.log &
+        --scene sim/assets/scene_groundcontact.xml 2>/tmp/m8-bam-sim.log &
     SIM_PID=$!
     sleep 3
     if ! kill -0 $SIM_PID 2>/dev/null; then

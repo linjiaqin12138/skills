@@ -10,12 +10,13 @@
 
 ## 里程碑拆分（依赖序 = 执行序）
 
-### M9a · 自建 MJCF 仿真模型（CPU，2-3 Bite）— 当前
+### M9a · 自建 MJCF 仿真模型（CPU，2-3 项目 Bite + 1 练习）— 当前
 
 - 目标：从零写鸭子 MJCF（基本几何体，绕开 STL 的 CC BY-NC-SA），接入我们 impl/sim/duck_body.py，用现有 velstand 权重验收
 - 内容：MJCF 建模（运动树/惯量/碰撞几何取舍/keyframe）；BAM M6 参数与 microduck_constants.py:163-176 逐项对账；**D4 收敛**——sim 协议面对齐官方 body_server.py（op 名 gain/torque、15 槽含嘴、PROTOCOL=1 握手、trunk 系投影重力）
 - 验收：自建 MJCF 在本机 sim 站立 + vx=0.8 行走 ≥2.0m（复现 M8 Bite 8 门槛）
-- 收敛：D4、D26（接触模型随重建）
+- 进度：Bite 1 身体与 D26 已交付；Bite 2 为用户腿链练习；Bite 3 BAM 对账、细分鞋底、站立/行走/sit 已交付（2026-10-25），D70 修订后收敛；D4 为下一项目 Bite
+- 收敛：D4 待下一 Bite、D26 已收敛（接触模型随重建）、D70 已收敛（细分鞋底后摩擦回 1.0）
 - 新概念：MJCF 建模、惯量/碰撞几何
 
 ### M9b · 训练管线解剖（CPU，2-3 Bite）
@@ -51,7 +52,8 @@
 | 挂账项 | 归宿 |
 |---|---|
 | D4 sim 协议面 | M9a |
-| D26 接触穿透 | M9a |
+| D26 接触穿透 | M9a（已收敛） |
+| D70 自建足底摩擦代理值 | M9a（Bite 3 修订后收敛） |
 | D23+D32 FallPredictor | M9c |
 | odometry | M9c |
 | 「0.3 不走」上游权重 | M9e |
