@@ -1,7 +1,7 @@
 ---
 name: clone-from-scratch-tutor
 description: 把一个开源仓库做成可断点续作的从零实现教程。当用户给出仓库地址，并要求手搓、从零实现、按里程碑学习作者的设计时使用。只想要代码导读、跑起来或一次架构介绍时不用。
-compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲染命令，以及同级 skill draw-diagram 与 concept-writer。架构图默认 fireworks-tech-graph。页面目检需要 agent-browser 或 cairosvg。manim 仅在用户批准视频后，用本 skill 的 scripts/setup-manim.sh 安装。
+compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲染命令，以及同级 skill draw-diagram 与 concept-writer。架构图默认 fireworks-tech-graph。页面目检需要 agent-browser 或 cairosvg。多轮先修学习默认用 learn-coach 加终端实验协议；没有时需安装或由用户改选。manim 仅在用户批准视频后，用本 skill 的 scripts/setup-manim.sh 安装。
 ---
 
 # 从零手搓开源项目教程
@@ -22,15 +22,17 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 
 ## 不变式
 
-1. 每轮只交付一个停顿单位。Phase 0、1、2、4 停在阶段末；Phase 3 停在一个 Bite。用户说继续才进入下一轮。
+1. 每轮只交付一个停顿单位。Phase 0、1、2、4 停在阶段末；Phase 3 停在一个 Bite；先修学习停在一个动作或问题。用户说继续才进入下一轮。
 2. 读不到的内容标【合理推断】。禁止编造文件内容、链接、命令输出。
 3. 终态范围以用户批准过的 `spec/features.md` 为准。标了复刻的项必须交付。豁免写在清单里并经用户批准。
 4. 偏差写入 `spec/deviations.md` 并编号。功能缺失是待收敛的偏差。架构层面的永久偏离写明理由后留在偏差簿。豁免只写在功能清单。
 5. 依赖没找到，或验收没过，就停下说明。不交付未验证的产物。
+6. 用户选择先修学习且未达到出口时，对应项目 Bite 不启动 coder。短补可同会话，多轮先修默认独立会话；每轮写盘，不靠 auto compact 记进度。
+7. 先修路线依据、范围裁剪、会话状态与 audit 只进 `tutor/`，不进入 `book/` 或 README 课文。writer 只接收已掌握能力与残余误区。
 
 ## 项目目录
 
-新项目只用这一套。代码在 `impl/`，一棵树连续演进，不按课复制。`upstream/` 是钉死在某一个 commit 的 submodule，只读。
+新项目只用这一套。正式代码在 `impl/`，一棵树连续演进，不按课复制。学习者练习在 `exercises/`，不计入正式实现。`upstream/` 是钉死在某一个 commit 的 submodule，只读。
 
 ```text
 <项目名>-from-scratch/
@@ -53,10 +55,12 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 ├── spec/features.md
 ├── spec/deviations.md
 ├── accept/m01-b01.sh              # 工作目录是仓库根，脚本进入 impl/
+├── exercises/<slug>/              # 先修与项目内引导的学习者练习
 └── tutor/
     ├── STATE.md
     ├── user-prefs.md
     ├── phases/
+    ├── prerequisites/<slug>.md    # 内部调度、实时交接与 audit
     └── runs/m01-b01.txt
 ```
 
@@ -70,7 +74,8 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 | `book/arch/`、课目录里的 `arch.svg` 与 `figures/arch-diff.svg` | diagram |
 | `book/mNN-*/bKK-*.md` 与同名 `.html` | writer |
 | `book/concepts/` | concept-writer |
-| `decisions/`、`spec/`、`tutor/`、`book/index.md`、README 的进度行 | 主 agent |
+| `exercises/` | 主 agent 搭脚手架与验收，学习者完成核心练习 |
+| `decisions/`、`spec/`、`tutor/`、`book/index.md`、README 的进度行 | 主 agent；家教会话可更新当前先修记录与 STATE |
 
 格式从 `templates/` 复制。不要凭记忆另写一种 STATE、清单、偏差簿或决定。
 
@@ -82,6 +87,7 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 | Phase 1 | [phases/phase-1.md](phases/phase-1.md) |
 | Phase 2 | [phases/phase-2.md](phases/phase-2.md) |
 | Phase 3 | [phases/phase-3-bite.md](phases/phase-3-bite.md) |
+| 先修学习 / 家教会话 | [phases/prerequisite.md](phases/prerequisite.md) |
 | Phase 4 | [phases/phase-4.md](phases/phase-4.md) |
 
 子代理没有上下文。启动时让它先读下表对应文件，交接按该文件的「输入」逐项给全，缺一项不开工。主文件不复述字段。每个子代理的 prompt 都写上用户级偏好和 `tutor/user-prefs.md` 的路径。
@@ -110,9 +116,9 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 
 ## 提问之后
 
-先判断课文有没有没讲清。是则改对应的 `book/mNN-*/bKK-*.md`，再整页重渲。概念进 `book/concepts/`。决定的后果改 `decisions/` 里那一篇，再按 [agents/writer.md](agents/writer.md) 重新嵌入课文。不在课文里另开问答面板。
+先区分课文没讲清与关键前置缺失。课文问题就改对应的 `book/mNN-*/bKK-*.md`，再整页重渲；概念材料进 `book/concepts/`。决定的后果改 `decisions/` 里那一篇，再按 [agents/writer.md](agents/writer.md) 重新嵌入课文。不在课文里另开问答面板。
 
-用户说跳步了，退回上一 Bite 补。原项目设计有问题就照实写。每个阶段结束时，列出本阶段尚未从代码确认的推断。
+关键前置缺失时，不默认继续补长课文。更新 `tutor/user-prefs.md` 的能力评估，让用户选择项目内引导、先修学习或直接继续；选先修则按 [phases/prerequisite.md](phases/prerequisite.md) 暂停相关 Bite。用户说跳步了，退回上一 Bite 补。原项目设计有问题就照实写。每个阶段结束时，列出本阶段尚未从代码确认的推断。
 
 ## 主 agent 的话
 

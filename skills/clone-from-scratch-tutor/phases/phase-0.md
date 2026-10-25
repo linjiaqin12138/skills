@@ -15,7 +15,7 @@
 | `templates/features.md` | `spec/features.md` |
 | `templates/deviations.md` | `spec/deviations.md` |
 
-创建这些空目录：`book/arch/src/`、`book/concepts/`、`decisions/`、`accept/`、`tutor/phases/`、`tutor/runs/`。再写 `impl/README.md`，内容一行：实现从第一个 Bite 开始。不要把上游源码拷进来。
+创建这些空目录：`book/arch/src/`、`book/concepts/`、`decisions/`、`accept/`、`exercises/`、`tutor/phases/`、`tutor/runs/`、`tutor/prerequisites/`。再写 `impl/README.md`，内容一行：实现从第一个 Bite 开始。不要把上游源码拷进来。`exercises/` 只放学习者练习，不放正式实现。
 
 把上游加为 submodule，检出要对照的那个 commit，写进 `tutor/STATE.md` 和 `README.md`：
 
