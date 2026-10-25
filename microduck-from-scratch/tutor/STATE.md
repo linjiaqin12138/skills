@@ -4,9 +4,10 @@
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `upstream/`，只读）
 - **当前模式**：项目实现（项目实现 / 项目内引导 / 先修学习）
-- **返回位置**：M9a 下一 Bite：D4 sim 协议面对齐官方 body_server.py
+- **返回位置**：无（当前在项目实现）
 - **当前先修记录**：无。用户 2026-10-25 报告已完成腿链练习与 MuJoCo 基础学习并明确继续；作业文件不在仓内，未复验，不记验收全绿
-- **当前位置**：**M9a Bite 3 已交付（2026-10-25，等用户确认）**——默认 BAM 场景切到 `scene_handmade.xml`，BAM 参数与官方训练/CPU 回放对账，新增 `--kp-fw/--vin/--vin-drop-gain/--delay`，20ms 目标队列默认零延迟。按用户要求细分鞋底：每侧薄承重底层 + 主体上层两个 box，滑动摩擦回到官方 1.0。3 次独立闭环站立 + vx=0.8 行走全过，dx=2.605573/2.604251/2.604783m；2 次 handmade sit 全循环全过（坐姿 z=0.0644237，起身 z=0.1159861）。102 Rust tests + m09a-b01 + 固定官方场景后的 m08-b06 全绿。**D70 已收敛**；残余是 primitive 近似，handmade roulade 未验收。教程 `b03-bam-handmade.html`（第 20 章）STE 0 warning、浏览器与图目检通过；决定 `decisions/0001-handmade-bam-replay.md` 仍为起草。
+- **当前位置**：**M9a Bite 4 已确认（2026-10-25）**——用户反馈本 Bite 过简；线协议 `gain`{kp}/`torque`{on} 已对齐，D4 收敛；决定 `0002` 已采纳；教程第 21 章。M9a 项目 Bite 收官。
+- **下一步**：开 **M9b 训练管线解剖（CPU）**。M9 拆分见 `tutor/m9-plan.md`。
 - **M9a Bite 1 已交付（2026-10-20）**：自建 MJCF 身体模型全绿，D26 收敛。M8/Phase 4 已收官（2026-10-15），复盘在 `tutor/phases/phase-4.md`。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `book/m08-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `b06-bam.html`（第 14 章）
@@ -14,7 +15,7 @@
 - **M8 Bite 9 已交付（2026-10-15）**：教程 `b09-phase4-fixes.html`（第 16 章），D13/D20/D24/D65 收敛；新登记 D69 挂 M10。
 - **2026-10-20 补漏与练习**：第 18 章补搭建实操；第 19 章 `b02-leg-exercise.html` 已交付。练习 2026-10-25 迁到 `exercises/mjcf-leg-chain/`；用户报告已完成，仓内无作业文件，未复验。
 - **2026-10-22 第 18 章读者三问补讲**（Q84–Q86）：惯量字段、joint 三属性、qpos 已补正文；广义坐标概念页未排期。
-- **下一步**：等用户确认 M9a Bite 3 后，把 `decisions/0001-handmade-bam-replay.md` 改为已采纳，再做 **M9a 下一 Bite：D4 sim 协议面对齐官方 `body_server.py`**（op 名 gain/torque、15 槽含嘴、PROTOCOL=1 握手、trunk 系投影重力）。M9 拆分见 `tutor/m9-plan.md`。**环境备注**：验收与数据提取容器内跑；viewer 用仓内 `.venv/`。当前 compose 项目名 `microduck-from-scratch`。
+- **环境备注**：验收与数据提取容器内跑；viewer 用仓内 `.venv/`。compose 容器实际挂在项目名 `impl`（`miniduck-rust`）；`-p microduck-from-scratch` 有时找不到 running service。
 
 ## 里程碑进度
 
@@ -29,7 +30,7 @@
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（book/m06-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（book/m07-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：impl/src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept/m07-b01.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
 | M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 tutor/phases/phase-4.md |
-| M9 仿真与训练（批次 2） | **进行中（2026-10-16 开工）**：M9a Bite 1 身体/D26、Bite 2 腿链练习、Bite 3 BAM 对账+细分鞋底+自建模型站立行走已交付；D70 已收敛。下一项目 Bite 收敛 D4 sim 协议面。后续：M9b 训练管线、M9c FallPredictor/odometry、M9d 云训练、M9e 自训闭环 |
+| M9 仿真与训练（批次 2） | **进行中**：M9a 收官（Bite 1–4：身体/D26、腿链、BAM+D70、D4）。下一开 M9b。后续：M9b 训练管线、M9c FallPredictor/odometry、M9d 云训练、M9e 自训闭环 |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
 

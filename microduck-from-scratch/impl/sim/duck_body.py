@@ -8,11 +8,11 @@
           BAM 先把本拍目标经可选控制拍延迟后写入 q_target 再步进（与官方
           infer_policy.py 主循环同序，read 因而无副作用）。两种拍序闭环等价，
           2026-10-14 回退实验证实：读时步进四项验收同样全绿。
-  set_gain/set_torque → 执行器增益缩放/卸力（M5：跌倒软倒验收用）
+  gain/torque → 执行器增益缩放/卸力（M5：跌倒软倒验收用；字段 kp / on）
   push  → 给躯干加水平速度扰动（M5：把鸭子推倒的验收用）
   body  → 只查躯干位置不步进（验收测位移用）
 协议形状对齐原版 duck-control/src/sim.rs：op 标签帧、hello 握手带
-protocol 版本号和关节数校验。帧格式细节是教程自定（偏差 D4，M8 对齐）。
+protocol 版本号和关节数校验；线上 op 名为 gain/torque（D4）。
 
 单位即机器人自己的单位：弧度、rad/s；IMU 已解算到躯干系
 （gyro 取 MJCF gyro 传感器，gravity 由躯干四元数旋转世界重力得到，
@@ -358,14 +358,15 @@ class DuckBody:
             return self.handle_read()
         if op == "write":
             return self.handle_write(req.get("targets", []))
-        if op == "set_gain":
-            gain = req.get("gain")
-            if not isinstance(gain, int) or not 0 <= gain <= 200:
-                return {"error": "gain must be an integer in 0..=200"}
-            self.gain = gain
+        if op == "gain":
+            # 官方字段名 kp（duck-control Request::Gain / body_server dispatch）
+            kp = req.get("kp")
+            if not isinstance(kp, int) or not 0 <= kp <= 200:
+                return {"error": "kp must be an integer in 0..=200"}
+            self.gain = kp
             self._apply_gains()
             return {}
-        if op == "set_torque":
+        if op == "torque":
             on = req.get("on")
             if not isinstance(on, bool):
                 return {"error": "on must be a bool"}

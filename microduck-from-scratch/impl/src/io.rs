@@ -373,16 +373,18 @@ impl RobotIo for SimIo {
     }
 
     fn set_gain(&mut self, kp: u16) -> Result<()> {
+        // 线协议官方名 gain + 字段 kp（RobotIo 方法名仍是 set_gain）
         self.call(&serde_json::json!({
-            "op": "set_gain",
-            "gain": kp,
+            "op": "gain",
+            "kp": kp,
         }))?;
         Ok(())
     }
 
     fn set_torque(&mut self, on: bool) -> Result<()> {
+        // 线协议官方名 torque（RobotIo 方法名仍是 set_torque）
         self.call(&serde_json::json!({
-            "op": "set_torque",
+            "op": "torque",
             "on": on,
         }))?;
         Ok(())
@@ -621,9 +623,9 @@ mod tests {
         io.set_gain(50).unwrap();
         io.set_torque(false).unwrap();
         let heard = sim.join().unwrap();
-        assert!(heard[1].contains(r#""op":"set_gain""#), "{}", heard[1]);
-        assert!(heard[1].contains(r#""gain":50"#), "{}", heard[1]);
-        assert!(heard[2].contains(r#""op":"set_torque""#), "{}", heard[2]);
+        assert!(heard[1].contains(r#""op":"gain""#), "{}", heard[1]);
+        assert!(heard[1].contains(r#""kp":50"#), "{}", heard[1]);
+        assert!(heard[2].contains(r#""op":"torque""#), "{}", heard[2]);
         assert!(heard[2].contains(r#""on":false"#), "{}", heard[2]);
     }
 

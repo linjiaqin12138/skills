@@ -302,4 +302,4 @@ updater.toml（upstream/deploy/updater.toml，179 行）：
 | BAM 参数对账与可选控制拍延迟 | 已交付 Bite 3；默认固定参数对齐官方 CPU 回放，训练范围只记账 | `accept/m09a-b03.sh` A/B |
 | 自建模型 velstand 站立 + vx=0.8 行走 | 已交付 Bite 3；每侧鞋底 2 个 box、摩擦回到官方 1.0；3 次均 ≥2.0m；D70 已收敛 | `accept/m09a-b03.sh` C |
 | 自建模型 sit_toggle 坐下与起身 | 已交付 Bite 3；2 次全循环通过；连续坐姿窗口未断言 | `accept/m09a-b03.sh` D |
-| D4 sim 协议面 | 待下一 Bite 收敛 | 待补 |
+| D4 sim 协议面 | 已交付 Bite 4；op=`gain`{kp}/`torque`{on}；PROTOCOL/15 槽/重力钉死；教学附加 push/body 保留 | `accept/m09a-b04.sh` |

@@ -1,0 +1,144 @@
+=== stdout ===
+
+running 102 tests
+test control::tests::apply_action_lowpass_head_legs_mouth_stays_home ... ok
+test control::tests::apply_action_no_previous_is_home_plus_scaled_scatter ... ok
+test control::tests::driving_goes_straight_to_stopped_on_disable ... ok
+test control::tests::coast_rides_out_up_to_coast_ticks_then_goes_blind ... ok
+test control::tests::edges_during_rampup_and_limp_are_deferred_not_dropped ... ok
+test control::tests::held_ramps_up_on_enable_only_with_policy ... ok
+test control::tests::homed_is_false_only_for_held_and_rampup ... ok
+test control::tests::level_changes_nowhere_else_do_nothing ... ok
+test control::tests::net_switches_never_jump_targets ... ok
+test control::tests::ramp_completion_lands_by_current_enabled ... ok
+test control::tests::ramp_endpoints ... ok
+test control::tests::ramp_midpoint_at_one_second ... ok
+test control::tests::skill_edges_are_dropped_unless_driving ... ok
+test control::tests::skill_edges_are_taken_once ... ok
+test control::tests::stopped_resumes_driving_immediately_on_enable ... ok
+test io::tests::fake_io_failing_reads_recover_after_n ... ok
+test io::tests::fake_io_injected_failure_is_simulated ... ok
+test io::tests::fake_io_remembers_gain_and_torque ... ok
+test io::tests::fake_io_tracks_writes_perfectly ... ok
+test io::tests::sim_io_read_carries_sensors ... ok
+test io::tests::sim_io_bad_frame_and_eof_are_bus ... ok
+test io::tests::sim_io_reconnects_after_disconnect ... ok
+test io::tests::sim_io_quat_must_have_exactly_four_numbers ... ok
+test model::tests::home_pose_legs_are_mirrored ... ok
+test model::tests::mouth_target_spans_the_prototype_range ... ok
+test io::tests::sim_io_transport_failure_is_port ... ok
+test model::tests::table_lengths_are_consistent ... ok
+test io::tests::sim_io_refusal_is_an_error ... ok
+test obs::tests::at_home_position_block_is_near_zero ... ok
+test obs::tests::every_block_lands_at_its_documented_offset ... ok
+test obs::tests::layout_widths_sum_to_obs_len ... ok
+test obs::tests::mouth_is_excluded_from_observation ... ok
+test obs::tests::scatter_action_skips_mouth ... ok
+test policy::tests::velstand_zero_obs_then_feedback_stays_finite ... ok
+test safety::tests::brief_tilt_is_not_a_fall_and_upright_resets ... ok
+test safety::tests::caller_asking_for_limp_gain_gets_it ... ok
+test safety::tests::converged_imu_still_detects_a_fall ... ok
+test safety::tests::deadman_zeroes_twist_only ... ok
+test safety::tests::fall_does_not_preempt_the_caller ... ok
+test safety::tests::gain_is_written_only_when_it_changes ... ok
+test safety::tests::limit_runs_are_independent_and_reset_by_clean_ticks ... ok
+test safety::tests::never_driven_robot_reports_no_deadman ... ok
+test safety::tests::non_finite_target_is_refused_not_clamped ... ok
+test safety::tests::ordinary_target_passes_through_unchanged ... ok
+test safety::tests::out_of_range_targets_are_clamped_and_reported ... ok
+test safety::tests::sustained_tilt_is_a_fall ... ok
+test safety::tests::unconverged_imu_never_declares_a_fall ... ok
+test safety::tests::worth_logging_first_and_every_fifty ... ok
+test scheduler::tests::active_skill_outranks_sit_and_returns_to_it ... ok
+test scheduler::tests::busy_is_exactly_skill_or_ground_pick_or_rising ... ok
+test scheduler::tests::do_verdict_gates_on_enabled_and_homed_never_on_fallen ... ok
+test scheduler::tests::do_verdict_refuses_unknown_names_with_the_list ... ok
+test scheduler::tests::failed_inference_resets_the_network ... ok
+test scheduler::tests::ground_pick_runs_the_phase_script_then_hands_back ... ok
+test scheduler::tests::priority_same_tick_requests_first_in_table_wins ... ok
+test scheduler::tests::reset_clears_every_loaded_slot ... ok
+test scheduler::tests::sit_latches_and_carries_the_posture_flag_in_vx ... ok
+test scheduler::tests::sit_toggle_rises_with_zeroed_twist_then_latches_up ... ok
+test scheduler::tests::skill_window_zeroes_the_whole_command_then_hands_back ... ok
+test scheduler::tests::switch_flag_tracks_net_changes ... ok
+test scheduler::tests::switching_nets_resets_the_new_network ... ok
+test scheduler::tests::unavailable_skills_are_refused ... ok
+test scheduler::tests::walk_is_the_default_and_passes_the_client_command_through ... ok
+test tests::enable_params_missing_on_rejected ... ok
+test tests::enable_params_on_true ... ok
+test tests::enable_params_toggle_alone_rejected ... ok
+test tests::enable_params_toggle_defaults_false ... ok
+test tests::enable_params_toggle_true_alongside_on ... ok
+test tests::enable_params_unknown_field_rejected ... ok
+test tests::move_params_full_triple_passes ... ok
+test tests::move_params_json_overflow_rejected_at_parse ... ok
+test tests::move_params_missing_fields_default_zero ... ok
+test tests::move_params_non_finite_rejected ... ok
+test tests::move_params_unknown_field_rejected ... ok
+test tests::move_params_wrong_type_rejected ... ok
+test tests::parse_error_response_has_null_id ... ok
+test tests::request_without_id_is_notification ... ok
+test tests::subscribe_params_bad_shapes_rejected ... ok
+test tests::subscribe_params_empty_and_absent_mean_every_tick ... ok
+test tests::subscribe_params_hz_zero_and_ten_accepted ... ok
+test tests::subscribe_result_names_the_walk_file_that_failed ... ok
+test tests::subscribe_result_omits_stand_unavailable_and_empty_skills ... ok
+test updater::engine::tests::model_api_none_is_compatible ... ok
+test updater::engine::tests::pending_roundtrip ... ok
+test updater::engine::tests::recovery_verdict_truth_table ... ok
+test updater::journal::tests::previous_comes_from_last_matching_commit ... ok
+test updater::lock::tests::second_holder_gets_busy ... ok
+test updater::manifest::tests::parses_well_formed_manifest ... ok
+test updater::manifest::tests::rejects_sha256_mismatch ... ok
+test updater::manifest::tests::rejects_unparseable_and_malformed ... ok
+test updater::peer::tests::root_and_owner_pass_others_deny ... ok
+test updater::robot::tests::missing_safe_field_is_incompatible ... ok
+test updater::robot::tests::model_api_returns_value ... ok
+test updater::robot::tests::safe_false_with_reason_means_no ... ok
+test updater::robot::tests::safe_true_means_yes ... ok
+test updater::robot::tests::unreachable_socket_is_unreachable ... ok
+test updater::store::tests::atomic_swap_repoints_current ... ok
+test updater::store::tests::cleanup_staging_removes_leftovers ... ok
+test updater::store::tests::leftover_tmp_link_does_not_block_swap ... ok
+test io::tests::sim_io_set_gain_and_torque_frames ... ok
+test policy::tests::rejects_wrong_observation_width ... ok
+test policy::tests::lstm_state_carries_across_ticks_and_reset_replays_first_tick ... ok
+
+test result: ok. 102 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== A/B/C/D. 线协议断言 ==
+protocol asserts PASS
+== F. 冒烟闭环 ==
+smoke PASS walk fallen= False
+M9a Bite 4 验收 PASS：D4 协议面 gain/torque + PROTOCOL/15 槽/重力 + 冒烟闭环全绿
+=== stderr ===
+   Compiling miniduck v0.1.0 (/work/impl)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.63s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/miniduck-9ef4d0f74dde4d3e)
+     Running unittests src/bin/mini-duckctl.rs (target/debug/deps/mini_duckctl-098e5463050aafce)
+     Running unittests src/bin/mini-updaterd.rs (target/debug/deps/mini_updaterd-de7fe5a1ed18caea)
+     Running unittests src/main.rs (target/debug/deps/miniduckd-17c1694ec0aa8653)
+   Doc-tests miniduck
+=== exit_code ===
+0

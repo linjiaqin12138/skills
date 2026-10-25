@@ -19,7 +19,7 @@
 | D1 | 只实现 robot.* 极小子集（hello/health/state），非完整 API 面 | M0 | M8 对照 upstream/duck-ipc-proto 逐项核对 | **已收敛（Phase 4）**：逐项核对 = spec/features.md 本身，残余缺口已编号 D42–D63 并分配批次 |
 | D2 | FakeIo 无真实 Dynamixel 串口协议 | M1 | 豁免——硬件层闭源，"能下载的不重写"原则覆盖 | 已豁免 |
 | D3 | ~~单策略、无调度器~~ M6 已收敛：scheduler.rs 优先级链（技能 > ground_pick > sit/rise > walk），command 重编码、拍数窗口、换网 LSTM reset 全部对齐原版 | M3 | M6 | 已收敛（M6） |
-| D4 | 自定义仿真 TCP/JSON 协议（op 标签帧形状对齐原版 sim.rs；帧细节自定，read 响应多带 body_pos/sim_time 供验收） | M4 | ~~M8~~ 挂 M9（Phase 4 裁决：随自建 MJCF / 对齐 microduck_rl duck-body 时收敛协议面） | 待收敛（挂 M9） |
+| D4 | ~~自定义仿真 TCP/JSON 协议（op 名 set_gain/set_torque）~~ **M9a Bite 4 已收敛**：线上 op 对齐官方 `gain`{kp}/`torque`{on}（sim.rs / body_server）；PROTOCOL=1、15 槽含嘴、trunk 重力断言钉死。教学附加 `push`/`body`/read 回显保留（官方 serde 忽略未知字段）；`slow`/`tof`/`currents_ma` 不扩面（slow 仍归 D12→M10）；hello 仍校验 joints（比官方更严） | M4 | M9a Bite 4 | **已收敛（M9a Bite 4）** |
 | D5 | 安全层核心规则已对齐（NaN 拒绝/±π 夹紧/deadman/跌倒判定/gain 缓存），残余：无温度监控、无配置文件面（SafetyConfig 硬编码 default） | M5 引入 | ~~M8~~ 残余挂 M10：温度监控是硬件面；配置文件面并入 D52 | 部分收敛（残余挂 M10） |
 | D6 | ~~无 systemd 部署、updaterd 无 minisign 验签~~ M7 落地后拆成两半移交：无 systemd 由 D37 承接、无 minisign 验签由 D38 承接 | M7 计划 | M8 随 D37/D38 裁决 | 已移交（M7，见 D37/D38） |
 | D7 | 单 crate 双 bin，非 workspace 多 crate | M0 | ~~M8~~ 挂 M10（随 D52：协议 crate 拆分 + "只许 serde/serde_json/semver" 依赖约束） | 待收敛（挂 M10） |

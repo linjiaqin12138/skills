@@ -51,4 +51,16 @@ docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09a-b01.s
 - D70 修订后收敛：摩擦代理值 2.0 已移除，残余是鞋底 primitive 近似；不声称接触点逐点等价
 - 覆盖边界：handmade roulade、连续坐姿窗口、非直走、横移、转向、扰动、随机种子与真机未验收；历史失败归因旧单 AABB 鞋底，当前 XML 修订后消失
 
-结论：**PASS（等用户确认本 Bite）**。决定见 `decisions/0001-handmade-bam-replay.md`，教程见 `b03-bam-handmade.html`。
+结论：**PASS（用户 2026-10-25 确认）**。决定 `decisions/0001-handmade-bam-replay.md` 已采纳；教程见 `b03-bam-handmade.html`。
+
+## Bite 4：D4 sim 协议面对齐（2026-10-25）
+
+验收入口：`accept/m09a-b04.sh`；独立实测：`tutor/runs/m09a-b04.txt`。
+
+- A–D：PROTOCOL=1 握手；线上 `gain`{kp}/`torque`{on}；旧名失败；15 槽 + trunk 重力；教学附加 `push`/`body` 仍可用
+- E：102 Rust tests 全绿（含 `sim_io_set_gain_and_torque_frames`）
+- F：BAM 默认 `scene_handmade` 冒烟，enable 后 `skill=walk` 且 `fallen=false`
+- D4 收敛；`slow`/`tof` 不扩面；决定 `decisions/0002-sim-protocol-d4.md`（起草，等用户确认后改已采纳）
+- 教程：`b04-sim-protocol.html`（第 21 章）
+
+结论：**PASS（用户 2026-10-25 确认；反馈本 Bite 过简）**。决定 `0002` 已采纳。
