@@ -503,3 +503,9 @@
 - `imu_gyro` 与 qpos 不是一回事：qpos 是状态（输入侧），gyro 是传感器读数（输出侧，角速度在 imu site 局部系下的三分量），`impl/sim/duck_body.py:171`、`:284` 按名定位后取 `sensordata`
 - 已补进教程：第 18 章「代码领读」场景包装段新增 qpos 五段拆读表 + gyro 与 qpos 的区分；「背景：MJCF 是什么」元件表 `<keyframe>` 行补 qpos 说明
 - 遗留：writer 提出可能需要一篇「广义坐标」概念深读页（slug `generalized-coordinates`），未排期，等用户裁决
+
+## Q87（M9a Bite 1，教程读者提问）：`<asset>` 里的 `<mesh file="…"/>` 怎么和 geom 对应？靠文件名吗？
+- 是：省略 `name` 时资产名 = 文件名去掉路径与扩展名（`jaw.stl` → `jaw`）；geom 的 `mesh="jaw"` 按**资产名**引用，不是扫目录、也不是靠 body 名
+- 三环：`compiler meshdir` + `file` 定磁盘路径 → 默认资产名 → geom `mesh=` / `material=` 挂到刚体；`<asset>` 只登记，不负责挂靠
+- body 名与 mesh 名是两套命名空间（碰巧同名是照抄官方习惯）；材质必须显式 `name=`，不会从 STL 文件名自动推；同一 mesh 可被多个 geom 复用（如 `xl330`）
+- 已补进教程：第 18 章「代码领读」躯干 body 段后新增三环表 + 三点展开；「细节展开」加提问记录指路
