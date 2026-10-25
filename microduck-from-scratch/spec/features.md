@@ -303,3 +303,11 @@ updater.toml（upstream/deploy/updater.toml，179 行）：
 | 自建模型 velstand 站立 + vx=0.8 行走 | 已交付 Bite 3；每侧鞋底 2 个 box、摩擦回到官方 1.0；3 次均 ≥2.0m；D70 已收敛 | `accept/m09a-b03.sh` C |
 | 自建模型 sit_toggle 坐下与起身 | 已交付 Bite 3；2 次全循环通过；连续坐姿窗口未断言 | `accept/m09a-b03.sh` D |
 | D4 sim 协议面 | 已交付 Bite 4；op=`gain`{kp}/`torque`{on}；PROTOCOL/15 槽/重力钉死；教学附加 push/body 保留 | `accept/m09a-b04.sh` |
+
+## M9b 交付记录（进行中）
+
+| 功能项 | 手搓状态 | 验收 |
+|---|---|---|
+| Velocity scene/obs/action 契约对账 | 已交付 Bite 1（等确认）；静态对账 + obs 布局单测 | `accept/m09b-b01.sh` |
+| Reward / curriculum 解剖 | 脚本已交付；**课文降级**（用户判仍对参数） | `accept/m09b-b02.sh`（CI） |
+| train / export / manifest 操作手册 | 已交付 Bite 3（等确认）；操作判断题，无代码领读 | `accept/m09b-b03.sh` |

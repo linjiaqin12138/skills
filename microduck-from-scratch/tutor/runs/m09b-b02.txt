@@ -1,0 +1,48 @@
+=== command ===
+docker exec -w /work miniduck-rust bash /work/accept/m09b-b02.sh
+=== started_at ===
+2026-10-25T21:40:53+08:00
+=== stdout+stderr ===
+=== A. 奖励权重（从官方 cfg 抽出）===
+  track_linear_velocity.weight = 2.0  OK
+  track_angular_velocity.weight = 2.0  OK
+  upright.weight = 2.0  OK
+  air_time.weight = 3.0  OK
+  foot_slip.weight = -0.1  OK
+  action_rate_l2.weight = -0.1  OK
+  body_ang_vel.weight = -0.05  OK
+  self_collisions.weight = -1.0  OK
+  track_linear_velocity.params.std = 0.31622776601683794  (== sqrt(0.1))  OK
+
+=== B. 课程阶梯 ===
+  NUM_STEPS_PER_ENV = 24
+  action_rate_weight: step 0 → -0.1, step 1500*24=36000 → -1.0  OK
+    [AGENTS: regularizer-timing] action_rate 从弱到强，先发现步态再收抖动
+  standing_envs: step 0 → 0.02, step 2000*24=48000 → 0.25  OK
+
+=== C. 投机场景（离散行为袋，非物理仿真）===
+  约定：总分 = Σ weight_i * score_i；负权重项 score≥0 = 违规量
+  [AGENTS: sign-convention] mjlab cost≥0 → 负权重；勿双重取负
+  walk  总分=  5.4920  分项贡献={'track_linear_velocity': 1.4, 'track_angular_velocity': 1.1, 'upright': 1.96, 'air_time': 1.05, 'foot_slip': -0.005, 'action_rate_l2': -0.01, 'body_ang_vel': -0.003, 'self_collisions': -0.0}
+  roll  总分=  1.9800  分项贡献={'track_linear_velocity': 1.96, 'track_angular_velocity': 0.3, 'upright': 0.08, 'air_time': 0.15, 'foot_slip': -0.09, 'action_rate_l2': -0.08, 'body_ang_vel': -0.14, 'self_collisions': -0.2}
+  断言 walk (5.4920) > roll (1.9800)  OK
+    [AGENTS: letter-of-reward] 默认配方惩罚翻滚蹭位移；优化奖励字面才像在走
+  黑客权重：upright=0, track_linear=16.0 → walk=13.3320, roll=15.6200
+  断言 roll (15.6200) > walk (13.3320)  OK
+    [AGENTS: letter-of-reward] 去掉直立约束并放大前进项 → 投机行为反超
+
+=== D. 「0.3 不走」线索 ===
+  track_lin std ≈ 0.316228（≈0.316，√0.1）
+  小指令误差代价近零：|err|≪std 时高斯跟踪几乎不掉分 → 「命令 0.3 看起来不走」的配方侧线索
+
+PASS 摘要:
+  A 奖励权重 8 项 + track_lin std=√0.1
+  B action_rate_weight 0→-0.1 / 1500*24→-1.0；standing 0→0.02 / 2000*24→0.25
+  C 默认 walk>roll；upright=0+放大 track_lin 后 roll>walk
+  D track_lin std≈0.316 → 小误差近零代价
+m9b_reward_curriculum_map: PASS
+M9b Bite 2 验收 PASS：奖励表 / 课程阶梯 / 投机场景全绿
+=== exit_code ===
+0
+=== finished_at ===
+2026-10-25T21:40:53+08:00

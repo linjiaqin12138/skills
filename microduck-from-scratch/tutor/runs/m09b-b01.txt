@@ -1,0 +1,73 @@
+=== verifier re-run 2026-10-25T20:33:32+08:00 ===
+cmd: docker exec -w /work miniduck-rust bash /work/accept/m09b-b01.sh
+cwd mount: microduck-from-scratch -> /work
+coder change: impl/scripts/m9b_velocity_contract.py (new)
+---
+== A. obs 布局单测 ==
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+
+running 5 tests
+test obs::tests::layout_widths_sum_to_obs_len ... ok
+test obs::tests::every_block_lands_at_its_documented_offset ... ok
+test obs::tests::at_home_position_block_is_near_zero ... ok
+test obs::tests::scatter_action_skips_mouth ... ok
+test obs::tests::mouth_is_excluded_from_observation ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/miniduck-9ef4d0f74dde4d3e)
+     Running unittests src/bin/mini-duckctl.rs (target/debug/deps/mini_duckctl-098e5463050aafce)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/mini-updaterd.rs (target/debug/deps/mini_updaterd-de7fe5a1ed18caea)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/miniduckd-17c1694ec0aa8653)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== B/C. Velocity 契约对账 ==
+official velocity cfg OK:
+  lin_vel_x = (-0.4, 0.4)
+  lin_vel_y = (-0.3, 0.3)
+  ang_vel_z = (-1.0, 1.0)
+  TURN_IN_PLACE_FRACTION = 0.15
+  joint_pos_action.scale = 1.0
+impl/src/obs.rs OK:
+  OBS_LEN = 61
+  ACTION_LEN = 14
+  OFF_GYRO = 0
+  OFF_GRAVITY = 3
+  OFF_POS = 6
+  OFF_VEL = 20
+  OFF_LAST_ACTION = 34
+  OFF_TWIST = 48
+  OFF_HEAD = 51
+
+61D obs block map (training-aligned layout):
+  name                             start width
+  -------------------------------- ----- -----
+  gyro / base_ang_vel                  0     3
+  gravity / projected_gravity          3     3
+  pos / joint_pos_rel                  6    14
+  vel / joint_vel                     20    14
+  last_action                         34    14
+  twist                               48     3
+  head / head_pose                    51     4
+  body / body_pose                    55     6
+  TOTAL                                     61
+
+m9b_velocity_contract: PASS
+== D. 可选 CPU pytest ==
+SKIP optional pytest（无 MICRODUCK_RL_VENV / /work/reference/microduck_rl/.venv）
+M9b Bite 1 验收 PASS：obs 布局 + Velocity 契约对账全绿
+---
+exit_code=0

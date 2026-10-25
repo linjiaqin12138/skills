@@ -3,11 +3,11 @@
 > 新会话续传入口：读本文件 + user-prefs.md（项目级路线与先修能力表）+ spec/deviations.md + questions.md + spec/features.md + book/ 最新一章，然后从"下一步"继续。若当前模式是先修学习，再读 `tutor/prerequisites/<slug>.md`。
 
 - **原项目**：https://github.com/pollen-robotics/microduck （参考克隆在 `upstream/`，只读）
-- **当前模式**：项目实现（项目实现 / 项目内引导 / 先修学习）
+- **当前模式**：项目实现
 - **返回位置**：无（当前在项目实现）
-- **当前先修记录**：无。用户 2026-10-25 报告已完成腿链练习与 MuJoCo 基础学习并明确继续；作业文件不在仓内，未复验，不记验收全绿
-- **当前位置**：**M9a Bite 4 已确认（2026-10-25）**——用户反馈本 Bite 过简；线协议 `gain`{kp}/`torque`{on} 已对齐，D4 收敛；决定 `0002` 已采纳；教程第 21 章。M9a 项目 Bite 收官。
-- **下一步**：开 **M9b 训练管线解剖（CPU）**。M9 拆分见 `tutor/m9-plan.md`。
+- **当前先修记录**：`tutor/prerequisites/ppo-reward-dr.md` — **出口已达**；返回摘要：PPO 三步、奖励权重=评分标准、DR 为健壮；误区：非选优淘汰、优势非开跑前算、投机形态不唯一
+- **当前位置**：**M9b Bite 3 已交付（2026-10-25，等用户确认）**——操作判断课（resume≠warm_start、冒烟 64×5、export 烘 normalizer、manifest 门）；无代码领读。教程第 24 章；决定 `0005` 起草。M9b 主线收官候选（确认后进 M9c 或收束）。
+- **下一步**：用户确认后采纳 `0005`；下一里程碑默认 **M9c**（FallPredictor/odometry）或按用户改口。
 - **M9a Bite 1 已交付（2026-10-20）**：自建 MJCF 身体模型全绿，D26 收敛。M8/Phase 4 已收官（2026-10-15），复盘在 `tutor/phases/phase-4.md`。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `book/m08-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `b06-bam.html`（第 14 章）
@@ -30,7 +30,7 @@
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（book/m06-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（book/m07-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：impl/src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept/m07-b01.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
 | M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 tutor/phases/phase-4.md |
-| M9 仿真与训练（批次 2） | **进行中**：M9a 收官（Bite 1–4：身体/D26、腿链、BAM+D70、D4）。下一开 M9b。后续：M9b 训练管线、M9c FallPredictor/odometry、M9d 云训练、M9e 自训闭环 |
+| M9 仿真与训练（批次 2） | **进行中**：M9a 收官；M9b Bite 1 已交付（等确认）。后续 Bite 2 reward/curriculum、Bite 3 train/export；再 M9c/M9d/M9e |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
 

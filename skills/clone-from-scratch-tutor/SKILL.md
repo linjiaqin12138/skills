@@ -116,7 +116,9 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 
 ## 提问之后
 
-先区分课文没讲清与关键前置缺失。课文问题就改对应的 `book/mNN-*/bKK-*.md`，再整页重渲；概念材料进 `book/concepts/`。决定的后果改 `decisions/` 里那一篇，再按 [agents/writer.md](agents/writer.md) 重新嵌入课文。不在课文里另开问答面板。
+先区分课文没讲清与关键前置缺失。课文问题就改对应的 `book/mNN-*/bKK-*.md`，再整页重渲；概念材料进 `book/concepts/`。架构决定的后果改 `decisions/` 里那一篇；只有该决定已经在课文里时，才按 [agents/writer.md](agents/writer.md) 重写那一节。流程/验收类决定不进课文。不在课文里另开问答面板。
+
+课文节是按需的，不是清单。没有实现架构取舍就不嵌决定原文；没有设计可领读就不写代码领读；没有新概念、偏差、踩坑就不写背景、差异、坑。禁止为凑面板硬塞。
 
 关键前置缺失时，不默认继续补长课文。更新 `tutor/user-prefs.md` 的能力评估，让用户选择项目内引导、先修学习或直接继续；选先修则按 [phases/prerequisite.md](phases/prerequisite.md) 暂停相关 Bite。用户说跳步了，退回上一 Bite 补。原项目设计有问题就照实写。每个阶段结束时，列出本阶段尚未从代码确认的推断。
 

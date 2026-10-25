@@ -1,0 +1,5 @@
+{
+  "walk": { "track_lin": 0.8, "upright": 0.9, "action_rate": 0.2 },
+  "roll": { "track_lin": 0.95, "upright": 0.1, "action_rate": 0.3 },
+  "twitch": { "track_lin": 0.7, "upright": 0.4, "action_rate": 1.5 }
+}

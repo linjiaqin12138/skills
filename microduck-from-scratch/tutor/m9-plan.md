@@ -25,6 +25,7 @@
 - 内容：microduck_velocity_env_cfg.py 七件套精读（scene/obs/action/reward/event/termination/curriculum）；奖励塑形守则（rl:AGENTS.md:123-176）；PPO 与 rsl_rl 配置；训练操作手册（uv run train 参数、--agent.resume 断点续训、MICRODUCK_WARM_START 热启动、wandb、--hf-jobs）；export.py/manifest 校验工具链走查；仓内 CPU tests（pytest tests/ 不 step env）
 - 验收：能回答「改某个奖励权重 → 重训 → 导出 → 验证」全链路每一步的命令与预期；CPU tests 全绿
 - 新概念：PPO 与奖励塑形、域随机化
+- **拆课教训（2026-10-25）**：Bite 1 只做 obs/action 静态对账，用户判「无知识增量、不该独立成章」。此后 M9b 每课必须带可迁移判断（奖励投机/课程节奏/操作决策），契约核对并进正文附录，不再单开对账章。
 
 ### M9c · 策略面调度语义对齐①（CPU，可与 M9b 并行或交错）
 

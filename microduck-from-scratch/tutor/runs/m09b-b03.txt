@@ -1,0 +1,51 @@
+[smoke_64x5] 长跑前要先冒烟。应选哪组参数？（不是一上来 4096 envs 长跑）
+  ( ) A. --env.scene.num-envs 4096 --agent.max_iterations 50000
+  (←) B. --env.scene.num-envs 64 --agent.max_iterations 5
+  ( ) C. --env.scene.num-envs 1 --agent.max_iterations 1
+  ( ) D. 跳过冒烟，直接 4096×长跑
+  → 判定：选 B PASS
+
+[resume_same_task] 同一任务断点续训、要接着课程步数往下走。应选？
+  ( ) A. 只设 MICRODUCK_WARM_START=1，不带 --agent.resume
+  (←) B. --agent.load-checkpoint <ckpt> --agent.resume True
+  ( ) C. 手改 checkpoint 里的 common_step_counter 再 load
+  ( ) D. 换任务 ID 再 train，不传 resume
+  → 判定：选 B PASS
+
+[warm_start_cross_task] 跨任务热启动（保留权重/归一化/优化器，但课程要从头）。若只 load 别的任务 checkpoint 且不设 MICRODUCK_WARM_START=1，会怎样？正确应对是？
+  ( ) A. 没事，resume 与 warm start 等价
+  (←) B. common_step_counter 会跳到终态、课程一步到位；跨任务必须 MICRODUCK_WARM_START=1
+  ( ) C. 只用 --agent.resume True 即可跨任务
+  ( ) D. 删掉 wandb run 再训
+  → 判定：选 B PASS
+
+[export_bake_normalizer] 要把策略部署到真机/daemon。导出应怎么做？
+  ( ) A. torch.save 后手写 torch.onnx.export，跳过 normalizer
+  ( ) B. 直接把 .pt checkpoint 拷到板子当部署产物
+  (←) C. 走 scripts/export.py（或同等官方导出路径），把 obs normalizer 烘进 ONNX；禁止手转 checkpoint
+  ( ) D. 只用 onnxruntime 随便转一下权重即可
+  → 判定：选 C PASS
+
+[manifest_shape_schema] publish/manifest 门禁：本仓期望的输入输出形状与 schema 是？
+  ( ) A. [1,48]→[1,14]，schema 5（daemon v5）
+  ( ) B. [1,61]→[1,12]，schema 1
+  (←) C. [1,61]→[1,14]，本仓 schema 2
+  ( ) D. [1,14]→[1,61]，schema 2
+  → 判定：选 C PASS
+
+[no_gpu_hf_jobs] 本机无 GPU，本课（M9b）也不能假装本机可训。正确做法？
+  ( ) A. 照常 uv run train，指望 CPU 跑 Warp
+  ( ) B. 改代码关掉 CUDA 检查后本机长跑
+  (←) C. 训练命令加 --hf-jobs，或等到有云机/GPU 的 M9d；本课只学操作判断
+  ( ) D. 把 num-envs 改成 1 就当有 GPU
+  → 判定：选 C PASS
+
+[resume_needs_checkpoint_path] 断点续训时，除了 --agent.resume True，还必须带什么？
+  ( ) A. 只加 --agent.resume True 就够，runner 会自动找最新 ckpt
+  (←) B. --agent.load-checkpoint <checkpoint 路径>，并带 --agent.resume True
+  ( ) C. 只设 MICRODUCK_WARM_START=1
+  ( ) D. 只传 --wandb-run-path
+  → 判定：选 B PASS
+
+PASS
+M9b Bite 3 验收 PASS：操作判断题 + 入口文件存在性
