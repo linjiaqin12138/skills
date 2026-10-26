@@ -1,4 +1,4 @@
-//! M2 Bite1：GDT 扁平接管 + IDT + CPU 异常接管（除零异常验收）。
+//! M2 Bite2：panic_handler 接入 printk!，故意 panic 打印消息与源码位置后停机。
 
 #![no_std]
 #![no_main]
@@ -49,31 +49,14 @@ extern "C" fn _start() -> ! {
         printk!("M1: scroll line {:02}\n", i);
     }
 
-    // M2 Bite1：用自己的扁平 GDT 与 256 项 IDT 接管段与异常
+    // M2 Bite1 成果保留：用自己的扁平 GDT 与 256 项 IDT 接管段与异常
     gdt::init();
     printk!("M2: gdt ok\n");
     idt::init();
     printk!("M2: idt ok\n");
 
-    // 验收动作：故意触发 #DE 除零异常，预期打印现场后停机（不再三连重启）
-    trigger_divide_error();
-
-    halt();
-}
-
-/// 用内联汇编的 div 指令真触发 #DE。
-/// 注意不能写 Rust 的 `0 / 0`：除法运算符除零只走 panic!，不进 IDT
-fn trigger_divide_error() {
-    // SAFETY: 故意制造 0/0；div 不读内存不依赖栈，标志位本就由 div 置为未定义
-    unsafe {
-        asm!(
-            "xor edx, edx",
-            "xor eax, eax",
-            "div eax",
-            options(nomem, nostack),
-        );
-    }
-    // div 必然触发异常，永远走不到这里；真走到也说明异常接管失败，halt 兜底即可
+    // M2 Bite2 验收动作：故意 panic，预期打印消息与源码位置后停机（不再三连重启）
+    panic!("M2 Bite2 deliberate panic demonstration");
 }
 
 /// fb 各颜色通道 mask 一行，供核对像素格式（排障用，断言不依赖）
@@ -99,7 +82,25 @@ fn halt() -> ! {
     }
 }
 
+/// panic_handler：把 Rust 的 panic 接到内核的 printk! 通道（屏幕 + 串口双写）。
+/// 打印消息与源码位置后停机，让 panic 不再静默挂死。
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    printk!("M2: panic handler entered\n");
+    printk!("PANIC: {}\n", info.message());
+    match info.location() {
+        // 位置里的路径是 cargo 交给 rustc 的相对路径（"src/main.rs"），
+        // 补上包名让它带上 "kernel/" 前缀，日志里能直接定位到仓库中的文件
+        Some(loc) => printk!(
+            "panicked at {}/{}:{}:{}\n",
+            env!("CARGO_PKG_NAME"),
+            loc.file(),
+            loc.line(),
+            loc.column()
+        ),
+        None => printk!("panicked at <unknown location>\n"),
+    }
+    // 回归 marker：panic 路径跑完了（与 "M2: gdt ok" 同风格）
+    printk!("M2: panic ok\n");
     halt()
 }

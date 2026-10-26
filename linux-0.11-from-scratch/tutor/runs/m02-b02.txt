@@ -1,0 +1,245 @@
+===== verifier record: m02-b02 =====
+command: bash accept/m02-b02.sh
+cwd: /home/jqlin/Project/skills/linux-0.11-from-scratch
+run at: 2026-10-26T13:50:57+08:00
+
+===== STDOUT (verbatim) =====
+docker exec linux011-rust-build make -f docker/build.mk
+cargo build --manifest-path kernel/Cargo.toml
+rm -rf build/iso_root
+mkdir -p build/iso_root/boot/limine build/iso_root/EFI/BOOT
+cp kernel/target/x86_64-unknown-none/debug/kernel build/iso_root/kernel.elf
+cp limine.conf build/iso_root/boot/limine/
+cp /opt/limine/limine-bios.sys /opt/limine/limine-bios-cd.bin \
+   /opt/limine/limine-uefi-cd.bin build/iso_root/boot/limine/
+cp /opt/limine/BOOTX64.EFI build/iso_root/EFI/BOOT/
+# El Torito：-b/--efi-boot 的路径都是 ISO 内部路径。
+# -boot-load-size 4：El Torito 规范以 512 字节为单位，4 = 2048 字节即一个 CD 扇区，
+# BIOS 只预载这一段，剩余部分由 limine-bios-cd.bin 自己加载（Limine 官方示例值）。
+xorriso -as mkisofs -R -r -J \
+    -b boot/limine/limine-bios-cd.bin \
+    -no-emul-boot -boot-load-size 4 -boot-info-table \
+    --efi-boot boot/limine/limine-uefi-cd.bin \
+    -efi-boot-part --efi-boot-image --protective-msdos-label \
+    build/iso_root -o build/kernel.iso
+# isohybrid 修补：GPT→MBR、置活动分区、把硬盘引导代码埋进第 0 扇区，
+# 让同一 ISO 也能 dd 到 U 盘当磁盘引导。纯光盘 El Torito 路径实测不依赖它
+# （qemu -boot d 跳过这步照样启动），但上游 USAGE.md 把这一步列为 hybrid
+# ISO 流程必需（"do not forget"），保留换来 isohybrid 能力。
+limine bios-install build/kernel.iso
+>>> starting qemu (headless + monitor screendump)…
+QEMU 10.2.1 monitor - type 'help' for more information
+(qemu) s[K[Dsc[K[D[Dscr[K[D[D[Dscre[K[D[D[D[Dscree[K[D[D[D[D[Dscreen[K[D[D[D[D[D[Dscreend[K[D[D[D[D[D[D[Dscreendu[K[D[D[D[D[D[D[D[Dscreendum[K[D[D[D[D[D[D[D[D[Dscreendump[K[D[D[D[D[D[D[D[D[D[Dscreendump [K[D[D[D[D[D[D[D[D[D[D[Dscreendump b[K[D[D[D[D[D[D[D[D[D[D[D[Dscreendump bu[K[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump bui[K[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump buil[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-b[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bi[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bit[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bite[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bite2[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bite2.[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bite2.p[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bite2.pp[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m2-bite2.ppm[K
+(qemu) q[K[Dqu[K[D[Dqui[K[D[D[Dquit[K
+>>> serial.log:
+limine: Loading executable `boot():/kernel.elf`...
+M0: kernel alive
+M1: fb 800x600x32
+M1: fb mask r8@16 g8@8 b8@0 model=1
+M1: fmt hex=0x002a dec=42 str=ok
+M1: scroll line 00
+M1: scroll line 01
+M1: scroll line 02
+M1: scroll line 03
+M1: scroll line 04
+M1: scroll line 05
+M1: scroll line 06
+M1: scroll line 07
+M1: scroll line 08
+M1: scroll line 09
+M1: scroll line 10
+M1: scroll line 11
+M1: scroll line 12
+M1: scroll line 13
+M1: scroll line 14
+M1: scroll line 15
+M1: scroll line 16
+M1: scroll line 17
+M1: scroll line 18
+M1: scroll line 19
+M1: scroll line 20
+M1: scroll line 21
+M1: scroll line 22
+M1: scroll line 23
+M1: scroll line 24
+M1: scroll line 25
+M1: scroll line 26
+M1: scroll line 27
+M1: scroll line 28
+M1: scroll line 29
+M1: scroll line 30
+M1: scroll line 31
+M1: scroll line 32
+M1: scroll line 33
+M1: scroll line 34
+M1: scroll line 35
+M1: scroll line 36
+M1: scroll line 37
+M1: scroll line 38
+M1: scroll line 39
+M1: scroll line 40
+M1: scroll line 41
+M1: scroll line 42
+M1: scroll line 43
+M1: scroll line 44
+M1: scroll line 45
+M1: scroll line 46
+M1: scroll line 47
+M1: scroll line 48
+M1: scroll line 49
+M1: scroll line 50
+M1: scroll line 51
+M1: scroll line 52
+M1: scroll line 53
+M1: scroll line 54
+M1: scroll line 55
+M1: scroll line 56
+M1: scroll line 57
+M1: scroll line 58
+M1: scroll line 59
+M2: gdt ok
+M2: idt ok
+M2: panic handler entered
+PANIC: M2 Bite2 deliberate panic demonstration
+panicked at kernel/src/main.rs:59:5
+M2: panic ok
+>>> asserting serial markers…
+M1: fb 800x600x32
+M1: fmt hex=0x002a dec=42 str=ok
+M1: scroll line 00
+M1: scroll line 59
+M2: gdt ok
+M2: idt ok
+PANIC: M2 Bite2 deliberate panic demonstration
+panicked at kernel/src/main.rs:59:5
+M2: panic ok
+screendump size=1440015
+check-m2-b2 OK
+
+===== STDERR (verbatim) =====
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+warning: the following packages contain code that will be rejected by a future version of Rust: core v0.0.0 (/usr/local/rustup/toolchains/nightly-2026-09-04-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core)
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
+
+Drive current: -outdev 'stdio:build/kernel.iso'
+Media current: stdio file, overwriteable
+Media status : is blank
+Media summary: 0 sessions, 0 data blocks, 0 data,  400g free
+Added to ISO image: directory '/'='/work/build/iso_root'
+xorriso : UPDATE :      10 files added in 1 seconds
+xorriso : UPDATE :      10 files added in 1 seconds
+ISO image produced: 3379 sectors
+Written to medium : 3379 sectors at LBA 0
+Writing to 'stdio:build/kernel.iso' completed successfully.
+
+Physical block size of 512 bytes.
+Installing to GPT. Logical block size of 512 bytes.
+Secondary header at LBA 0x34cb.
+Secondary header valid.
+Detected ISOHYBRID with a GUID partition table (GPT).
+Converting to MBR for improved compatibility...
+Conversion successful.
+No active partition found, some systems may not boot.
+Setting partition 1 as active to work around the issue...
+Installing to MBR.
+Stage 2 to be located at byte offset 0x200.
+Reminder: Remember to copy the limine-bios.sys file in either
+          the root, /boot, /limine, or /boot/limine directories of
+          one of the partitions on the device, or boot will fail!
+Limine BIOS stages installed successfully.
+
+===== EXIT CODE =====
+0
+
+===== VERIFIER ANALYSIS (independent, no code changed) =====
+
+Conclusion: PASS — every expectation stated in accept/m02-b02.sh comments was observed
+in a real run; script exit code 0, all inline assertions satisfied.
+
+Environment: docker image linux011-rust-toolchain / container linux011-rust-build
+(Up), qemu-system-x86_64 at /usr/bin/qemu-system-x86_64, QEMU 10.2.1.
+
+Build freshness note: cargo reported "Finished `dev` profile ... in 0.06s", i.e. the
+compile step was incremental (ELF already built at 13:43:14, newest source
+kernel/src/main.rs at 13:42:58, all other kernel/src/*.rs older). cargo's mtime
+check therefore guarantees the tested ELF corresponds to the current sources;
+build/kernel.iso was regenerated from that ELF during this run.
+
+Per-expectation results (observed vs expected):
+
+1) 内核构建并启动，M0/M1 回归输出仍在，M0 存活行恰好一次
+   Observed: boot OK ("limine: Loading executable `boot():/kernel.elf`..."), serial.log
+   has exactly one "M0: kernel alive" (grep -c = 1, asserted by script),
+   "M1: fb 800x600x32", "M1: fb mask r8@16 g8@8 b8@0 model=1",
+   "M1: fmt hex=0x002a dec=42 str=ok", "M1: scroll line 00" .. "line 59".
+   One boot only ("limine: Loading executable" count = 1) -> no triple reboot.
+   Expected: same. PASS.
+
+2) 自有 GDT 与 IDT 初始化成功，随后故意调用 panic!()
+   Observed serial order: "M2: gdt ok" -> "M2: idt ok" -> "M2: panic handler entered"
+   -> "PANIC: M2 Bite2 deliberate panic demonstration".
+   impl/kernel/src/main.rs:53-59 shows gdt::init()/idt::init() then the deliberate
+   panic!() call. No "EXCEPTION #0" / divide-error line remains in the log
+   (the old M2 Bite1 divide demo was replaced, as intended).
+   Expected: same. PASS.
+
+3) panic_handler 通过 printk! 双写屏幕和串口，输出指定消息及 main.rs 的行列位置
+   Observed serial: "PANIC: M2 Bite2 deliberate panic demonstration" and
+   "panicked at kernel/src/main.rs:59:5".
+   Screen side independently verified by decoding build/m2-bite2.ppm (800x600 P6):
+   foreground colour (0xe8,0xe8,0xf0) glyphs occupy 36 text bands (y 0..575); the
+   last six bands are, in order, "M2: gdt ok", "M2: idt ok",
+   "M2: panic handler entered", "PANIC: M2 Bite2 deliberate panic demonstration",
+   "panicked at kernel/src/main.rs:59:5", "M2: panic ok" (bands 30/31/32/35 begin
+   with the same "M" glyph, band 33 with uppercase "P", band 34 with lowercase
+   "p"), i.e. the panic text really reached the framebuffer as well as the UART.
+   Code path confirms the double write: impl/kernel/src/console.rs:80-88
+   (Console::write_str -> put_char(screen) + serial::write_byte) and
+   impl/kernel/src/main.rs:87-106 (panic_handler uses printk! only).
+   Line/column correctness checked by hand: the panic!() macro call sits at
+   kernel/src/main.rs:59, starting at column 5 -> "59:5" is correct.
+   Expected: same. PASS.
+
+4) panic 后停机，不死循环重启；QEMU screendump 非空
+   Observed: after "M2: panic ok" (line 71 of 71) nothing further is printed;
+   exactly one boot / one "M0: kernel alive" -> the kernel did not restart.
+   panic_handler ends in halt() (impl/kernel/src/main.rs:76-83,105), so the CPU
+   parks in hlt rather than looping.
+   Screendump: build/m2-bite2.ppm exists, 1,440,015 bytes (> 10240 threshold;
+   800*600*3 + 15-byte P6 header), i.e. a full 800x600 frame, not blank noise.
+   Expected: same. PASS.
+
+Script-internal assertions actually executed and satisfied by this run:
+grep -c 'M0: kernel alive' == 1; M1 fb / fmt / scroll 00 / scroll 59;
+M2 gdt ok; M2 idt ok; PANIC message; "panicked at kernel/src/main.rs:[0-9]+:[0-9]+";
+M2 panic ok; screendump file present and > 10240 bytes; final "check-m2-b2 OK".
+Script exit code: 0.
+
+Coverage gaps (not asserted by the standard, verified manually here):
+a) The script never checks the screen copy of the panic output — only the UART
+   copy and the screendump file size. A regression that stopped drawing to the
+   framebuffer while keeping the serial output would still pass. (I checked it
+   manually via the PPM glyph decode above.)
+b) "停机" is inferred, not asserted: the script proves "no reboot" (one boot) but
+   never observes CPU state. A kernel that spun in a busy loop instead of hlt,
+   or one that re-entered the panic path, would still satisfy every current
+   assertion as long as it did not print another "M0: kernel alive" line.
+   (Also: the panic path prints exactly one "M2: panic ok"; there is no
+   assertion that the panic handler is not re-entered.)
+c) The panic location assertion is a wildcard pattern; it does not pin
+   main.rs:59:5. A panic moved to another line/column in main.rs would still
+   pass. I verified 59:5 manually against the source.
+d) "M1: fb mask ..." (the fb pixel-format line) is present in the log but is not
+   asserted by the script; likewise the exact M1 scroll line count (00..59 = 60
+   lines) is only spot-checked at the two ends.
+e) The script does not assert that the old M2 Bite1 divide-error demo is gone
+   (no "EXCEPTION #0" assertion); I confirmed manually that no such line exists.
+f) No assertion on the "M2: panic handler entered" marker (it is printed).
+g) The build step was incremental in this run, so a from-scratch compile of the
+   current tree was not exercised end-to-end here (cargo did confirm the sources
+   are unchanged since the last compile, and the ELF is newer than every
+   kernel/src file).
+
+No code was modified by this verification: impl/, accept/, book/ and other project
+files are untouched; the only write target was tutor/runs/m02-b02.txt.

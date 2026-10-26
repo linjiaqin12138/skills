@@ -2,7 +2,7 @@
 
 ## Bite1：GDT 扁平接管 + IDT + CPU 异常接管（2026-10-16 首次通过，2026-10-18 复跑通过）
 
-**验收命令**：`make -C impl check-m2-b1`（exit 0）
+**历史验收命令**：`make -C impl check-m2-b1`（当时 exit 0；当前正常启动路径改做 Bite2 panic 演示，由 `bash accept/m02-b02.sh` 接管回归验收）
 
 **涉及代码文件**：
 - `impl/kernel/src/gdt.rs`（扁平 GDT 三项，lgdt + retfq 重载段寄存器；描述符预置 A=1 避免 CPU 回写只读 .rodata 触发 #PF）
@@ -33,3 +33,17 @@ M2: r12=0x0000000000000000 r13=0x0000000000000000 r14=0x0000000000000000 r15=0x0
 **架构图**：`arch.svg`（顶层权威图）、`figures/arch-idt.svg`（IDT 分层子图）、`figures/arch-diff.svg`（M1→M2 变动）。对应图源为 `figures/src/arch*.json`；fireworks validate / render / check 均通过，Chrome 目检确认文字、箭头与分层关系清晰。
 
 **教程与概念页复验（2026-10-18）**：tutorial 以 `--style strict` 重渲，STE 0 警告；共 8 个面板，含 4 道应用型选择题和折叠解析。`gdt-long-mode.html` 与 `idt-exception-frame.html` 均为 8 个面板、4 道选择题；浏览器确认图片非空且无空白面板。
+
+## Bite2：panic 消息与源码位置（2026-10-26 通过）
+
+**验收命令**：`bash accept/m02-b02.sh`（exit 0；内部执行 `make check-m2-b2`）。
+
+**涉及代码文件**：
+- `impl/kernel/src/main.rs`（故意 `panic!()`；panic_handler 分别打印 `info.message()` 与 `info.location()`，随后 `halt()`）
+- `impl/Makefile`（`check-m2-b2`：保留 M0/M1/GDT/IDT 回归，断言 panic 消息、源码行列和 screendump）
+
+**实测结果**：`M0: kernel alive` 恰好一次；GDT/IDT 初始化后输出 `PANIC: M2 Bite2 deliberate panic demonstration` 与 `panicked at kernel/src/main.rs:59:5`；随后停机且无重复启动。`build/m2-bite2.ppm` 为 1,440,015 字节的完整 800×600 帧。verifier 另行解码 PPM，确认 panic 文本同时到达 framebuffer 与串口。
+
+**验收记录**：[tutor/runs/m02-b02.txt](../../tutor/runs/m02-b02.txt)。覆盖边界：脚本直接断言串口与截图大小；屏幕文本、实际行列值及无旧 #DE 演示由 verifier 手工交叉核对。
+
+**教程复验**：`b02-panic-printing.draft.md` 经 `am-render` strict 首轮渲染，0 warnings；浏览器确认 6 个面板非空、流程图可见、5 道自测的折叠解析均可打开。架构无变化，沿用 Bite1 架构图。

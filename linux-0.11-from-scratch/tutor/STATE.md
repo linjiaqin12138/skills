@@ -2,14 +2,14 @@
 
 ## 当前位置
 - Phase: 3（逐层手搓）进行中
-- 里程碑: **M2 进行中**——Bite1（GDT 扁平接管 + IDT + CPU 异常接管）2026-10-18 复跑 `make -C impl check-m2-b1` 通过，待用户确认后进入 Bite2；M1 已通过
-- 教程：**M0 Bite1 `book/m00-boot/b01-boot-skeleton.html` + Bite2 `book/m00-boot/b02-iso-boot.html`（2026-10-19 已迁移到草稿+am-render 工作流）**；M1 Bite1 `b01-framebuffer.html` + Bite2 `b02-printk-scroll.html`（book/m01-printk/，尚无草稿，HTML 为唯一产物）；**M2 Bite1 `book/m02-exceptions/b01-gdt-idt.html`**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html`
+- 里程碑: **M2 已完成，待用户确认后进入 M3**——Bite1（GDT 扁平接管 + IDT + CPU 异常接管）2026-10-18 复跑通过；Bite2（panic_handler 接 printk!，打印消息与源码位置后停机）2026-10-26 独立验收 `bash accept/m02-b02.sh` 通过，记录见 `tutor/runs/m02-b02.txt`；M1 已通过
+- 教程：**M0 Bite1 `book/m00-boot/b01-boot-skeleton.html` + Bite2 `book/m00-boot/b02-iso-boot.html`（2026-10-19 已迁移到草稿+am-render 工作流）**；M1 Bite1 `b01-framebuffer.html` + Bite2 `b02-printk-scroll.html`（book/m01-printk/，尚无草稿，HTML 为唯一产物）；**M2 Bite1 `book/m02-exceptions/b01-gdt-idt.html` + Bite2 `book/m02-exceptions/b02-panic-printing.html`（源稿为同名 `.draft.md`）**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html`
 - 环境：GNU Make 用 `~/.local/bin/make`（apt 下载后用户级解包）；qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`upstream/limine`（v10.8.5-binary）+ `upstream/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
-用户确认后进入 **M2 Bite2「panic 打印」**：panic_handler 接 printk!，panic!() 打印消息与位置而非静默 halt（main.rs:77 附近）。伏笔已埋：Rust `1/0` 走 panic 不走 #DE，Bite1 教程坑 2 已点到。
-- M2 之后是 M3「中断：LAPIC 定时器 100Hz + IOAPIC 键盘」（tutor/phases/phase-2.md），届时 D15（static mut console 换锁）与 D16 前半（IDT 向量 32~255 空洞）必须收敛。
-- Makefile 验收命令：`check-m1-b2`（M1）、`check-m2-b1`（M2 Bite1）；`check-m1-b1` 已退役。
+用户确认后进入 **M3「中断：LAPIC 定时器 100Hz + IOAPIC 键盘」**（tutor/phases/phase-2.md），按 Phase 3 拆分并交付下一个独立 Bite。
+- M3 届时必须收敛 D15（static mut console 换锁）与 D16 前半（IDT 向量 32~255 空洞）。
+- 当前验收命令：`bash accept/m02-b02.sh`（M2，内部执行 `make check-m2-b2`）；M1 为 `make -C impl check-m1-b2`。`check-m2-b1` 已随正常启动路径改做 panic 演示而退役，历史结果保留在 `book/m02-exceptions/acceptance.md`。
 
 **2026-10-13**：Limine 协议已改为官方 `limine` crate 0.6.5（D14）。
 
