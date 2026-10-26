@@ -1,4 +1,4 @@
-//! IDT：256 项 64-bit interrupt gate，接管向量 0~31 的全部 CPU 异常。
+//! IDT：256 项 64-bit interrupt gate，接管 CPU 异常与 LAPIC IRQ32。
 //!
 //! 异常发生时的栈帧（低地址 → 高地址，即压栈逆序）：
 //!   r15..rax（15 个通用寄存器，common_exception_entry 压入）
@@ -18,7 +18,7 @@ const IDT_ENTRIES: usize = 256;
 
 /// 门描述符（SDM Vol.3 6.14.1，16 字节）。
 /// 只实现 interrupt gate：它进门时自动清 IF，
-/// 保证异常处理期间不被外部中断打断（本 Bite 本来也没开外部中断）。
+/// 保证异常或 IRQ handler 执行期间不被可屏蔽外部中断打断。
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
 struct IdtEntry {
@@ -238,11 +238,56 @@ define_exceptions! {
     31 => entry_reserved_31                 : no_error_code,
 }
 
-/// 填写 IDT 并 lidt，完成异常接管
+/// IRQ32 独立使用可返回入口；异常仍走上方不返回的公共路径。
+#[unsafe(naked)]
+unsafe extern "C" fn timer_entry() {
+    naked_asm!(
+        "push rax",
+        "push rcx",
+        "push rdx",
+        "push rbx",
+        "push rsi",
+        "push rdi",
+        "push rbp",
+        "push r8",
+        "push r9",
+        "push r10",
+        "push r11",
+        "push r12",
+        "push r13",
+        "push r14",
+        "push r15",
+        // rbx 是 callee-saved，Rust handler 会保留它，用它记住寄存器帧的位置。
+        "mov rbx, rsp",
+        "and rsp, -16",
+        "call {handler}",
+        "mov rsp, rbx",
+        "pop r15",
+        "pop r14",
+        "pop r13",
+        "pop r12",
+        "pop r11",
+        "pop r10",
+        "pop r9",
+        "pop r8",
+        "pop rbp",
+        "pop rdi",
+        "pop rsi",
+        "pop rbx",
+        "pop rdx",
+        "pop rcx",
+        "pop rax",
+        "iretq",
+        handler = sym crate::lapic::timer_interrupt,
+    );
+}
+
+/// 填写 IDT 并 lidt，完成异常与 LAPIC IRQ32 接管。
 pub fn init() {
-    // SAFETY: 单核无外部中断阶段，IDT 只在此处写入一次
+    // SAFETY: 单核关中断阶段，IDT 只在此处写入一次
     let idt = unsafe { &mut *addr_of_mut!(IDT) };
     install_exception_entries(idt);
+    idt[32] = IdtEntry::interrupt_gate(entry_addr(timer_entry));
 
     let idtr = IdtPointer {
         limit: (size_of_val(idt) - 1) as u16,

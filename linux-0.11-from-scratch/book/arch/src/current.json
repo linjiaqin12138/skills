@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "text_policy": "strict",
+  "quality_profile": "standard",
+  "width": 1700,
+  "height": 900,
+  "title": "M3 Bite1 顶层架构：100 Hz LAPIC 定时中断",
+  "subtitle": "只画运行时通信；LAPIC MMIO 的窄映射结构见 lapic-mmio.svg",
+  "containers": [
+    {
+      "id": "kernel-box",
+      "x": 300,
+      "y": 140,
+      "width": 1280,
+      "height": 600,
+      "label": "kernel（信任边界）",
+      "fill": "#faf5ff",
+      "stroke": "#8b5cf6"
+    }
+  ],
+  "nodes": [
+    { "id": "limine", "kind": "rect", "x": 40, "y": 180, "width": 170, "height": 70, "label": "Limine", "sublabel": "启动交接", "fill": "#fff7ed", "stroke": "#f97316", "flat": true },
+    { "id": "lapic_hw", "kind": "rect", "x": 40, "y": 340, "width": 170, "height": 70, "label": "LAPIC", "sublabel": "周期定时器", "fill": "#eff6ff", "stroke": "#3b82f6", "flat": true },
+    { "id": "cpu", "kind": "rect", "x": 340, "y": 340, "width": 170, "height": 70, "label": "CPU", "sublabel": "IRQ32 @100 Hz", "fill": "#eff6ff", "stroke": "#3b82f6", "flat": true },
+    { "id": "idt", "kind": "rect", "x": 580, "y": 340, "width": 180, "height": 70, "label": "idt", "sublabel": "IRQ32 入口", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "timer_entry", "kind": "rect", "x": 820, "y": 340, "width": 180, "height": 70, "label": "timer_entry", "sublabel": "可返回 · iretq", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "timer_interrupt", "kind": "rect", "x": 1060, "y": 340, "width": 180, "height": 70, "label": "timer_interrupt", "sublabel": "lapic.rs", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "jiffies", "kind": "rect", "x": 1340, "y": 340, "width": 180, "height": 70, "label": "JIFFIES", "sublabel": "AtomicU64 · Relaxed", "fill": "#eff6ff", "stroke": "#3b82f6", "flat": true },
+    { "id": "main", "kind": "rect", "x": 1060, "y": 180, "width": 180, "height": 70, "label": "main", "sublabel": "report_jiffies", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "console", "kind": "rect", "x": 600, "y": 510, "width": 170, "height": 70, "label": "console", "sublabel": "printk!", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "fb", "kind": "rect", "x": 870, "y": 510, "width": 180, "height": 70, "label": "framebuffer", "sublabel": "像素输出", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "serial", "kind": "rect", "x": 870, "y": 630, "width": 180, "height": 70, "label": "serial", "sublabel": "16550 字节流", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true }
+  ],
+  "arrows": [
+    { "id": "handoff", "source": "limine", "target": "main", "source_port": "right", "target_port": "left", "flow": "control", "label": "进入 kernel" },
+    { "id": "init_idt", "source": "main", "target": "idt", "source_port": "bottom", "target_port": "top", "flow": "control", "label": "初始化 · 注册 IRQ32", "route_points": [[1145, 270], [670, 270]] },
+    { "id": "irq32", "source": "lapic_hw", "target": "cpu", "source_port": "right", "target_port": "left", "flow": "control", "label": "IRQ32 @100 Hz" },
+    { "id": "cpu_idt", "source": "cpu", "target": "idt", "source_port": "right", "target_port": "left", "flow": "control", "label": "IRQ32" },
+    { "id": "dispatch32", "source": "idt", "target": "timer_entry", "source_port": "right", "target_port": "left", "flow": "control", "label": "32" },
+    { "id": "call_timer", "source": "timer_entry", "target": "timer_interrupt", "source_port": "right", "target_port": "left", "flow": "control", "label": "call" },
+    { "id": "tick", "source": "timer_interrupt", "target": "jiffies", "source_port": "right", "target_port": "left", "flow": "write", "label": "+1" },
+    { "id": "iretq", "source": "timer_entry", "target": "main", "source_port": "top", "target_port": "bottom", "flow": "control", "label": "iretq · 返回主上下文", "route_points": [[910, 290], [1145, 290]] },
+    { "id": "read_jiffies", "source": "main", "target": "jiffies", "source_port": "right", "target_port": "right", "flow": "data", "label": "load(Relaxed)", "route_points": [[1550, 215], [1550, 375]] },
+    { "id": "report", "source": "main", "target": "console", "source_port": "right", "target_port": "top", "flow": "write", "label": "每 100 ticks printk!", "route_points": [[1260, 215], [1260, 460], [685, 460]] },
+    { "id": "pixels", "source": "console", "target": "fb", "source_port": "right", "target_port": "left", "flow": "write", "label": "文本 → 像素" },
+    { "id": "mirror", "source": "console", "target": "serial", "source_port": "bottom", "target_port": "left", "flow": "write", "label": "镜像字节", "route_points": [[685, 655]] }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 810,
+  "legend_locked": true,
+  "legend": [
+    { "flow": "control", "label": "控制 / 中断" },
+    { "flow": "write", "label": "写 / 原子更新" },
+    { "flow": "data", "label": "原子读取" }
+  ],
+  "footer": "Style 1 · fireworks · M3 Bite1 顶层权威图",
+  "footer_x": 48,
+  "footer_y": 860
+}

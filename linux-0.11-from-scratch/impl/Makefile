@@ -10,7 +10,7 @@ QEMU        := $(shell command -v qemu-system-x86_64 2>/dev/null || echo $(HOME)
 # -boot d：默认启动顺序硬盘在前，会引导 ../upstream/hdc-0.11.img 而不是我们的 CD
 QEMU_FLAGS  := -m 128M -boot d -serial stdio -drive file=../upstream/hdc-0.11.img,format=raw,if=ide
 
-.PHONY: toolchain ctr kernel build run debug check check-m1-b2 check-m2-b2 clean help
+.PHONY: toolchain ctr kernel build run debug check check-m1-b2 check-m2-b2 check-m3-b1 clean help
 
 help: ## 显示本帮助
 	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*## /  →  /'
@@ -126,6 +126,44 @@ check-m2-b2: build ## M2 Bite2 验收：panic 消息 + 源码位置 + 停机 + s
 	@sz=$$(wc -c < build/m2-bite2.ppm); echo "screendump size=$$sz"; \
 	  test $$sz -gt 10240
 	@echo "check-m2-b2 OK"
+
+# M3 已移除正常启动路径的故意 panic，因此 check-m2-b2 仅保留为历史目标。
+# 6 秒宿主窗口通常得到 5 行；3..8 行允许启动与宿主调度误差，同时挡住数量级频率错误。
+check-m3-b1: build ## M3 Bite1 验收：100 Hz LAPIC jiffies + 中断返回 + screendump
+	@$(DOCKER_EXEC) chown -R --reference=/work /work/build
+	@mkdir -p build
+	@rm -f build/serial.log build/m3-bite1.ppm
+	@echo ">>> starting qemu (6-second timer window)…"
+	@( sleep 6; printf 'screendump build/m3-bite1.ppm\nquit\n' ) | \
+	  $(QEMU) -m 128M -boot d -display none -vga std -net none \
+	    -monitor stdio \
+	    -serial file:build/serial.log \
+	    -drive file=../upstream/hdc-0.11.img,format=raw,if=ide \
+	    -cdrom build/kernel.iso; \
+	  rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
+	@echo ">>> serial.log:"
+	@cat build/serial.log
+	@echo ">>> asserting regression markers and timer samples…"
+	@test "$$(grep -c -F 'M0: kernel alive' build/serial.log)" -eq 1
+	@grep -E 'M1: fb [0-9]+x[0-9]+x[0-9]+' build/serial.log
+	@grep -F 'M1: fmt hex=0x002a dec=42 str=ok' build/serial.log
+	@grep -F 'M1: scroll line 00' build/serial.log
+	@grep -F 'M1: scroll line 59' build/serial.log
+	@grep -F 'M2: gdt ok' build/serial.log
+	@grep -F 'M2: idt ok' build/serial.log
+	@grep -F 'M3: LAPIC timer 100 Hz' build/serial.log
+	@grep -F 'M3: jiffies=100' build/serial.log
+	@grep -F 'M3: jiffies=200' build/serial.log
+	@grep -F 'M3: jiffies=300' build/serial.log
+	@samples=$$(grep -c -E '^M3: jiffies=[0-9]+$$' build/serial.log); \
+	  echo "jiffies samples=$$samples"; test $$samples -ge 3 -a $$samples -le 8
+	@if grep -q -E 'M2: panic handler entered|^PANIC:' build/serial.log; then \
+	  echo "unexpected panic on normal boot path"; exit 1; \
+	fi
+	@test -f build/m3-bite1.ppm
+	@sz=$$(wc -c < build/m3-bite1.ppm); echo "screendump size=$$sz"; \
+	  test $$sz -gt 10240
+	@echo "check-m3-b1 OK"
 
 clean: ## 清理构建产物
 	rm -rf build kernel/target user/target

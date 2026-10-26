@@ -1,4 +1,4 @@
-//! M2 Bite2：panic_handler 接入 printk!，故意 panic 打印消息与源码位置后停机。
+//! M3 Bite1：LAPIC 定时器 IRQ32 返回后，普通内核上下文观察并打印 jiffies。
 
 #![no_std]
 #![no_main]
@@ -8,6 +8,7 @@ mod fb;
 mod font;
 mod gdt;
 mod idt;
+mod lapic;
 mod limine_fb;
 mod serial;
 
@@ -55,8 +56,27 @@ extern "C" fn _start() -> ! {
     idt::init();
     printk!("M2: idt ok\n");
 
-    // M2 Bite2 验收动作：故意 panic，预期打印消息与源码位置后停机（不再三连重启）
-    panic!("M2 Bite2 deliberate panic demonstration");
+    if !lapic::init() {
+        printk!("M3: LAPIC initialization failed\n");
+        halt();
+    }
+    printk!("M3: LAPIC timer 100 Hz\n");
+    report_jiffies();
+}
+
+/// 中断只计数；这里在正常上下文读取实际值，每 100 tick 打印一次。
+fn report_jiffies() -> ! {
+    let mut next_report = 100;
+    loop {
+        let observed = lapic::jiffies();
+        if observed >= next_report {
+            printk!("M3: jiffies={}\n", observed);
+            next_report += 100;
+        } else {
+            // SAFETY: 定时器周期中断会唤醒 CPU；没有调度器时无需做其他工作。
+            unsafe { asm!("hlt", options(nomem, nostack)) };
+        }
+    }
 }
 
 /// fb 各颜色通道 mask 一行，供核对像素格式（排障用，断言不依赖）

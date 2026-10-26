@@ -1,7 +1,7 @@
 //! 文本控制台：光标 + fmt::Write（屏幕/串口双写）+ 滚屏。
 //!
-//! 全局实例用 `static mut`：现阶段内核单核、无中断、无并发，不存在竞争。
-//! 待收敛项：引入中断/多核后必须换成带锁的封装。
+//! 全局实例用 `static mut`：现阶段单核，且 IRQ handler 不访问 console。
+//! 待收敛项：中断上下文打印或引入多核前，必须换成合适的锁封装。
 
 use core::fmt;
 use core::ptr::addr_of_mut;
@@ -93,14 +93,14 @@ static mut CONSOLE: Option<Console> = None;
 pub fn init(fb: &'static Framebuffer) {
     let mut cons = Console::new(fb);
     cons.clear();
-    // SAFETY: 单核无中断阶段，且全局只在此处写入一次
+    // SAFETY: 单核关中断的启动阶段，且全局只在此处写入一次
     unsafe {
         *addr_of_mut!(CONSOLE) = Some(cons);
     }
 }
 
 fn global() -> Option<&'static mut Console> {
-    // SAFETY: 单核无中断无并发，不存在竞争；
+    // SAFETY: 单核且 IRQ 不访问 console，不存在并发访问；
     // 经 addr_of_mut! 拿裸指针再解引用，避免 static_mut_refs lint 的中间引用
     unsafe { (*addr_of_mut!(CONSOLE)).as_mut() }
 }

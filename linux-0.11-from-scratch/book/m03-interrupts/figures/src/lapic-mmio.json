@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "text_policy": "strict",
+  "quality_profile": "standard",
+  "width": 1800,
+  "height": 950,
+  "title": "LAPIC MMIO 窄映射：四级页表结构",
+  "subtitle": "静态结构图；只补一个 MMIO 页所缺的表项，不是通用分页子系统",
+  "containers": [
+    {
+      "id": "tables-box",
+      "x": 350,
+      "y": 150,
+      "width": 1130,
+      "height": 550,
+      "label": "当前 CR3 / HHDM 页表（仅初始化）",
+      "fill": "#faf5ff",
+      "stroke": "#8b5cf6"
+    }
+  ],
+  "nodes": [
+    { "id": "cr3", "kind": "rect", "x": 50, "y": 250, "width": 220, "height": 80, "label": "CR3", "sublabel": "当前页表根", "fill": "#eff6ff", "stroke": "#3b82f6", "flat": true },
+    { "id": "hhdm", "kind": "rect", "x": 50, "y": 410, "width": 220, "height": 80, "label": "HHDM 虚拟地址", "sublabel": "LAPIC MMIO VA", "fill": "#eff6ff", "stroke": "#3b82f6", "flat": true },
+    { "id": "phys", "kind": "rect", "x": 50, "y": 590, "width": 220, "height": 80, "label": "LAPIC 物理页", "sublabel": "MMIO 页框", "fill": "#eff6ff", "stroke": "#3b82f6", "flat": true },
+    { "id": "large_page", "kind": "rect", "x": 790, "y": 210, "width": 300, "height": 70, "label": "已有 L3 / L2 大页覆盖", "sublabel": "覆盖则停走 · 不拆页", "fill": "#f0fdf4", "stroke": "#16a34a", "flat": true },
+    { "id": "l4", "kind": "rect", "x": 400, "y": 360, "width": 170, "height": 80, "label": "L4 / PML4", "sublabel": "现有根表", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "l3", "kind": "rect", "x": 680, "y": 360, "width": 170, "height": 80, "label": "L3 / PDPT", "sublabel": "可缺", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "l2", "kind": "rect", "x": 960, "y": 360, "width": 170, "height": 80, "label": "L2 / PD", "sublabel": "可缺", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "l1", "kind": "rect", "x": 1240, "y": 360, "width": 170, "height": 80, "label": "L1 / PT", "sublabel": "可缺", "fill": "#ffffff", "stroke": "#8b5cf6", "flat": true },
+    { "id": "static_l3", "kind": "rect", "x": 680, "y": 540, "width": 170, "height": 70, "label": "static 4KiB #1", "sublabel": "补 L3 表", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "static_l2", "kind": "rect", "x": 960, "y": 540, "width": 170, "height": 70, "label": "static 4KiB #2", "sublabel": "补 L2 表", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "static_l1", "kind": "rect", "x": 1240, "y": 540, "width": 170, "height": 70, "label": "static 4KiB #3", "sublabel": "补 L1 表", "fill": "#ede9fe", "stroke": "#7c3aed", "flat": true },
+    { "id": "mmio", "kind": "rect", "x": 1520, "y": 360, "width": 220, "height": 80, "label": "LAPIC MMIO 页", "sublabel": "最终 L1E · PCD/PWT", "fill": "#fff7ed", "stroke": "#f97316", "flat": true },
+    { "id": "invlpg", "kind": "rect", "x": 1520, "y": 560, "width": 220, "height": 70, "label": "invlpg", "sublabel": "使新映射可见", "fill": "#fff7ed", "stroke": "#f97316", "flat": true }
+  ],
+  "arrows": [
+    { "id": "root", "source": "cr3", "target": "l4", "source_port": "right", "target_port": "top", "flow": "data", "label": "根表地址", "route_points": [[330, 290], [330, 320], [485, 320]] },
+    { "id": "va", "source": "hhdm", "target": "l4", "source_port": "right", "target_port": "left", "flow": "data", "label": "VA 索引", "route_points": [[330, 450]] },
+    { "id": "l4_l3", "source": "l4", "target": "l3", "source_port": "right", "target_port": "left", "flow": "data", "label": "L4E" },
+    { "id": "l3_l2", "source": "l3", "target": "l2", "source_port": "right", "target_port": "left", "flow": "data", "label": "L3E" },
+    { "id": "l2_l1", "source": "l2", "target": "l1", "source_port": "right", "target_port": "left", "flow": "data", "label": "L2E" },
+    { "id": "l1_mmio", "source": "l1", "target": "mmio", "source_port": "right", "target_port": "left", "flow": "write", "label": "L1E · 4KiB" },
+    { "id": "reuse_l3", "source": "large_page", "target": "l3", "source_port": "bottom", "target_port": "top", "flow": "control", "route_points": [[850, 320], [765, 320]] },
+    { "id": "reuse_l2", "source": "large_page", "target": "l2", "source_port": "bottom", "target_port": "top", "flow": "control", "route_points": [[1030, 320], [1045, 320]] },
+    { "id": "supply_l3", "source": "static_l3", "target": "l3", "source_port": "top", "target_port": "bottom", "flow": "write", "label": "缺失时补" },
+    { "id": "supply_l2", "source": "static_l2", "target": "l2", "source_port": "top", "target_port": "bottom", "flow": "write", "label": "缺失时补" },
+    { "id": "supply_l1", "source": "static_l1", "target": "l1", "source_port": "top", "target_port": "bottom", "flow": "write", "label": "缺失时补" },
+    { "id": "frame", "source": "phys", "target": "mmio", "source_port": "right", "target_port": "right", "flow": "data", "label": "物理页框", "route_points": [[300, 630], [300, 740], [1780, 740], [1780, 400]] },
+    { "id": "tlb", "source": "mmio", "target": "invlpg", "source_port": "bottom", "target_port": "top", "flow": "control", "label": "TLB 失效" }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 830,
+  "legend_locked": true,
+  "legend": [
+    { "flow": "data", "label": "地址 / 页表项" },
+    { "flow": "write", "label": "补表 / 最终映射" },
+    { "flow": "control", "label": "条件复用 / TLB" }
+  ],
+  "footer": "大页覆盖时复用并停止下钻；否则三页预算覆盖 L3、L2、L1 均缺失的上界",
+  "footer_x": 48,
+  "footer_y": 900
+}

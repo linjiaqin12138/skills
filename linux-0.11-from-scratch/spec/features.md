@@ -13,7 +13,7 @@
 
 ## 2. 进程管理
 - [ ] P0 fork / exit / waitpid / execve
-- [ ] P0 调度：counter 时间片 + nice 优先级，100Hz 抢占
+- [ ] P0 调度：counter 时间片 + nice 优先级，100Hz 抢占——进度：M3 Bite1 已通 100Hz LAPIC tick（jiffies 原子计数 + 上屏），抢占与时间片调度待 M7
 - [ ] P0 进程状态机：RUNNING/INTERRUPTIBLE/UNINTERRUPTIBLE/ZOMBIE/STOPPED（`sched.h:19-23`）
 - [ ] P1 会话与进程组：setsid / setpgid / getpgrp（sh 作业控制依赖）
 - [ ] P1 uid/gid 全套：setuid/setgid/setreuid/setregid/get(e)uid/get(e)gid（login/passwd 依赖）

@@ -2,14 +2,14 @@
 
 ## 当前位置
 - Phase: 3（逐层手搓）进行中
-- 里程碑: **M2 已完成，待用户确认后进入 M3**——Bite1（GDT 扁平接管 + IDT + CPU 异常接管）2026-10-18 复跑通过；Bite2（panic_handler 接 printk!，打印消息与源码位置后停机）2026-10-26 独立验收 `bash accept/m02-b02.sh` 通过，记录见 `tutor/runs/m02-b02.txt`；M1 已通过
-- 教程：**M0 Bite1 `book/m00-boot/b01-boot-skeleton.html` + Bite2 `book/m00-boot/b02-iso-boot.html`（2026-10-19 已迁移到草稿+am-render 工作流）**；M1 Bite1 `b01-framebuffer.html` + Bite2 `b02-printk-scroll.html`（book/m01-printk/，尚无草稿，HTML 为唯一产物）；**M2 Bite1 `book/m02-exceptions/b01-gdt-idt.html` + Bite2 `book/m02-exceptions/b02-panic-printing.html`（源稿为同名 `.draft.md`）**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html`
+- 里程碑: **M3 进行中**——Bite1（LAPIC 定时器 IRQ32 @100Hz + jiffies + 可返回中断入口）2026-10-26 独立验收 `bash accept/m03-b01.sh` 通过，记录见 `tutor/runs/m03-b01.txt`；verifier 另用宿主时钟测得 99.49~99.77 Hz。M0/M1/M2 已通过
+- 教程：**M0 Bite1 `book/m00-boot/b01-boot-skeleton.html` + Bite2 `book/m00-boot/b02-iso-boot.html`（2026-10-19 已迁移到草稿+am-render 工作流）**；M1 Bite1 `b01-framebuffer.html` + Bite2 `b02-printk-scroll.html`（book/m01-printk/，尚无草稿，HTML 为唯一产物）；**M2 Bite1 `book/m02-exceptions/b01-gdt-idt.html` + Bite2 `book/m02-exceptions/b02-panic-printing.html`（源稿为同名 `.draft.md`）**；**M3 Bite1 `book/m03-interrupts/b01-lapic-timer.html`（源稿同名 `.draft.md`，8 面板）**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html` + `apic-vs-pic.md`
 - 环境：GNU Make 用 `~/.local/bin/make`（apt 下载后用户级解包）；qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`upstream/limine`（v10.8.5-binary）+ `upstream/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
-用户确认后进入 **M3「中断：LAPIC 定时器 100Hz + IOAPIC 键盘」**（tutor/phases/phase-2.md），按 Phase 3 拆分并交付下一个独立 Bite。
-- M3 届时必须收敛 D15（static mut console 换锁）与 D16 前半（IDT 向量 32~255 空洞）。
-- 当前验收命令：`bash accept/m02-b02.sh`（M2，内部执行 `make check-m2-b2`）；M1 为 `make -C impl check-m1-b2`。`check-m2-b1` 已随正常启动路径改做 panic 演示而退役，历史结果保留在 `book/m02-exceptions/acceptance.md`。
+用户确认后进入 **M3 Bite2「IOAPIC 键盘 + console 锁」**：键盘扫描码经 IOAPIC 路由到 LAPIC，IDT 装第二个可返回外部向量；此时 handler 需要在中断上下文打印，**必须收敛 D15**（`static mut` console 换锁/临界区）。D16 剩余向量（33~255 与异常 iret）留到 M3 收尾与 M5/M9；D17 的 MMIO 窄映射在 M5 收敛。
+- 当前验收命令：`bash accept/m03-b01.sh`（M3 Bite1，内部执行 `make check-m3-b1`）。`check-m2-b2` 因正常启动路径已去掉故意 panic 而仅作历史目标保留，结果见 `book/m02-exceptions/acceptance.md`。
+- 2026-10-26 记录：**K3.1 Pro 配额用尽后，课文与概念页改由主模型（MiniMax M3.1）撰写**，实现与独立验收仍由 K3.1 Pro 完成。
 
 **2026-10-13**：Limine 协议已改为官方 `limine` crate 0.6.5（D14）。
 
@@ -35,15 +35,15 @@
 - reference（只读对照）: `linux-0.11-from-scratch/upstream/`（limine binary + limine-protocol；Linux-0.11 源码克隆可按需补回；`.gitignore` 忽略整个 upstream/）
 - Rust 语法书（检索用，只读）: `upstream/book-cn/`（若缺失可再浅克隆 rust-lang-cn/book-cn）；在线版 https://rustwiki.org/zh-CN/book/
 - 原项目构建: 待 Linux-0.11 reference 补回后 `cd upstream && make && make start`
-- 最新架构图: `book/arch/upstream.svg`（原项目总图）；**本工程当前架构权威图：`book/m02-exceptions/arch.svg`（M2 Bite1 顶层图）**；分层子图：`…/book/m02-exceptions/figures/arch-idt.svg`；arch-diff：`…/book/m02-exceptions/figures/arch-diff.svg`（M1→M2）
-- **画图工具链**：默认 fireworks（`skills/fireworks-tech-graph/`）。M2 Bite1 已从 JSON 产出顶层图、IDT 子图和 diff，并通过 validate / render / check 与 Chrome 目检；M1 历史 SVG 仍用 d2，Style 1 配色沿用
+- 最新架构图: `book/arch/upstream.svg`（原项目总图）；**本工程当前架构权威图：`book/arch/current.svg`（M3 Bite1 顶层运行时路径，源 `book/arch/src/current.json`）**；本课副本 `book/m03-interrupts/arch.svg`；arch-diff：`book/m03-interrupts/figures/arch-diff.svg`（M2→M3）；M2 分层子图 `book/m02-exceptions/figures/arch-idt.svg`；M3 MMIO 结构子图 `book/m03-interrupts/figures/lapic-mmio.svg`
+- **画图工具链**：默认 fireworks（`skills/fireworks-tech-graph/`）。M3 Bite1 已从 JSON 产出顶层图、diff 与 MMIO 子图，并通过 validate / render / check 与目检；M2 顶层/IDT 子图同工具链；M1 历史 SVG 仍用 d2，Style 1 配色沿用
 - Phase 1 拆解文档: `tutor/phases/phase-1.md`
 - Phase 2 路线图: `tutor/phases/phase-2.md`
-- **功能清单: `spec/features.md`**。计数：**42 项，已交付 1 / 未交付 41**（M0 交付 §1；M1 完结推进 §6 tty 的屏幕写显路径——framebuffer+字体+滚屏+printk! 已通并注记进度，整项（含转义序列/键盘/行规程）待 M3/M13）
+- **功能清单: `spec/features.md`**。计数：**42 项，已交付 1 / 未交付 41**（M0 交付 §1；M1 完结推进 §6 tty 的屏幕写显路径——framebuffer+字体+滚屏+printk! 已通并注记进度，整项（含转义序列/键盘/行规程）待 M3/M13；M3 Bite1 推进 §2 调度的 100Hz tick 基础设施，键盘仍待 M3 Bite2）
 - 用户偏好: `~/.clone-from-scratch-tutor/user-prefs.md` + `tutor/user-prefs.md`
 
 ## 偏差登记簿计数
-- spec/deviations.md：**16 条**——待收敛 5（D2/D3/D6/D15/D16）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）、已收敛 1（D12，M1 Bite2）
+- spec/deviations.md：**17 条**——待收敛 6（D2/D3/D6/D15/D16/D17）、永久豁免·架构 9（D1/D4/D7/D8/D9/D10/D11/D13/D14）、待裁决 1（D5）、已收敛 1（D12，M1 Bite2）。D16 于 M3 Bite1 部分收敛（IRQ32 可返回），D17 为新增（M5 收敛）
 
 ## 本机环境侦察（续）
 
@@ -55,9 +55,9 @@
 | limine.h / PROTOCOL | `upstream/limine-protocol/`✅ | 协议仓 / jsdelivr |
 | qemu-system-x86_64 | ✅ `~/.local/bin` 包装（deb 解压）；系统 apt 未装（无 sudo） | PATH 含 `~/.local/bin`；BIOS 已补 SeaBIOS |
 | hdc-0.11.img | 1MB stub（非原版镜像） | M10 前换回真镜像 |
-| fireworks-tech-graph | ✅ `skills/fireworks-tech-graph/` | M2 已用 JSON 产出并验收三张图 |
+| fireworks-tech-graph | ✅ `skills/fireworks-tech-graph/` | M2/M3 已用 JSON 产出并验收多张图 |
 
-**结论：M1 全链路已通（`make -C impl build && make -C impl check-m1-b2`）。**
+**结论：M3 Bite1 全链路已通（`make -C impl build && bash accept/m03-b01.sh`）；M2/M1 全链路历史通过。**
 
 ## Phase 0 侦察结论摘要
 - 一句话本质：BIOS 加载软盘/硬盘引导扇区 → 启动一个 i386 保护模式、支持多进程 + MINIX 文件系统 + tty 终端的单内核 OS

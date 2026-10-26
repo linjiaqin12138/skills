@@ -1,0 +1,311 @@
+===== verifier record: m03-b01 =====
+command: bash accept/m03-b01.sh
+cwd: /home/jqlin/Project/skills/linux-0.11-from-scratch
+run at: 2026-10-26T17:09:39+08:00
+env: docker (rootless, image linux011-rust-toolchain, ctr linux011-rust-build) + qemu-system-x86_64 10.2.1 on host
+verifier: independent (read-only on impl/ accept/ book/ decisions/; only this file written)
+
+===== STDOUT (verbatim) =====
+docker exec linux011-rust-build make -f docker/build.mk
+cargo build --manifest-path kernel/Cargo.toml
+rm -rf build/iso_root
+mkdir -p build/iso_root/boot/limine build/iso_root/EFI/BOOT
+cp kernel/target/x86_64-unknown-none/debug/kernel build/iso_root/kernel.elf
+cp limine.conf build/iso_root/boot/limine/
+cp /opt/limine/limine-bios.sys /opt/limine/limine-bios-cd.bin \
+   /opt/limine/limine-uefi-cd.bin build/iso_root/boot/limine/
+cp /opt/limine/BOOTX64.EFI build/iso_root/EFI/BOOT/
+# El Torito：-b/--efi-boot 的路径都是 ISO 内部路径。
+# -boot-load-size 4：El Torito 规范以 512 字节为单位，4 = 2048 字节即一个 CD 扇区，
+# BIOS 只预载这一段，剩余部分由 limine-bios-cd.bin 自己加载（Limine 官方示例值）。
+xorriso -as mkisofs -R -r -J \
+    -b boot/limine/limine-bios-cd.bin \
+    -no-emul-boot -boot-load-size 4 -boot-info-table \
+    --efi-boot boot/limine/limine-uefi-cd.bin \
+    -efi-boot-part --efi-boot-image --protective-msdos-label \
+    build/iso_root -o build/kernel.iso
+# isohybrid 修补：GPT→MBR、置活动分区、把硬盘引导代码埋进第 0 扇区，
+# 让同一 ISO 也能 dd 到 U 盘当磁盘引导。纯光盘 El Torito 路径实测不依赖它
+# （qemu -boot d 跳过这步照样启动），但上游 USAGE.md 把这一步列为 hybrid
+# ISO 流程必需（"do not forget"），保留换来 isohybrid 能力。
+limine bios-install build/kernel.iso
+>>> starting qemu (6-second timer window)…
+QEMU 10.2.1 monitor - type 'help' for more information
+(qemu) s[K[Dsc[K[D[Dscr[K[D[D[Dscre[K[D[D[D[Dscree[K[D[D[D[D[Dscreen[K[D[D[D[D[D[Dscreend[K[D[D[D[D[D[D[Dscreendu[K[D[D[D[D[D[D[D[Dscreendum[K[D[D[D[D[D[D[D[D[Dscreendump[K[D[D[D[D[D[D[D[D[D[Dscreendump [K[D[D[D[D[D[D[D[D[D[D[Dscreendump b[K[D[D[D[D[D[D[D[D[D[D[D[Dscreendump bu[K[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump bui[K[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump buil[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-b[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bi[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bit[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bite[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bite1[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bite1.[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bite1.p[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bite1.pp[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dscreendump build/m3-bite1.ppm[K
+(qemu) q[K[Dqu[K[D[Dqui[K[D[D[Dquit[K
+>>> serial.log:
+limine: Loading executable `boot():/kernel.elf`...
+M0: kernel alive
+M1: fb 800x600x32
+M1: fb mask r8@16 g8@8 b8@0 model=1
+M1: fmt hex=0x002a dec=42 str=ok
+M1: scroll line 00
+M1: scroll line 01
+M1: scroll line 02
+M1: scroll line 03
+M1: scroll line 04
+M1: scroll line 05
+M1: scroll line 06
+M1: scroll line 07
+M1: scroll line 08
+M1: scroll line 09
+M1: scroll line 10
+M1: scroll line 11
+M1: scroll line 12
+M1: scroll line 13
+M1: scroll line 14
+M1: scroll line 15
+M1: scroll line 16
+M1: scroll line 17
+M1: scroll line 18
+M1: scroll line 19
+M1: scroll line 20
+M1: scroll line 21
+M1: scroll line 22
+M1: scroll line 23
+M1: scroll line 24
+M1: scroll line 25
+M1: scroll line 26
+M1: scroll line 27
+M1: scroll line 28
+M1: scroll line 29
+M1: scroll line 30
+M1: scroll line 31
+M1: scroll line 32
+M1: scroll line 33
+M1: scroll line 34
+M1: scroll line 35
+M1: scroll line 36
+M1: scroll line 37
+M1: scroll line 38
+M1: scroll line 39
+M1: scroll line 40
+M1: scroll line 41
+M1: scroll line 42
+M1: scroll line 43
+M1: scroll line 44
+M1: scroll line 45
+M1: scroll line 46
+M1: scroll line 47
+M1: scroll line 48
+M1: scroll line 49
+M1: scroll line 50
+M1: scroll line 51
+M1: scroll line 52
+M1: scroll line 53
+M1: scroll line 54
+M1: scroll line 55
+M1: scroll line 56
+M1: scroll line 57
+M1: scroll line 58
+M1: scroll line 59
+M2: gdt ok
+M2: idt ok
+M3: LAPIC timer 100 Hz
+M3: jiffies=100
+M3: jiffies=200
+M3: jiffies=300
+M3: jiffies=400
+>>> asserting regression markers and timer samples…
+M1: fb 800x600x32
+M1: fmt hex=0x002a dec=42 str=ok
+M1: scroll line 00
+M1: scroll line 59
+M2: gdt ok
+M2: idt ok
+M3: LAPIC timer 100 Hz
+M3: jiffies=100
+M3: jiffies=200
+M3: jiffies=300
+jiffies samples=4
+screendump size=1440015
+check-m3-b1 OK
+
+===== STDERR (verbatim) =====
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
+warning: the following packages contain code that will be rejected by a future version of Rust: core v0.0.0 (/usr/local/rustup/toolchains/nightly-2026-09-04-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core)
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
+
+Drive current: -outdev 'stdio:build/kernel.iso'
+Media current: stdio file, overwriteable
+Media status : is blank
+Media summary: 0 sessions, 0 data blocks, 0 data,  400g free
+Added to ISO image: directory '/'='/work/build/iso_root'
+xorriso : UPDATE :      10 files added in 1 seconds
+xorriso : UPDATE :      10 files added in 1 seconds
+ISO image produced: 3418 sectors
+Written to medium : 3418 sectors at LBA 0
+Writing to 'stdio:build/kernel.iso' completed successfully.
+
+Physical block size of 512 bytes.
+Installing to GPT. Logical block size of 512 bytes.
+Secondary header at LBA 0x3567.
+Secondary header valid.
+Detected ISOHYBRID with a GUID partition table (GPT).
+Converting to MBR for improved compatibility...
+Conversion successful.
+No active partition found, some systems may not boot.
+Setting partition 1 as active to work around the issue...
+Installing to MBR.
+Stage 2 to be located at byte offset 0x200.
+Reminder: Remember to copy the limine-bios.sys file in either
+          the root, /boot, /limine, or /boot/limine directories of
+          one of the partitions on the device, or boot will fail!
+Limine BIOS stages installed successfully.
+===== EXIT CODE =====
+0   (final stdout line: "check-m3-b1 OK")
+
+===== VERDICT =====
+PASS — every expectation in accept/m03-b01.sh's comment block was reproduced
+three times in a row, and the LAPIC timer was independently measured against the
+host clock at 99.5–99.8 Hz (not merely a printed label).
+
+===== EXPECTATION-BY-EXPECTATION =====
+1) 内核构建并启动，M0/M1 回归与 M2 GDT/IDT 初始化保留，M0 存活行恰好一次，不触发故意 panic
+   Observed serial.log (impl/build/serial.log, 72 lines):
+     "limine: Loading executable `boot():/kernel.elf`..."  x1   (single boot, no reboot)
+     "M0: kernel alive"                                     x1   (exactly one alive line)
+     "M1: fb 800x600x32"                                    x1
+     "M1: fb mask r8@16 g8@8 b8@0 model=1"                  x1
+     "M1: fmt hex=0x002a dec=42 str=ok"                     x1
+     "M1: scroll line 00" .. "M1: scroll line 59"          x60  (all 60 present)
+     "M2: gdt ok"                                           x1
+     "M2: idt ok"                                           x1
+     "M3: LAPIC timer 100 Hz"                              x1
+     "M3: jiffies=100 / 200 / 300 / 400"                    x4
+   grep -c 'M0: kernel alive' = 1 (script assertion also passed).
+   grep -E 'panic|PANIC|EXCEPTION' = 0 lines -> no panic, no exception dump on the
+   normal boot path. The script's own guard
+   (grep -q -E 'M2: panic handler entered|^PANIC:' -> fail) therefore did not fire.
+   Serial order matches the program order in impl/kernel/src/main.rs:38-64:
+     M0/M1 markers -> gdt::init() -> idt::init() -> lapic::init() -> report_jiffies().
+   Expected: same. PASS.
+
+2) LAPIC 定时器以 100Hz 投递 IRQ32；handler 保存/恢复现场并 iretq 返回，只增加原子 jiffies 并发送 EOI
+   Observed: IRQ32 is the only source of the counter, and the counter advances in
+   lock-step with host wall-clock time (see section 3). Delivery is proven by the
+   timer: jiffies only ever changes when the LAPIC timer fires, and the interrupt
+   is acknowledged, because the LAPIC in-service register would stay busy and the
+   next IRQ would not be delivered if EOI were missing (impl/kernel/src/lapic.rs:126
+   writes EOI=0x0b0). No drift over 7 samples in 3 separate runs.
+   Code reading (coverage assessment, not proof by itself):
+     - impl/kernel/src/idt.rs:290  idt[32] = IdtEntry::interrupt_gate(timer_entry)
+     - impl/kernel/src/idt.rs:242-283  timer_entry: pushes 15 GPRs, "mov rbx, rsp",
+       "and rsp, -16", "call handler", restores all 15 GPRs, then "iretq" -> the
+       handler is returnable (unlike the exception path, which ends in hlt).
+     - impl/kernel/src/lapic.rs:123-127  timer_interrupt(): JIFFIES.fetch_add(1,
+       Ordering::Relaxed) + LAPIC.write(EOI, 0) only; no formatting, no console
+       access in interrupt context.
+     - impl/kernel/src/lapic.rs:101-114  DIVIDE_BY_16, LVT = PERIODIC|vector 32,
+       PIT calibration, INITIAL_COUNT, then "sti".
+     - impl/kernel/src/lapic.rs:192-206  calibrate(): PIT channel 2 gated for 10 ms;
+       elapsed = 0xFFFFFFFF - CURRENT_COUNT gives the LAPIC count per 10 ms, which
+       is then loaded as INITIAL_COUNT -> one jiffy per 10 ms = 100 Hz.
+     - impl/kernel/src/lapic.rs:208-211  legacy PICs masked (0x21/0xA1 = 0xff).
+   Expected: same. PASS.
+
+3) 普通内核上下文至少观察到 jiffies=100、200、300 三个连续样本，经 printk! 双写屏幕和串口；固定宿主时间窗口内的样本数也须符合 100Hz 的合理误差范围
+   Observed serial: "M3: jiffies=100", "=200", "=300", "=400" — present, strictly
+   monotonic, and each step is exactly +100 (no drift => no lost ticks).
+   The sample count in the fixed 6-second host window is 4 (script bound 3..8);
+   the script printed "jiffies samples=4" on all three runs.
+   IMPORTANT: the script's own count bound is a loose proxy. I therefore measured the
+   rate against the host clock independently (two extra qemu runs, serial piped
+   through a monotonic-timestamp filter, same qemu flags as the Makefile):
+     run A: 100->200 dt=1.015s (98.5 Hz) | 200->300 dt=0.991s (100.9 Hz)
+            300->400 dt=1.015s (98.5 Hz) | 400->500 dt=1.003s (99.7 Hz)
+            500->600 dt=0.991s (100.9 Hz) | 600->700 dt=0.999s (100.1 Hz)
+            overall 600 jiffies / 6.014 s = 99.77 Hz
+     run B: 100->200 dt=1.005s | 200->300 dt=1.006s | 300->400 dt=1.004s
+            400->500 dt=1.012s | 500->600 dt=0.998s | 600->700 dt=1.006s
+            overall 600 jiffies / 6.031 s = 99.49 Hz
+     first sample lands 1.004-1.005 s after the "M3: LAPIC timer 100 Hz" line.
+   => the LAPIC timer really runs at ~100 Hz (all intervals 0.991-1.015 s per 100
+   jiffies); the labels are not hard-coded and are not produced by a plain software
+   counter.
+   Screen half of the dual write, verified by decoding the real framebuffer
+   (impl/kernel/src/font.rs glyph table matched against the 800x600 P6 pixels):
+     accepted artifact impl/build/m3-bite1.ppm, text rows 29..35:
+       "M2: gdt ok" / "M2: idt ok" / "M3: LAPIC timer 100 Hz" /
+       "M3: jiffies=100" / "=200" / "=300" / "=400"
+     and a dedicated two-screendump run (t~2.2 s vs t~7.5 s, monitor over a unix
+     socket) shows the screen growing the lines over time:
+       t~2.2 s: last row "M3: LAPIC timer 100 Hz"
+       t~7.5 s: last rows "M3: jiffies=100" .. "M3: jiffies=600"
+     so the same lines exist on screen and on the UART, and they are produced by
+     the normal kernel context (impl/kernel/src/main.rs:68-80 report_jiffies(),
+     printk! -> console.rs:80-88 Console::write_str -> put_char(screen) +
+     serial::write_byte).
+   Expected: same. PASS.
+
+4) panic 不再作为正常启动演示；QEMU screendump 非空。键盘与 console 锁不属于本 Bite
+   Observed: no panic/panic-ok/EXCEPTION line anywhere in the serial log; the
+   deliberate panic demo is gone from the boot path (impl/kernel/src/main.rs:59-64
+   goes straight to lapic::init()). Screendump impl/build/m3-bite1.ppm exists and is
+   1,440,015 bytes = 800*600*3 + 15-byte P6 header (> the 10240 threshold), and its
+   content decodes to the expected text (not blank noise).
+   Keyboard / console locking: absent by design; the interrupt handler touches
+   neither the console nor any lock, so there is no console-lock deadlock path in
+   this Bite to test.
+   Expected: same. PASS.
+
+===== STABILITY / DISTRIBUTION (3 independent runs of the accept script) =====
+  run 1 17:09  exit 0  alive=1  panic=0  jiffies samples=4  screendump=1440015  "check-m3-b1 OK"
+  run 2 17:11  exit 0  alive=1  panic=0  jiffies samples=4  screendump=1440015  "check-m3-b1 OK"
+  run 3 17:11  exit 0  alive=1  panic=0  jiffies samples=4  screendump=1440015  "check-m3-b1 OK"
+  Diagnostic timing runs (independent of the script): 99.77 Hz and 99.49 Hz.
+  All script-internal assertions executed and satisfied on every run:
+  grep -c 'M0: kernel alive' == 1; M1 fb / fmt / scroll 00 / scroll 59; M2 gdt ok;
+  M2 idt ok; M3 LAPIC timer 100 Hz; M3 jiffies=100/200/300; samples in 3..8;
+  no panic marker; screendump present and > 10240 bytes; final "check-m3-b1 OK".
+
+===== COVERAGE GAPS (not asserted by the standard; noted for the record) =====
+a) The rate is not asserted by the script. "3..8 samples in a 6 s window" plus the
+   presence of jiffies=100/200/300 bounds the rate only to roughly 50-133 Hz, and
+   a kernel that printed hard-coded strings (or a plain software counter) at the
+   right moments would pass every current assertion. My host-clock measurement
+   (99.5-99.8 Hz over 600 jiffies, two runs) is the only evidence that the LAPIC
+   timer, not a fake, produces the samples.
+b) The 6 s window starts at qemu launch, but jiffies=0 happens ~1.0-1.4 s later
+   (limine boot + kernel init + PIT calibration), so only ~4.6 s of timer time
+   exists in the window; the sample count therefore mixes boot latency with rate.
+   The observed 4 samples (100..400) is consistent with 100 Hz, but the count
+   alone cannot separate "slow timer" from "slow boot". A boot-time-aware
+   measurement (or a fixed jiffies delta instead of a fixed host window) would be
+   stricter.
+c) The screendump is only checked for existence and size (> 10240 bytes); its
+   content is not checked. A regression that stopped drawing to the framebuffer
+   while keeping serial output would still pass. (Verified manually here via the
+   PPM glyph decode.)
+d) Nothing ties the counter to vector 32 / LAPIC specifically: no handler-side
+   vector echo, no "IRQ32" marker, no check of the spurious vector 0xff that
+   lapic.rs:139 programs. The IDT wiring is only inferable from code reading plus
+   the observed 100 Hz rate.
+e) EOI and "no lost tick" are proven only indirectly (jiffies advanced by exactly
+   +100 at every sample, 7 samples x 3 runs). There is no assertion that an EOI
+   was actually written; a missing EOI would also have stopped the IRQ stream, so
+   the current evidence is strong but indirect.
+f) The LAPIC MMIO mapping path is opaque from outside: impl/kernel/src/lapic.rs:144-189
+   first tries the Limine HHDM and only falls back to a hand-built one-page
+   mapping. Which branch was taken in this environment is not observable in the
+   log, so the "narrow one-page mapping fallback" is neither exercised nor
+   disproved. Likewise the legacy-PIC masking (lapic.rs:208-211) leaves no trace
+   in the log.
+g) Register save/restore in timer_entry (idt.rs:242-283) is only indirectly tested:
+   the kernel keeps running and prints correct values afterwards. Nothing checks
+   that a callee-saved register or the stack pointer survived the round trip
+   intact, and no deliberate stress (e.g. an interrupt landing in the middle of
+   a printk) is exercised.
+h) The "M1: fb mask ..." line and the exact count of the 60 M1 scroll lines are
+   not asserted by the script (only the two ends 00 and 59 are). I confirmed all
+   60 lines and the mask line are present.
+i) The build was incremental in these runs (cargo: "Finished dev profile in
+   0.07s", no recompilation), so a from-scratch compile of the current tree was
+   not exercised end-to-end here; the ISO was rebuilt every time and the ELF is
+   newer than every file in impl/kernel/src.
+
+No code was modified by this verification: impl/, accept/, book/ and decisions/ are
+untouched (the accept script itself rewrote impl/build/serial.log and
+impl/build/m3-bite1.ppm, which is its normal behaviour); the only file written by
+me is tutor/runs/m03-b01.txt. Diagnostic qemu runs wrote only to /tmp.

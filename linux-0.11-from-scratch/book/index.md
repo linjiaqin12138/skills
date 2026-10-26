@@ -8,3 +8,4 @@
 | M1 Bite2 | printk! 格式化与滚屏 | [b02-printk-scroll.html](m01-printk/b02-printk-scroll.html) |
 | M2 Bite1 | GDT、IDT 与 CPU 异常 | [b01-gdt-idt.html](m02-exceptions/b01-gdt-idt.html) |
 | M2 Bite2 | panic!：让 Rust 错误可见 | [b02-panic-printing.html](m02-exceptions/b02-panic-printing.html) |
+| M3 Bite1 | LAPIC 定时器：第一个自己到来的中断 | [b01-lapic-timer.html](m03-interrupts/b01-lapic-timer.html) |
