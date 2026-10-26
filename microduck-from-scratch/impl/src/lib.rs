@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub mod control;
+pub mod fall;
 pub mod io;
 pub mod model;
 pub mod obs;

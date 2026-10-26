@@ -33,6 +33,7 @@
 - 内容：D23+D32 FallPredictor 移植（陀螺外推预测 + Limp/Posing 三态机；仿真里可构造摔倒验证）；odometry crate 评估与移植决策
 - 收敛：D23、D32、odometry
 - 验收：accept-m9 系列（FakeIo/sim 构造跌倒场景）+ 全回归
+- 进度：Bite 1 已交付（2026-10-26，等确认），D23/D32 收敛，`accept/m09c-b01.sh` 全绿；Bite 2 待做 odometry 评估与移植决策
 
 ### M9d · 云上训练（GPU，上机器时开）
 

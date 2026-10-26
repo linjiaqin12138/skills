@@ -200,12 +200,15 @@ impl Cascade {
     }
 
     /// busy = 脚本动作在飞：ground_pick / 一次性技能 / 起身中。
-    ///（upstream/robotd/src/control.rs:318-322）。M6 用它抑制 Driving→Limp
-    /// 转移（原版门的是 FallPredictor，简化见偏差 D32）。坐着不算 busy。
+    /// busy 与 sitting 都使跌倒预测器不合格并清去抖；坐着本身不算 busy。
     pub fn busy(&self) -> bool {
         self.ground_pick_ticks.is_some()
             || self.active_skill.is_some()
             || matches!(self.sit, Sit::Rising { .. })
+    }
+
+    pub fn is_sitting(&self) -> bool {
+        self.sit == Sit::Sitting
     }
 
     pub fn label(&self) -> Option<&'static str> {
@@ -463,12 +466,15 @@ impl Scheduler {
         }
     }
 
-    /// busy 门控：Driving→Limp 转移的抑制条件（D32）。
     pub fn busy(&self) -> bool {
         self.cascade.busy()
     }
 
-    /// 清空所有已加载槽的 LSTM 状态：disable 结束 recurrent episode
+    pub fn is_sitting(&self) -> bool {
+        self.cascade.is_sitting()
+    }
+
+    /// 清空所有已加载槽的 LSTM 状态：disable 或跌倒恢复完成时结束 recurrent episode
     ///（原版 was_driving && !driving && !enabled 边沿的 controller.reset()，
     /// upstream/robotd/src/main.rs:2791-2793）。Cascade 的窗口/坐姿锁存
     /// 不动——它们不是 episode 记忆，且非 Driving 阶段不推进；活跃网选择

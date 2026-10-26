@@ -1,0 +1,200 @@
+===== A. Rust 单测 =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (target/debug/deps/miniduck-f225a818787b921d)
+
+running 113 tests
+test control::tests::apply_action_no_previous_is_home_plus_scaled_scatter ... ok
+test control::tests::apply_action_lowpass_head_legs_mouth_stays_home ... ok
+test control::tests::coast_rides_out_up_to_coast_ticks_then_goes_blind ... ok
+test control::tests::disable_abandons_limp_and_posing ... ok
+test control::tests::driving_goes_straight_to_stopped_on_disable ... ok
+test control::tests::edges_during_rampup_are_deferred ... ok
+test control::tests::held_ramps_up_on_enable_only_with_policy ... ok
+test control::tests::homed_is_false_only_for_held_and_rampup ... ok
+test control::tests::level_changes_nowhere_else_do_nothing ... ok
+test control::tests::posing_endpoints_and_midpoint ... ok
+test control::tests::predictor_gate_requires_previous_driving_fresh_ready_not_fallen_busy_or_sitting ... ok
+test control::tests::ramp_completion_lands_by_current_enabled ... ok
+test control::tests::ramp_endpoints ... ok
+test control::tests::skill_edges_are_dropped_unless_driving ... ok
+test control::tests::ramp_midpoint_at_one_second ... ok
+test control::tests::skill_edges_are_taken_once ... ok
+test fall::tests::footfall_impulse_at_eight_degrees_never_fires ... ok
+test fall::tests::landing_requires_ten_fresh_still_samples ... ok
+test control::tests::stopped_resumes_driving_immediately_on_enable ... ok
+test fall::tests::analytic_gravity_z_derivative ... ok
+test fall::tests::fast_fall_fires_once_then_rearms_on_break_or_reset ... ok
+test fall::tests::moving_coasted_and_blind_samples_reset_stillness ... ok
+test fall::tests::slow_lean_prediction_stays_below_threshold ... ok
+test fall::tests::static_tilt_does_not_fire ... ok
+test io::tests::fake_io_injected_failure_is_simulated ... ok
+test io::tests::fake_io_failing_reads_recover_after_n ... ok
+test fall::tests::ineligible_tick_resets_prediction_debounce ... ok
+test io::tests::fake_io_remembers_gain_and_torque ... ok
+test io::tests::fake_io_tracks_writes_perfectly ... ok
+test io::tests::sim_io_transport_failure_is_port ... ok
+test model::tests::home_pose_legs_are_mirrored ... ok
+test io::tests::sim_io_refusal_is_an_error ... ok
+test model::tests::mouth_target_spans_the_prototype_range ... ok
+test io::tests::sim_io_quat_must_have_exactly_four_numbers ... ok
+test model::tests::table_lengths_are_consistent ... ok
+test obs::tests::at_home_position_block_is_near_zero ... ok
+test io::tests::sim_io_reconnects_after_disconnect ... ok
+test io::tests::sim_io_bad_frame_and_eof_are_bus ... ok
+test obs::tests::layout_widths_sum_to_obs_len ... ok
+test obs::tests::scatter_action_skips_mouth ... ok
+test obs::tests::every_block_lands_at_its_documented_offset ... ok
+test obs::tests::mouth_is_excluded_from_observation ... ok
+test safety::tests::caller_asking_for_limp_gain_gets_it ... ok
+test safety::tests::brief_tilt_is_not_a_fall_and_upright_resets ... ok
+test safety::tests::converged_imu_still_detects_a_fall ... ok
+test safety::tests::deadman_zeroes_twist_only ... ok
+test safety::tests::fall_does_not_preempt_the_caller ... ok
+test io::tests::sim_io_read_carries_sensors ... ok
+test safety::tests::gain_is_written_only_when_it_changes ... ok
+test safety::tests::limit_runs_are_independent_and_reset_by_clean_ticks ... ok
+test safety::tests::ordinary_target_passes_through_unchanged ... ok
+test safety::tests::non_finite_target_is_refused_not_clamped ... ok
+test safety::tests::out_of_range_targets_are_clamped_and_reported ... ok
+test safety::tests::sustained_tilt_is_a_fall ... ok
+test safety::tests::unconverged_imu_never_declares_a_fall ... ok
+test safety::tests::worth_logging_first_and_every_fifty ... ok
+test safety::tests::never_driven_robot_reports_no_deadman ... ok
+test scheduler::tests::active_skill_outranks_sit_and_returns_to_it ... ok
+test scheduler::tests::busy_is_exactly_skill_or_ground_pick_or_rising ... ok
+test scheduler::tests::do_verdict_refuses_unknown_names_with_the_list ... ok
+test scheduler::tests::ground_pick_runs_the_phase_script_then_hands_back ... ok
+test scheduler::tests::do_verdict_gates_on_enabled_and_homed_never_on_fallen ... ok
+test scheduler::tests::priority_same_tick_requests_first_in_table_wins ... ok
+test scheduler::tests::sit_latches_and_carries_the_posture_flag_in_vx ... ok
+test scheduler::tests::sit_toggle_rises_with_zeroed_twist_then_latches_up ... ok
+test scheduler::tests::skill_window_zeroes_the_whole_command_then_hands_back ... ok
+test scheduler::tests::switch_flag_tracks_net_changes ... ok
+test policy::tests::velstand_zero_obs_then_feedback_stays_finite ... ok
+test scheduler::tests::unavailable_skills_are_refused ... ok
+test scheduler::tests::walk_is_the_default_and_passes_the_client_command_through ... ok
+test tests::enable_params_missing_on_rejected ... ok
+test tests::enable_params_on_true ... ok
+test tests::enable_params_toggle_alone_rejected ... ok
+test tests::enable_params_toggle_defaults_false ... ok
+test tests::enable_params_toggle_true_alongside_on ... ok
+test tests::enable_params_unknown_field_rejected ... ok
+test tests::move_params_full_triple_passes ... ok
+test tests::move_params_json_overflow_rejected_at_parse ... ok
+test scheduler::tests::switching_nets_resets_the_new_network ... ok
+test scheduler::tests::reset_clears_every_loaded_slot ... ok
+test tests::move_params_missing_fields_default_zero ... ok
+test tests::move_params_non_finite_rejected ... ok
+test tests::move_params_unknown_field_rejected ... ok
+test tests::move_params_wrong_type_rejected ... ok
+test tests::parse_error_response_has_null_id ... ok
+test tests::subscribe_params_bad_shapes_rejected ... ok
+test tests::request_without_id_is_notification ... ok
+test tests::subscribe_params_empty_and_absent_mean_every_tick ... ok
+test tests::subscribe_params_hz_zero_and_ten_accepted ... ok
+test io::tests::sim_io_set_gain_and_torque_frames ... ok
+test scheduler::tests::failed_inference_resets_the_network ... ok
+test tests::subscribe_result_names_the_walk_file_that_failed ... ok
+test tests::subscribe_result_omits_stand_unavailable_and_empty_skills ... ok
+test updater::engine::tests::model_api_none_is_compatible ... ok
+test updater::engine::tests::recovery_verdict_truth_table ... ok
+test updater::lock::tests::second_holder_gets_busy ... ok
+test updater::manifest::tests::parses_well_formed_manifest ... ok
+test updater::manifest::tests::rejects_sha256_mismatch ... ok
+test updater::engine::tests::pending_roundtrip ... ok
+test updater::manifest::tests::rejects_unparseable_and_malformed ... ok
+test updater::robot::tests::safe_false_with_reason_means_no ... ok
+test updater::robot::tests::model_api_returns_value ... ok
+test updater::robot::tests::missing_safe_field_is_incompatible ... ok
+test updater::journal::tests::previous_comes_from_last_matching_commit ... ok
+test updater::robot::tests::unreachable_socket_is_unreachable ... ok
+test updater::peer::tests::root_and_owner_pass_others_deny ... ok
+test updater::robot::tests::safe_true_means_yes ... ok
+test updater::store::tests::cleanup_staging_removes_leftovers ... ok
+test updater::store::tests::atomic_swap_repoints_current ... ok
+test updater::store::tests::leftover_tmp_link_does_not_block_swap ... ok
+test control::tests::net_switches_never_jump_targets ... ok
+test policy::tests::rejects_wrong_observation_width ... ok
+test policy::tests::lstm_state_carries_across_ticks_and_reset_replays_first_tick ... ok
+
+test result: ok. 113 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running unittests src/bin/mini-duckctl.rs (target/debug/deps/mini_duckctl-c178921bea13bc3f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/mini-updaterd.rs (target/debug/deps/mini_updaterd-5a61f3187ff9a427)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/miniduckd-025e530eb7069065)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests miniduck
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+===== B. M8 接口与状态机回归 =====
+握手 + robot.subscribe ack walk=velstand.onnx skills=['roulade', 'kick_left']  OK
+a. 通知生效 twist=[0.10000000149011612, 0.20000000298023224, -0.30000001192092896]  OK
+b. 通知全程无响应行  OK
+c. 请求式 accepted 回显 [0.05, -0.05, 0.1]  OK
+d. 缺省 vy 按 0 接受 {'accepted': True, 'vx': 0.1, 'vy': 0.0, 'vyaw': 0.2}  OK
+e1. 未知字段 INVALID_PARAMS: robot.move wants {vx, vy, vyaw} (m/s, m/s, rad/s): unknown f  OK
+e2. 非法通知静默丢弃，16 帧 twist 保持 [0.3, 0.1, -0.2]  OK
+f. 1e999 → PARSE_ERROR id=null: number out of range at line 1 column 66  OK
+g. 停发 0.7s 后 obs twist=[0,0,0]（deadman 生效）  OK
+h. robot.drive → METHOD_NOT_FOUND: method not found: robot.drive  OK
+i. enable on → 'enabled — driving'，推送 enabled=true  OK
+z5. RampUp 中 do → accepted:false，reason='the robot is still going to its home pose; try again in a moment'（原版 homed 拒绝）  OK
+  已进入 Driving（skill=walk）
+j. 无 id robot.head 静默生效 obs[51:55]=[0.10000000149011612, -0.10000000149011612, 0.20000000298023224, 0.05000000074505806]，全程无响应行  OK
+k. 无 id robot.mouth 静默生效 positions[9]=0.524rad（目标 0.524）  OK
+l. 无 id robot.health 静默，26 帧内只有 robot.state 推送  OK
+m. 带 id head/mouth 请求式回显不变（mouth 回显 0.5）  OK
+n. toggle 翻转 开→关 → 'disabled — returning to the home pose'，推送 enabled=false  OK
+n2. disable 后 positions 逐位等于 home，25 帧 torque 全为 true  OK
+o. on+toggle 同帧 toggle 优先 关→开 → 'enabled — driving'  OK
+o2. 1s 内 skill=walk——从 Stopped 直接回 Driving，无 2 秒斜坡  OK
+p1. enable 未知字段 INVALID_PARAMS: robot.enable wants {on: bool} (optional toggle: bool): unkno  OK
+p2. robot.disable → METHOD_NOT_FOUND: method not found: robot.disable  OK
+q. robot.state 带 id → -32601，随后仍有 11 帧推送  OK
+r. 再订阅 hz=10，walk=velstand.onnx，0.5s 内 26 帧（≥18，全速率）  OK
+s. subscribe 未知字段 -32602，随后仍有 10 帧推送  OK
+t. 无 id robot.subscribe 静默，16 帧内只有 robot.state 推送  OK
+u. 静止时 safeToRestart safe:true，reason 省略  OK
+v. move 后 safeToRestart safe:false reason='the robot is walking'  OK
+w. robot.modelApi → model_api:2  OK
+z1. Driving 中 do kick_left → accepted 且推送 skill=kick_left→walk  OK
+z2. Stopped 中 do → accepted:false，reason='the policy is not driving — press Start on the pad'（原版 enabled 拒绝）  OK
+z3. 恢复 Driving：旧请求不补发，新 do accepted 且真启动  OK
+z4. 未知名 accepted:false 附名单；缺字段 INVALID_PARAMS  OK
+
+M8 断言 a–w + z1–z5 全部通过
+x. 3 连挂全程滑行：200 帧 skill 恒 walk，恰好 4 帧重投段，skipped_reads=0  OK
+y. 4 连挂：3 帧滑行 + 第 4 拍跳拍（skipped_reads=1），恢复后仍 healthy  OK
+
+M8 验收（robot.move + robot.enable + robot.subscribe + safeToRestart/modelApi 对齐 + D24 滑行 + D36 robot.do fallen/Limp 照收，notification 统一入口）全部通过
+===== C. 默认 OFF =====
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+off: frames=227 transitions=0.00s:walk/g200
+off: 默认 OFF，fallen 只报告不门控  OK
+===== D/E. 显式 ON，两次独立闭环 =====
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+on1: frames=227 transitions=0.00s:walk/g200, 0.17s:limp_fall/g50, 1.47s:limp_pose/g160, 2.09s:walk/g200
+on1: Limp=1301ms Posing=620ms，50→160→200 顺序恢复  OK
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+on2: frames=227 transitions=0.00s:walk/g200, 0.17s:limp_fall/g50, 1.46s:limp_pose/g160, 2.09s:walk/g200
+on2: Limp=1298ms Posing=622ms，50→160→200 顺序恢复  OK
+M9c Bite 1 验收全部通过
+
+ACTUAL_EXIT_CODE=0

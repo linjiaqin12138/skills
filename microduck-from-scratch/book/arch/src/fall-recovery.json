@@ -1,0 +1,30 @@
+{
+  "width": 1400,
+  "height": 1120,
+  "title": "miniduckd · fall-recovery 子模块",
+  "subtitle": "MINIDUCK_LIMP_FALL=1 opt-in · Safety 仍拥有全部写入 · 无新进程 / RPC / 网络边 / odometry",
+  "containers": [
+    {"id":"p_daemon","x":40,"y":130,"width":1320,"height":850,"label":"miniduckd · impl/src/fall.rs + control.rs"}
+  ],
+  "nodes": [
+    {"id":"control","x":80,"y":220,"width":280,"height":220,"label":"control loop · 50Hz","lines":["fresh IMU samples","previous-tick Driving","imu_ready + !fallen","coasted / blind 检测"],"fill":"#EA580C","stroke":"#9A3412","color":"#FFFFFF"},
+    {"id":"scheduler","x":80,"y":520,"width":280,"height":130,"label":"Scheduler","lines":["busy / sitting","技能调度状态只作 eligibility"],"fill":"#CA8A04","stroke":"#854D0E","color":"#FFFFFF"},
+    {"id":"predictor","x":450,"y":200,"width":350,"height":240,"label":"FallPredictor · fall.rs","lines":["默认 OFF；env=1 才启用","eligible = imu_ready && !fallen","  && !busy && !sitting","prev tick 必须 Driving","ineligible / coasted / blind ⇒ reset"],"fill":"#DB2777","stroke":"#9D174D","color":"#FFFFFF"},
+    {"id":"landing","x":450,"y":520,"width":350,"height":200,"label":"LandingDetector · fall.rs","lines":["Limp：measured-joint targets · gain50","fresh gyro norm < 1 持续 200ms","或 1500ms cap","完成 ⇒ Posing"],"fill":"#DB2777","stroke":"#9D174D","color":"#FFFFFF"},
+    {"id":"phases","x":900,"y":180,"width":400,"height":380,"label":"control.rs · phases","lines":["Driving · gain200","  │ fall fire","  ▼","Limp · measured joints · gain50","  │ landed / cap","  ▼","Posing · measured pose → home","600ms · gain160","完成 ⇒ policy feedback reset ⇒ Driving","Limp/Posing disable ⇒ measured-pose hold"],"fill":"#EA580C","stroke":"#9A3412","color":"#FFFFFF"},
+    {"id":"safety","x":900,"y":660,"width":400,"height":130,"label":"Safety · safety.rs","lines":["唯一 RobotIo 写句柄：所有 targets / gain / hold","gain_pose=160 · imu_ready accessor","fallen 仍只报告，不门控写入"],"fill":"#DC2626","stroke":"#991B1B","color":"#FFFFFF"},
+    {"id":"snapshot","x":450,"y":830,"width":350,"height":100,"label":"FrameSnapshot · existing watch","lines":["skill = limp_fall / limp_pose","moving = true throughout Limp + Posing"],"fill":"#475569","stroke":"#1E293B","color":"#FFFFFF"}
+  ],
+  "edges": [
+    {"id":"control-predictor","source":"control","target":"predictor","label":"fresh IMU + prev Driving + imu_ready + !fallen","points":[[360,285],[450,285]],"label_pos":[405,185]},
+    {"id":"scheduler-predictor","source":"scheduler","target":"predictor","label":"!busy + !sitting","points":[[360,585],[410,585],[410,390],[450,390]],"label_pos":[420,500]},
+    {"id":"control-reset","source":"control","target":"predictor","label":"reset：ineligible / coasted / blind","points":[[360,365],[450,365]],"label_pos":[405,465]},
+    {"id":"predictor-phases","source":"predictor","target":"phases","label":"fall fire","points":[[800,285],[900,285]],"label_pos":[850,265]},
+    {"id":"phases-landing","source":"phases","target":"landing","label":"Limp gyro","points":[[900,430],[800,430],[800,600]],"label_pos":[850,415]},
+    {"id":"landing-phases","source":"landing","target":"phases","label":"landed / cap","points":[[800,665],[880,665],[880,490],[900,490]],"label_pos":[850,520]},
+    {"id":"phases-control","source":"phases","target":"control","label":"Posing done ⇒ policy reset ⇒ Driving gain200","points":[[1100,180],[1100,110],[220,110],[220,220]],"label_pos":[600,100]},
+    {"id":"phases-safety","source":"phases","target":"safety","label":"targets + gain50/160/200 + disable hold","points":[[1100,560],[1100,660]],"label_pos":[1115,620]},
+    {"id":"safety-control","source":"safety","target":"control","label":"sensors + imu_ready + fallen（report-only）","points":[[900,745],[60,745],[60,330],[80,330]],"label_pos":[480,735]},
+    {"id":"phases-snapshot","source":"phases","target":"snapshot","label":"skill + moving","points":[[1300,540],[1340,540],[1340,880],[800,880]],"label_pos":[1080,870]}
+  ]
+}

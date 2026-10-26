@@ -130,6 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let control = control::shared_control();
+    let limp_fall = std::env::var("MINIDUCK_LIMP_FALL").is_ok_and(|value| value == "1");
 
     // 50 Hz 控制任务。Safety 拥有唯一写句柄：从这里把 io 交出去之后，
     // 本进程再没有第二条碰电机的路径。stats 由循环自己记账。
@@ -148,7 +149,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(e) => eprintln!("set_torque(true) failed: {e}"),
         }
     }
-    let (stats, frame_rx) = control::spawn(safety, scheduler, control.clone(), start_driving);
+    let (stats, frame_rx) =
+        control::spawn(safety, scheduler, control.clone(), start_driving, limp_fall);
 
     // 上次异常退出残留的 socket 文件会让 bind 报 AddrInUse。先清再绑。
     let _ = std::fs::remove_file(SOCK_PATH);

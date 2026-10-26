@@ -206,7 +206,7 @@ robotd.toml（upstream/deploy/robotd.toml，498 行）：
 | [safety] fall_gravity_z / fall_debounce_ms | :186-187 | impl/src/safety.rs 常量（-0.5/200ms） | 已交付（M5） |
 | [safety] deadman_ms | :194 | 500ms | 已交付（M5） |
 | [safety] gain_limp | :197 | 50 | 已交付（M5） |
-| [safety] limp_fall 全系列（9 键：开关/tilt/predict/lookahead/debounce/still/max/pose_ms/pose_gain） | :218-256 | 简化跌倒响应（fallen 直接触发 Limp） | 偏差登记（D23；挂 M9） |
+| [safety] limp_fall 全系列（9 键：开关/tilt/predict/lookahead/debounce/still/max/pose_ms/pose_gain） | :218-256 | 机制已对齐（M9c Bite 1）；默认 OFF，env 显式开关；完整配置文件面仍缺 | 已交付（D23/D32 收敛）；配置文件面入 D52（挂 M10） |
 | [safety] battery_empty_shutdown | :261 | 无 | 未登记缺口（D63；挂 M10） |
 | [audio] 全段 | :263-293 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原豁免理由：无音频硬件） |
 | [theremin] 全段 | :295-337 | 无 | 挂 M11 再评估（Phase 4 裁决：不豁免，自研硬件若含音频再开账；原：偏差登记 D31） |
@@ -304,10 +304,16 @@ updater.toml（upstream/deploy/updater.toml，179 行）：
 | 自建模型 sit_toggle 坐下与起身 | 已交付 Bite 3；2 次全循环通过；连续坐姿窗口未断言 | `accept/m09a-b03.sh` D |
 | D4 sim 协议面 | 已交付 Bite 4；op=`gain`{kp}/`torque`{on}；PROTOCOL/15 槽/重力钉死；教学附加 push/body 保留 | `accept/m09a-b04.sh` |
 
-## M9b 交付记录（进行中）
+## M9b 交付记录（已收官）
 
 | 功能项 | 手搓状态 | 验收 |
 |---|---|---|
-| Velocity scene/obs/action 契约对账 | 已交付 Bite 1（等确认）；静态对账 + obs 布局单测 | `accept/m09b-b01.sh` |
-| Reward / curriculum 解剖 | 脚本已交付；**课文降级**（用户判仍对参数） | `accept/m09b-b02.sh`（CI） |
-| train / export / manifest 操作手册 | 已交付 Bite 3（等确认）；操作判断题，无代码领读 | `accept/m09b-b03.sh` |
+| Velocity scene/obs/action 契约对账 | 已交付 Bite 1（已确认）；静态对账 + obs 布局单测 | `accept/m09b-b01.sh` |
+| Reward / curriculum 解剖 | 已交付 Bite 2（已确认）；**课文降级**（用户判仍对参数） | `accept/m09b-b02.sh`（CI） |
+| train / export / manifest 操作手册 | 已交付 Bite 3（已确认）；操作判断题，无代码领读 | `accept/m09b-b03.sh` |
+
+## M9c 交付记录（进行中）
+
+| 功能项 | 手搓状态 | 验收 |
+|---|---|---|
+| FallPredictor + Limp/Posing（D23/D32） | 已交付 Bite 1（等确认）；默认 OFF，`MINIDUCK_LIMP_FALL=1` 显式开启；odometry 另列后续 Bite | `accept/m09c-b01.sh` |

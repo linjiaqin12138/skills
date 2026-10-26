@@ -3,23 +3,16 @@
 //! 频道发布给 RPC 层。
 //!
 //! M5 起所有写电机的路径都收进 Safety（唯一写句柄，见 safety.rs 模块
-//! 文档），本循环只通过 Safety 的方法碰总线。状态机是原版
-//! Bringup/LimpFall 三态机的简化版（简化已登记偏差簿 D23）：
-//!
-//!   Held ──enable {on:true}──▶ RampUp(100拍) ──▶ Driving ◀──▶ Limp（跌倒⇄恢复）
-//!  （启动抱持，torque off）          │              │
-//!                                    ▼              ▼ enable {on:false}
-//!                                  Stopped ◀────────┘ 当拍直接命令回 home（无斜坡），
-//!                               （上电抱持 home）       policy reset，torque 保持 on
-//!                                    │
-//!                                    └──enable {on:true}──▶ 直接回 Driving（无斜坡）
+//! 文档），本循环只通过 Safety 的方法碰总线。启动走 Held → RampUp → Driving；
+//! 显式开启跌倒反射时，预测器把 Driving 切入 Limp，再以独立 Posing 回 home。
+//! 普通 disable 直接命令 home；disable 中断恢复则抱持实测姿态。
 //!
 //! 假总线与无策略从 Held 起。`--sim` 且策略已加载是例外：调用方已
 //! torque on、enabled=true，循环第一拍就是 Driving。仿真里开环抱持约
 //! 2 秒前倾摔倒，RampUp 正好是这 2 秒，策略必须在落地期间就在环里。
 //!
-//! 斜坡完成后按 enabled 现值落 Driving 或 Stopped，所以 RampUp/Limp 途中的
-//! enable 边沿不会丢（边沿只动 Held/Stopped/Driving，其余阶段自然汇入）。
+//! 启动斜坡完成后按 enabled 现值落 Driving 或 Stopped；Limp/Posing 中
+//! disable 则立即放弃恢复并抱持实测姿态。
 //! 卸 torque 是 robot.relax 的活（enable 管策略、init/relax 管电源，两对
 //! 开关——upstream/robotd/src/main.rs:4496-4499）；本循环没有任何
 //! set_torque(false) 路径，Held 是进程启动态，也是未来 relax 的落点。
@@ -28,8 +21,7 @@
 //! torque 跨进程存活，被重启的 daemon 必须让站着的机器人继续站着（D9 收敛）。
 //!
 //! M6：Driving 阶段的策略选择与 command 重编码由 scheduler 决定（技能 >
-//! ground_pick > sit > walk）；脚本动作在飞（busy）时抑制 Driving→Limp
-//! 转移（原版门 FallPredictor，简化见 D32）；嘴在策略写完后由 robot.mouth
+//! ground_pick > sit > walk）；busy 或 sitting 会清预测去抖；嘴在策略写完后由 robot.mouth
 //! 意图覆写（嘴不属于任何策略）。M8-B10（D36）：技能请求只在 Driving 拍
 //! 生效，非 Driving 拍当拍丢弃。RPC 门口仍按情形拒 !enabled/!homed
 //!（scheduler.rs 的 do_verdict），只有 fallen/Limp 是照收后吞在本循环——
@@ -42,6 +34,7 @@ use std::time::Duration;
 use tokio::sync::watch;
 use tokio::time::{Instant, MissedTickBehavior};
 
+use crate::fall::{FallPredictor, LIMP_MAX_TICKS, LandingDetector};
 use crate::io::{RobotIo, Sensors};
 use crate::model::{DEFAULT_POSITION, MOUTH_INDEX, NUM_JOINTS, mouth_target};
 use crate::obs::{ACTION_LEN, Command, OBS_LEN, Observation};
@@ -58,6 +51,9 @@ pub const COAST_TICKS: u64 = 3;
 
 /// 插值长度：2 秒 × 50 Hz = 100 拍。
 pub const RAMP_TICKS: u64 = 100;
+
+/// 跌倒恢复回 home：600ms × 50Hz = 30 拍。
+pub const POSE_TICKS: u64 = 30;
 
 /// 头关节一阶低通；训练用 0.5，必须一致。覆盖 neck/head pitch/yaw/roll（不含嘴）。
 pub const HEAD_LOWPASS: f64 = 0.5;
@@ -146,7 +142,22 @@ pub fn shared_control() -> SharedControl {
 /// 插值第 `tick_in_ramp` 拍的目标位置。线性，起点为 `start`，终点为
 /// DEFAULT_POSITION，超过 RAMP_TICKS 后钉在 home（保持）。
 pub fn ramp_target(start: &[f64; NUM_JOINTS], tick_in_ramp: u64) -> [f64; NUM_JOINTS] {
-    let t = (tick_in_ramp.min(RAMP_TICKS) as f64) / RAMP_TICKS as f64;
+    interpolate_home(start, tick_in_ramp, RAMP_TICKS)
+}
+
+pub fn pose_target(start: &[f64; NUM_JOINTS], tick_in_pose: u64) -> [f64; NUM_JOINTS] {
+    interpolate_home(start, tick_in_pose, POSE_TICKS)
+}
+
+fn interpolate_home(
+    start: &[f64; NUM_JOINTS],
+    tick: u64,
+    duration_ticks: u64,
+) -> [f64; NUM_JOINTS] {
+    if tick >= duration_ticks {
+        return DEFAULT_POSITION;
+    }
+    let t = tick as f64 / duration_ticks as f64;
     let mut out = [0.0; NUM_JOINTS];
     for i in 0..NUM_JOINTS {
         out[i] = start[i] + (DEFAULT_POSITION[i] - start[i]) * t;
@@ -220,7 +231,7 @@ impl Coast {
 pub struct FrameSnapshot {
     pub sensors: Sensors,
     pub obs: [f32; OBS_LEN],
-    /// 本拍刚写出的策略动作；斜坡/抱持/Limp 期间为 0。
+    /// 本拍刚写出的策略动作；非 Driving 阶段为 0。
     pub action: [f32; ACTION_LEN],
     /// M5 起随帧发布的安全/使能状态，robot.state 推送直接透传。
     pub fallen: bool,
@@ -230,8 +241,8 @@ pub struct FrameSnapshot {
     /// 本进程最近一次下达的 torque 状态（舵机 RAM 真值不可读，报的是
     /// "我们命令过什么"；启动时一律 false = 本进程没命令过）。
     pub torque: bool,
-    /// M6：当前活跃技能名（"walk"/"sit"/"rise"/"ground_pick"/技能名）；
-    /// None = 不在 Driving（斜坡/抱持/Limp）或本拍推理失败。
+    /// Driving 报策略名；跌倒反射报 limp_fall/limp_pose；
+    /// 其他阶段或本拍推理失败为 None。
     pub skill: Option<&'static str>,
 }
 
@@ -305,51 +316,29 @@ pub fn driving_tick(
     })
 }
 
-/// 主循环阶段。原版是 Bringup/LimpFall 三态机加 FallPredictor，
-/// 这里是偏差簿登记的简化版（D23）：fallen 判定直接触发软倒，
-/// 斜坡是逐拍推进的阶段而不是阻塞调用（D10，M8 裁决）。
+/// 启动斜坡与跌倒恢复都逐拍推进（D10）；Posing 不复用启动 RampUp，
+/// 因为两者的时长、增益和 homed 语义不同。
 enum Phase {
     /// 抱持：写启动时读到的姿态，绝不动 torque。hold 为 None 表示
     /// 还没读到过一帧（第一次 read 成功时锁存启动姿态）。
-    /// 进程启动态，也是未来 robot.relax 的落点。
     Held { hold: Option<[f64; NUM_JOINTS]> },
-    /// 从实测姿态线性斜坡到 home，完成后按 enabled 现值进 Driving 或 Stopped。
     RampUp { start: [f64; NUM_JOINTS], tick: u64 },
-    /// 策略闭环。
     Driving,
-    /// 跌倒软倒：目标跟随实测位置（倒地过程中固定目标会累积误差=
-    /// 电机顶着地板较劲；"软"的关键就是目标跟着身体走），低增益。
-    Limp,
-    /// 上电抱持 home（原版 Ready + hold=DEFAULT_POSITION）：disable 后舵机
-    /// 自己走回 home 并保持上电，再 enable 直接回 Driving。嘴跟随 home
-    /// （非 Driving 阶段嘴跟随本阶段目标，D31）；head/body 命令无效。
-    Stopped,
+    /// 低增益跟随实测关节，直到新鲜陀螺样本证明落地静止或达到硬上限。
+    Limp { landing: LandingDetector, elapsed_ticks: u64 },
+    /// 从落地实测姿态线性回 home。
+    Posing { start: [f64; NUM_JOINTS], tick: u64 },
+    /// 上电抱持。正常 disable 的目标是 home；中断跌倒恢复则抱持实测姿态。
+    Stopped { hold: [f64; NUM_JOINTS] },
 }
 
-/// enabled 边沿上要做的动作（纯数据，转移规则单测覆盖）。
-/// 规则依据（upstream/robotd/src/main.rs）：
-/// - enable 的 bring-up（torque on + 斜坡回 home）只从 torque off 的 Held
-///   触发（:2560-2566）；没策略的机器人 enable 无意义，留在 Held（D19）。
-/// - Stopped（上电抱持 home）再 enable：直接回 Driving，无斜坡无死窗
-///   （:2124 driving = enabled && bringup == Ready）。
-/// - Driving 中 disable：当拍直接命令回 home——舵机按自己的速度走过去，
-///   无斜坡、不卸 torque（:2786-2798，注释原文 "Commanded directly, no
-///   ramp: the servos do the travel at their own speed"）；同边沿 policy
-///   reset，disable 结束 recurrent episode（:2791-2793）。
-/// - RampUp/Limp 中的边沿不立即动作：斜坡终点就是 home，完成时按 enabled
-///   现值落 Driving/Stopped（`ramp_done_phase`）；Limp 的跌倒响应走完，
-///   恢复进 RampUp 后自然汇入同一条规则——边沿因此不会丢。
 enum EdgeAction {
-    /// Held + enable：torque on，然后从实测姿态斜坡回 home。
     PowerOnAndRamp,
-    /// Stopped + enable：直接回 Driving。
     ResumeDriving,
-    /// Driving + disable：policy reset，相位切 Stopped（当拍写 home）。
     StopToHome,
+    AbandonRecovery,
 }
 
-/// enabled 边沿 → 相位动作。非边沿（level 不变）或"边沿由斜坡完成规则
-/// 代为处理"的阶段返回 None。
 fn edge_transition(
     phase: &Phase,
     enabled: bool,
@@ -358,31 +347,24 @@ fn edge_transition(
 ) -> Option<EdgeAction> {
     match (enabled, was_enabled, phase) {
         (true, false, Phase::Held { .. }) if has_policy => Some(EdgeAction::PowerOnAndRamp),
-        (true, false, Phase::Stopped) => Some(EdgeAction::ResumeDriving),
+        (true, false, Phase::Stopped { .. }) => Some(EdgeAction::ResumeDriving),
         (false, true, Phase::Driving) => Some(EdgeAction::StopToHome),
+        (false, true, Phase::Limp { .. } | Phase::Posing { .. }) => {
+            Some(EdgeAction::AbandonRecovery)
+        }
         _ => None,
     }
 }
 
-/// 斜坡完成的落点：enable 着进 Driving，否则停在 home 上电抱持。
 fn ramp_done_phase(enabled: bool) -> Phase {
     if enabled {
         Phase::Driving
     } else {
-        Phase::Stopped
+        Phase::Stopped { hold: DEFAULT_POSITION }
     }
 }
 
-/// D36：技能边沿只在 Driving 拍放行；其余阶段（Held/RampUp/Limp/
-/// Stopped = policy 不在驱动）返回 None，调用方当拍丢弃。不启动、
-/// 不排队（位掩码取出时已 mem::take 清零）、不记仇——恢复 Driving
-/// 后只认新请求。原版同（upstream/robotd/src/main.rs:2120-2158：
-/// enabled && Ready 之外一律 "skill request ignored: the policy is
-/// not driving"）。
-///
-/// 与 RPC 门口的分工：门口拒 !enabled/!homed（robotd :4196-4204）与
-/// 未知名；fallen/Limp 门口照收（:4189-4191），吞在**这里**——这是
-/// fallen 请求的唯一丢弃点。
+/// D36：非 Driving 拍的技能请求当拍丢弃，不排队到恢复之后。
 fn edges_when_driving(phase: &Phase, edges: u32) -> Option<u32> {
     match phase {
         Phase::Driving => Some(edges),
@@ -390,13 +372,21 @@ fn edges_when_driving(phase: &Phase, edges: u32) -> Option<u32> {
     }
 }
 
-/// 原版 homed 的相位映射（robotd :650-653 与 :4201-4204 的 !homed 拒绝）。
-/// 只有 Held（从没起来过）与 RampUp（homing 进行中）算 false；
-/// Driving/Limp/Stopped 都已 homed——fallen 不改变 homed（:2760-2761
-/// "A fall does not stop the driving"）。注意 D23 的表面化：我们 Limp
-/// 恢复要重走 RampUp，恢复斜坡期间 homed 暂回 false（原版无重斜坡）。
+/// Limp/Posing 不改 homed：跌倒恢复不是重新启动。
 fn phase_homed(phase: &Phase) -> bool {
     !matches!(phase, Phase::Held { .. } | Phase::RampUp { .. })
+}
+
+fn predictor_eligible(
+    feature_enabled: bool,
+    was_driving: bool,
+    fresh: bool,
+    imu_ready: bool,
+    fallen: bool,
+    busy: bool,
+    sitting: bool,
+) -> bool {
+    feature_enabled && was_driving && fresh && imu_ready && !fallen && !busy && !sitting
 }
 
 /// 启动控制任务，返回计数器和最新快照的接收端。
@@ -411,6 +401,7 @@ pub fn spawn(
     mut scheduler: Option<Scheduler>,
     control: SharedControl,
     start_driving: bool,
+    limp_fall: bool,
 ) -> (Arc<Stats>, watch::Receiver<FrameSnapshot>) {
     let config = SafetyConfig::default();
     let stats = Arc::new(Stats::new(scheduler.is_some()));
@@ -436,6 +427,8 @@ pub fn spawn(
                 Phase::Held { hold: None }
             };
             let mut was_enabled = start_driving;
+            // start_driving 的第一拍本来就处于 Driving，因此上一拍资格也为真。
+            let mut was_driving = start_driving;
             let mut torque_on = start_driving;
             // 策略输出低通锚点；斜坡/Limp 阶段不算，策略第一拍为 None。
             let mut previous_targets: Option<[f64; NUM_JOINTS]> = None;
@@ -443,6 +436,7 @@ pub fn spawn(
             let mut last_action = [0.0f32; ACTION_LEN];
             let mut tick: u64 = 0;
             let mut coast = Coast { last: None, ticks: 0 };
+            let mut fall_predictor = FallPredictor::default();
 
             // 速率/抖动统计：每 5 秒一行，给 grep 用；同时记进 Stats 供 health。
             let mut window_start = Instant::now();
@@ -487,7 +481,20 @@ pub fn spawn(
                 };
                 let was_fresh = fresh.is_some();
                 let Some(sensors) = coast.sample(fresh) else {
-                    // 真瞎（滑行窗耗尽或从未读到过）：本拍没有可用样本，跳拍。
+                    // 真瞎不算静止，也不保留预测去抖；Limp 的硬上限仍按控制拍计时。
+                    fall_predictor.reset();
+                    if let Phase::Limp { landing, elapsed_ticks } = &mut phase {
+                        landing.reset();
+                        *elapsed_ticks += 1;
+                        if *elapsed_ticks >= LIMP_MAX_TICKS {
+                            let start = coast
+                                .last
+                                .as_ref()
+                                .map(|s| s.positions)
+                                .unwrap_or(DEFAULT_POSITION);
+                            phase = Phase::Posing { start, tick: 0 };
+                        }
+                    }
                     stats.skipped_reads.fetch_add(1, Ordering::Relaxed);
                     tick += 1;
                     stats.tick.store(tick, Ordering::Relaxed);
@@ -495,6 +502,7 @@ pub fn spawn(
                         epoch.elapsed().as_millis() as u64,
                         Ordering::Relaxed,
                     );
+                    was_driving = matches!(phase, Phase::Driving);
                     continue;
                 };
                 // safety 只观察新鲜样本：滑行拍重投旧样本会让一次坏读喂三次
@@ -539,42 +547,45 @@ pub fn spawn(
                     Some(EdgeAction::ResumeDriving) => {
                         phase = Phase::Driving;
                     }
-                    Some(EdgeAction::StopToHome) => {
-                        // disable 结束 recurrent episode：策略 LSTM 清零，
-                        // 低通锚点与 last_action 一并丢弃（Stopped→Driving
-                        // 无斜坡，带着旧锚点回来就是一次踉跄）。
+                    Some(action @ (EdgeAction::StopToHome | EdgeAction::AbandonRecovery)) => {
+                        // disable 结束 recurrent episode；恢复中断时抱持实测姿态，
+                        // 普通 disable 仍当拍直接命令 home。
                         if let Some(s) = scheduler.as_mut() {
                             s.reset();
                         }
                         previous_targets = None;
                         last_action = [0.0; ACTION_LEN];
-                        phase = Phase::Stopped;
+                        fall_predictor.reset();
+                        let hold = match action {
+                            EdgeAction::StopToHome => DEFAULT_POSITION,
+                            EdgeAction::AbandonRecovery => sensors.positions,
+                            _ => unreachable!(),
+                        };
+                        phase = Phase::Stopped { hold };
                     }
                     None => {}
                 }
                 was_enabled = enabled;
 
-                // 跌倒转移（只在 Driving/Limp 间；斜坡/抱持期间的跌倒
-                // 不改变行为——斜坡回 home 本身就是对的恢复动作）。
-                // M6：脚本动作在飞（busy：技能/ground_pick/起身中）时抑制
-                // Driving→Limp——原版用 busy 门 FallPredictor（upstream/robotd/
-                // src/control.rs:318-322），我们门的是简化版直接转移（D32）。
-                // fallen 报告不受影响，state 推送照真。
                 let busy = scheduler.as_ref().is_some_and(|s| s.busy());
-                match phase {
-                    Phase::Driving if safety.fallen() && !busy => {
-                        phase = Phase::Limp;
-                    }
-                    Phase::Limp if !safety.fallen() => {
-                        // 起来了：从当前姿态斜坡回 home，策略锚点清零重来。
-                        previous_targets = None;
-                        last_action = [0.0; ACTION_LEN];
-                        phase = Phase::RampUp {
-                            start: sensors.positions,
-                            tick: 0,
-                        };
-                    }
-                    _ => {}
+                let sitting = scheduler.as_ref().is_some_and(|s| s.is_sitting());
+                let eligible = predictor_eligible(
+                    limp_fall,
+                    was_driving,
+                    was_fresh,
+                    safety.imu_ready(),
+                    safety.fallen(),
+                    busy,
+                    sitting,
+                );
+                // 同拍 disable 已离开 Driving 时，不允许预测器覆盖 Stopped。
+                if fall_predictor.update(&sensors.imu, eligible)
+                    && matches!(phase, Phase::Driving)
+                {
+                    phase = Phase::Limp {
+                        landing: LandingDetector::default(),
+                        elapsed_ticks: 0,
+                    };
                 }
 
                 // 观测始终用当前 last_action 组装；Driving 成功推理后才更新
@@ -611,8 +622,9 @@ pub fn spawn(
                 let mut skill_label: Option<&'static str> = None;
                 let hold = sensors.positions;
                 let mut wrote = false;
-                // 斜坡完成的转移延后到 match 之后（match 借用着 phase）。
+                // 相位完成的转移延后到 match 之后（match 借用着 phase）。
                 let mut next_phase: Option<Phase> = None;
+                let mut recovery_complete = false;
                 match &mut phase {
                     Phase::Held { hold: latched } => {
                         let target = *latched.get_or_insert(sensors.positions);
@@ -625,20 +637,11 @@ pub fn spawn(
                         wrote = safety.apply(target, hold, config.gain_running).is_ok();
                         *t += 1;
                         if *t > RAMP_TICKS {
-                            // 注意 t==RAMP_TICKS 那一拍已把 home 原样写出，
-                            // 再转移，避免末端少一拍造成"差一步没到"。
-                            // 落点看 enabled 现值：斜坡途中的 enable 边沿
-                            // 在这里汇入，不会丢（edge_transition 注释）。
                             next_phase = Some(ramp_done_phase(enabled));
                         }
                     }
-                    Phase::Stopped => {
-                        // 上电抱持 home：disable 不当拍斜坡，直接命令 home，
-                        // 舵机按自己的速度走过去（原版 "Commanded directly,
-                        // no ramp"）；torque 保持 on，gain 维持 running。
-                        wrote = safety
-                            .apply(DEFAULT_POSITION, hold, config.gain_running)
-                            .is_ok();
+                    Phase::Stopped { hold: target } => {
+                        wrote = safety.apply(*target, hold, config.gain_running).is_ok();
                     }
                     Phase::Driving => {
                         match scheduler.as_mut() {
@@ -672,9 +675,24 @@ pub fn spawn(
                             }
                         }
                     }
-                    Phase::Limp => {
-                        // 软倒：策略不 step，目标跟随实测位置，低增益卸力。
+                    Phase::Limp { landing, elapsed_ticks } => {
+                        skill_label = Some("limp_fall");
                         wrote = safety.apply(hold, hold, config.gain_limp).is_ok();
+                        *elapsed_ticks += 1;
+                        let landed = landing.update(Some(&sensors.imu.gyro), was_fresh);
+                        if landed || *elapsed_ticks >= LIMP_MAX_TICKS {
+                            next_phase = Some(Phase::Posing { start: hold, tick: 0 });
+                        }
+                    }
+                    Phase::Posing { start, tick: t } => {
+                        skill_label = Some("limp_pose");
+                        let target = pose_target(start, *t);
+                        wrote = safety.apply(target, hold, config.gain_pose).is_ok();
+                        *t += 1;
+                        if *t > POSE_TICKS {
+                            next_phase = Some(Phase::Driving);
+                            recovery_complete = true;
+                        }
                     }
                 }
                 if wrote {
@@ -683,21 +701,26 @@ pub fn spawn(
                 if let Some(p) = next_phase {
                     phase = p;
                 }
+                if recovery_complete {
+                    if let Some(s) = scheduler.as_mut() {
+                        s.reset();
+                    }
+                    previous_targets = None;
+                    last_action = [0.0; ACTION_LEN];
+                    fall_predictor.reset();
+                }
                 stats
                     .homed
                     .store(phase_homed(&phase), Ordering::Relaxed);
 
-                // safeToRestart 的判决由控制循环自己记账：走路且没倒时
-                // 不允许重启。Driving 阶段以"busy 或有 twist"为准，斜坡和
-                // 软倒也算在运动恢复期。
+                // safeToRestart：整个跌倒反射期间 moving 保持 true。
                 let moving = match &phase {
-                    Phase::Limp => true,
-                    Phase::RampUp { .. } => true,
+                    Phase::Limp { .. } | Phase::Posing { .. } | Phase::RampUp { .. } => true,
                     Phase::Driving => {
                         let twist_magnitude = gated.twist.iter().map(|v| v * v).sum::<f64>().sqrt();
                         busy || twist_magnitude > 0.0
                     }
-                    Phase::Held { .. } | Phase::Stopped => false,
+                    Phase::Held { .. } | Phase::Stopped { .. } => false,
                 };
                 stats.moving.store(moving, Ordering::Relaxed);
                 stats.fallen.store(safety.fallen(), Ordering::Relaxed);
@@ -720,6 +743,7 @@ pub fn spawn(
                 stats
                     .last_tick_millis
                     .store(epoch.elapsed().as_millis() as u64, Ordering::Relaxed);
+                was_driving = matches!(phase, Phase::Driving);
             }
         });
     }
@@ -855,37 +879,29 @@ mod tests {
         assert_eq!(second, 0, "边沿取过一次就没了");
     }
 
-    /// D36：fallen（Phase::Limp）等非 Driving 阶段的技能请求当拍吞掉
-    /// ——RPC 层照收，这里丢弃，不启动。配合 skill_edges_are_taken_once
-    /// （取出即清零 = 不排队），恢复 Driving 后只认新请求（不记仇）。
-    /// 对齐原版 main.rs:2120-2158。
     #[test]
     fn skill_edges_are_dropped_unless_driving() {
         let edges = crate::scheduler::EDGE_SIT_TOGGLE | crate::scheduler::EDGE_GROUND_PICK;
         assert_eq!(edges_when_driving(&Phase::Driving, edges), Some(edges));
-        assert_eq!(edges_when_driving(&Phase::Limp, edges), None);
+        assert_eq!(edges_when_driving(&limp(), edges), None);
+        assert_eq!(edges_when_driving(&posing(), edges), None);
         assert_eq!(edges_when_driving(&held(), edges), None);
         assert_eq!(edges_when_driving(&ramp_up(), edges), None);
-        assert_eq!(edges_when_driving(&Phase::Stopped, edges), None);
-        // 起身恢复（Limp → RampUp → Driving）后新请求照常放行——
-        // 丢弃没有任何残留状态，同一函数 Driving 即放行。
+        assert_eq!(edges_when_driving(&stopped(), edges), None);
         assert_eq!(
             edges_when_driving(&Phase::Driving, crate::scheduler::EDGE_SIT_TOGGLE),
             Some(crate::scheduler::EDGE_SIT_TOGGLE)
         );
     }
 
-    /// 原版 homed 的相位映射（robotd main.rs:650-653）：只有"从没起来过"
-    ///（Held）与"homing 进行中"（RampUp）算 false。fallen/Limp 不改 homed
-    ///（:2760-2761）——这正是 Limp 中 robot.do 门口照收（homed=true）
-    /// 再由 edges_when_driving 吞掉的分工。
     #[test]
     fn homed_is_false_only_for_held_and_rampup() {
         assert!(!phase_homed(&held()));
         assert!(!phase_homed(&ramp_up()));
         assert!(phase_homed(&Phase::Driving));
-        assert!(phase_homed(&Phase::Limp), "fallen 不改 homed");
-        assert!(phase_homed(&Phase::Stopped));
+        assert!(phase_homed(&limp()));
+        assert!(phase_homed(&posing()));
+        assert!(phase_homed(&stopped()));
     }
 
     fn held() -> Phase {
@@ -899,10 +915,26 @@ mod tests {
         }
     }
 
+    fn limp() -> Phase {
+        Phase::Limp {
+            landing: LandingDetector::default(),
+            elapsed_ticks: 0,
+        }
+    }
+
+    fn posing() -> Phase {
+        Phase::Posing {
+            start: [0.0; NUM_JOINTS],
+            tick: 0,
+        }
+    }
+
+    fn stopped() -> Phase {
+        Phase::Stopped { hold: DEFAULT_POSITION }
+    }
+
     #[test]
     fn driving_goes_straight_to_stopped_on_disable() {
-        // 无斜坡、不卸 torque：StopToHome 的全部动作是 policy reset +
-        // 切 Stopped（Stopped 臂当拍写 DEFAULT_POSITION）。
         assert!(matches!(
             edge_transition(&Phase::Driving, false, true, true),
             Some(EdgeAction::StopToHome)
@@ -910,10 +942,19 @@ mod tests {
     }
 
     #[test]
+    fn disable_abandons_limp_and_posing() {
+        for phase in [limp(), posing()] {
+            assert!(matches!(
+                edge_transition(&phase, false, true, true),
+                Some(EdgeAction::AbandonRecovery)
+            ));
+        }
+    }
+
+    #[test]
     fn stopped_resumes_driving_immediately_on_enable() {
-        // 机器人已在 home 且上电：无斜坡无死窗（原版 driving = enabled && Ready）。
         assert!(matches!(
-            edge_transition(&Phase::Stopped, true, false, true),
+            edge_transition(&stopped(), true, false, true),
             Some(EdgeAction::ResumeDriving)
         ));
     }
@@ -924,34 +965,58 @@ mod tests {
             edge_transition(&held(), true, false, true),
             Some(EdgeAction::PowerOnAndRamp)
         ));
-        // 没策略的机器人 enable 无意义：留在 Held（D19），torque 保持 off。
         assert!(edge_transition(&held(), true, false, false).is_none());
     }
 
     #[test]
-    fn edges_during_rampup_and_limp_are_deferred_not_dropped() {
-        // RampUp/Limp 中的边沿返回 None——不是丢弃，是交给斜坡完成规则
-        // （ramp_done_phase 按 enabled 现值落点）：斜坡终点就是 home，
-        // Limp 恢复也经 RampUp 汇入同一条规则。
+    fn edges_during_rampup_are_deferred() {
         assert!(edge_transition(&ramp_up(), false, true, true).is_none());
         assert!(edge_transition(&ramp_up(), true, false, true).is_none());
-        assert!(edge_transition(&Phase::Limp, false, true, true).is_none());
-        assert!(edge_transition(&Phase::Limp, true, false, true).is_none());
     }
 
     #[test]
     fn level_changes_nowhere_else_do_nothing() {
-        // 非边沿（level 不变）与其他阶段的边沿都不动相位。
         assert!(edge_transition(&Phase::Driving, true, true, true).is_none());
-        assert!(edge_transition(&Phase::Stopped, false, false, true).is_none());
-        assert!(edge_transition(&Phase::Stopped, false, true, true).is_none());
+        assert!(edge_transition(&stopped(), false, false, true).is_none());
+        assert!(edge_transition(&stopped(), false, true, true).is_none());
         assert!(edge_transition(&held(), false, true, true).is_none());
     }
 
     #[test]
     fn ramp_completion_lands_by_current_enabled() {
         assert!(matches!(ramp_done_phase(true), Phase::Driving));
-        assert!(matches!(ramp_done_phase(false), Phase::Stopped));
+        assert!(matches!(ramp_done_phase(false), Phase::Stopped { .. }));
+    }
+
+    #[test]
+    fn posing_endpoints_and_midpoint() {
+        let start = [0.25; NUM_JOINTS];
+        assert_eq!(pose_target(&start, 0), start);
+        let midpoint = pose_target(&start, POSE_TICKS / 2);
+        for joint in 0..NUM_JOINTS {
+            assert!((midpoint[joint] - (start[joint] + DEFAULT_POSITION[joint]) / 2.0).abs() < 1e-12);
+        }
+        assert_eq!(pose_target(&start, POSE_TICKS), DEFAULT_POSITION);
+        assert_eq!(pose_target(&start, POSE_TICKS + 1), DEFAULT_POSITION);
+    }
+
+    #[test]
+    fn predictor_gate_requires_previous_driving_fresh_ready_not_fallen_busy_or_sitting() {
+        let base = (true, true, true, true, false, false, false);
+        assert!(predictor_eligible(base.0, base.1, base.2, base.3, base.4, base.5, base.6));
+        for blocked in [
+            (false, true, true, true, false, false, false),
+            (true, false, true, true, false, false, false),
+            (true, true, false, true, false, false, false),
+            (true, true, true, false, false, false, false),
+            (true, true, true, true, true, false, false),
+            (true, true, true, true, false, true, false),
+            (true, true, true, true, false, false, true),
+        ] {
+            assert!(!predictor_eligible(
+                blocked.0, blocked.1, blocked.2, blocked.3, blocked.4, blocked.5, blocked.6,
+            ));
+        }
     }
 
     /// M6 切换连续性端到端断言（FakeIo 语义：sensors.positions = 上拍写出的

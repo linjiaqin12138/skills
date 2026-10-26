@@ -157,7 +157,7 @@ python3 -c "import mujoco" 2>/dev/null || fail "容器里缺 mujoco"
 python3 sim/duck_body.py --port $SIM_PORT 2>/tmp/m5-sim.log &
 SIM_PID=$!
 sleep 3
-./target/debug/miniduckd --sim "$SIM_ADDR" 2>/tmp/m5-daemon-b.log &
+MINIDUCK_LIMP_FALL=1 ./target/debug/miniduckd --sim "$SIM_ADDR" 2>/tmp/m5-daemon-b.log &
 DAEMON_PID=$!
 sleep 2
 ./target/debug/mini-duckctl enable >/dev/null || fail "enable"
@@ -176,7 +176,7 @@ python3 -c "
 import json, socket
 s = socket.create_connection(('127.0.0.1', $SIM_PORT), timeout=5)
 f = s.makefile('rw')
-f.write(json.dumps({'op': 'push', 'vx': 1.5, 'vy': 0.0}) + '\n'); f.flush()
+f.write(json.dumps({'op': 'push', 'vx': 4.0, 'vy': 0.0}) + '\n'); f.flush()
 print('push 应答:', f.readline().strip())"
 sleep 0.5
 state_frames 3 | python3 -c "

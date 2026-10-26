@@ -42,6 +42,8 @@ pub struct SafetyConfig {
     /// 软倒增益：不再顶着地板较劲。本层不使用它——控制循环在 Limp
     /// 阶段通过 apply 主动要这个值——但它是安全数字，和其他安全数字住一起。
     pub gain_limp: u16,
+    /// 跌倒恢复回 home 的软化站立增益。
+    pub gain_pose: u16,
 }
 
 impl Default for SafetyConfig {
@@ -52,6 +54,7 @@ impl Default for SafetyConfig {
             deadman: Duration::from_millis(500),
             gain_running: 200,
             gain_limp: 50,
+            gain_pose: 160,
         }
     }
 }
@@ -146,6 +149,10 @@ impl<T: RobotIo> Safety<T> {
 
     pub fn fallen(&self) -> bool {
         self.fallen
+    }
+
+    pub fn imu_ready(&self) -> bool {
+        self.io.imu_ready()
     }
 
     /// 舵机出力开关。经由此处是因为 Safety 拥有唯一写句柄。
