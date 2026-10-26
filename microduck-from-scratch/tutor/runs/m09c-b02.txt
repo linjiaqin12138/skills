@@ -1,0 +1,394 @@
+M9c Bite 2 独立验收复跑记录（verifier，不改代码）
+================================================
+日期：2026-10-26
+仓库根：/home/jqlin/Project/skills/microduck-from-scratch
+执行命令（在仓库根执行）：
+    docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m09c-b02.sh
+
+实际退出码：0
+    （docker compose exec 的返回值；脚本 set -euo pipefail，A/B/C/D 四段全过后
+      打印 "M9c Bite 2 验收全部通过" 并以 0 退出）
+
+结论：通过。A/B/C/D 四项预期全部达成，本次复跑无失败项。
+
+说明：本记录不是把 coder 的转述当事实——下面所有数字都来自本次复跑捕获的
+stdout/stderr，退出码是本次实跑返回值。仓库内 impl/ accept/ book/ decisions/
+spec/ 未做任何修改（复跑前后 git status 一致），只新增本文件；上游复算用的副本
+放在仓库外的 /tmp（容器内 /tmp/upstream-mini、/tmp/upstream-target）。
+
+----- stdout -----
+===== A. 默认 Rust 单测（live 测试默认 ignored） =====
+
+running 126 tests
+test control::tests::apply_action_no_previous_is_home_plus_scaled_scatter ... ok
+test control::tests::apply_action_lowpass_head_legs_mouth_stays_home ... ok
+test control::tests::coast_rides_out_up_to_coast_ticks_then_goes_blind ... ok
+test control::tests::disable_abandons_limp_and_posing ... ok
+test control::tests::coasted_and_unready_ticks_preserve_estimate_and_pending_candidate ... ok
+test control::tests::driving_goes_straight_to_stopped_on_disable ... ok
+test control::tests::edges_during_rampup_are_deferred ... ok
+test control::tests::homed_is_false_only_for_held_and_rampup ... ok
+test control::tests::level_changes_nowhere_else_do_nothing ... ok
+test control::tests::held_ramps_up_on_enable_only_with_policy ... ok
+test control::tests::odometry_requires_a_fresh_imu_ready_sample ... ok
+test control::tests::posing_endpoints_and_midpoint ... ok
+test control::tests::ramp_completion_lands_by_current_enabled ... ok
+test control::tests::predictor_gate_requires_previous_driving_fresh_ready_not_fallen_busy_or_sitting ... ok
+test control::tests::skill_edges_are_dropped_unless_driving ... ok
+test control::tests::stopped_resumes_driving_immediately_on_enable ... ok
+test control::tests::skill_edges_are_taken_once ... ok
+test control::tests::ramp_endpoints ... ok
+test control::tests::ramp_midpoint_at_one_second ... ok
+test fall::tests::fast_fall_fires_once_then_rearms_on_break_or_reset ... ok
+test fall::tests::footfall_impulse_at_eight_degrees_never_fires ... ok
+test fall::tests::ineligible_tick_resets_prediction_debounce ... ok
+test fall::tests::landing_requires_ten_fresh_still_samples ... ok
+test fall::tests::moving_coasted_and_blind_samples_reset_stillness ... ok
+test fall::tests::slow_lean_prediction_stays_below_threshold ... ok
+test io::tests::fake_io_failing_reads_recover_after_n ... ok
+test fall::tests::static_tilt_does_not_fire ... ok
+test fall::tests::analytic_gravity_z_derivative ... ok
+test io::tests::fake_io_injected_failure_is_simulated ... ok
+test io::tests::fake_io_remembers_gain_and_torque ... ok
+test io::tests::fake_io_tracks_writes_perfectly ... ok
+test io::tests::sim_io_read_carries_sensors ... ok
+test io::tests::sim_io_refusal_is_an_error ... ok
+test io::tests::sim_io_transport_failure_is_port ... ok
+test io::tests::sim_io_bad_frame_and_eof_are_bus ... ok
+test model::tests::mouth_target_spans_the_prototype_range ... ok
+test io::tests::sim_io_quat_must_have_exactly_four_numbers ... ok
+test model::tests::home_pose_legs_are_mirrored ... ok
+test model::tests::table_lengths_are_consistent ... ok
+test obs::tests::at_home_position_block_is_near_zero ... ok
+test obs::tests::every_block_lands_at_its_documented_offset ... ok
+test obs::tests::mouth_is_excluded_from_observation ... ok
+test io::tests::sim_io_reconnects_after_disconnect ... ok
+test obs::tests::scatter_action_skips_mouth ... ok
+test obs::tests::layout_widths_sum_to_obs_len ... ok
+test odometry::tests::alpha16_has_sixteen_bounded_mirrored_points_per_foot ... ok
+test odometry::tests::a_different_foot_restarts_confirmation ... ok
+test odometry::tests::fixed_leg_fk_matches_upstream_mujoco_fixtures ... ok
+test odometry::tests::no_candidate_clears_pending ... ok
+test odometry::tests::mouth_angle_does_not_change_estimate ... ok
+test odometry::tests::one_tick_candidate_does_not_switch_and_two_ticks_confirm ... ok
+test odometry::tests::yaw_comes_from_normalized_imu_quaternion ... ok
+test odometry::tests::stance_sweep_moves_trunk_without_twenty_mm_jumps ... ok
+test odometry::tests::standing_still_stays_at_origin_for_two_hundred_ticks ... ok
+test safety::tests::brief_tilt_is_not_a_fall_and_upright_resets ... ok
+test safety::tests::caller_asking_for_limp_gain_gets_it ... ok
+test safety::tests::converged_imu_still_detects_a_fall ... ok
+test safety::tests::deadman_zeroes_twist_only ... ok
+test safety::tests::fall_does_not_preempt_the_caller ... ok
+test safety::tests::gain_is_written_only_when_it_changes ... ok
+test safety::tests::limit_runs_are_independent_and_reset_by_clean_ticks ... ok
+test safety::tests::never_driven_robot_reports_no_deadman ... ok
+test safety::tests::non_finite_target_is_refused_not_clamped ... ok
+test safety::tests::ordinary_target_passes_through_unchanged ... ok
+test odometry::tests::every_reference_tick_matches_upstream_bitwise ... ok
+test safety::tests::sustained_tilt_is_a_fall ... ok
+test safety::tests::unconverged_imu_never_declares_a_fall ... ok
+test safety::tests::worth_logging_first_and_every_fifty ... ok
+test safety::tests::out_of_range_targets_are_clamped_and_reported ... ok
+test scheduler::tests::active_skill_outranks_sit_and_returns_to_it ... ok
+test scheduler::tests::busy_is_exactly_skill_or_ground_pick_or_rising ... ok
+test scheduler::tests::do_verdict_gates_on_enabled_and_homed_never_on_fallen ... ok
+test scheduler::tests::do_verdict_refuses_unknown_names_with_the_list ... ok
+test scheduler::tests::ground_pick_runs_the_phase_script_then_hands_back ... ok
+test scheduler::tests::priority_same_tick_requests_first_in_table_wins ... ok
+test policy::tests::velstand_zero_obs_then_feedback_stays_finite ... ok
+test scheduler::tests::sit_latches_and_carries_the_posture_flag_in_vx ... ok
+test scheduler::tests::sit_toggle_rises_with_zeroed_twist_then_latches_up ... ok
+test scheduler::tests::skill_window_zeroes_the_whole_command_then_hands_back ... ok
+test scheduler::tests::switch_flag_tracks_net_changes ... ok
+test scheduler::tests::failed_inference_resets_the_network ... ok
+test scheduler::tests::unavailable_skills_are_refused ... ok
+test scheduler::tests::reset_clears_every_loaded_slot ... ok
+test scheduler::tests::walk_is_the_default_and_passes_the_client_command_through ... ok
+test tests::enable_params_missing_on_rejected ... ok
+test tests::enable_params_on_true ... ok
+test io::tests::sim_io_set_gain_and_torque_frames ... ok
+test tests::enable_params_toggle_defaults_false ... ok
+test tests::enable_params_toggle_true_alongside_on ... ok
+test tests::enable_params_unknown_field_rejected ... ok
+test tests::move_params_full_triple_passes ... ok
+test tests::move_params_json_overflow_rejected_at_parse ... ok
+test tests::move_params_missing_fields_default_zero ... ok
+test tests::move_params_non_finite_rejected ... ok
+test tests::move_params_unknown_field_rejected ... ok
+test tests::move_params_wrong_type_rejected ... ok
+test tests::parse_error_response_has_null_id ... ok
+test tests::request_without_id_is_notification ... ok
+test tests::subscribe_params_bad_shapes_rejected ... ok
+test tests::subscribe_params_hz_zero_and_ten_accepted ... ok
+test tests::subscribe_params_empty_and_absent_mean_every_tick ... ok
+test tests::subscribe_result_omits_stand_unavailable_and_empty_skills ... ok
+test updater::engine::tests::model_api_none_is_compatible ... ok
+test tests::subscribe_result_names_the_walk_file_that_failed ... ok
+test updater::engine::tests::recovery_verdict_truth_table ... ok
+test updater::engine::tests::pending_roundtrip ... ok
+test updater::lock::tests::second_holder_gets_busy ... ok
+test updater::manifest::tests::parses_well_formed_manifest ... ok
+test updater::manifest::tests::rejects_sha256_mismatch ... ok
+test updater::manifest::tests::rejects_unparseable_and_malformed ... ok
+test updater::journal::tests::previous_comes_from_last_matching_commit ... ok
+test tests::enable_params_toggle_alone_rejected ... ok
+test updater::peer::tests::root_and_owner_pass_others_deny ... ok
+test updater::robot::tests::missing_safe_field_is_incompatible ... ok
+test updater::robot::tests::model_api_returns_value ... ok
+test updater::robot::tests::unreachable_socket_is_unreachable ... ok
+test updater::robot::tests::safe_true_means_yes ... ok
+test updater::robot::tests::safe_false_with_reason_means_no ... ok
+test scheduler::tests::switching_nets_resets_the_new_network ... ok
+test updater::store::tests::cleanup_staging_removes_leftovers ... ok
+test updater::store::tests::leftover_tmp_link_does_not_block_swap ... ok
+test updater::store::tests::atomic_swap_repoints_current ... ok
+test control::tests::net_switches_never_jump_targets ... ok
+test policy::tests::lstm_state_carries_across_ticks_and_reset_replays_first_tick ... ok
+test policy::tests::rejects_wrong_observation_width ... ok
+test control::tests::disable_and_scheduler_reset_do_not_reset_odometry ... ok
+
+test result: ok. 126 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test tests::internal_odometry_never_enters_robot_state_rpc ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test three_fresh_walks_and_three_fresh_turns_meet_distribution_gates ... ignored, spawns six handmade BAM sims; run by accept/m09c-b02.sh
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+===== B/C. handmade sim 实时 odometry：3 行走 + 3 转身 =====
+
+running 1 test
+test three_fresh_walks_and_three_fresh_turns_meet_distribution_gates has been running for over 60 seconds
+forward-1 true_delta=[2.667823,-2.309935,0.004999] estimate=[2.581717,-2.254267,0.004031] endpoint_xy=0.102534 max_tick_jump=0.013735 max_yaw_error=0.000000000 anchor_switches=290 actual_yaw=-1.322921 fallen=false upright=true
+forward-2 true_delta=[2.674058,-2.311078,0.007392] estimate=[2.589260,-2.251477,0.003745] endpoint_xy=0.103648 max_tick_jump=0.014073 max_yaw_error=0.000000000 anchor_switches=290 actual_yaw=-1.331187 fallen=false upright=true
+forward-3 true_delta=[2.674058,-2.311078,0.007392] estimate=[2.589260,-2.251477,0.003745] endpoint_xy=0.103648 max_tick_jump=0.014073 max_yaw_error=0.000000000 anchor_switches=290 actual_yaw=-1.331187 fallen=false upright=true
+turn-1 true_delta=[0.000294,0.010388,0.001763] estimate=[0.023028,0.003452,-0.002405] endpoint_xy=0.023768 max_tick_jump=0.007061 max_yaw_error=0.000000000 anchor_switches=193 actual_yaw=3.042829 fallen=false upright=true
+turn-2 true_delta=[0.000294,0.010388,0.001763] estimate=[0.021953,0.001101,0.001362] endpoint_xy=0.023566 max_tick_jump=0.007061 max_yaw_error=0.000000000 anchor_switches=194 actual_yaw=3.042336 fallen=false upright=true
+turn-3 true_delta=[0.000294,0.010388,0.001763] estimate=[0.023028,0.003452,-0.002405] endpoint_xy=0.023768 max_tick_jump=0.007061 max_yaw_error=0.000000000 anchor_switches=193 actual_yaw=3.042829 fallen=false upright=true
+summary endpoint_samples=[0.02356564612122005, 0.02376835940769063, 0.02376835940769063, 0.10253402403072324, 0.10364828337544818, 0.10364828337544818] median=0.063151 max_endpoint=0.103648 max_tick_jump=0.014073 max_yaw_error=0.000000000
+test three_fresh_walks_and_three_fresh_turns_meet_distribution_gates ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 62.66s
+
+===== D. M8 RPC/状态机回归 =====
+握手 + robot.subscribe ack walk=velstand.onnx skills=['roulade', 'kick_left']  OK
+a. 通知生效 twist=[0.10000000149011612, 0.20000000298023224, -0.30000001192092896]  OK
+b. 通知全程无响应行  OK
+c. 请求式 accepted 回显 [0.05, -0.05, 0.1]  OK
+d. 缺省 vy 按 0 接受 {'accepted': True, 'vx': 0.1, 'vy': 0.0, 'vyaw': 0.2}  OK
+e1. 未知字段 INVALID_PARAMS: robot.move wants {vx, vy, vyaw} (m/s, m/s, rad/s): unknown f  OK
+e2. 非法通知静默丢弃，16 帧 twist 保持 [0.3, 0.1, -0.2]  OK
+f. 1e999 → PARSE_ERROR id=null: number out of range at line 1 column 66  OK
+g. 停发 0.7s 后 obs twist=[0,0,0]（deadman 生效）  OK
+h. robot.drive → METHOD_NOT_FOUND: method not found: robot.drive  OK
+i. enable on → 'enabled — driving'，推送 enabled=true  OK
+z5. RampUp 中 do → accepted:false，reason='the robot is still going to its home pose; try again in a moment'（原版 homed 拒绝）  OK
+  已进入 Driving（skill=walk）
+j. 无 id robot.head 静默生效 obs[51:55]=[0.10000000149011612, -0.10000000149011612, 0.20000000298023224, 0.05000000074505806]，全程无响应行  OK
+k. 无 id robot.mouth 静默生效 positions[9]=0.524rad（目标 0.524）  OK
+l. 无 id robot.health 静默，25 帧内只有 robot.state 推送  OK
+m. 带 id head/mouth 请求式回显不变（mouth 回显 0.5）  OK
+n. toggle 翻转 开→关 → 'disabled — returning to the home pose'，推送 enabled=false  OK
+n2. disable 后 positions 逐位等于 home，26 帧 torque 全为 true  OK
+o. on+toggle 同帧 toggle 优先 关→开 → 'enabled — driving'  OK
+o2. 1s 内 skill=walk——从 Stopped 直接回 Driving，无 2 秒斜坡  OK
+p1. enable 未知字段 INVALID_PARAMS: robot.enable wants {on: bool} (optional toggle: bool): unkno  OK
+p2. robot.disable → METHOD_NOT_FOUND: method not found: robot.disable  OK
+q. robot.state 带 id → -32601，随后仍有 10 帧推送  OK
+r. 再订阅 hz=10，walk=velstand.onnx，0.5s 内 26 帧（≥18，全速率）  OK
+s. subscribe 未知字段 -32602，随后仍有 11 帧推送  OK
+t. 无 id robot.subscribe 静默，16 帧内只有 robot.state 推送  OK
+u. 静止时 safeToRestart safe:true，reason 省略  OK
+v. move 后 safeToRestart safe:false reason='the robot is walking'  OK
+w. robot.modelApi → model_api:2  OK
+z1. Driving 中 do kick_left → accepted 且推送 skill=kick_left→walk  OK
+z2. Stopped 中 do → accepted:false，reason='the policy is not driving — press Start on the pad'（原版 enabled 拒绝）  OK
+z3. 恢复 Driving：旧请求不补发，新 do accepted 且真启动  OK
+z4. 未知名 accepted:false 附名单；缺字段 INVALID_PARAMS  OK
+
+M8 断言 a–w + z1–z5 全部通过
+x. 3 连挂全程滑行：201 帧 skill 恒 walk，恰好 4 帧重投段，skipped_reads=0  OK
+y. 4 连挂：3 帧滑行 + 第 4 拍跳拍（skipped_reads=1），恢复后仍 healthy  OK
+
+M8 验收（robot.move + robot.enable + robot.subscribe + safeToRestart/modelApi 对齐 + D24 滑行 + D36 robot.do fallen/Limp 照收，notification 统一入口）全部通过
+M9c Bite 2 验收全部通过
+
+----- stderr -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (target/debug/deps/miniduck-f225a818787b921d)
+     Running unittests src/bin/mini-duckctl.rs (target/debug/deps/mini_duckctl-c178921bea13bc3f)
+     Running unittests src/bin/mini-updaterd.rs (target/debug/deps/mini_updaterd-5a61f3187ff9a427)
+     Running unittests src/main.rs (target/debug/deps/miniduckd-025e530eb7069065)
+     Running tests/odometry_live.rs (target/debug/deps/odometry_live-c9650faaa3c181a7)
+   Doc-tests miniduck
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/odometry_live.rs (target/debug/deps/odometry_live-c9650faaa3c181a7)
+safety: torque true
+tick_rate=50.0Hz p99_jitter_ms=0.00
+tick_rate=50.0Hz p99_jitter_ms=0.00
+safety: torque true
+tick_rate=50.0Hz p99_jitter_ms=0.00
+tick_rate=50.0Hz p99_jitter_ms=0.00
+safety: torque true
+tick_rate=50.0Hz p99_jitter_ms=0.00
+tick_rate=50.0Hz p99_jitter_ms=0.00
+safety: torque true
+tick_rate=50.0Hz p99_jitter_ms=0.00
+safety: torque true
+tick_rate=50.0Hz p99_jitter_ms=0.00
+safety: torque true
+tick_rate=50.0Hz p99_jitter_ms=0.00
+
+----- exit code -----
+0
+
+===== 逐条对照 accept/m09c-b02.sh 注释里的预期 =====
+
+A. 默认 Rust 单测全绿（含上游 400 拍逐位参考轨迹 + robot.state 无 odom）—— 通过
+   实测：lib 126 passed / 0 failed；miniduckd bin 1 passed；tests/odometry_live.rs
+   默认 ignored（1 ignored，符合注释「live 测试默认 ignored」）；doc-tests 0。
+   与 M9c 相关的用例本次全 ok：
+     odometry::tests::every_reference_tick_matches_upstream_bitwise
+     odometry::tests::fixed_leg_fk_matches_upstream_mujoco_fixtures
+     odometry::tests::alpha16_has_sixteen_bounded_mirrored_points_per_foot
+     odometry::tests::standing_still_stays_at_origin_for_two_hundred_ticks
+     odometry::tests::yaw_comes_from_normalized_imu_quaternion
+     odometry::tests::mouth_angle_does_not_change_estimate
+     odometry::tests::one_tick_candidate_does_not_switch_and_two_ticks_confirm
+     odometry::tests::a_different_foot_restarts_confirmation
+     odometry::tests::no_candidate_clears_pending
+     odometry::tests::stance_sweep_moves_trunk_without_twenty_mm_jumps
+     control::tests::odometry_requires_a_fresh_imu_ready_sample
+     control::tests::coasted_and_unready_ticks_preserve_estimate_and_pending_candidate
+     control::tests::disable_and_scheduler_reset_do_not_reset_odometry
+     tests::internal_odometry_never_enters_robot_state_rpc（断言 params 里既无
+       "odom" 也无 "odometry"——D50 不提前，符合预期）
+
+B. 实时集成测试 —— 通过
+   impl/tests/odometry_live.rs（--ignored --nocapture）：1 passed，62.66s。
+   实读源码确认走的是 control::spawn + handmade BAM sim（impl/sim/duck_body.py，
+   每例起一个新的 python 进程、新的 tokio runtime），估计值取自内部 FrameSnapshot
+   （frame.odometry.position / frame.odometry.yaw），不经 RPC；真值取自 sim 的
+   body_pos。3 次 vx=0.8 行走 10s + 3 次 vyaw=2.0 转身 6s，每次都打印了真值/估计
+   位移、终点水平误差、最大单拍跳动、锚点切换次数、实际 yaw 变化、fallen/upright。
+
+C. 分布门槛 —— 全部通过（六个样本全部打印）
+   行走（要求 true dx>=2.0m 且 upright/fallen=false）：
+     forward-1 true dx=2.667823  fallen=false upright=true
+     forward-2 true dx=2.674058  fallen=false upright=true
+     forward-3 true dx=2.674058  fallen=false upright=true
+   转身（要求 |实际 yaw|>=0.5rad）：
+     turn-1 |yaw|=3.042829   turn-2 |yaw|=3.042336   turn-3 |yaw|=3.042829
+   endpoint_xy 每例 <=0.12：0.102534 / 0.103648 / 0.103648 / 0.023768 / 0.023566 /
+     0.023768 —— 最大 0.103648，通过。
+   六样本 median：0.063151 <= 0.07，通过。
+   最大单拍跳动：0.014073 < 0.02，通过。
+   yaw 环绕误差：0.000000000 < 1e-6，通过。
+   锚点切换计数：行走 290/290/290，转身 193/194/193（确实在换锚，不是死锚）。
+
+D. accept/m08-b01.sh 全回归 —— 通过
+   M8 断言 a–w + z1–z5 全绿，D24 滑行 x（3 连挂：201 帧 skill 恒 walk、恰好 4 帧
+   重投段、skipped_reads=0）与 y（4 连挂：3 帧滑行 + 第 4 拍跳拍、skipped_reads=1）
+   也全绿。
+
+不通过项：无。
+
+===== 覆盖面：标准没覆盖、但值得记一笔的 =====
+
+1) 「六样本」实际只有四条不同轨迹。实测里 forward-2 与 forward-3 逐位相同
+   （true_delta、estimate、endpoint_xy 0.103648、max_tick_jump 0.014073、
+   anchor_switches 290、actual_yaw -1.331187 全同），turn-1 与 turn-3 逐位相同
+   （0.023768、switches 193、actual_yaw 3.042829 全同）。handmade sim 近乎确定性，
+   所以「3 次全新进程」给的是重复而不是分布：中位数 0.063151 实际是
+   (0.023768 + 0.102534)/2，只由四个不同值决定，没有可谈的置信区间。按 verifier
+   「单次跑通不算过」的要求，这里给的是分布形状证据偏弱（重复样本），不是六次
+   独立观测。父跑 median 0.063708 / max 0.109811 与本次 median 0.063151 /
+   max 0.103648 一起看，两次独立跑里最坏的终点误差是 0.109811。
+
+2) 终点误差门槛余量偏薄。门是 0.12m，本次最大 0.103648（占门 86%），父跑
+   0.109811（占门 91.5%）。三米多的行走带 0.10m 残差（约 3%），这是几何估计的
+   系统性残差，不是随机噪声；门再收紧会不稳，放宽则掩盖真实漂移。
+
+3) yaw 门是同义反复。odometry 的 yaw 直接由同一 IMU 四元数读出，测试又是拿
+   「同一 IMU 真值」做比较，所以 max_yaw_error 恒为 0 只证明四元数→yaw 的管线
+   没写错，不构成任何精度证据。同理 anchor_switches 里的锚点选择质量没有被独立
+   真值校验过。
+
+4) 纵向（z）没有门槛。live 测试只卡水平误差；真值/估计的 z 都打印了但没有断言。
+   上游 anchors.rs 的注释明确主张 ALPHA16「stands at the true height（V15 高了
+   3.7mm）」，这个主张在本次端到端验收里没有被验证。
+
+5) 运动形态覆盖窄。只跑 vx=0.8 直行与 vyaw=2.0 纯转身。测试源码里其实留了
+   TurnRate(1.5)、Combined(0.8)、Combined(1.5) 的 probe 分支（ODOMETRY_LIVE_PROBE），
+   但默认用例集不跑它们：斜向/后退/边走边转/慢速/急停都没有端到端覆盖。
+
+6) 「robot.state 不含 odom」的端到端没验。live 测试根本不起 daemon（不走 RPC），
+   m08-b01.sh 收的 robot.state 推送帧也没断言没有 odom 键；这一条目前只有
+   main.rs 的单元测试 internal_odometry_never_enters_robot_state_rpc 兜着。
+
+7) 只比终点，不比路径。估计轨迹与真值轨迹只在终点对水平误差，路径形状/中间点
+   不比；max_tick_jump<0.02 只约束单拍位移，排不掉「整体偏一点但每拍都很平滑」
+   的系统偏差（本次前行的 0.10m 残差就正是这一类）。
+
+8) 跌倒/滑行期间的里程计行为只有单测覆盖（滑行不推进估计或 pending、
+   disable/scheduler reset 不清零、跌倒恢复不重建），没有 live 场景跑一遍。
+
+9) 仓库里没有生成 impl/tests/fixtures/odometry_reference_400.csv 的脚本，fixture
+   的上游出处无法由仓库自证。见下面附录：我这次在仓库外独立重算了上游轨迹。
+
+===== 附录（verifier 自查，不属于 accept 脚本）：上游逐位一致性的独立复算 =====
+
+背景：脚本 A 项写「400 拍参考轨迹与上游逐位一致」，但 impl 侧的单测
+every_reference_tick_matches_upstream_bitwise 实际是「impl 的输出 == 一份签入的
+CSV」，CSV 是不是上游产出的，仓库本身证明不了。
+
+我做的事（全部在仓库外，不改仓库）：
+  1. cp upstream 的 kinematics / duck-ipc-proto / odometry 三个 crate 到
+     /tmp/upstream-mini，写一份只含这三个成员的最小 workspace（去掉
+     duck-ipc-proto 的 dev-dependencies，否则离线解析会拉 tempfile），用
+     docker cp 送进容器。
+  2. 容器内 CARGO_TARGET_DIR=/tmp/upstream-target cargo build -p odometry --offline
+     ——用的是上游自己的 Odometry::alpha()（即 Model::alpha() 从
+     kinematics/assets/alpha/robot_walk.xml 解析出的 MJCF 树 + upstream/odometry
+     的 ALPHA16 锚点）。
+  3. 加一个 bin 重放上游 dump_reference_trajectory 同款合成轨迹
+     （joints[1]=0.15sin(0.05t)、[2]=0.30sin(0.07t)、[3]=0.20cos(0.07t)、
+     [12]=0.30cos(0.07t)、[13]=0.20sin(0.07t)，quat=roll_quat(0.10sin(0.05t))），
+     按 fixture 同格式（tick,x,y,z,yaw,foot,anchor_x,anchor_y，{:.17e}）打印。
+
+结果：
+  - 上游重算结果与 impl/tests/fixtures/odometry_reference_400.csv 逐行比较：
+    400 行 × (x, y, z, yaw, anchor_x, anchor_y) 的 f64 to_bits 全部相同，
+    anchor_foot 也全部相同；不一致处数 0，最大绝对差 0。
+  - 另核对 impl/src/odometry.rs 的 ALPHA16 与 upstream/odometry/src/anchors.rs 的
+    ALPHA16：每脚 16 点，坐标逐位相同。
+  - 也就是说：签入 fixture 确由上游代码产生，而 impl 单测又证明 impl 输出逐位
+    等于该 fixture（本轮 cargo test 已过），故 impl ≡ upstream 在这 400 拍上成立。
+    A 项的「上游逐位一致」这次有了仓库外的独立佐证。
+  （第一次比对出现差异是我自己的笔误：right_knee 我写成了 0.05t，上游与 impl
+   都是 0.07t。改正后完全一致。这说明差异可定位，不是「差不多就算过」。）
+
+复现方式（容器内）：
+  cd /tmp/upstream-mini && CARGO_TARGET_DIR=/tmp/upstream-target \
+      cargo build -p odometry --offline --bin gen_ref && /tmp/upstream-target/debug/gen_ref

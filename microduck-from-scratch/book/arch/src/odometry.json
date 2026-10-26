@@ -1,0 +1,294 @@
+{
+  "width": 1400,
+  "height": 980,
+  "title": "miniduckd · odometry 子模块",
+  "subtitle": "每拍一次：样本 → FK → 由当前锚点投影 → 候选扫描 → pending/确认 → 估计 · 无接触力 / 无陀螺积分",
+  "containers": [
+    {
+      "id": "p_daemon",
+      "x": 40,
+      "y": 120,
+      "width": 1180,
+      "height": 780,
+      "label": "miniduckd · impl/src/odometry.rs"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "sample",
+      "x": 80,
+      "y": 180,
+      "width": 260,
+      "height": 150,
+      "label": "输入 · 每拍样本",
+      "lines": [
+        "15 关节角（嘴忽略）",
+        "IMU 四元数 wxyz",
+        "只吃 fresh ∧ imu_ready 拍"
+      ],
+      "fill": "#DB2777",
+      "stroke": "#9D174D",
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "fk",
+      "x": 80,
+      "y": 370,
+      "width": 260,
+      "height": 150,
+      "label": "FK · Alpha 双足链",
+      "lines": [
+        "5 链接 × 2 腿 · 固定 rest",
+        "输出两脚 site 位姿",
+        "不依赖通用 kinematics"
+      ],
+      "fill": "#DB2777",
+      "stroke": "#9D174D",
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "project",
+      "x": 450,
+      "y": 180,
+      "width": 300,
+      "height": 180,
+      "label": "投影 · 当前锚点",
+      "lines": [
+        "锚点 = 鞋底局部点",
+        "绕开 IMU 朝向旋转",
+        "position = anchor_xy − contact",
+        "→ 躯干 position[3]（重力对齐）"
+      ],
+      "fill": "#DB2777",
+      "stroke": "#9D174D",
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "scan",
+      "x": 450,
+      "y": 410,
+      "width": 300,
+      "height": 190,
+      "label": "候选扫描 · ALPHA16",
+      "lines": [
+        "每脚 16 点 · 共 32 点投世界",
+        "取世界 z 最低者",
+        "只接受 z < 10mm 的候选"
+      ],
+      "fill": "#DB2777",
+      "stroke": "#9D174D",
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "pending",
+      "x": 830,
+      "y": 280,
+      "width": 300,
+      "height": 220,
+      "label": "pending · 锚点切换",
+      "lines": [
+        "候选换脚 ⇒ 重新计数",
+        "同脚连续两拍 ⇒ 确认",
+        "确认沿用首次候选的",
+        "局部点与世界 XY"
+      ],
+      "fill": "#DB2777",
+      "stroke": "#9D174D",
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "out",
+      "x": 830,
+      "y": 560,
+      "width": 300,
+      "height": 180,
+      "label": "估计输出",
+      "lines": [
+        "position[3]（相对重力对齐）",
+        "yaw ← 归一化 IMU quat",
+        "锚点诊断 foot / switches",
+        "→ FrameSnapshot.odometry（内部）"
+      ],
+      "fill": "#DB2777",
+      "stroke": "#9D174D",
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "rules",
+      "x": 80,
+      "y": 630,
+      "width": 640,
+      "height": 220,
+      "label": "不变量 · 不做的事",
+      "lines": [
+        "coasted / blind / !imu_ready ⇒ 估计与 pending 完全不动",
+        "disable / scheduler reset / Limp / Posing ⇒ 不重建估计器",
+        "没有 reset 方法 · origin = 首次更新的左脚 site",
+        "不吃接触力 / 不积分陀螺 / 不吃命令输入"
+      ],
+      "fill": "#475569",
+      "stroke": "#1E293B",
+      "color": "#FFFFFF"
+    }
+  ],
+  "edges": [
+    {
+      "id": "sample-fk",
+      "source": "sample",
+      "target": "fk",
+      "label": "关节角 + quat",
+      "points": [
+        [
+          210,
+          330
+        ],
+        [
+          210,
+          370
+        ]
+      ],
+      "label_pos": [
+        210,
+        350
+      ]
+    },
+    {
+      "id": "fk-project",
+      "source": "fk",
+      "target": "project",
+      "label": "两脚 site 位姿",
+      "points": [
+        [
+          340,
+          420
+        ],
+        [
+          395,
+          420
+        ],
+        [
+          395,
+          270
+        ],
+        [
+          450,
+          270
+        ]
+      ],
+      "label_pos": [
+        395,
+        300
+      ]
+    },
+    {
+      "id": "project-scan",
+      "source": "project",
+      "target": "scan",
+      "label": "两脚 pose + 当前 position",
+      "points": [
+        [
+          600,
+          360
+        ],
+        [
+          600,
+          410
+        ]
+      ],
+      "label_pos": [
+        600,
+        385
+      ]
+    },
+    {
+      "id": "scan-pending",
+      "source": "scan",
+      "target": "pending",
+      "label": "最低候选",
+      "points": [
+        [
+          750,
+          480
+        ],
+        [
+          790,
+          480
+        ],
+        [
+          790,
+          380
+        ],
+        [
+          830,
+          380
+        ]
+      ],
+      "label_pos": [
+        790,
+        440
+      ]
+    },
+    {
+      "id": "pending-project",
+      "source": "pending",
+      "target": "project",
+      "label": "确认 ⇒ 换锚点 ⇒ 重投影",
+      "points": [
+        [
+          940,
+          280
+        ],
+        [
+          940,
+          140
+        ],
+        [
+          560,
+          140
+        ],
+        [
+          560,
+          180
+        ]
+      ],
+      "label_pos": [
+        750,
+        140
+      ]
+    },
+    {
+      "id": "pending-out",
+      "source": "pending",
+      "target": "out",
+      "label": "锚点 + position[3]",
+      "points": [
+        [
+          940,
+          500
+        ],
+        [
+          940,
+          560
+        ]
+      ],
+      "label_pos": [
+        940,
+        530
+      ]
+    }
+  ],
+  "legend": [
+    [
+      "#64748B",
+      "数据 / 控制"
+    ],
+    [
+      "#DB2777",
+      "M9c Bite 2 新增"
+    ],
+    [
+      "#94A3B8",
+      "虚线：异步 / 进程控制"
+    ]
+  ]
+}

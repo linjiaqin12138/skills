@@ -2,11 +2,23 @@
 import argparse
 import html
 import json
+import unicodedata
 from pathlib import Path
 
 
 def esc(value):
     return html.escape(str(value), quote=True)
+
+
+def label_width(label):
+    """白底宽度按字符实际占宽估算：全角 13px，其余 6.6px。"""
+    units = 0.0
+    for character in label:
+        if unicodedata.east_asian_width(character) in {"W", "F"}:
+            units += 13.0
+        else:
+            units += 6.6
+    return max(36.0, units + 12)
 
 
 def path_d(points):
@@ -37,7 +49,7 @@ def render(data, output, diff=False):
         if diff:
             color = colors["pink"] if status == "new" else colors["amber"] if status == "changed" else colors["light"]
         else:
-            color = colors["pink"] if status == "new" else colors["gray"]
+            color = colors["pink"] if status == "new" else colors["amber"] if status == "changed" else colors["gray"]
         marker = "pink" if color == colors["pink"] else "amber" if color == colors["amber"] else "light" if color == colors["light"] else "gray"
         dash = ' stroke-dasharray="6 4"' if e.get("dash") else ""
         bends = max(0, len(e["points"]) - 2)
@@ -62,18 +74,23 @@ def render(data, output, diff=False):
     for e in data["edges"]:
         x, y = e["label_pos"]
         label = e["label"]
-        estimate = max(36, len(label) * 6.6 + 12)
+        estimate = label_width(label)
         out.append(f'<rect x="{x-estimate/2:.1f}" y="{y-13}" width="{estimate:.1f}" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="{esc(e["id"])}"/>')
         out.append(f'<text class="edge-label" x="{x}" y="{y+1}" text-anchor="middle">{esc(label)}</text>')
 
+    legend_y = height - 50
     if diff:
         items = [("#DB2777", "新增"), ("#F59E0B", "改动"), ("#E2E8F0", "未动（灰化）")]
     else:
-        items = [("#64748B", "数据 / 控制"), ("#DB2777", "M9c 新增"), ("#94A3B8", "虚线：异步 / 进程控制")]
+        items = data.get("legend") or [
+            ("#64748B", "数据 / 控制"),
+            ("#DB2777", "M9c 新增"),
+            ("#94A3B8", "虚线：异步 / 进程控制"),
+        ]
     x = 50
     for color, label in items:
-        out.append(f'<rect x="{x}" y="1070" width="24" height="14" rx="3" fill="{color}" stroke="#94A3B8"/>')
-        out.append(f'<text class="legend" x="{x+32}" y="1082">{esc(label)}</text>')
+        out.append(f'<rect x="{x}" y="{legend_y}" width="24" height="14" rx="3" fill="{color}" stroke="#94A3B8"/>')
+        out.append(f'<text class="legend" x="{x+32}" y="{legend_y+12}">{esc(label)}</text>')
         x += 210
     out.append('</svg>')
     Path(output).parent.mkdir(parents=True, exist_ok=True)

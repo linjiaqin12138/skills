@@ -69,7 +69,7 @@
 
 ## Phase 4 附：拿不准项裁决（2026-10-15）
 
-1. odometry crate：~~建议豁免~~ **改挂 M9**（纯软件估计器，与自训策略/仿真同域；state 的 odom 字段仍归 D50）。
+1. odometry crate：~~建议豁免~~ ~~改挂 M9~~ **M9c Bite 2 已交付**（`impl/src/odometry.rs` 局部 FK + ALPHA16；state 的 odom 字段仍归 D50→M10）。
 2. robot.remoteSessionActive：挂 M10（恒 false 补齐，随方法面齐整）。
 3. account.*：不豁免，并入 D60（updaterd 的 Hub 网络面，M10）。
 4. pad.* / padd：**不豁免**，M10 真机批重新评估——用户有 Xbox 手柄，原版 padd 正是用 Xbox Wireless Controller 开发测试（upstream/padd/）；pad.bindings/bind 的配置写面属性随 D52。

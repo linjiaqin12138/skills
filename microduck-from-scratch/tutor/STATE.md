@@ -6,8 +6,9 @@
 - **当前模式**：项目实现
 - **返回位置**：无（当前在项目实现）
 - **当前先修记录**：`tutor/prerequisites/ppo-reward-dr.md` — **出口已达**；返回摘要：PPO 三步、奖励权重=评分标准、DR 为健壮；误区：非选优淘汰、优势非开跑前算、投机形态不唯一
-- **当前位置**：**M9c Bite 1 已交付（2026-10-26，等用户确认）**——FallPredictor + Limp/Posing（D23/D32 收敛）；默认 OFF 对齐原版，`MINIDUCK_LIMP_FALL=1` 显式开启。113 单测 + M8 全回归 + 默认 OFF/两次 ON 仿真全绿；教程第 25 章；决定 `0006` 起草。
-- **下一步**：用户确认后采纳 `0006`；M9c Bite 2 默认做 **odometry 评估与移植决策**。M9b Bite 3 已由用户继续确认，`0005` 已采纳。
+- **当前位置**：**M9c Bite 2 已交付（2026-10-26，等用户确认）**——相对 odometry（局部双足 FK + ALPHA16）；126 单测 + live 行走/转身 + M8 全回归全绿；教程第 26 章；决定 `0007` 起草。`robot.state` 仍无 odom（D50→M10）。
+- **下一步**：用户确认后采纳 `0007`；**M9c 收官**。其后默认 **M9d 云上训练（GPU，Vast.ai）**——需用户开云机时再启动；本 VM 可先做 M9d 前置侦察/手册，或跳到其他支线。M9c Bite 1（`0006`）与 M9b Bite 3（`0005`）已确认采纳。
+- **M9c Bite 1 已确认（2026-10-26）**：FallPredictor + Limp/Posing（D23/D32 收敛）；默认 OFF，`MINIDUCK_LIMP_FALL=1`；教程第 25 章；`0006` 已采纳。
 - **M9a Bite 1 已交付（2026-10-20）**：自建 MJCF 身体模型全绿，D26 收敛。M8/Phase 4 已收官（2026-10-15），复盘在 `tutor/phases/phase-4.md`。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `book/m08-convergence/acceptance.md`
 - **M8 Bite 6 已交付（2026-10-12）**：BAM M6 XL330 默认接入（`/opt/sim-venv` + `better-actuator-models`，场景 `scene_groundcontact`，timestep 0.005）；D21/D34 收敛；D35 部分收敛（结束后 upright，中段 fallen 残余）；新登记 **D68**（冻结 bringup → twist 上升沿 push 0.30 踢步态）。教程 `b06-bam.html`（第 14 章）
@@ -30,7 +31,7 @@
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（book/m06-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（book/m07-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：impl/src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept/m07-b01.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
 | M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 tutor/phases/phase-4.md |
-| M9 仿真与训练（批次 2） | **进行中**：M9a/M9b 收官；M9c Bite 1 已交付（等确认，D23/D32 收敛）。下一步 M9c Bite 2 odometry；再 M9d/M9e |
+| M9 仿真与训练（批次 2） | **进行中**：M9a/M9b 收官；M9c Bite 1 已确认；**M9c Bite 2 odometry 已交付（等确认）**。其后 M9d（GPU）/ M9e |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
 
@@ -48,7 +49,8 @@
 - 参考克隆：`upstream/`（只读）。浅克隆走同一代理（环境已迁回原生 Linux，代理在 127.0.0.1:7890；容器内 PyPI 直连可达）
 - 构建/测试：在容器里做，见 `tutor/dev-container.md`。`docker compose -f impl/docker-compose.yml exec rust cargo build && docker compose -f impl/docker-compose.yml exec rust cargo test`。不要用 `bash -lc` 包 cargo，否则 PATH 会丢
 - M4 验收：`docker compose -f impl/docker-compose.yml exec rust bash /work/accept/m04-b01.sh`。M5：`accept/m05-b01.sh`（sim 端口 7803）。M6：`accept/m06-b01.sh`（sim 端口 7804；权重先跑 `bash impl/scripts/fetch-m6.sh`）。M7：`accept/m07-b01.sh`（五场景 39 断言；根目录 /tmp/m7-demo 隔离，不需要仿真；**本机 D1/E1 有时序 flake，见下**）。M8：`accept/m08-b01.sh`（FakeIo 无需仿真；断言 a–w）+ `accept/m08-b04.sh`（Bite 4 updater 预检端到端，6 断言，根目录 /tmp/m8-updater-demo 隔离，不需要仿真）。两者都先 `cargo build --bins`：`cargo test` 不更新 `impl/target/debug/miniduckd`
-- 最新架构图：`book/arch/src/current.json` + `book/arch/current.svg`（M9c Bite 1：新增 fall.rs，control/scheduler/Safety/FrameSnapshot 改动）；子图 `book/arch/fall-recovery.svg`；本课差分 `book/m09c-fall-recovery/figures/arch-diff.svg`
+- 最新架构图：`book/arch/src/current.json` + `book/arch/current.svg`（M9c Bite 2：新增 odometry.rs，control/FrameSnapshot 挂内部估计）；子图 `book/arch/odometry.svg` / `book/arch/fall-recovery.svg`；本课差分 `book/m09c-odometry/figures/arch-diff.svg`
+- **M9c Bite 2 后行为变化**：控制循环持有相对里程计，新鲜且 IMU-ready 时更新；估计进内部 FrameSnapshot，RPC/`robot.state` 不加 odom；滑行/盲拍/disable/跌倒恢复均不清零估计
 - 概念深读页（`book/concepts/`，`.draft.md` 为源稿、`.html` 为产物；**新页按 skill 现行规范走「一概念一文件夹」**：`book/concepts/<slug>/<slug>.draft.md` + `<slug>.html` + `assets/`）：`inertia-tensor/inertia-tensor.html`（2026-10-22 按 concept-writer 现行规范重写：教学合同 + 验收承诺开篇、8 面板学习链、4 张图（F1 哑铃手算 / F2 串轴 / F3 绕 z 旋转滑块交互 / F4 主轴与最终存法）、LaTeX 公式、5 题自测、4 个工程坑；冷读评审过一轮并按断点修订——图号补 F3、F2 箭头改双头不声明正负、观察任务③改「转到主轴系」、滑块矩阵加 x/y/z 表头、自测改覆盖三件事且选项不可抄正文。演示脚本 `book/concepts/figures/inertia-tensor/inertia_demo.py`；旧平铺文件 `concepts/inertia-tensor.{draft.md,html}` 已删，第 18 章链接改指新路径并整页重渲）、`quaternion.html`（2026-10-21 新增：wxyz/xyzw 顺序、半角、双覆盖 q≡-q、slerp vs nlerp、演示脚本 `figures/quaternion/quat_demo.py`；M1 背景卡片 + M9a 第 18 章惯量张量卡与坑 5 已挂链接）、`contact-penetration.html`、`servo-gain-torque.html`
 - 仿真：默认 `/opt/sim-venv/bin/python sim/duck_body.py`（BAM + `scene_handmade.xml`，容器内，工作目录 `/work/impl`）；宿主机仅 viewer 用仓内 `.venv/bin/python impl/sim/duck_body.py --viewer`，`--no-bam` 回退 scene.xml。M9a 闭环验收 `accept/m09a-b03.sh`（端口 7809，3 次站立+行走 + 2 次 sit）；M8 官方物理回归 `accept/m08-b06.sh` 已显式固定 scene_groundcontact.xml。诊断：`accept/m08-b05.sh`（强制 no-bam）
 - **当前仿真行为（M9a Bite 3 已验收）**：BAM 默认自建身体，固定 kp=200/vin=7.4/vin_drop=0.1/delay=0；可用 CLI 显式改参数和 20ms 拍延迟。每侧鞋底细分为两个 box，滑动摩擦回到官方 1.0，D70 已收敛。3 次 vx=0.8 行走均约 2.605m；2 次 handmade sit 全循环通过；handmade roulade 未验收。官方 groundcontact 的 sit/roulade/行走回归仍全绿。BAM read 不步进、write 后 step_tick，非 BAM 读时步进；vx=0.15/0.3 不迈步仍是上游 velstand 权重现状。
@@ -65,7 +67,7 @@
 
 见 `~/.clone-from-scratch-tutor/user-prefs.md`（用户级背景与学习路径偏好）+ `tutor/user-prefs.md`（项目级：整机闭环路线、硬件与 BAM 侦察结论、先修能力表）；流程规则已上收 SKILL.md。要点：里程碑代码由 coder subagent 构建、主 agent 复核验收；终态必须与原项目一致；路线为先修学习且未达出口时不启动对应 coder。
 
-偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Phase 4 裁决已落账（2026-10-15，见 spec/deviations.md 顶部裁决段）**：A 组核销（D1 等）；永久保留 D10/D27/D40/D43③；Bite 9 就地收敛中 D13/D20/D24/D65；挂 M9：D4/D23/D26/D28/D29/D30/D32/D33/D35 残余/odometry/「0.3 不走」上游权重；挂 M10：D5/D7/D12/D15（目标值改 31）/D25/D37–D41/D42–D63/D66/D67；挂 M11：D31。**D36 漏列待补问**。D2 豁免维持；padd/pad.* 不豁免改 M10 再评估（用户有 Xbox 手柄）。
+偏差簿：D1–D41 + D64–D68（D42–D63 为功能清单缺口号）。**Phase 4 裁决已落账（2026-10-15，见 spec/deviations.md 顶部裁决段）**：A 组核销（D1 等）；永久保留 D10/D27/D40/D43③；Bite 9 就地收敛中 D13/D20/D24/D65；挂 M9：D4/D23/D26/D28/D29/D30/D32/D33/D35 残余/「0.3 不走」上游权重（odometry 估计器已由 M9c Bite 2 交付，D50 字段仍挂 M10）；挂 M10：D5/D7/D12/D15（目标值改 31）/D25/D37–D41/D42–D63/D66/D67；挂 M11：D31。**D36 漏列待补问**。D2 豁免维持；padd/pad.* 不豁免改 M10 再评估（用户有 Xbox 手柄）。
 
 ## M6 复核更正（2026-09-28，教程写作时发现）
 

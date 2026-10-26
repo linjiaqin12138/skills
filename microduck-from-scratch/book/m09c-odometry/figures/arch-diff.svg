@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1230" viewBox="0 0 1600 1230">
+<style>text{font-family:"Noto Sans CJK SC","Noto Sans",Arial,sans-serif}.title{font-size:26px;font-weight:700;fill:#0F172A}.subtitle{font-size:15px;fill:#475569}.container-label{font-size:16px;font-weight:700;fill:#334155}.node-label{font-size:16px;font-weight:700}.node-line{font-size:13px}.edge-label{font-size:12px;fill:#334155}.legend{font-size:13px;fill:#475569}</style>
+<defs>
+<marker id="arrow-gray" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#64748B"/></marker>
+<marker id="arrow-pink" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#DB2777"/></marker>
+<marker id="arrow-amber" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#D97706"/></marker>
+<marker id="arrow-light" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#CBD5E1"/></marker>
+</defs>
+<rect width="1600" height="1230" fill="#FFFFFF"/>
+<text class="title" x="40" y="45">microduck M9c · 架构变动（相对 M9c Bite 1）</text>
+<text class="subtitle" x="40" y="75">新增 impl/src/odometry.rs（miniduckd 内）· control / FrameSnapshot / RPC 契约改动 · 其余灰化 · 坐标与 current 完全一致</text>
+<rect id="p_cli" x="40" y="180" width="300" height="430" rx="12" fill="#F8FAFC" fill-opacity="0.45" stroke="#CBD5E1" stroke-width="1.5" data-graph-role="container" data-container-id="p_cli" data-graph-bounds="40,180,340,610"/>
+<text class="container-label" x="56" y="205">进程 1 · mini-duckctl</text>
+<rect id="p_updaterd" x="400" y="180" width="360" height="430" rx="12" fill="#F8FAFC" fill-opacity="0.45" stroke="#CBD5E1" stroke-width="1.5" data-graph-role="container" data-container-id="p_updaterd" data-graph-bounds="400,180,760,610"/>
+<text class="container-label" x="416" y="205">进程 2 · mini-updaterd</text>
+<rect id="p_daemon" x="830" y="150" width="730" height="850" rx="12" fill="#F8FAFC" fill-opacity="0.45" stroke="#CBD5E1" stroke-width="1.5" data-graph-role="container" data-container-id="p_daemon" data-graph-bounds="830,150,1560,1000"/>
+<text class="container-label" x="846" y="175">进程 3 · miniduckd</text>
+<rect id="p_sim" x="40" y="700" width="300" height="260" rx="12" fill="#F8FAFC" fill-opacity="0.45" stroke="#CBD5E1" stroke-width="1.5" data-graph-role="container" data-container-id="p_sim" data-graph-bounds="40,700,340,960"/>
+<text class="container-label" x="56" y="725">进程 4 · duck_body.py</text>
+<rect id="fs_root" x="400" y="700" width="360" height="260" rx="12" fill="#F8FAFC" fill-opacity="0.45" stroke="#CBD5E1" stroke-width="1.5" data-graph-role="container" data-container-id="fs_root" data-graph-bounds="400,700,760,960"/>
+<text class="container-label" x="416" y="725">更新资产 · &lt;root&gt;/</text>
+<path id="cli-rpc" d="M 230 240 L 230 160 L 850 160 L 850 265 L 870 265" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="cli-rpc" data-source="ctl" data-target="rpc" data-edge-kind="flow" data-bends="3" data-route-stretch="1"/>
+<path id="rpc-cli" d="M 930 210 L 930 120 L 150 120 L 150 240" fill="none" stroke="#CBD5E1" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="rpc-cli" data-source="rpc" data-target="ctl" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="cli-updater" d="M 310 360 L 430 360" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="cli-updater" data-source="ctl" data-target="updater" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="updater-preflight" d="M 730 285 L 870 285" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="updater-preflight" data-source="updater" data-target="rpc" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="updater-process" d="M 730 340 L 800 340 L 800 305 L 870 305" fill="none" stroke="#CBD5E1" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="updater-process" data-source="updater" data-target="rpc" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="updater-assets" d="M 520 510 L 520 770" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="updater-assets" data-source="updater" data-target="assets" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="assets-updater" d="M 600 770 L 600 510" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="assets-updater" data-source="assets" data-target="updater" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="assets-loop" d="M 730 850 L 810 850 L 810 680 L 830 680 L 830 500 L 870 500" fill="none" stroke="#CBD5E1" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="assets-loop" data-source="assets" data-target="loop" data-edge-kind="flow" data-bends="4" data-route-stretch="1"/>
+<path id="rpc-shared" d="M 1070 265 L 1100 265" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="rpc-shared" data-source="rpc" data-target="shared" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="shared-loop" d="M 1200 320 L 1200 350 L 1020 350 L 1020 390" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="shared-loop" data-source="shared" data-target="loop" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="loop-fall" d="M 1150 465 L 1260 465" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="loop-fall" data-source="loop" data-target="fall" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="fall-loop" d="M 1260 545 L 1150 545" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="fall-loop" data-source="fall" data-target="loop" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="loop-sched" d="M 960 610 L 960 700" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="loop-sched" data-source="loop" data-target="sched" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="sched-loop" d="M 1040 700 L 1040 650 L 1000 650 L 1000 610" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="sched-loop" data-source="sched" data-target="loop" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="loop-safety" d="M 1140 610 L 1140 650 L 1200 650 L 1200 700" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="loop-safety" data-source="loop" data-target="safety" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="safety-loop" d="M 1160 700 L 1160 670 L 1130 670 L 1130 610" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="safety-loop" data-source="safety" data-target="loop" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="safety-simio" d="M 1200 810 L 1200 850" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="safety-simio" data-source="safety" data-target="simio" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="safety-fake" d="M 1300 790 L 1325 790 L 1325 830 L 1430 830 L 1430 850" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="safety-fake" data-source="safety" data-target="fake" data-edge-kind="flow" data-bends="3" data-route-stretch="1"/>
+<path id="simio-body" d="M 1200 890 L 1200 905 L 1560 905 L 1560 1135 L 360 1135 L 360 940 L 190 940 L 190 920" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="simio-body" data-source="simio" data-target="body" data-edge-kind="flow" data-bends="6" data-route-stretch="1"/>
+<path id="loop-watch" d="M 1150 590 L 1210 590 L 1210 680 L 1545 680 L 1545 755 L 1530 755" fill="none" stroke="#D97706" stroke-width="1.8" marker-end="url(#arrow-amber)" data-graph-role="edge" data-edge-id="loop-watch" data-source="loop" data-target="watch" data-edge-kind="flow" data-bends="4" data-route-stretch="1"/>
+<path id="watch-rpc" d="M 1530 775 L 1575 775 L 1575 265 L 1530 265" fill="none" stroke="#CBD5E1" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="watch-rpc" data-source="watch" data-target="rpc" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="loop-stats" d="M 1150 400 L 1180 400 L 1180 370 L 1430 370 L 1430 320" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="loop-stats" data-source="loop" data-target="stats" data-edge-kind="flow" data-bends="3" data-route-stretch="1"/>
+<path id="stats-rpc" d="M 1430 210 L 1430 190 L 970 190 L 970 210" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="stats-rpc" data-source="stats" data-target="rpc" data-edge-kind="flow" data-bends="2" data-route-stretch="1"/>
+<path id="onnx-sched" d="M 885 1030 L 885 810" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="onnx-sched" data-source="onnx" data-target="sched" data-edge-kind="flow" data-bends="0" data-route-stretch="1"/>
+<path id="ort-sched" d="M 1380 1090 L 1380 1105 L 850 1105 L 850 770 L 870 770" fill="none" stroke="#CBD5E1" stroke-width="1.8" marker-end="url(#arrow-light)" data-graph-role="edge" data-edge-id="ort-sched" data-source="ort" data-target="sched" data-edge-kind="flow" data-bends="3" data-route-stretch="1"/>
+<path id="loop-odom" d="M 1010 610 L 1010 630 L 1085 630 L 1085 880 L 1070 880" fill="none" stroke="#DB2777" stroke-width="1.8" marker-end="url(#arrow-pink)" data-graph-role="edge" data-edge-id="loop-odom" data-source="loop" data-target="odometry" data-edge-kind="flow" data-bends="3" data-route-stretch="1"/>
+<g data-graph-role="node" data-node-id="ctl" data-graph-bounds="70,240,310,510">
+<rect id="ctl" x="70" y="240" width="240" height="270" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="190.0" y="267" text-anchor="middle" fill="#64748B">mini-duckctl</text>
+<text class="node-line" x="190.0" y="293" text-anchor="middle" fill="#64748B">robot.* + update.*</text>
+<text class="node-line" x="190.0" y="316" text-anchor="middle" fill="#64748B">state / subscribe</text>
+<text class="node-line" x="190.0" y="339" text-anchor="middle" fill="#64748B">enable on|off</text>
+<text class="node-line" x="190.0" y="362" text-anchor="middle" fill="#64748B">move vx vy vyaw</text>
+<text class="node-line" x="190.0" y="385" text-anchor="middle" fill="#64748B">do / skills · mouth / head</text>
+</g>
+<g data-graph-role="node" data-node-id="updater" data-graph-bounds="430,240,730,510">
+<rect id="updater" x="430" y="240" width="300" height="270" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="580.0" y="267" text-anchor="middle" fill="#64748B">mini-updaterd</text>
+<text class="node-line" x="580.0" y="293" text-anchor="middle" fill="#64748B">IPC + Engine + HealthGate</text>
+<text class="node-line" x="580.0" y="316" text-anchor="middle" fill="#64748B">safeToRestart / modelApi preflight</text>
+<text class="node-line" x="580.0" y="339" text-anchor="middle" fill="#64748B">manifest + store + journal</text>
+<text class="node-line" x="580.0" y="362" text-anchor="middle" fill="#64748B">spawn / kill miniduckd</text>
+<text class="node-line" x="580.0" y="385" text-anchor="middle" fill="#64748B">原子 current symlink + rollback</text>
+</g>
+<g data-graph-role="node" data-node-id="rpc" data-graph-bounds="870,210,1070,320">
+<rect id="rpc" x="870" y="210" width="200" height="110" rx="8" fill="#F59E0B" stroke="#B45309" stroke-width="1.8"/>
+<text class="node-label" x="970.0" y="237" text-anchor="middle" fill="#FFFFFF">RPC · main.rs</text>
+<text class="node-line" x="970.0" y="263" text-anchor="middle" fill="#FFFFFF">JSON-RPC NDJSON</text>
+<text class="node-line" x="970.0" y="286" text-anchor="middle" fill="#FFFFFF">robot.* + state push</text>
+<text class="node-line" x="970.0" y="309" text-anchor="middle" fill="#FFFFFF">state 刻意不含 odom</text>
+</g>
+<g data-graph-role="node" data-node-id="shared" data-graph-bounds="1100,210,1300,320">
+<rect id="shared" x="1100" y="210" width="200" height="110" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1200.0" y="237" text-anchor="middle" fill="#64748B">ControlState</text>
+<text class="node-line" x="1200.0" y="263" text-anchor="middle" fill="#64748B">command + enabled</text>
+<text class="node-line" x="1200.0" y="286" text-anchor="middle" fill="#64748B">intent + skill_edges</text>
+</g>
+<g data-graph-role="node" data-node-id="stats" data-graph-bounds="1330,210,1530,320">
+<rect id="stats" x="1330" y="210" width="200" height="110" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1430.0" y="237" text-anchor="middle" fill="#64748B">Stats</text>
+<text class="node-line" x="1430.0" y="263" text-anchor="middle" fill="#64748B">health + homed</text>
+<text class="node-line" x="1430.0" y="286" text-anchor="middle" fill="#64748B">moving + fallen</text>
+</g>
+<g data-graph-role="node" data-node-id="loop" data-graph-bounds="870,390,1150,610">
+<rect id="loop" x="870" y="390" width="280" height="220" rx="8" fill="#F59E0B" stroke="#B45309" stroke-width="1.8"/>
+<text class="node-label" x="1010.0" y="417" text-anchor="middle" fill="#FFFFFF">控制循环 50Hz · control.rs</text>
+<text class="node-line" x="1010.0" y="443" text-anchor="middle" fill="#FFFFFF">Driving / Limp / Posing</text>
+<text class="node-line" x="1010.0" y="466" text-anchor="middle" fill="#FFFFFF">fall ⇒ Driving→Limp</text>
+<text class="node-line" x="1010.0" y="489" text-anchor="middle" fill="#FFFFFF">持有一个 odometry 估计器</text>
+<text class="node-line" x="1010.0" y="512" text-anchor="middle" fill="#FFFFFF">fresh ∧ imu_ready 才更新</text>
+<text class="node-line" x="1010.0" y="535" text-anchor="middle" fill="#FFFFFF">disable / reset 不清零估计</text>
+</g>
+<g data-graph-role="node" data-node-id="fall" data-graph-bounds="1260,390,1530,610">
+<rect id="fall" x="1260" y="390" width="270" height="220" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1395.0" y="417" text-anchor="middle" fill="#64748B">fall.rs</text>
+<text class="node-line" x="1395.0" y="443" text-anchor="middle" fill="#64748B">FallPredictor + LandingDetector</text>
+<text class="node-line" x="1395.0" y="466" text-anchor="middle" fill="#64748B">MINIDUCK_LIMP_FALL=1 · 默认 OFF</text>
+<text class="node-line" x="1395.0" y="489" text-anchor="middle" fill="#64748B">fresh IMU + previous-tick driving</text>
+<text class="node-line" x="1395.0" y="512" text-anchor="middle" fill="#64748B">eligibility / coasted / blind ⇒ reset</text>
+<text class="node-line" x="1395.0" y="535" text-anchor="middle" fill="#64748B">详见 arch/fall-recovery.svg</text>
+</g>
+<g data-graph-role="node" data-node-id="sched" data-graph-bounds="870,700,1070,810">
+<rect id="sched" x="870" y="700" width="200" height="110" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="970.0" y="727" text-anchor="middle" fill="#64748B">Scheduler + Policy</text>
+<text class="node-line" x="970.0" y="753" text-anchor="middle" fill="#64748B">busy / is_sitting</text>
+<text class="node-line" x="970.0" y="776" text-anchor="middle" fill="#64748B">obs[61] → action[14]</text>
+</g>
+<g data-graph-role="node" data-node-id="safety" data-graph-bounds="1100,700,1300,810">
+<rect id="safety" x="1100" y="700" width="200" height="110" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1200.0" y="727" text-anchor="middle" fill="#64748B">Safety</text>
+<text class="node-line" x="1200.0" y="753" text-anchor="middle" fill="#64748B">唯一 RobotIo 写句柄</text>
+<text class="node-line" x="1200.0" y="776" text-anchor="middle" fill="#64748B">gain_pose=160 · imu_ready</text>
+<text class="node-line" x="1200.0" y="799" text-anchor="middle" fill="#64748B">fallen = report-only</text>
+</g>
+<g data-graph-role="node" data-node-id="watch" data-graph-bounds="1330,700,1530,810">
+<rect id="watch" x="1330" y="700" width="200" height="110" rx="8" fill="#F59E0B" stroke="#B45309" stroke-width="1.8"/>
+<text class="node-label" x="1430.0" y="727" text-anchor="middle" fill="#FFFFFF">FrameSnapshot</text>
+<text class="node-line" x="1430.0" y="753" text-anchor="middle" fill="#FFFFFF">skill=limp_fall/limp_pose</text>
+<text class="node-line" x="1430.0" y="776" text-anchor="middle" fill="#FFFFFF">Limp/Posing moving=true</text>
+<text class="node-line" x="1430.0" y="799" text-anchor="middle" fill="#FFFFFF">内部 odometry 快照</text>
+</g>
+<g data-graph-role="node" data-node-id="simio" data-graph-bounds="1100,850,1300,890">
+<rect id="simio" x="1100" y="850" width="200" height="40" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1200.0" y="877" text-anchor="middle" fill="#64748B">SimIo · TCP NDJSON</text>
+</g>
+<g data-graph-role="node" data-node-id="fake" data-graph-bounds="1330,850,1530,890">
+<rect id="fake" x="1330" y="850" width="200" height="40" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1430.0" y="877" text-anchor="middle" fill="#64748B">FakeIo · 进程内默认</text>
+</g>
+<g data-graph-role="node" data-node-id="odometry" data-graph-bounds="890,820,1070,980">
+<rect id="odometry" x="890" y="820" width="180" height="160" rx="8" fill="#DB2777" stroke="#9D174D" stroke-width="1.8"/>
+<text class="node-label" x="980.0" y="847" text-anchor="middle" fill="#FFFFFF">odometry.rs</text>
+<text class="node-line" x="980.0" y="873" text-anchor="middle" fill="#FFFFFF">impl/src/odometry.rs</text>
+<text class="node-line" x="980.0" y="896" text-anchor="middle" fill="#FFFFFF">Alpha 双足 FK · 16×2</text>
+<text class="node-line" x="980.0" y="919" text-anchor="middle" fill="#FFFFFF">ALPHA16 鞋底锚点</text>
+<text class="node-line" x="980.0" y="942" text-anchor="middle" fill="#FFFFFF">z&lt;10mm 竞标 · 两拍确认</text>
+<text class="node-line" x="980.0" y="965" text-anchor="middle" fill="#FFFFFF">yaw ← 归一化 IMU quat</text>
+</g>
+<g data-graph-role="node" data-node-id="body" data-graph-bounds="70,770,310,920">
+<rect id="body" x="70" y="770" width="240" height="150" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="190.0" y="797" text-anchor="middle" fill="#64748B">duck_body.py · MuJoCo</text>
+<text class="node-line" x="190.0" y="823" text-anchor="middle" fill="#64748B">BAM + scene_handmade.xml</text>
+<text class="node-line" x="190.0" y="846" text-anchor="middle" fill="#64748B">write targets → physics steps</text>
+<text class="node-line" x="190.0" y="869" text-anchor="middle" fill="#64748B">read：15 joints + IMU + body_pos</text>
+<text class="node-line" x="190.0" y="892" text-anchor="middle" fill="#64748B">push 仅显式测试操作</text>
+</g>
+<g data-graph-role="node" data-node-id="assets" data-graph-bounds="430,770,730,920">
+<rect id="assets" x="430" y="770" width="300" height="150" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="580.0" y="797" text-anchor="middle" fill="#64748B">source/ · install/current · state/</text>
+<text class="node-line" x="580.0" y="823" text-anchor="middle" fill="#64748B">manifest + tar · releases/&lt;ver&gt;</text>
+<text class="node-line" x="580.0" y="846" text-anchor="middle" fill="#64748B">current → releases/&lt;ver&gt;</text>
+<text class="node-line" x="580.0" y="869" text-anchor="middle" fill="#64748B">pending + update-log + update.lock</text>
+<text class="node-line" x="580.0" y="892" text-anchor="middle" fill="#64748B">install/current/bin/miniduckd</text>
+</g>
+<g data-graph-role="node" data-node-id="onnx" data-graph-bounds="870,1030,1170,1090">
+<rect id="onnx" x="870" y="1030" width="300" height="60" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1020.0" y="1057" text-anchor="middle" fill="#64748B">impl/policies/ · 五份 ONNX</text>
+</g>
+<g data-graph-role="node" data-node-id="ort" data-graph-bounds="1230,1030,1530,1090">
+<rect id="ort" x="1230" y="1030" width="300" height="60" rx="8" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.8"/>
+<text class="node-label" x="1380.0" y="1057" text-anchor="middle" fill="#64748B">ONNX Runtime · ORT_DYLIB_PATH</text>
+</g>
+<rect x="444.7" y="137" width="150.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="cli-rpc"/>
+<text class="edge-label" x="520" y="151" text-anchor="middle">robot.* · Unix socket</text>
+<rect x="431.5" y="97" width="177.0" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="rpc-cli"/>
+<text class="edge-label" x="520" y="111" text-anchor="middle">robot.state @50Hz · skill</text>
+<rect x="324.4" y="332" width="91.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="cli-updater"/>
+<text class="edge-label" x="370" y="346" text-anchor="middle">update.* RPC</text>
+<rect x="685.1" y="257" width="229.8" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="updater-preflight"/>
+<text class="edge-label" x="800" y="271" text-anchor="middle">safeToRestart + modelApi + health</text>
+<rect x="711.4" y="317" width="157.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="updater-process"/>
+<text class="edge-label" x="790" y="331" text-anchor="middle">spawn / kill miniduckd</text>
+<rect x="348.3" y="627" width="203.4" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="updater-assets"/>
+<text class="edge-label" x="450" y="641" text-anchor="middle">verify / extract / log / lock</text>
+<rect x="612.8" y="647" width="104.4" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="assets-updater"/>
+<text class="edge-label" x="665" y="661" text-anchor="middle">manifest + tar</text>
+<rect x="658.3" y="627" width="203.4" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="assets-loop"/>
+<text class="edge-label" x="760" y="641" text-anchor="middle">install/current/bin/miniduckd</text>
+<rect x="1022.9" y="342" width="124.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="rpc-shared"/>
+<text class="edge-label" x="1085" y="356" text-anchor="middle">command + enabled</text>
+<rect x="1051.2" y="322" width="117.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="shared-loop"/>
+<text class="edge-label" x="1110" y="336" text-anchor="middle">intent / command</text>
+<rect x="1142.9" y="437" width="124.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="loop-fall"/>
+<text class="edge-label" x="1205" y="451" text-anchor="middle">IMU + eligibility</text>
+<rect x="1159.4" y="547" width="91.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="fall-loop"/>
+<text class="edge-label" x="1205" y="561" text-anchor="middle">phase events</text>
+<rect x="854.7" y="662" width="150.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="loop-sched"/>
+<text class="edge-label" x="930" y="676" text-anchor="middle">edges + gated command</text>
+<rect x="931.6" y="617" width="196.8" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="sched-loop"/>
+<text class="edge-label" x="1030" y="631" text-anchor="middle">action[14] + busy/is_sitting</text>
+<rect x="1144.7" y="617" width="150.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="loop-safety"/>
+<text class="edge-label" x="1220" y="631" text-anchor="middle">targets / hold / gain</text>
+<rect x="1031.6" y="672" width="196.8" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="safety-loop"/>
+<text class="edge-label" x="1130" y="686" text-anchor="middle">sensors + imu_ready + fallen</text>
+<rect x="1139.7" y="817" width="150.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="safety-simio"/>
+<text class="edge-label" x="1215" y="831" text-anchor="middle">write / gain / torque</text>
+<rect x="1336.0" y="822" width="78.0" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="safety-fake"/>
+<text class="edge-label" x="1375" y="836" text-anchor="middle">memory I/O</text>
+<rect x="775.2" y="1127" width="249.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="simio-body"/>
+<text class="edge-label" x="900" y="1141" text-anchor="middle">write targets → steps → read sensors</text>
+<rect x="1278.4" y="657" width="223.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="loop-watch"/>
+<text class="edge-label" x="1390" y="671" text-anchor="middle">snapshot · skill + moving + odom</text>
+<rect x="1404.7" y="332" width="150.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="watch-rpc"/>
+<text class="edge-label" x="1480" y="346" text-anchor="middle">latest-wins changed()</text>
+<rect x="1214.8" y="347" width="170.4" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="loop-stats"/>
+<text class="edge-label" x="1300" y="361" text-anchor="middle">health + moving + fallen</text>
+<rect x="1121.4" y="167" width="157.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="stats-rpc"/>
+<text class="edge-label" x="1200" y="181" text-anchor="middle">health + safeToRestart</text>
+<rect x="839.4" y="987" width="91.2" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="onnx-sched"/>
+<text class="edge-label" x="885" y="1001" text-anchor="middle">load weights</text>
+<rect x="944.5" y="1097" width="111.0" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="ort-sched"/>
+<text class="edge-label" x="1000" y="1111" text-anchor="middle">dynamic library</text>
+<rect x="1044.7" y="642" width="90.6" height="19" rx="4" fill="#FFFFFF" fill-opacity="0.94" data-graph-role="decoration" data-owner="loop-odom"/>
+<text class="edge-label" x="1090" y="656" text-anchor="middle">IMU + 关节角</text>
+<rect x="50" y="1180" width="24" height="14" rx="3" fill="#DB2777" stroke="#94A3B8"/>
+<text class="legend" x="82" y="1192">新增</text>
+<rect x="260" y="1180" width="24" height="14" rx="3" fill="#F59E0B" stroke="#94A3B8"/>
+<text class="legend" x="292" y="1192">改动</text>
+<rect x="470" y="1180" width="24" height="14" rx="3" fill="#E2E8F0" stroke="#94A3B8"/>
+<text class="legend" x="502" y="1192">未动（灰化）</text>
+</svg>

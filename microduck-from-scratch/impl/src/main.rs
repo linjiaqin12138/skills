@@ -317,6 +317,26 @@ fn make_subscribe_ack(
     assemble_subscribe_ack(walk_file, load_error, sitstand, ground_pick, skills)
 }
 
+fn state_params(tick: u64, frame: &control::FrameSnapshot) -> serde_json::Value {
+    let imu = &frame.sensors.imu;
+    json!({
+        "tick": tick,
+        "positions": frame.sensors.positions,
+        "imu": {
+            "gyro": imu.gyro,
+            "gravity": imu.gravity,
+            "quat": imu.quat,
+        },
+        "obs": frame.obs.as_slice(),
+        "action": frame.action.as_slice(),
+        "fallen": frame.fallen,
+        "enabled": frame.enabled,
+        "gain": frame.gain,
+        "torque": frame.torque,
+        "skill": frame.skill,
+    })
+}
+
 async fn serve(
     stream: UnixStream,
     stats: Arc<control::Stats>,
@@ -534,30 +554,31 @@ async fn serve(
                     break; // 控制任务没了，这条连接也没有存在意义
                 }
                 let frame = frame_rx.borrow_and_update().clone();
-                let imu = &frame.sensors.imu;
                 let note = ServerMessage::notify(
                     "robot.state",
-                    json!({
-                        "tick": stats.tick.load(Ordering::Relaxed),
-                        "positions": frame.sensors.positions,
-                        "imu": {
-                            "gyro": imu.gyro,
-                            "gravity": imu.gravity,
-                            "quat": imu.quat,
-                        },
-                        "obs": frame.obs.as_slice(),
-                        "action": frame.action.as_slice(),
-                        "fallen": frame.fallen,
-                        "enabled": frame.enabled,
-                        "gain": frame.gain,
-                        "torque": frame.torque,
-                        "skill": frame.skill,
-                    }),
+                    state_params(stats.tick.load(Ordering::Relaxed), &frame),
                 );
                 if framed.send(serde_json::to_string(&note).unwrap()).await.is_err() {
                     break;
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn internal_odometry_never_enters_robot_state_rpc() {
+        let mut frame = control::FrameSnapshot::default();
+        frame.odometry.position = [1.0, 2.0, 3.0];
+        frame.odometry.yaw = 0.4;
+        let params = state_params(7, &frame);
+        assert!(params.get("odom").is_none());
+        assert!(params.get("odometry").is_none());
+        assert_eq!(params["skill"], serde_json::Value::Null);
+        assert_eq!(params["positions"], serde_json::to_value([0.0; 15]).unwrap());
     }
 }

@@ -38,11 +38,18 @@ use crate::fall::{FallPredictor, LIMP_MAX_TICKS, LandingDetector};
 use crate::io::{RobotIo, Sensors};
 use crate::model::{DEFAULT_POSITION, MOUTH_INDEX, NUM_JOINTS, mouth_target};
 use crate::obs::{ACTION_LEN, Command, OBS_LEN, Observation};
+use crate::odometry::{Odometry, OdometrySnapshot};
 use crate::policy::PolicyError;
 use crate::safety::{Safety, SafetyConfig};
 use crate::scheduler::Scheduler;
 
 pub const TICK_PERIOD: Duration = Duration::from_millis(20);
+
+fn update_odometry(odometry: &mut Odometry, sensors: &Sensors, was_fresh: bool, imu_ready: bool) {
+    if was_fresh && imu_ready {
+        odometry.update(&sensors.positions, sensors.imu.quat);
+    }
+}
 
 /// 读失败滑行窗：连续失败 ≤COAST_TICKS 拍用上一样本续跑（对策略不可见——
 /// 观测本来就旧一拍，训练数据正是这个年龄；60ms 覆盖一次掉读+重试+慢拍，
@@ -244,6 +251,8 @@ pub struct FrameSnapshot {
     /// Driving 报策略名；跌倒反射报 limp_fall/limp_pose；
     /// 其他阶段或本拍推理失败为 None。
     pub skill: Option<&'static str>,
+    /// 内部诊断：不进入 robot.state 线路协议（D50 属于 M10）。
+    pub odometry: OdometrySnapshot,
 }
 
 impl Default for FrameSnapshot {
@@ -257,6 +266,7 @@ impl Default for FrameSnapshot {
             gain: None,
             torque: false,
             skill: None,
+            odometry: OdometrySnapshot::default(),
         }
     }
 }
@@ -437,6 +447,8 @@ pub fn spawn(
             let mut tick: u64 = 0;
             let mut coast = Coast { last: None, ticks: 0 };
             let mut fall_predictor = FallPredictor::default();
+            // 与控制相位和调度器生命周期无关：reset/disable/恢复均不重建。
+            let mut odometry = Odometry::alpha();
 
             // 速率/抖动统计：每 5 秒一行，给 grep 用；同时记进 Stats 供 health。
             let mut window_start = Instant::now();
@@ -510,6 +522,7 @@ pub fn spawn(
                 if was_fresh {
                     safety.observe(&sensors, TICK_PERIOD);
                 }
+                update_odometry(&mut odometry, &sensors, was_fresh, safety.imu_ready());
 
                 let (command, intent_age, enabled, edges, mouth) = {
                     let mut ctl = control.lock().expect("control mutex poisoned");
@@ -736,6 +749,7 @@ pub fn spawn(
                     gain: safety.gain(),
                     torque: torque_on,
                     skill: skill_label,
+                    odometry: odometry.snapshot(),
                 });
 
                 tick += 1;
@@ -765,6 +779,78 @@ fn p99(deltas_ms: &mut [f64]) -> f64 {
 mod tests {
     use super::*;
     use crate::scheduler::{SKILLS, WALK_ACTION_SCALE, request_bit};
+
+    #[test]
+    fn odometry_requires_a_fresh_imu_ready_sample() {
+        let mut odometry = Odometry::alpha();
+        let mut sensors = Sensors::default();
+        sensors.imu.quat = [0.3f64.cos(), 0.0, 0.0, 0.3f64.sin()];
+        update_odometry(&mut odometry, &sensors, false, true);
+        update_odometry(&mut odometry, &sensors, true, false);
+        assert_eq!(odometry.snapshot(), OdometrySnapshot::default());
+        update_odometry(&mut odometry, &sensors, true, true);
+        assert!((odometry.snapshot().yaw - 0.6).abs() < 1e-12);
+    }
+
+    #[test]
+    fn coasted_and_unready_ticks_preserve_estimate_and_pending_candidate() {
+        let mut odometry = Odometry::alpha();
+        let mut sensors = Sensors::default();
+        update_odometry(&mut odometry, &sensors, true, true);
+        sensors.imu.quat = [(0.35f64 / 2.0).cos(), (0.35f64 / 2.0).sin(), 0.0, 0.0];
+        update_odometry(&mut odometry, &sensors, true, true);
+        assert_eq!(odometry.snapshot().pending_ticks, 1);
+        let before = odometry.snapshot();
+
+        sensors.positions[2] = 0.8;
+        sensors.imu.quat = [0.0, 1.0, 0.0, 0.0];
+        update_odometry(&mut odometry, &sensors, false, true);
+        update_odometry(&mut odometry, &sensors, true, false);
+        update_odometry(&mut odometry, &sensors, false, false);
+        assert_eq!(odometry.snapshot(), before);
+    }
+
+    #[tokio::test]
+    async fn disable_and_scheduler_reset_do_not_reset_odometry() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("policies");
+        let ort = dir.join("../third_party/onnxruntime/lib/libonnxruntime.so");
+        if !ort.exists() || !dir.join("velstand.onnx").exists() {
+            eprintln!("skip odometry reset test: policy or ORT missing");
+            return;
+        }
+        if std::env::var_os("ORT_DYLIB_PATH").is_none() {
+            unsafe { std::env::set_var("ORT_DYLIB_PATH", &ort) };
+        }
+        let scheduler = Scheduler::load(&dir.join("velstand.onnx"), &dir).expect("load scheduler");
+        let io: Box<dyn RobotIo> = Box::new(crate::io::FakeIo::new());
+        let safety = Safety::new(io, SafetyConfig::default());
+        let shared = shared_control();
+        shared.lock().unwrap().enabled = true;
+        let (_stats, mut frames) = spawn(safety, Some(scheduler), shared.clone(), true, false);
+        for _ in 0..5 {
+            frames.changed().await.unwrap();
+            frames.borrow_and_update();
+        }
+
+        shared.lock().unwrap().enabled = false;
+        for _ in 0..5 {
+            frames.changed().await.unwrap();
+            frames.borrow_and_update();
+        }
+        let disabled = frames.borrow_and_update().clone();
+        assert!(!disabled.enabled && disabled.skill.is_none());
+        assert!(disabled.odometry.position[2] > 0.02);
+
+        shared.lock().unwrap().enabled = true;
+        frames.changed().await.unwrap();
+        let resumed = frames.borrow_and_update().clone();
+        assert!(resumed.enabled);
+        assert_eq!(resumed.odometry.position, disabled.odometry.position);
+        assert_eq!(resumed.odometry.yaw, disabled.odometry.yaw);
+        assert_eq!(resumed.odometry.anchor_xy, disabled.odometry.anchor_xy);
+        assert_eq!(resumed.odometry.anchor_foot, disabled.odometry.anchor_foot);
+        assert_eq!(resumed.odometry.anchor_switches, disabled.odometry.anchor_switches);
+    }
 
     // ---- D24：滑行窗（对照原版 robotd/src/main.rs:6283-6316 的 Coast 单测）----
 

@@ -10,5 +10,6 @@
 | 第 23 章 | M9b Bite 2：奖励与课程（课文降级） | [m09b-train-pipeline/b02-reward-curriculum.html](m09b-train-pipeline/b02-reward-curriculum.html) |
 | 第 24 章 | M9b Bite 3：训练操作判断 | [m09b-train-pipeline/b03-ops-manual.html](m09b-train-pipeline/b03-ops-manual.html) |
 | 第 25 章 | M9c Bite 1：FallPredictor + Limp/Posing | [m09c-fall-recovery/b01-fall-recovery.html](m09c-fall-recovery/b01-fall-recovery.html) |
+| 第 26 章 | M9c Bite 2：相对 odometry | [m09c-odometry/b01-odometry.html](m09c-odometry/b01-odometry.html) |
 
-更早章节见各 `book/mNN-*/` 目录。现在读到：**第 25 章**。
+更早章节见各 `book/mNN-*/` 目录。现在读到：**第 26 章**。

@@ -13,6 +13,7 @@ pub mod fall;
 pub mod io;
 pub mod model;
 pub mod obs;
+pub mod odometry;
 pub mod policy;
 pub mod safety;
 pub mod scheduler;
