@@ -27,7 +27,7 @@ M2 的异常入口帮不上这个忙。`exception_handler` 打印现场后 `hlt`
 8259 PIC 汇集传统外中断。LAPIC 是 CPU 本地控制器，自带定时器。IOAPIC 把外设 IRQ 路由给 LAPIC。本课的 100 Hz tick 由 LAPIC timer 直接产生，不经过 IOAPIC。
 ```
 
-定时器、IOAPIC、IRQ 编号规则都是这一课第一次出现的硬件名词。更细的对照见 [PIC、LAPIC 与 IOAPIC](../concepts/apic-vs-pic.md)。
+定时器、IOAPIC、IRQ 编号规则都是这一课第一次出现的硬件名词。更细的对照见 [PIC、LAPIC 与 IOAPIC](../concepts/apic-vs-pic.md)。LAPIC 寄存器的基址要靠 MSR 读出来，MSR 是什么见 [x86 的 MSR：型号特定寄存器](../concepts/x86-msr.html)。
 
 一句提醒：屏蔽 legacy PIC 不等于停用 PIT。PIC 是中断控制器，PIT 是可编程定时器，两者不是同一个设备。
 
@@ -119,6 +119,16 @@ EOI 这一步不能省。LAPIC 用 in-service 位记录"哪条中断正在处理
 遍历四级页表时，哪一级描述符的 present 位是 0，就从 `EXTRA_PAGE_TABLES` 里取一张静态页填进去（`impl/kernel/src/lapic.rs:160-178`）。如果撞上大页映射，就直接复用，不再往下走。
 
 最后一级描述符指向 LAPIC 物理页，并置上 PCD/PWT 两位，禁止 CPU 缓存这块 MMIO。写完执行 `invlpg` 刷新 TLB，新映射立刻生效（`impl/kernel/src/lapic.rs:181-190`）。
+
+**LAPIC 基址不是写死的常数**（`impl/kernel/src/lapic.rs:131-143`）。它来自 MSR `IA32_APIC_BASE`（编号 `0x1B`）：低 32 位是 LAPIC 寄存器的物理基址，bit 11 是 x2APIC 模式开关。MSR 既不在内存里也不在 I/O 端口空间，只能用 `rdmsr` / `wrmsr` 读写。
+
+```rust src=impl/kernel/src/lapic.rs lines=131-143 hl=132
+```
+
+**`rdmsr` / `wrmsr` 怎么用**（`impl/kernel/src/lapic.rs:215-236`）。ECX 放 MSR 编号，EDX:EAX 装 64 位值的高、低 32 位——指令一次只搬 32 位，所以要拆成两半。MSR 的完整说明见 [x86 的 MSR：型号特定寄存器](../concepts/x86-msr.html)。
+
+```rust src=impl/kernel/src/lapic.rs lines=215-236 hl=220,229
+```
 
 ## 架构决定
 

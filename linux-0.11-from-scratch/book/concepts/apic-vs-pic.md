@@ -22,6 +22,8 @@
 
 当前 M3 Bite1 把旧的 PIC 外部中断投递路径换成 LAPIC timer 的本地路径：初始化屏蔽两片 legacy PIC，校准后把 LAPIC timer 配置为周期模式并打开 CPU 可屏蔽中断，得到每 10 ms 一次的 100 Hz IRQ32（`impl/kernel/src/lapic.rs:85-129`、`impl/kernel/src/lapic.rs:193-213`）。LAPIC 的启用与 spurious vector 设置见 `impl/kernel/src/lapic.rs:131-142`。
 
+LAPIC 寄存器所在的那段物理地址不是写死的常数，它由 CPU 通过 MSR `IA32_APIC_BASE` 告诉内核。MSR 是什么、为什么只能用 `rdmsr` 读写，见 [x86 的 MSR：型号特定寄存器](x86-msr.html)。
+
 每次定时器中断只把 `AtomicU64` 计数器加一，再向 LAPIC 写 EOI（End of Interrupt，中断处理完成），不在中断上下文打印或操作 console（`impl/kernel/src/lapic.rs:124-129`）。CPU 仍通过 IDT 找到处理入口：向量 32 有独立、可返回的入口，保存寄存器、调用 handler、恢复寄存器后用 `iretq` 返回（`impl/kernel/src/idt.rs:241-300`）。换的是中断来源与投递控制器，不是废弃 IDT。
 
 **屏蔽 PIC 不等于停用 PIT，二者不是同一个设备。** PIC 是中断控制器；PIT 是可编程定时器。这里 PIT channel 2 只提供已知为 10 ms 的校准参照，用来测量 LAPIC 计数速度，不负责产生运行期的 100 Hz tick（`impl/kernel/src/lapic.rs:193-207`）。当前 Bite 不需要 IOAPIC；下一 Bite 的键盘中断来自外部设备，才由 IOAPIC 把键盘 IRQ 路由到 LAPIC，再交给既有 IDT 分派路径。
