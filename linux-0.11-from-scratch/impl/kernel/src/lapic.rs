@@ -5,18 +5,20 @@ use core::hint::spin_loop;
 use core::ptr::{addr_of_mut, read_volatile, write_volatile};
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::io::{inb, outb};
+
 use limine::paging::PagingMode;
 use limine::request::{ExecutableAddressRequest, HhdmRequest, PagingModeRequest};
 
 const TIMER_VECTOR: u32 = 32;
 const TIMER_HZ: u32 = 100;
 
-const IA32_APIC_BASE_MSR: u32 = 0x1b;
+const IA32_APIC_BASE_MSR: u32 = 0x1b; // 0b 0001_1011
 const APIC_ENABLE: u64 = 1 << 11;
-const APIC_BASE_MASK: u64 = 0x0000_000f_ffff_f000;
+const APIC_BASE_MASK: u64 = 0x0000_000f_ffff_f000; // 0b 0000_0000_0000_0000_0000_0000_1111_1111_1111_1111_1111_1111_1111_0000
 
-const EOI: u64 = 0x0b0;
-const SPURIOUS_VECTOR: u64 = 0x0f0;
+const EOI: u64 = 0x0b0; // 0b 0000_1011_0000
+const SPURIOUS_VECTOR: u64 = 0x0f0; // 0b 0000_1111_0000
 const LVT_TIMER: u64 = 0x320;
 const INITIAL_COUNT: u64 = 0x380;
 const CURRENT_COUNT: u64 = 0x390;
@@ -231,20 +233,4 @@ fn write_msr(msr: u32, value: u64) {
             options(nomem, nostack),
         );
     }
-}
-
-fn outb(port: u16, value: u8) {
-    // SAFETY: 仅访问 PIT/PIC 的固定 I/O 端口。
-    unsafe {
-        asm!("out dx, al", in("dx") port, in("al") value, options(nomem, nostack, preserves_flags));
-    }
-}
-
-fn inb(port: u16) -> u8 {
-    let value: u8;
-    // SAFETY: 仅读取 PIT 的固定 I/O 端口。
-    unsafe {
-        asm!("in al, dx", in("dx") port, out("al") value, options(nomem, nostack, preserves_flags));
-    }
-    value
 }

@@ -65,9 +65,9 @@ x86 给这类设备留了一套**独立于内存的 I/O 端口地址空间**。�
 
 ![COM1 16550 寄存器地图：DLAB 决定 +0/+1 是数据还是除数](figures/serial-16550.svg)
 
-DLAB 值得单独说一句。偏移 +0 和 +1 是一址两用：DLAB=0 时是收发数据，DLAB=1 时同一地址变成波特率除数寄存器。所以初始化要先换挡设波特率，再换挡回来收发数据（`impl/kernel/src/serial.rs:44-47`）。
+DLAB 值得单独说一句。偏移 +0 和 +1 是一址两用：DLAB=0 时是收发数据，DLAB=1 时同一地址变成波特率除数寄存器。所以初始化要先换挡设波特率，再换挡回来收发数据（`impl/kernel/src/serial.rs:27-30`）。
 
-发一个字节是**轮询**：反复读 LINE_STATUS，等第 5 位亮起来，再往 DATA 写字节（`impl/kernel/src/serial.rs:52-55`）。慢，但零依赖，够本 Bite 用。
+发一个字节是**轮询**：反复读 LINE_STATUS，等第 5 位亮起来，再往 DATA 写字节（`impl/kernel/src/serial.rs:35-38`）。慢，但零依赖，够本 Bite 用。
 
 ## 设计
 
@@ -139,6 +139,7 @@ M0 是工程的第一张架构图，三个模块全部是新增：
 | `impl/.cargo/config.toml` | cargo 配置：编译 target、链接脚本、从源码编 core |
 | `impl/kernel/linker.ld` | 链接脚本：高半区基址、段布局、保住 Limine 请求段 |
 | `impl/kernel/src/main.rs` | 内核入口：握手检查、打印、停机、panic handler |
+| `impl/kernel/src/io.rs` | 端口 IO（in/out）封装，全内核共用 |
 | `impl/kernel/src/serial.rs` | COM1 16550 最小驱动 |
 
 **`panic = "abort"`**（`impl/kernel/Cargo.toml:15-20`）。裸机没有运行时可以逐层拆栈清理现场，panic 只能当场中止。M0 时期整个 crate 零依赖；M1 起引入了官方 `limine` crate（`impl/kernel/Cargo.toml:6-8`），那是"少造轮子"的直接结果。
@@ -172,19 +173,19 @@ M0 是工程的第一张架构图，三个模块全部是新增：
 ```rust src=impl/kernel/src/main.rs lines=111-137 hl=115
 ```
 
-**端口 IO 的两个包装**（`impl/kernel/src/serial.rs:25-39`）。用 `asm!` 包一层 `out dx, al` 与 `in al, dx`，全部内核代码对硬件的访问收敛在这两个函数里。
+**端口 IO 的两个包装**（`impl/kernel/src/io.rs:8-24`）。用 `asm!` 包一层 `out dx, al` 与 `in al, dx`。它们单独放在 `io.rs` 里，因为端口 IO 不只串口要用：LAPIC 校准要读写 PIT、启动时还要屏蔽 8259 传统 PIC，全内核的端口访问都收敛在这两个函数里。
 
-```rust src=impl/kernel/src/serial.rs lines=25-39 hl=28
+```rust src=impl/kernel/src/io.rs lines=8-24 hl=12
 ```
 
-**寄存器偏移与位定义**（`impl/kernel/src/serial.rs:8-23`）。偏移是 16550 datasheet 的行业约定，第 20 行和第 23 行是两个关键位：发送寄存器空标志、DLAB 换挡开关。
+**寄存器偏移与位定义**（`impl/kernel/src/serial.rs:8-22`）。偏移是 16550 datasheet 的行业约定，第 19 行和第 22 行是两个关键位：发送寄存器空标志、DLAB 换挡开关。
 
-```rust src=impl/kernel/src/serial.rs lines=8-23 hl=20,23
+```rust src=impl/kernel/src/serial.rs lines=8-22 hl=19,22
 ```
 
-**初始化序列与发送**（`impl/kernel/src/serial.rs:41-55`）。七步：关中断 → 开 DLAB → 写波特率除数（除数 1 = 115200）→ 关 DLAB 并定 8N1 → 开 FIFO 并清空队列 → 拉握手线声明就绪。每步就是一次 `outb`；`write_byte` 则先轮询第 5 位。
+**初始化序列与发送**（`impl/kernel/src/serial.rs:24-38`）。七步：关中断 → 开 DLAB → 写波特率除数（除数 1 = 115200）→ 关 DLAB 并定 8N1 → 开 FIFO 并清空队列 → 拉握手线声明就绪。每步就是一次 `outb`；`write_byte` 则先轮询第 5 位。
 
-```rust src=impl/kernel/src/serial.rs lines=41-55 hl=44,53
+```rust src=impl/kernel/src/serial.rs lines=24-38 hl=27,36
 ```
 
 **本 Bite 用到的 Rust 语法**，逐条对到当前文件：
@@ -193,16 +194,16 @@ M0 是工程的第一张架构图，三个模块全部是新增：
 |---|---|---|
 | `#![no_std]` `#![no_main]` | `main.rs:5-6` | 整 crate 属性：不链 std，没有 C 运行时调 `main` |
 | `mod serial;` | `main.rs:8-14` | 同目录文件是子模块，模块树即文件树 |
-| `pub fn` | `serial.rs:42` | 不写 `pub` 默认私有 |
-| `const` | `serial.rs:9` | 编译期常量，用到的地方内联成数字 |
+| `pub fn` | `serial.rs:25` | 不写 `pub` 默认私有 |
+| `const` | `serial.rs:8` | 编译期常量，用到的地方内联成数字 |
 | `static` | `limine_fb.rs:18` | 真占内存、有固定地址，引导器要运行时改它 |
 | `#[used]` | `limine_fb.rs:16` | 别当死代码删掉，有人在 ABI 层面用 |
 | `#[unsafe(link_section)]` | `limine_fb.rs:17` | 把这个 `static` 放进指定 ELF 段 |
 | `#[unsafe(no_mangle)]` | `main.rs:22` | 符号不改名，链接脚本才按名字找得到 |
 | `extern "C"` | `main.rs:23` | 用 C 调用约定，对齐外部世界规矩[^4] |
 | `-> !` | `main.rs:23` | never type：这个函数永远不返回 |
-| `unsafe` 块 | `serial.rs:26-29` | 编译器无法证明安全的操作，程序员签字担责 |
-| `asm!` | `serial.rs:28` | 把汇编指令嵌进 Rust |
+| `unsafe` 块 | `io.rs:11-13` | 编译器无法证明安全的操作，程序员签字担责 |
+| `asm!` | `io.rs:12` | 把汇编指令嵌进 Rust |
 | `#[panic_handler]` | `main.rs:121-122` | no_std 下交代 panic 结局，全局只能一个 |
 
 前八条语法 TRPL（[《Rust 程序设计语言》中文版](https://rustwiki.org/zh-CN/book/)）没讲裸机写法，链到官方英文文档：`no_std` 见 [Embedded Rust Book](https://doc.rust-lang.org/embedded-book/intro/no-std.html)，`#[used]` 见 [Rust Reference](https://doc.rust-lang.org/upstream/attributes/codegen.html#the-used-attribute)，`link_section` 见 [Rust Reference](https://doc.rust-lang.org/upstream/abi.html#the-link_section-attribute)，`asm!` 见 [Rust Reference](https://doc.rust-lang.org/upstream/inline-assembly.html)，`#[panic_handler]` 见 [Rustonomicon](https://doc.rust-lang.org/nomicon/panic-handler.html)。
@@ -408,7 +409,7 @@ core 是 Rust 的最小标准库：`Option`、`Result`、迭代器、`panic!` �
 
 **波特率 115200 是怎么算出来的。**
 
-16550 的基准时钟是 1.8432 MHz，芯片内部先固定除以 16，再除以我们写的除数寄存器。除数写 1：1843200 ÷ 16 ÷ 1 = 115200。这就是 `impl/kernel/src/serial.rs:45-46` 写除数低字节 `0x01`、高字节 `0x00` 的原因。
+16550 的基准时钟是 1.8432 MHz，芯片内部先固定除以 16，再除以我们写的除数寄存器。除数写 1：1843200 ÷ 16 ÷ 1 = 115200。这就是 `impl/kernel/src/serial.rs:28-29` 写除数低字节 `0x01`、高字节 `0x00` 的原因。
 
 **`init()` 里 0x03 / 0xC7 / 0x0B 三个魔数是什么。**
 
@@ -448,7 +449,7 @@ core 是 Rust 的最小标准库：`Option`、`Result`、迭代器、`panic!` �
 
 **串口为什么叫 COM1 / 0x3F8。**
 
-PC 历史约定：BIOS 数据区 `0x400` 处存着至多 4 个串口的 I/O 基址，第一个（COM1）惯例是 `0x3F8`。qemu 默认就按这个布局模拟，所以写死 `0x3F8` 在目标环境下是安全的（`impl/kernel/src/serial.rs:8-9`）。
+PC 历史约定：BIOS 数据区 `0x400` 处存着至多 4 个串口的 I/O 基址，第一个（COM1）惯例是 `0x3F8`。qemu 默认就按这个布局模拟，所以写死 `0x3F8` 在目标环境下是安全的（`impl/kernel/src/serial.rs:7-8`）。
 
 **MMIO 是什么，读写那块"内存"就等于读写设备了吗。**
 

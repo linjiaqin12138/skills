@@ -2,7 +2,7 @@
 //! 寄存器偏移与位定义是 16550 datasheet 的行业约定，
 //! 亦可见 OSDev wiki 的 "Serial Ports" 词条。
 
-use core::arch::asm;
+use crate::io::{inb, outb};
 
 /// PC 惯例：COM1 的 I/O 端口基址（BIOS 数据区 0x400 处可查）
 const COM1: u16 = 0x3F8;
@@ -20,22 +20,6 @@ const TRANSMIT_HOLDING_EMPTY: u8 = 1 << 5;
 
 /// LINE_CONTROL 第 7 位：DLAB，置位后 DATA/INTERRUPT_ENABLE 变成波特率除数寄存器
 const DLAB: u8 = 1 << 7;
-
-fn outb(port: u16, value: u8) {
-    // SAFETY: 只读写固定 I/O 端口，不触碰内存与栈；in/out 均不影响 EFLAGS
-    unsafe {
-        asm!("out dx, al", in("dx") port, in("al") value, options(nomem, nostack, preserves_flags));
-    }
-}
-
-fn inb(port: u16) -> u8 {
-    let value: u8;
-    // SAFETY: 同上
-    unsafe {
-        asm!("in al, dx", in("dx") port, out("al") value, options(nomem, nostack, preserves_flags));
-    }
-    value
-}
 
 /// 16550 标准初始化序列：关中断 → 设波特率 → 定数据格式 → 开 FIFO → 拉握手线
 pub fn init() {

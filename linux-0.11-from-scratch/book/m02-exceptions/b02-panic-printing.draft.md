@@ -75,9 +75,9 @@ serial -> (halt)
 
 每个字节先交给 `put_char` 绘制，再交给串口发送。因此 handler 只调用 `printk!`，无需分别维护两套输出。`Ok(())` 表示写入成功，且不携带结果值。
 
-**串口出口最终写入 COM1**（`impl/kernel/src/serial.rs:51-60`）。
+**串口出口最终写入 COM1**（`impl/kernel/src/serial.rs:35-44`）。
 
-```rust src=impl/kernel/src/serial.rs lines=51-60 hl=53
+```rust src=impl/kernel/src/serial.rs lines=35-44 hl=36
 ```
 
 `u8` 是一个字节。`while` 循环等待硬件发送槽空闲，再由 `outb` 写入字节。`pub fn` 让 `console` 模块可以调用这两个函数。

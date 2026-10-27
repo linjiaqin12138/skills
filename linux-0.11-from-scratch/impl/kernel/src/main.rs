@@ -8,6 +8,7 @@ mod fb;
 mod font;
 mod gdt;
 mod idt;
+mod io;
 mod lapic;
 mod limine_fb;
 mod serial;

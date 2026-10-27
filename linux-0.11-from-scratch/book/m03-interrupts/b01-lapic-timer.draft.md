@@ -47,9 +47,9 @@ M2 的异常入口帮不上这个忙。`exception_handler` 打印现场后 `hlt`
 [LVT 改周期模式并写 INITIAL_COUNT] -> [sti 开可屏蔽中断]
 ```
 
-寄存器写入的顺序有讲究。divider 先设成 16，LVT 先保持屏蔽，校准完成才改成周期模式并写 INITIAL_COUNT，最后 `sti`（`impl/kernel/src/lapic.rs:114`）。在 `sti` 之前，IDT、LAPIC 地址和 handler 都必须就绪，否则第一个 IRQ 会落到空入口。
+寄存器写入的顺序有讲究。divider 先设成 16，LVT 先保持屏蔽，校准完成才改成周期模式并写 INITIAL_COUNT，最后 `sti`（`impl/kernel/src/lapic.rs:116`）。在 `sti` 之前，IDT、LAPIC 地址和 handler 都必须就绪，否则第一个 IRQ 会落到空入口。
 
-PIT 在这里只当秒表用。channel 2 输出一个已知 10 ms 的脉冲，PIT 的重装值由 1.193182 MHz 频率除以 100 得到（`impl/kernel/src/lapic.rs:30-31`）。校准函数让 LAPIC 计数从最大值往下走，等脉冲到达，再用 `u32::MAX - CURRENT_COUNT` 算出这 10 ms 内的计数差（`impl/kernel/src/lapic.rs:191-206`）。这个差值就是以后一个 jiffy 的 INITIAL_COUNT。
+PIT 在这里只当秒表用。channel 2 输出一个已知 10 ms 的脉冲，PIT 的重装值由 1.193182 MHz 频率除以 100 得到（`impl/kernel/src/lapic.rs:32-33`）。校准函数让 LAPIC 计数从最大值往下走，等脉冲到达，再用 `u32::MAX - CURRENT_COUNT` 算出这 10 ms 内的计数差（`impl/kernel/src/lapic.rs:193-208`）。这个差值就是以后一个 jiffy 的 INITIAL_COUNT。
 
 ### 二、IRQ32 来了以后发生什么
 
@@ -73,12 +73,12 @@ EOI 这一步不能省。LAPIC 用 in-service 位记录"哪条中断正在处理
 
 ### 三、代码要点
 
-**计数器是一个原子整数**（`impl/kernel/src/lapic.rs:118-127`）。
+**计数器是一个原子整数**（`impl/kernel/src/lapic.rs:120-129`）。
 
-```rust src=impl/kernel/src/lapic.rs lines=118-127 hl=119,124
+```rust src=impl/kernel/src/lapic.rs lines=120-129 hl=121,126
 ```
 
-计数器本体是 `static JIFFIES: AtomicU64 = AtomicU64::new(0);`（`impl/kernel/src/lapic.rs:44`）。`static` 是整个程序期间都存在的全局变量；`AtomicU64` 是 64 位无符号原子整数，`new(0)` 给出初值。`fetch_add(1, Ordering::Relaxed)` 原子地加一并返回加之前的旧值。
+计数器本体是 `static JIFFIES: AtomicU64 = AtomicU64::new(0);`（`impl/kernel/src/lapic.rs:46`）。`static` 是整个程序期间都存在的全局变量；`AtomicU64` 是 64 位无符号原子整数，`new(0)` 给出初值。`fetch_add(1, Ordering::Relaxed)` 原子地加一并返回加之前的旧值。
 
 `Ordering::Relaxed`（松弛序）是内存序里最弱的一个。它只保证这次加减本身不会读到写了一半的值，不保证它与别的内存操作谁先谁后。这里只需要"不丢计数"，不需要别的顺序，所以选最弱的那个。普通上下文用 `load(Ordering::Relaxed)` 读。
 
@@ -111,14 +111,14 @@ EOI 这一步不能省。LAPIC 用 in-service 位记录"哪条中断正在处理
 
 `printk!` 是宏，参数里的 `{}` 按顺序填入 `observed`。它把同一段文本同时写到屏幕和串口。else 分支执行 `hlt`：没有调度器时，让 CPU 停到下一个中断唤醒是最省事的等待方式。
 
-**MMIO 映射只补一页**（`impl/kernel/src/lapic.rs:163-176`）。
+**MMIO 映射只补一页**（`impl/kernel/src/lapic.rs:165-178`）。
 
-```rust src=impl/kernel/src/lapic.rs lines=163-176
+```rust src=impl/kernel/src/lapic.rs lines=165-178
 ```
 
-遍历四级页表时，哪一级描述符的 present 位是 0，就从 `EXTRA_PAGE_TABLES` 里取一张静态页填进去（`impl/kernel/src/lapic.rs:158-176`）。如果撞上大页映射，就直接复用，不再往下走。
+遍历四级页表时，哪一级描述符的 present 位是 0，就从 `EXTRA_PAGE_TABLES` 里取一张静态页填进去（`impl/kernel/src/lapic.rs:160-178`）。如果撞上大页映射，就直接复用，不再往下走。
 
-最后一级描述符指向 LAPIC 物理页，并置上 PCD/PWT 两位，禁止 CPU 缓存这块 MMIO。写完执行 `invlpg` 刷新 TLB，新映射立刻生效（`impl/kernel/src/lapic.rs:179-188`）。
+最后一级描述符指向 LAPIC 物理页，并置上 PCD/PWT 两位，禁止 CPU 缓存这块 MMIO。写完执行 `invlpg` 刷新 TLB，新映射立刻生效（`impl/kernel/src/lapic.rs:181-190`）。
 
 ## 架构决定
 

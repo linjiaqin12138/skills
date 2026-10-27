@@ -91,6 +91,7 @@ M0: kernel alive
 | `impl/.cargo/config.toml` | 1 | cargo 配置：target、链接脚本、build-std（impl/ 下，位置敏感） |
 | `impl/kernel/linker.ld` | 1 | 链接脚本：高半区基址、段布局、KEEP Limine 请求段 |
 | `impl/kernel/src/main.rs` | 1 | 入口 `_start`：握手检查、打印、停机、panic handler |
+| `impl/kernel/src/io.rs` | 1 | 端口 IO（in/out）封装，串口与 LAPIC 共用 |
 | `impl/kernel/src/serial.rs` | 1 | COM1 16550 最小驱动 |
 | `limine.conf` | 2 | Limine 引导配置（拷入 ISO `/boot/limine/`） |
 | `impl/docker/build.mk` | 2 | 容器内 ISO 流水线：cargo → iso_root → xorriso → bios-install |
