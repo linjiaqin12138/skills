@@ -54,7 +54,7 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 ├── decisions/NNNN-<slug>.md
 ├── spec/features.md
 ├── spec/deviations.md
-├── accept/m01-b01.sh              # 工作目录是仓库根，脚本进入 impl/
+├── accept/m01-b01.sh              # 自动验收用；不替代课文里的 raw 项目运行命令
 ├── exercises/<slug>/              # 先修与项目内引导的学习者练习
 └── tutor/
     ├── STATE.md
