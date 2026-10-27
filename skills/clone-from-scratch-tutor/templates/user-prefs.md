@@ -4,6 +4,8 @@
 
 只放跨项目的、关于这个人的偏好。项目特有的目标写在该项目的 `tutor/user-prefs.md`。
 
+跨项目编码规则放在 `~/.clone-from-scratch-tutor/code-rules.md`，项目编码规则放在 `tutor/code-rules.md`。没有则不创建，存在才读取；规则冲突时项目级覆盖用户级。
+
 ## 首次提问清单
 
 1. 主力语言和技术栈是什么？哪些领域明确不熟悉？
@@ -44,5 +46,9 @@
 
 - 架构图默认 fireworks-tech-graph
 - 视频要先得到用户同意
+
+## 验收
+
+- 独立 verifier：开启（默认）。项目级 `tutor/user-prefs.md` 可覆盖；未配置时也按开启处理
 
 ## 构建环境

@@ -15,8 +15,9 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 ## 启动
 
 1. 用户级偏好：`~/.clone-from-scratch-tutor/user-prefs.md`。没有则从本 skill 的 `templates/user-prefs.md` 复制，按其中的首次提问清单问（答多少算多少）。之后用户纠正背景或说出新偏好，立即写入该文件。
-2. 找工作区，三选一：
-   - 已有 `<项目名>-from-scratch/tutor/STATE.md`：读 `tutor/STATE.md`、`tutor/user-prefs.md`、`spec/features.md`、`spec/deviations.md`。只打开当前阶段那一份文件，从「下一步」继续。不重做已完成的课，不重问已记下的偏好。
+2. 编码规则：用户级 `~/.clone-from-scratch-tutor/code-rules.md` 和项目级 `tutor/code-rules.md` 都是可选文件，存在才读；规则冲突时项目级覆盖用户级。
+3. 找工作区，三选一：
+   - 已有 `<项目名>-from-scratch/tutor/STATE.md`：读 `tutor/STATE.md`、`tutor/user-prefs.md`、可能存在的 `tutor/code-rules.md`、`spec/features.md`、`spec/deviations.md`。只打开当前阶段那一份文件，从「下一步」继续。不重做已完成的课，不重问已记下的偏好。
    - 已有 `docs/STATE.md`、且没有 `tutor/STATE.md`：这是旧布局项目。不迁移，不新建 `impl/`、`book/`、`spec/`、`decisions/`。沿用它现有的目录，从那份 STATE 继续。
    - 都没有：向用户要仓库地址。然后在当前目录创建 `<项目名>-from-scratch/`，按 [phases/phase-0.md](phases/phase-0.md) 从 `templates/` 落盘。
 
@@ -59,6 +60,7 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 └── tutor/
     ├── STATE.md
     ├── user-prefs.md
+    ├── code-rules.md              # 可选的项目编码规则
     ├── phases/
     ├── prerequisites/<slug>.md    # 内部调度、实时交接与 audit
     └── runs/m01-b01.txt
@@ -70,7 +72,7 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 |---|---|
 | `impl/` | coder |
 | `accept/` | 主 agent，在 coder 之前 |
-| `tutor/runs/` | verifier |
+| `tutor/runs/` | verifier；独立 verifier 关闭时由主 agent |
 | `book/arch/`、课目录里的 `arch.svg` 与 `figures/arch-diff.svg` | diagram |
 | `book/mNN-*/bKK-*.md` 与同名 `.html` | writer |
 | `book/concepts/` | concept-writer |
@@ -90,7 +92,7 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 | 先修学习 / 家教会话 | [phases/prerequisite.md](phases/prerequisite.md) |
 | Phase 4 | [phases/phase-4.md](phases/phase-4.md) |
 
-子代理没有上下文。启动时让它先读下表对应文件，交接按该文件的「输入」逐项给全，缺一项不开工。主文件不复述字段。每个子代理的 prompt 都写上用户级偏好和 `tutor/user-prefs.md` 的路径。
+子代理没有上下文。启动时让它先读下表对应文件，交接按该文件的「输入」逐项给全，缺一项不开工。主文件不复述字段。每个子代理的 prompt 都写上用户级偏好和 `tutor/user-prefs.md` 的路径；coder 和验收执行者还要写上两个 `code-rules.md` 的路径。
 
 | 角色 | 打开 |
 |---|---|

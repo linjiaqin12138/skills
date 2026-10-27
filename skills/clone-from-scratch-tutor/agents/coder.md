@@ -10,6 +10,7 @@
 - 偏差簿里和本 Bite 有关的行：允许偏离什么，禁止提前实现什么
 - 本 Bite 的决定文件路径（状态还是起草）。没有新决定时，主 agent 会明确写「无」
 - 用户级 `~/.clone-from-scratch-tutor/user-prefs.md` 与项目级 `tutor/user-prefs.md`
+- 用户级 `~/.clone-from-scratch-tutor/code-rules.md` 与项目级 `tutor/code-rules.md`。文件可能不存在
 
 ## 做法
 
@@ -23,6 +24,7 @@
 
 ## 代码
 
+- 存在的 `code-rules.md` 都要读并遵守；规则冲突时项目级覆盖用户级。没有配置文件时沿用 `impl/` 已有约定
 - 宁可多两个小函数，也不写一段难读的代码
 - 标识符见名知意。注释只写为什么
 - magic number 写出来源：文献、压测，或拍脑袋。拍脑袋的标成代理假设

@@ -6,7 +6,7 @@
 
 - 里程碑目标，以及它在依赖树里的位置
 - 本 Bite 的 `impl/` 文件清单。这些文件要亲自读
-- `accept/mNN-bKK.sh` 的路径，verifier 的结论，以及 `tutor/runs/mNN-bKK.txt`
+- `accept/mNN-bKK.sh` 的路径，验收结论，以及 `tutor/runs/mNN-bKK.txt`
 - 本 Bite 新写或重新嵌入的决定文件路径。没有则主 agent 写明「无」
 - 偏差簿里本 Bite 收敛或新登记的编号
 - 架构变动：动了哪些模块和边。没变则写明「无」，课文不嵌架构图
