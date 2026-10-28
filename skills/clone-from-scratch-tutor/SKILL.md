@@ -1,7 +1,7 @@
 ---
 name: clone-from-scratch-tutor
 description: 把一个开源仓库做成可断点续作的从零实现教程。当用户给出仓库地址，并要求手搓、从零实现、按里程碑学习作者的设计时使用。只想要代码导读、跑起来或一次架构介绍时不用。
-compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲染命令，以及同级 skill draw-diagram 与 concept-writer。架构图默认 fireworks-tech-graph。页面目检需要 agent-browser 或 cairosvg。多轮先修学习默认用 learn-coach 加终端实验协议；没有时需安装或由用户改选。manim 仅在用户批准视频后，用本 skill 的 scripts/setup-manim.sh 安装。
+compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲染命令，以及同级 skill draw-diagram、concept-writer 与 make-video。架构图默认 fireworks-tech-graph。页面目检需要 agent-browser 或 cairosvg。多轮先修学习默认用 learn-coach 加终端实验协议；没有时需安装或由用户改选。讲解视频经用户批准后路由到同级 make-video，不在本 skill 内直连具体视频包。
 ---
 
 # 从零手搓开源项目教程
@@ -110,10 +110,10 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 按顺序探测，找到就用，不写死家目录里的某一个路径：
 
 - `node`，主版本 ≥ 20
-- 渲染：`<项目>/bin/am-render`，否则工作区 `vendor/answer-me-with-html/scripts/am.mjs`。风格用 strict。警告不清零就不出页
+- 渲染：`<项目>/bin/am-render`，否则工作区 `vendor/answer-me-with-html/scripts/am.mjs`。风格用 strict。警告不清零就不出页。课文/概念页只用 `am render`
 - 架构图：`draw-diagram`。默认 fireworks-tech-graph。d2 只在该 skill 允许的简单图上作退路
 - 目检：`agent-browser`，否则 `cairosvg`
-- manim：用户批准了视频才运行本 skill 的 `scripts/setup-manim.sh`。脚本注释里的系统包需要 sudo 时，停下让用户执行
+- 讲解视频：用户批准后 `Read` 同级 [make-video](../make-video/SKILL.md)，由其选型并执行；依赖与系统包装备跟被选视频 skill，要 sudo 时停下让用户执行
 
 缺任何一个当前步骤要用的命令，列出缺什么并停下。
 
