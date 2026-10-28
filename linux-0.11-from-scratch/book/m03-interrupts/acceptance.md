@@ -22,4 +22,4 @@
 
 **架构图**：`book/arch/current.svg`（顶层运行时路径）、`book/m03-interrupts/arch.svg`（本课副本）、`book/m03-interrupts/figures/arch-diff.svg`（M2→M3 变动）、`book/m03-interrupts/figures/lapic-mmio.svg`（MMIO 映射结构单独成图）。图源为 `book/arch/src/current.json` 与 `book/m03-interrupts/figures/src/*.json`；fireworks validate / render / check 均通过。
 
-**教程与概念页复验**：`b01-lapic-timer.html` strict 渲染 0 警告，8 个面板（问题/背景/设计含代码/架构决定/验收/与原版差异/坑/自测），5 道自测解析均可展开；浏览器确认两张 SVG 与两张过程图均正常显示，无空白面板。概念页 `book/concepts/apic-vs-pic.md`（简单模式）说明 PIC、PIT、LAPIC、IOAPIC 的分工。
+**教程与概念页复验（2026-10-28 按现行 writer / concept-writer 重写）**：源稿 `b01-lapic-timer.md`（由 `.draft.md` 迁入）strict 渲染 0 警告，8 个面板（问题 / 背景 / 设计 / 架构决定 / 代码领读 / 验收含 raw qemu 命令 / 与原版差异与坑 / 自测 5 题）。概念页 `apic-vs-pic`、`x86-msr`、`hhdm`、`mmio-page-mapping` 均含「回到项目」用点对照表；「去学」仅作深入。

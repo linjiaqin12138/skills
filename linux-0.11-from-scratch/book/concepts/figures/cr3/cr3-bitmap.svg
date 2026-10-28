@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-label="CR3 bitfields for IA-32e paging">
+  <rect width="1100" height="620" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', sans-serif; fill: #111827; }
+    .title { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13px; fill: #475569; }
+    .sec { font-size: 15px; font-weight: 700; }
+    .lab { font-size: 13px; font-weight: 600; }
+    .tiny { font-size: 11px; fill: #64748b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #334155; }
+    .box { stroke: #64748b; stroke-width: 1.4; }
+    .addr { fill: #dcfce7; }
+    .flag { fill: #fde68a; }
+    .pcid { fill: #dbeafe; }
+    .rsv { fill: #e2e8f0; }
+    .mask { fill: #ede9fe; }
+  </style>
+
+  <text x="28" y="36" class="title">CR3 位域（IA-32e / 长模式四级分页）</text>
+  <text x="28" y="58" class="sub">高位在左。CR3 指向 PML4 物理基址（4 KiB 对齐）。本课只读 CR3，用掩码取出页表根地址</text>
+
+  <text x="28" y="96" class="sec">A. CR4.PCIDE = 0（本课 / 常见启动态）</text>
+  <g text-anchor="middle">
+    <text x="120" y="122" class="tiny">63 : M</text>
+    <text x="420" y="122" class="tiny">M-1 : 12</text>
+    <text x="720" y="122" class="tiny">11 : 5</text>
+    <text x="830" y="122" class="tiny">4</text>
+    <text x="900" y="122" class="tiny">3</text>
+    <text x="990" y="122" class="tiny">2 : 0</text>
+  </g>
+  <g>
+    <rect x="28" y="130" width="184" height="78" class="box rsv"/>
+    <rect x="212" y="130" width="416" height="78" class="box addr"/>
+    <rect x="628" y="130" width="152" height="78" class="box rsv"/>
+    <rect x="780" y="130" width="80" height="78" class="box flag"/>
+    <rect x="860" y="130" width="80" height="78" class="box flag"/>
+    <rect x="940" y="130" width="120" height="78" class="box rsv"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="120" y="162" class="lab">保留</text>
+    <text x="120" y="182" class="tiny">必须为 0</text>
+    <text x="420" y="158" class="lab">PML4 物理基址</text>
+    <text x="420" y="178" class="tiny">4 KiB 对齐 · 低 12 位隐含为 0</text>
+    <text x="420" y="196" class="tiny">M = MAXPHYADDR (&lt;=52)</text>
+    <text x="704" y="162" class="lab">忽略</text>
+    <text x="704" y="182" class="tiny">bits 11:5</text>
+    <text x="820" y="158" class="lab">PCD</text>
+    <text x="820" y="178" class="tiny">禁缓存</text>
+    <text x="900" y="158" class="lab">PWT</text>
+    <text x="900" y="178" class="tiny">写穿</text>
+    <text x="1000" y="162" class="lab">忽略</text>
+    <text x="1000" y="182" class="tiny">bits 2:0</text>
+  </g>
+  <text x="28" y="234" class="tiny">PCD / PWT 控制「取 PML4 那次访存」的缓存属性，不是最终映射页的属性。</text>
+
+  <text x="28" y="274" class="sec">B. CR4.PCIDE = 1（启用 PCID 时）</text>
+  <g text-anchor="middle">
+    <text x="120" y="300" class="tiny">63 : M</text>
+    <text x="420" y="300" class="tiny">M-1 : 12</text>
+    <text x="860" y="300" class="tiny">11 : 0</text>
+  </g>
+  <g>
+    <rect x="28" y="308" width="184" height="78" class="box rsv"/>
+    <rect x="212" y="308" width="416" height="78" class="box addr"/>
+    <rect x="628" y="308" width="432" height="78" class="box pcid"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="120" y="340" class="lab">保留</text>
+    <text x="120" y="360" class="tiny">写 bit63 可避 TLB 刷*</text>
+    <text x="420" y="340" class="lab">PML4 物理基址</text>
+    <text x="420" y="360" class="tiny">同左图</text>
+    <text x="844" y="340" class="lab">PCID</text>
+    <text x="844" y="360" class="tiny">12 位进程上下文 ID · 取代 PCD/PWT 槽位</text>
+  </g>
+  <text x="28" y="412" class="tiny">* 向 CR3 写入时若 bit63=1，可不刷新与该 PCID 相关的 TLB；读出时 bit63 恒为 0。本课未开 PCIDE。</text>
+
+  <text x="28" y="452" class="sec">本课怎么用</text>
+  <g>
+    <rect x="28" y="466" width="1044" height="100" class="box mask"/>
+    <text x="48" y="496" class="lab">读：</text>
+    <text x="100" y="496" class="mono">mov rax, cr3</text>
+    <text x="48" y="522" class="lab">取根：</text>
+    <text x="110" y="522" class="mono">table_physical = cr3 &amp; 0x000f_ffff_ffff_f000</text>
+    <text x="48" y="548" class="tiny">PAGE_ADDRESS_MASK 清掉低 12 位（PCD/PWT/忽略位或 PCID），留下 4 KiB 对齐的 PML4 物理地址，再加 HHDM 偏移去写页表。</text>
+  </g>
+
+  <text x="28" y="598" class="sub">对照：impl/kernel/src/lapic.rs 读 CR3 与 PAGE_ADDRESS_MASK；页表遍历见 map_mmio_page</text>
+</svg>

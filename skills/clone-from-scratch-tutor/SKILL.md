@@ -14,7 +14,7 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 
 ## 启动
 
-1. 用户级偏好：`~/.clone-from-scratch-tutor/user-prefs.md`。没有则从本 skill 的 `templates/user-prefs.md` 复制，按其中的首次提问清单问（答多少算多少）。之后用户纠正背景或说出新偏好，立即写入该文件。
+1. 用户级偏好：`~/.clone-from-scratch-tutor/user-prefs.md`。没有则从本 skill 的 `templates/user-prefs.md` 复制，按其中的首次提问清单问（答多少算多少）。之后用户纠正背景或说出新偏好，立即写入该文件；**仅本项目成立**的约定（如 docker 构建 / 宿主机跑 qemu、验收要不要写清容器边界）写入项目级 `tutor/user-prefs.md`，不要塞进 skill 硬规则或用户级通用偏好。
 2. 编码规则：用户级 `~/.clone-from-scratch-tutor/code-rules.md` 和项目级 `tutor/code-rules.md` 都是可选文件，存在才读；规则冲突时项目级覆盖用户级。
 3. 找工作区，三选一：
    - 已有 `<项目名>-from-scratch/tutor/STATE.md`：读 `tutor/STATE.md`、`tutor/user-prefs.md`、可能存在的 `tutor/code-rules.md`、`spec/features.md`、`spec/deviations.md`。只打开当前阶段那一份文件，从「下一步」继续。不重做已完成的课，不重问已记下的偏好。

@@ -761,146 +761,128 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
 <main class="am-doc">
-<header class="am-head"><h1>M3 Bite1 · LAPIC 定时器：第一个自己到来的中断</h1><p class="am-sub">IRQ32 每 10 ms 一次，handler 只加计数并写 EOI，普通上下文每 100 tick 打印一行</p><div class="am-head-meta"><span><b>source</b>linux-0.11-from-scratch · M3</span></div><div class="am-intro am-md"><div class="am-md"><p>Lead: LAPIC 定时器以 100 Hz 投递 IRQ32。中断上下文只做两件事：原子计数加一、写 EOI。恢复寄存器后 <code>iretq</code> 返回，普通上下文每累计 100 tick 打印一行。宿主时钟两次独立测量为 99.77 Hz 与 99.49 Hz。</p>
+<header class="am-head"><h1>M3 Bite1 · LAPIC 定时器：第一个自己到来的中断</h1><p class="am-sub">IRQ32 每 10 ms 一次，handler 只加计数并写 EOI，普通上下文每 100 tick 打印一行</p><div class="am-head-meta"><span><b>source</b>linux-0.11-from-scratch · M3</span></div><div class="am-intro am-md"><div class="am-md"><p>Lead: LAPIC 定时器以 100 Hz 投递向量 32。中断里只做原子计数加一和写 EOI，<code>iretq</code> 返回后主流程每 100 tick 打印一行。宿主时钟两次独立测量约 99.5–99.8 Hz。</p>
 </div></div></header>
 <div class="am-doc-layout">
-<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 问题</a><a href="#panel-B">B · 背景</a><a href="#panel-C">C · 设计</a><a href="#panel-D">D · 架构决定</a><a href="#panel-E">E · 验收</a><a href="#panel-F">F · 与原版差异</a><a href="#panel-G">G · 坑</a><a href="#panel-H">H · 自测</a></nav><div class="am-doc-body">
+<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 问题</a><a href="#panel-B">B · 背景</a><a href="#panel-C">C · 设计</a><a href="#panel-D">D · 架构决定</a><a href="#panel-E">E · 代码领读</a><a href="#panel-F">F · 验收</a><a href="#panel-G">G · 与原版差异与坑</a><a href="#panel-H">H · 自测</a></nav><div class="am-doc-body">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>问题</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>M2 结束时，内核只会主动打印。屏幕上是启动时那几行固定文本，没有任何东西随时间变化。要看出 CPU 被外部事件打断后还能继续往下跑，需要两样东西。一个是自己到来的中断源，另一个是中断返回后还能被主流程读到的计数器。</p>
-<p>M2 的异常入口帮不上这个忙。<code>exception_handler</code> 打印现场后 <code>hlt</code> 停机（<code>impl/kernel/src/idt.rs:311-347</code>），它假设异常不可返回。定时器中断必须返回：它打断的可能是任意一段普通内核代码，返回后那段代码要原样继续。</p>
-<p>这一课要交付的就是这条通路：</p>
+<div class="am-panel-body"><div class="am-md"><p>M2 结束时，内核只会主动打印。屏幕上是启动时那几行固定文本，没有任何东西随时间变化。</p>
+<p>要看出 CPU 被打断后还能继续跑，需要两样东西：自己到来的中断源，以及中断返回后主流程还能读到的计数器。</p>
+<p>M2 的异常入口帮不上忙。<code>exception_handler</code> 打印现场后 <code>hlt</code> 停机（<code>impl/kernel/src/idt.rs:311-347</code>），它假设异常不可返回。定时器中断必须返回：它可能打断任意一段普通内核代码，返回后那段代码要原样继续。</p>
+<p>本课交付：</p>
 <ul>
-<li>LAPIC 定时器以 100 Hz 投递 IRQ32。</li>
-<li>向量 32 有独立的可返回入口。</li>
-<li>中断上下文只做最小工作。</li>
-<li>普通上下文每 100 tick 打印一行。</li>
+<li>LAPIC 定时器以 100 Hz 投递向量 32</li>
+<li>向量 32 有独立的可返回入口</li>
+<li>中断上下文只做最小工作</li>
+<li>普通上下文每 100 tick 打印一行</li>
 </ul>
 </div></div>
 </section>
 <section class="am-panel" id="panel-B">
 <header class="am-panel-head"><span class="am-panel-id">B</span><h2>背景</h2></header>
-<div class="am-panel-body"><div class="am-callout am-callout--info" role="note"><div class="am-callout-title">谁负责产生 tick</div><div class="am-callout-body am-md"><p>8259 PIC 汇集传统外中断。LAPIC 是 CPU 本地控制器，自带定时器。IOAPIC 把外设 IRQ 路由给 LAPIC。本课的 100 Hz tick 由 LAPIC timer 直接产生，不经过 IOAPIC。</p>
-</div></div>
-<div class="am-md"><p>定时器、IOAPIC、IRQ 编号规则都是这一课第一次出现的硬件名词。更细的对照见 <a href="../concepts/apic-vs-pic.md">PIC、LAPIC 与 IOAPIC</a>。LAPIC 寄存器的基址要靠 MSR 读出来，MSR 是什么见 <a href="../concepts/x86-msr.html">x86 的 MSR：型号特定寄存器</a>。</p>
-<p>一句提醒：屏蔽 legacy PIC 不等于停用 PIT。PIC 是中断控制器，PIT 是可编程定时器，两者不是同一个设备。</p>
-<h3>先修知识：页表怎样把虚拟地址翻译成物理地址</h3>
-<p>后面的 <code>map_mmio_page</code> 会直接修改页表。先把这一段代码用到的分页知识补齐；这里只讲本课需要的四级分页，不涉及缺页处理和通用内存管理。</p>
-<p><strong>物理地址与虚拟地址不是同一件事。</strong> 物理地址选中实际的内存或设备寄存器，虚拟地址是程序 load/store 使用的地址。开启分页后，CPU 每次访问内存都会查当前页表，把虚拟地址翻译成物理地址。LAPIC 寄存器位于 <code>physical_base</code> 这个物理地址；内核想通过 <code>virtual_base = physical_base + hhdm_offset</code> 访问它，就必须先在页表中建立“这个虚拟页对应那个物理页”的映射。</p>
-<p><strong>页是地址转换的粒度。</strong> 本课使用 4 KiB（4096 字节）小页，所以虚拟地址低 12 位是页内偏移，翻译时原样保留；高位用来逐级查表。x86-64 四级分页把高位再分成四段，每段 9 位：</p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">47        39 38        30 29        21 20        12 11         0</span><span class="am-ln">+------------+------------+------------+------------+------------+</span><span class="am-ln">| L4 索引    | L3 索引    | L2 索引    | L1 索引    | 页内偏移   |</span><span class="am-ln">+------------+------------+------------+------------+------------+</span></code></pre></figure>
-<div class="am-md"><p>四级表依次叫 PML4（L4）、PDPT（L3）、PD（L2）、PT（L1）。每张表正好占一个 4 KiB 页，含 512 个 64 位表项，因此索引范围是 0～511，掩码是 <code>0x1ff</code>。这就是代码反复出现 <code>((virtual_base &gt;&gt; shift) &amp; 0x1ff)</code> 的原因：右移把对应字段移到最低位，再用掩码取出本级的表项下标。</p>
-<p><strong>CR3 给出查表起点。</strong> 控制寄存器 CR3 保存当前 PML4 的物理地址。前三级表项通常保存下一级页表的物理地址，最后一级表项保存目标物理页的地址；两者还带有权限和属性位。本课会用到的位是：</p>
-<ul>
-<li><code>PAGE_PRESENT</code>：表项有效；为 0 时，沿这条路径访问会触发缺页异常 <code>#PF</code>。</li>
-<li><code>PAGE_WRITABLE</code>：允许写入。</li>
-<li><code>PAGE_LARGE</code>：在 L3/L2 中表示大页映射，地址翻译到此结束，不再进入下一级。</li>
-<li><code>PAGE_WRITE_THROUGH</code> 与 <code>PAGE_CACHE_DISABLE</code>：控制缓存行为；MMIO 是设备寄存器，不能像普通内存一样缓存读写。</li>
-</ul>
-<p><strong>为什么代码能用普通指针读写页表？</strong> CPU 查页表需要物理地址，而 Rust 指针使用虚拟地址。Limine 提供的 HHDM（Higher Half Direct Map，高半区直接映射）让“物理地址 + <code>hhdm_offset</code>”成为访问同一物理页的虚拟地址。因此，代码从表项取出下一级表的物理地址后，加上 <code>hhdm_offset</code>，才能构造 <code>entry_ptr</code> 去读写那张表。新分配的静态页表则通过内核的物理/虚拟基址换算出物理地址，再写回上级表项。HHDM 具体是什么、它在虚拟地址空间里的位置，见 <a href="../concepts/hhdm.html">HHDM：高半区直接映射</a>。</p>
-<p><strong>TLB 是地址转换结果的缓存。</strong> CPU 不必每次访存都真的走四级页表，最近用过的转换会缓存在 TLB 中。修改某个虚拟页的映射后，<code>invlpg</code> 使这个虚拟地址的旧 TLB 项失效，避免 CPU 继续使用旧翻译。</p>
-<p>想先看这套过程跑起来的样子，看 <a href="../concepts/mmio-page-mapping.html">map_mmio_page：把设备的一页映射进虚拟地址空间</a>。它把「虚拟地址 → 页表 → 物理页」和「这一页被改成了什么」并排画了出来。</p>
+<div class="am-panel-body"><div class="am-md"><p><strong>谁产生 tick。</strong> 8259 PIC 汇集传统外中断。LAPIC 是每颗 CPU 本地的中断控制器，自带定时器。IOAPIC 把外设 IRQ 路由到 LAPIC。本课的 100 Hz tick 由 LAPIC timer 直接产生，不经过 PIC 或 IOAPIC。</p>
+<p><strong>IRQ 与向量号不是一回事。</strong> IRQ 是外设侧线号；向量号是 CPU 查 IDT 的下标。0–31 留给 CPU 异常；本课把定时器写进向量 32。课文里的「IRQ32」指这条中断的向量号。</p>
+<p><strong>屏蔽 PIC ≠ 停用 PIT。</strong> PIC 是中断控制器；PIT 是可编程定时器。本课屏蔽两片 legacy PIC，避免旧路径抢向量；PIT channel 2 只当 10 ms 校准秒表，不负责运行期 tick。</p>
+<p>更细的对照见 <a href="../concepts/apic-vs-pic.html">PIC、LAPIC 与 IOAPIC</a>。</p>
+<p><strong>LAPIC 基址来自 MSR。</strong> 寄存器住在一段物理 MMIO（常见 <code>0xFEE00000</code>），地址由 MSR <code>IA32_APIC_BASE</code>（<code>0x1B</code>）告诉内核，只能用 <code>rdmsr</code> / <code>wrmsr</code> 读写。见 <a href="../concepts/x86-msr.html">x86 的 MSR</a>。</p>
+<p><strong>访问设备页要先有映射。</strong> Limine 的 HHDM 覆盖 RAM，不保证覆盖 LAPIC 那一页。代码按需补一张 4 KiB 映射后再读写寄存器。HHDM 见 <a href="../concepts/hhdm.html">HHDM</a>；补页过程见 <a href="../concepts/mmio-page-mapping.html">map_mmio_page</a>。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-C">
 <header class="am-panel-head"><span class="am-panel-id">C</span><h2>设计</h2></header>
 <div class="am-panel-body"><div class="am-md"><figure class="am-figure"><img data-am-src="arch.svg" src="arch.svg" alt="M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main"><figcaption>M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main</figcaption></figure>
-<h3>一、把 LAPIC 变成 100 Hz 的时钟</h3>
+<h3>初始化顺序</h3>
 </div>
 <figure class="am-diagram am-flow"><svg viewBox="0 0 199 700" width="199" height="700" role="img" aria-label="流程图：屏蔽 legacy PIC、使能 APIC、映射 LAPIC MMIO 页、divider 16 且 LVT 屏蔽、PIT channel 2 给 10 ms 参照、量出这 10 ms 的计数值、LVT 改周期模式并写 INITIAL_COUNT、sti 开可屏蔽中断" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M99.2,49 L99.2,60.5 Q99.2,72 99.2,83.5 L99.2,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M99.2,130 L99.2,141.5 Q99.2,153 99.2,164.5 L99.2,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M99.2,211 L99.2,222.5 Q99.2,234 99.2,245.5 L99.2,257" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M99.2,292 L99.2,308 Q99.2,324 99.2,340 L99.2,356" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="82.7" y="315" width="33" height="18" rx="3"/><text x="99.2" y="324" text-anchor="middle" dominant-baseline="central">参照</text></g></g><g data-step="4"><path class="am-edge" d="M99.2,408 L99.2,424 Q99.2,440 99.2,456 L99.2,472" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="82.7" y="431" width="33" height="18" rx="3"/><text x="99.2" y="440" text-anchor="middle" dominant-baseline="central">测量</text></g></g><g data-step="5"><path class="am-edge" d="M99.2,507 L99.2,518.5 Q99.2,530 99.2,541.5 L99.2,553" marker-end="url(#am1-arrow)"/></g><g data-step="6"><path class="am-edge" d="M99.2,605 L99.2,616.5 Q99.2,628 99.2,639.5 L99.2,651" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="屏蔽 legacy PIC" data-step="0"><rect class="am-node-shape" x="37.1" y="14" width="124.2" height="35" rx="3"/><text x="99.2" y="31.5" text-anchor="middle" dominant-baseline="central">屏蔽 legacy PIC</text></g><g class="am-node am-node--rect" data-key="使能 APIC" data-step="0"><rect class="am-node-shape" x="55" y="95" width="88.6" height="35" rx="3"/><text x="99.2" y="112.5" text-anchor="middle" dominant-baseline="central">使能 APIC</text></g><g class="am-node am-node--rect" data-key="映射 LAPIC MMIO 页" data-step="1"><rect class="am-node-shape" x="21.3" y="176" width="155.9" height="35" rx="3"/><text x="99.2" y="193.5" text-anchor="middle" dominant-baseline="central">映射 LAPIC MMIO 页</text></g><g class="am-node am-node--rect" data-key="divider 16 且 LVT 屏蔽" data-step="2"><rect class="am-node-shape" x="16.6" y="257" width="165.3" height="35" rx="3"/><text x="99.2" y="274.5" text-anchor="middle" dominant-baseline="central">divider 16 且 LVT 屏蔽</text></g><g class="am-node am-node--rect" data-key="PIT channel 2 给 10 ms 参照" data-step="3"><rect class="am-node-shape" x="14" y="356" width="170.5" height="52" rx="3"/><text x="99.2" y="373.5" text-anchor="middle" dominant-baseline="central">PIT channel 2 给 10 ms</text><text x="99.2" y="390.5" text-anchor="middle" dominant-baseline="central">参照</text></g><g class="am-node am-node--rect" data-key="量出这 10 ms 的计数值" data-step="4"><rect class="am-node-shape" x="17.4" y="472" width="163.7" height="35" rx="3"/><text x="99.2" y="489.5" text-anchor="middle" dominant-baseline="central">量出这 10 ms 的计数值</text></g><g class="am-node am-node--rect" data-key="LVT 改周期模式并写 INITIAL_COUNT" data-step="5"><rect class="am-node-shape" x="24.5" y="553" width="149.4" height="52" rx="3"/><text x="99.2" y="570.5" text-anchor="middle" dominant-baseline="central">LVT 改周期模式并写</text><text x="99.2" y="587.5" text-anchor="middle" dominant-baseline="central">INITIAL_COUNT</text></g><g class="am-node am-node--rect" data-key="sti 开可屏蔽中断" data-step="6"><rect class="am-node-shape" x="36.5" y="651" width="125.5" height="35" rx="3"/><text x="99.2" y="668.5" text-anchor="middle" dominant-baseline="central">sti 开可屏蔽中断</text></g></g></svg></figure>
-<div class="am-md"><p>寄存器写入的顺序有讲究。divider 先设成 16，LVT 先保持屏蔽，校准完成才改成周期模式并写 INITIAL_COUNT，最后 <code>sti</code>（<code>impl/kernel/src/lapic.rs:116</code>）。在 <code>sti</code> 之前，IDT、LAPIC 地址和 handler 都必须就绪，否则第一个 IRQ 会落到空入口。</p>
-<p>PIT 在这里只当秒表用。channel 2 输出一个已知 10 ms 的脉冲，PIT 的重装值由 1.193182 MHz 频率除以 100 得到（<code>impl/kernel/src/lapic.rs:32-33</code>）。校准函数让 LAPIC 计数从最大值往下走，等脉冲到达，再用 <code>u32::MAX - CURRENT_COUNT</code> 算出这 10 ms 内的计数差（<code>impl/kernel/src/lapic.rs:193-208</code>）。这个差值就是以后一个 jiffy 的 INITIAL_COUNT。</p>
-<h3>二、IRQ32 来了以后发生什么</h3>
+<div class="am-md"><p>divider 先设成 16，LVT 先保持屏蔽。校准完成才改成周期模式并写 <code>INITIAL_COUNT</code>，最后 <code>sti</code>（<code>impl/kernel/src/lapic.rs:116</code>）。在此之前，IDT、LAPIC 地址和 handler 都必须就绪。</p>
+<p>PIT channel 2 给出已知 10 ms 脉冲。校准让 LAPIC 从 <code>u32::MAX</code> 往下数，脉冲到达后用差值作为每个 jiffy 的 <code>INITIAL_COUNT</code>（<code>impl/kernel/src/lapic.rs:193-208</code>）。</p>
+<h3>一次 tick 怎么走</h3>
 </div>
-<figure class="am-diagram am-seq"><svg viewBox="0 0 966 486" width="966" height="486" role="img" aria-label="时序图：LAPIC、CPU、IDT、timer_entry、timer_interrupt、main" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><line class="am-lifeline" x1="54" y1="42" x2="54" y2="482"/><g data-key="LAPIC"><rect class="am-actor" x="12" y="8" width="84" height="34" rx="2"/><text x="54" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">LAPIC</text></g><line class="am-lifeline" x1="202.4" y1="42" x2="202.4" y2="482"/><g data-key="CPU"><rect class="am-actor" x="160.4" y="8" width="84" height="34" rx="2"/><text x="202.4" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">CPU</text></g><line class="am-lifeline" x1="314.4" y1="42" x2="314.4" y2="482"/><g data-key="IDT"><rect class="am-actor" x="272.4" y="8" width="84" height="34" rx="2"/><text x="314.4" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">IDT</text></g><line class="am-lifeline" x1="432.6" y1="42" x2="432.6" y2="482"/><g data-key="timer_entry"><rect class="am-actor" x="384.4" y="8" width="96.4" height="34" rx="2"/><text x="432.6" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">timer_entry</text></g><line class="am-lifeline" x1="566.8" y1="42" x2="566.8" y2="482"/><g data-key="timer_interrupt"><rect class="am-actor" x="508.7" y="8" width="116.1" height="34" rx="2"/><text x="566.8" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">timer_interrupt</text></g><line class="am-lifeline" x1="728.1" y1="42" x2="728.1" y2="482"/><g data-key="main"><rect class="am-actor" x="686.1" y="8" width="84" height="34" rx="2"/><text x="728.1" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">main</text></g><g data-step="0"><text x="128.2" y="70" text-anchor="middle">IRQ32 每 10 ms 一次</text><path class="am-edge" d="M54,80 L200.4,80" marker-end="url(#am2-arrow)"/></g><g data-step="1"><text x="258.4" y="110" text-anchor="middle">按向量 32 查表</text><path class="am-edge" d="M202.4,120 L312.4,120" marker-end="url(#am2-arrow)"/></g><g data-step="2"><text x="373.5" y="150" text-anchor="middle">跳转</text><path class="am-edge" d="M314.4,160 L430.6,160" marker-end="url(#am2-arrow)"/></g><g data-step="3"><text x="499.7" y="190" text-anchor="middle">call</text><path class="am-edge" d="M432.6,200 L564.8,200" marker-end="url(#am2-arrow)"/></g><g data-step="4"><text x="606.8" y="228" dominant-baseline="central">jiffies 原子加一</text><path class="am-edge" d="M566.8,224 H596.8 V244 H568.8" marker-end="url(#am2-arrow)"/></g><g data-step="5"><text x="310.4" y="278" text-anchor="middle">写 EOI</text><path class="am-edge" d="M566.8,288 L56,288" marker-end="url(#am2-arrow)"/></g><g data-step="6"><text x="499.7" y="318" text-anchor="middle">返回</text><path class="am-edge am-edge--dashed" d="M566.8,328 L434.6,328" marker-end="url(#am2-arrow)"/></g><g data-step="7"><text x="317.5" y="358" text-anchor="middle">iretq</text><path class="am-edge am-edge--dashed" d="M432.6,368 L204.4,368" marker-end="url(#am2-arrow)"/></g><g data-step="8"><text x="465.2" y="398" text-anchor="middle">继续 report_jiffies</text><path class="am-edge am-edge--dashed" d="M202.4,408 L726.1,408" marker-end="url(#am2-arrow)"/></g><g data-step="9"><text x="768.1" y="436" dominant-baseline="central">每 100 tick 打印一行</text><path class="am-edge" d="M728.1,432 H758.1 V452 H730.1" marker-end="url(#am2-arrow)"/></g></svg></figure>
-<div class="am-md"><p>CPU 拿向量号查 IDT，落到 <code>timer_entry</code>。入口压栈保存 15 个通用寄存器，调用 Rust handler。handler 加计数，再向 LAPIC 写 EOI（End of Interrupt，通知控制器&quot;这条处理完了&quot;）。入口还原寄存器，用 <code>iretq</code> 回到被打断的位置，主流程从原处继续。</p>
-<p>EOI 这一步不能省。LAPIC 用 in-service 位记录&quot;哪条中断正在处理&quot;，不写 EOI，下一个 IRQ 就不会投递。</p>
-<h3>三、代码要点</h3>
-<p><strong>计数器是一个原子整数</strong>（<code>impl/kernel/src/lapic.rs:120-129</code>）。</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="120-129"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:120-129</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="120">pub fn jiffies() -&gt; u64 {</span><span class="am-ln am-ln--hl" data-n="121">    JIFFIES.load(Ordering::Relaxed)</span><span class="am-ln" data-n="122">}</span><span class="am-ln" data-n="123"></span><span class="am-ln" data-n="124">/// 中断上下文不格式化、不打印，也不触碰 console。</span><span class="am-ln" data-n="125">pub extern &quot;C&quot; fn timer_interrupt() {</span><span class="am-ln am-ln--hl" data-n="126">    JIFFIES.fetch_add(1, Ordering::Relaxed);</span><span class="am-ln" data-n="127">    // SAFETY: init 在开中断前已写入有效 LAPIC 地址，此后不再修改。</span><span class="am-ln" data-n="128">    unsafe { LAPIC }.write(EOI, 0);</span><span class="am-ln" data-n="129">}</span></code></pre></figure>
-<div class="am-md"><p>计数器本体是 <code>static JIFFIES: AtomicU64 = AtomicU64::new(0);</code>（<code>impl/kernel/src/lapic.rs:46</code>）。<code>static</code> 是整个程序期间都存在的全局变量；<code>AtomicU64</code> 是 64 位无符号原子整数，<code>new(0)</code> 给出初值。<code>fetch_add(1, Ordering::Relaxed)</code> 原子地加一并返回加之前的旧值。</p>
-<p><code>Ordering::Relaxed</code>（松弛序）是内存序里最弱的一个。它只保证这次加减本身不会读到写了一半的值，不保证它与别的内存操作谁先谁后。这里只需要&quot;不丢计数&quot;，不需要别的顺序，所以选最弱的那个。普通上下文用 <code>load(Ordering::Relaxed)</code> 读。</p>
-<p><code>pub extern &quot;C&quot; fn timer_interrupt()</code> 是中断处理函数。<code>pub</code> 让 <code>idt</code> 模块能引用它；<code>extern &quot;C&quot;</code> 指定 C 调用约定，让汇编入口能按固定方式调它。函数体只有两行有效代码，就是前面说的加计数和写 EOI。它不格式化、不打印，也不碰 console。</p>
-<p><strong>中断入口单独写一个，因为它必须能返回</strong>（<code>impl/kernel/src/idt.rs:242-261</code>）。</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/idt.rs" data-am-lines="242-261"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/idt.rs:242-261</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="242">#[unsafe(naked)]</span><span class="am-ln" data-n="243">unsafe extern &quot;C&quot; fn timer_entry() {</span><span class="am-ln" data-n="244">    naked_asm!(</span><span class="am-ln" data-n="245">        &quot;push rax&quot;,</span><span class="am-ln" data-n="246">        &quot;push rcx&quot;,</span><span class="am-ln" data-n="247">        &quot;push rdx&quot;,</span><span class="am-ln" data-n="248">        &quot;push rbx&quot;,</span><span class="am-ln" data-n="249">        &quot;push rsi&quot;,</span><span class="am-ln" data-n="250">        &quot;push rdi&quot;,</span><span class="am-ln" data-n="251">        &quot;push rbp&quot;,</span><span class="am-ln" data-n="252">        &quot;push r8&quot;,</span><span class="am-ln" data-n="253">        &quot;push r9&quot;,</span><span class="am-ln" data-n="254">        &quot;push r10&quot;,</span><span class="am-ln" data-n="255">        &quot;push r11&quot;,</span><span class="am-ln" data-n="256">        &quot;push r12&quot;,</span><span class="am-ln" data-n="257">        &quot;push r13&quot;,</span><span class="am-ln" data-n="258">        &quot;push r14&quot;,</span><span class="am-ln" data-n="259">        &quot;push r15&quot;,</span><span class="am-ln" data-n="260">        // rbx 是 callee-saved，Rust handler 会保留它，用它记住寄存器帧的位置。</span><span class="am-ln" data-n="261">        &quot;mov rbx, rsp&quot;,</span></code></pre></figure>
-<div class="am-md"><p><code>#[unsafe(naked)]</code> 表示这个函数体只能写汇编，编译器不生成函数序言和尾声。<code>unsafe extern &quot;C&quot; fn</code> 是裸汇编函数的固定写法。<code>naked_asm!</code> 是放汇编的宏。</p>
-<p>入口先把 <code>rax</code> 到 <code>r15</code> 共 15 个通用寄存器压栈，被打断的现场就存在栈上。接着 <code>mov rbx, rsp</code> 记住帧的位置。<code>rbx</code> 是 callee-saved 寄存器，Rust 约定函数必须替调用者保存它，所以 Rust handler 不会动它。</p>
-<p><strong>还原现场并返回</strong>（<code>impl/kernel/src/idt.rs:262-283</code>）。</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/idt.rs" data-am-lines="262-283"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/idt.rs:262-283</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="262">        &quot;and rsp, -16&quot;,</span><span class="am-ln" data-n="263">        &quot;call {handler}&quot;,</span><span class="am-ln" data-n="264">        &quot;mov rsp, rbx&quot;,</span><span class="am-ln" data-n="265">        &quot;pop r15&quot;,</span><span class="am-ln" data-n="266">        &quot;pop r14&quot;,</span><span class="am-ln" data-n="267">        &quot;pop r13&quot;,</span><span class="am-ln" data-n="268">        &quot;pop r12&quot;,</span><span class="am-ln" data-n="269">        &quot;pop r11&quot;,</span><span class="am-ln" data-n="270">        &quot;pop r10&quot;,</span><span class="am-ln" data-n="271">        &quot;pop r9&quot;,</span><span class="am-ln" data-n="272">        &quot;pop r8&quot;,</span><span class="am-ln" data-n="273">        &quot;pop rbp&quot;,</span><span class="am-ln" data-n="274">        &quot;pop rdi&quot;,</span><span class="am-ln" data-n="275">        &quot;pop rsi&quot;,</span><span class="am-ln" data-n="276">        &quot;pop rbx&quot;,</span><span class="am-ln" data-n="277">        &quot;pop rdx&quot;,</span><span class="am-ln" data-n="278">        &quot;pop rcx&quot;,</span><span class="am-ln" data-n="279">        &quot;pop rax&quot;,</span><span class="am-ln am-ln--hl" data-n="280">        &quot;iretq&quot;,</span><span class="am-ln" data-n="281">        handler = sym crate::lapic::timer_interrupt,</span><span class="am-ln" data-n="282">    );</span><span class="am-ln" data-n="283">}</span></code></pre></figure>
-<div class="am-md"><p><code>and rsp, -16</code> 把栈顶对齐到 16 字节，这是 Rust 的 ABI 要求。<code>call {handler}</code> 调用 Rust handler。回来后 <code>mov rsp, rbx</code> 把栈指针拨回寄存器帧，<code>pop</code> 逆序还原 15 个寄存器。最后 <code>iretq</code> 弹出 <code>rip</code>、<code>cs</code>、<code>rflags</code>，回到被打断的位置。</p>
-<p>异常入口不一样，它末尾是 <code>hlt</code> 停机（<code>impl/kernel/src/idt.rs:155-157</code>）。异常返回路径还没做，这一课只让向量 32 可返回。</p>
-<p><strong>打印发生在普通上下文</strong>（<code>impl/kernel/src/main.rs:67-80</code>）。</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/main.rs" data-am-lines="67-80"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/main.rs:67-80</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="67"></span><span class="am-ln" data-n="68">/// 中断只计数；这里在正常上下文读取实际值，每 100 tick 打印一次。</span><span class="am-ln" data-n="69">fn report_jiffies() -&gt; ! {</span><span class="am-ln" data-n="70">    let mut next_report = 100;</span><span class="am-ln" data-n="71">    loop {</span><span class="am-ln am-ln--hl" data-n="72">        let observed = lapic::jiffies();</span><span class="am-ln" data-n="73">        if observed &gt;= next_report {</span><span class="am-ln" data-n="74">            printk!(&quot;M3: jiffies={}\n&quot;, observed);</span><span class="am-ln" data-n="75">            next_report += 100;</span><span class="am-ln" data-n="76">        } else {</span><span class="am-ln" data-n="77">            // SAFETY: 定时器周期中断会唤醒 CPU；没有调度器时无需做其他工作。</span><span class="am-ln" data-n="78">            unsafe { asm!(&quot;hlt&quot;, options(nomem, nostack)) };</span><span class="am-ln" data-n="79">        }</span><span class="am-ln" data-n="80">    }</span></code></pre></figure>
-<div class="am-md"><p><code>fn report_jiffies() -&gt; !</code> 的返回类型 <code>!</code> 是&quot;永不返回&quot;，表示这个函数不会把控制流交回调用者。<code>let mut next_report = 100;</code> 声明一个可变的下次打印阈值。<code>lapic::jiffies()</code> 读原子计数，<code>if observed &gt;= next_report</code> 判断是否到了阈值。</p>
-<p><code>printk!</code> 是宏，参数里的 <code>{}</code> 按顺序填入 <code>observed</code>。它把同一段文本同时写到屏幕和串口。else 分支执行 <code>hlt</code>：没有调度器时，让 CPU 停到下一个中断唤醒是最省事的等待方式。</p>
-<p><strong>MMIO 映射只补一页</strong>（<code>impl/kernel/src/lapic.rs:146-190</code>）。下面把前面的分页知识对应到代码。入口先算出要建立的虚拟地址，读取 CR3 得到 L4 根表的物理地址；<code>EXTRA_PAGE_TABLES</code> 是预先保留的三张空表，分别用于补齐可能缺失的 L3、L2、L1。L4 根表已经由 Limine 建立，不在此处分配。</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="146-178"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:146-178</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="146">fn map_mmio_page(</span><span class="am-ln" data-n="147">    physical_base: u64,</span><span class="am-ln" data-n="148">    hhdm_offset: u64,</span><span class="am-ln" data-n="149">    kernel_physical: u64,</span><span class="am-ln" data-n="150">    kernel_virtual: u64,</span><span class="am-ln" data-n="151">) -&gt; u64 {</span><span class="am-ln" data-n="152">    let virtual_base = physical_base + hhdm_offset;</span><span class="am-ln" data-n="153">    let cr3: u64;</span><span class="am-ln" data-n="154">    // SAFETY: 读取当前页树根地址，不修改控制寄存器。</span><span class="am-ln" data-n="155">    unsafe { asm!(&quot;mov {}, cr3&quot;, out(reg) cr3, options(nomem, nostack, preserves_flags)) };</span><span class="am-ln" data-n="156">    let mut table_physical = cr3 &amp; PAGE_ADDRESS_MASK;</span><span class="am-ln" data-n="157">    // SAFETY: 仅在关中断的单核初始化阶段使用；三个静态页分别供三层页表补缺。</span><span class="am-ln" data-n="158">    let extra_tables = unsafe { &amp;mut *addr_of_mut!(EXTRA_PAGE_TABLES) };</span><span class="am-ln" data-n="159"></span><span class="am-ln" data-n="160">    for (level, shift) in [39, 30, 21].into_iter().enumerate() {</span><span class="am-ln" data-n="161">        let index = ((virtual_base &gt;&gt; shift) &amp; 0x1ff) as usize;</span><span class="am-ln" data-n="162">        let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;</span><span class="am-ln" data-n="163">        // SAFETY: CR3 与各级描述符都指向 HHDM 可访问的页表。</span><span class="am-ln" data-n="164">        let mut entry = unsafe { read_volatile(entry_ptr) };</span><span class="am-ln" data-n="165">        if entry &amp; PAGE_PRESENT == 0 {</span><span class="am-ln" data-n="166">            let table = &amp;mut extra_tables[level];</span><span class="am-ln" data-n="167">            table.0.fill(0);</span><span class="am-ln" data-n="168">            let table_virtual = table.0.as_ptr() as u64;</span><span class="am-ln" data-n="169">            let new_physical = table_virtual - kernel_virtual + kernel_physical;</span><span class="am-ln" data-n="170">            entry = new_physical | PAGE_PRESENT | PAGE_WRITABLE;</span><span class="am-ln" data-n="171">            // SAFETY: entry_ptr 是当前级中尚未使用的描述符。</span><span class="am-ln" data-n="172">            unsafe { write_volatile(entry_ptr, entry) };</span><span class="am-ln" data-n="173">        }</span><span class="am-ln" data-n="174">        if entry &amp; PAGE_LARGE != 0 {</span><span class="am-ln" data-n="175">            return virtual_base;</span><span class="am-ln" data-n="176">        }</span><span class="am-ln" data-n="177">        table_physical = entry &amp; PAGE_ADDRESS_MASK;</span><span class="am-ln" data-n="178">    }</span></code></pre></figure>
-<div class="am-md"><p>循环里的 <code>[39, 30, 21]</code> 分别对应 L4、L3、L2 索引的移位量。<code>index as u64 * 8</code> 把表项下标换成字节偏移，因为每个表项是 8 字节的 <code>u64</code>。<code>table_physical</code> 始终是当前表的物理地址，加上 <code>hhdm_offset</code> 后才是 Rust 可以解引用的虚拟地址。</p>
-<p>如果当前表项的 <code>PAGE_PRESENT</code> 为 0，说明下一级表不存在。代码取一张静态页并清零，再把它的虚拟地址换算成物理地址，写入上级表项。换算公式是 <code>table_virtual - kernel_virtual + kernel_physical</code>。若表项已经有效，就取出其中的下一级表地址，继续向下走。<code>PAGE_ADDRESS_MASK</code> 会去掉低 12 位的属性标志，只保留页表物理地址。遇到 <code>PAGE_LARGE</code> 则说明现有大页已经覆盖目标地址，无需再建立 4 KiB 小页映射，直接返回。</p>
-<p>走完前三层后，最后处理 L1 表项：</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="180-190"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:180-190</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="180">    let index = ((virtual_base &gt;&gt; 12) &amp; 0x1ff) as usize;</span><span class="am-ln" data-n="181">    let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;</span><span class="am-ln" data-n="182">    // SAFETY: 最后一级描述符指向 LAPIC 物理页，PCD/PWT 禁止缓存 MMIO。</span><span class="am-ln" data-n="183">    unsafe {</span><span class="am-ln" data-n="184">        write_volatile(</span><span class="am-ln" data-n="185">            entry_ptr,</span><span class="am-ln" data-n="186">            physical_base | PAGE_PRESENT | PAGE_WRITABLE | PAGE_WRITE_THROUGH | PAGE_CACHE_DISABLE,</span><span class="am-ln" data-n="187">        );</span><span class="am-ln" data-n="188">        asm!(&quot;invlpg [{}]&quot;, in(reg) virtual_base, options(nostack));</span><span class="am-ln" data-n="189">    }</span><span class="am-ln" data-n="190">    virtual_base</span></code></pre></figure>
-<div class="am-md"><p>这里用移位 12 取出 L1 索引，把目标 LAPIC 物理页地址连同 <code>PRESENT | WRITABLE | PWT | PCD</code> 写入末级表项。此后 CPU 访问 <code>virtual_base</code> 时，就能沿四级页表翻译到 <code>physical_base</code>。最后对 <code>virtual_base</code> 执行 <code>invlpg</code>，使这个地址可能存在的旧 TLB 项失效。函数返回的不是物理地址，而是之后 <code>lapic.read/write</code> 要使用的虚拟基址。</p>
-<p><strong>LAPIC 基址不是写死的常数</strong>（<code>impl/kernel/src/lapic.rs:131-143</code>）。它来自 MSR <code>IA32_APIC_BASE</code>（编号 <code>0x1B</code>）：低 32 位是 LAPIC 寄存器的物理基址，bit 11 是 x2APIC 模式开关。MSR 既不在内存里也不在 I/O 端口空间，只能用 <code>rdmsr</code> / <code>wrmsr</code> 读写。</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="131-143"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:131-143</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="131">fn enable_lapic(hhdm_offset: u64, kernel_physical: u64, kernel_virtual: u64) -&gt; Lapic {</span><span class="am-ln am-ln--hl" data-n="132">    let apic_base = read_msr(IA32_APIC_BASE_MSR);</span><span class="am-ln" data-n="133">    if apic_base &amp; APIC_ENABLE == 0 {</span><span class="am-ln" data-n="134">        write_msr(IA32_APIC_BASE_MSR, apic_base | APIC_ENABLE);</span><span class="am-ln" data-n="135">    }</span><span class="am-ln" data-n="136"></span><span class="am-ln" data-n="137">    let physical_base = apic_base &amp; APIC_BASE_MASK;</span><span class="am-ln" data-n="138">    let lapic = Lapic {</span><span class="am-ln" data-n="139">        base: map_mmio_page(physical_base, hhdm_offset, kernel_physical, kernel_virtual),</span><span class="am-ln" data-n="140">    };</span><span class="am-ln" data-n="141">    lapic.write(SPURIOUS_VECTOR, LAPIC_SOFTWARE_ENABLE | 0xff);</span><span class="am-ln" data-n="142">    lapic</span><span class="am-ln" data-n="143">}</span></code></pre></figure>
-<div class="am-md"><p><strong><code>rdmsr</code> / <code>wrmsr</code> 怎么用</strong>（<code>impl/kernel/src/lapic.rs:215-236</code>）。ECX 放 MSR 编号，EDX:EAX 装 64 位值的高、低 32 位——指令一次只搬 32 位，所以要拆成两半。MSR 的完整说明见 <a href="../concepts/x86-msr.html">x86 的 MSR：型号特定寄存器</a>。</p>
-</div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="215-236"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:215-236</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="215">fn read_msr(msr: u32) -&gt; u64 {</span><span class="am-ln" data-n="216">    let low: u32;</span><span class="am-ln" data-n="217">    let high: u32;</span><span class="am-ln" data-n="218">    // SAFETY: 只读取固定的 APIC base MSR；rdmsr 的结果由 EDX:EAX 返回。</span><span class="am-ln" data-n="219">    unsafe {</span><span class="am-ln am-ln--hl" data-n="220">        asm!(&quot;rdmsr&quot;, in(&quot;ecx&quot;) msr, out(&quot;eax&quot;) low, out(&quot;edx&quot;) high, options(nomem, nostack));</span><span class="am-ln" data-n="221">    }</span><span class="am-ln" data-n="222">    ((high as u64) &lt;&lt; 32) | low as u64</span><span class="am-ln" data-n="223">}</span><span class="am-ln" data-n="224"></span><span class="am-ln" data-n="225">fn write_msr(msr: u32, value: u64) {</span><span class="am-ln" data-n="226">    // SAFETY: 调用者仅在 APIC 全局使能位为 0 时置位该位，其他位保持不变。</span><span class="am-ln" data-n="227">    unsafe {</span><span class="am-ln" data-n="228">        asm!(</span><span class="am-ln am-ln--hl" data-n="229">            &quot;wrmsr&quot;,</span><span class="am-ln" data-n="230">            in(&quot;ecx&quot;) msr,</span><span class="am-ln" data-n="231">            in(&quot;eax&quot;) value as u32,</span><span class="am-ln" data-n="232">            in(&quot;edx&quot;) (value &gt;&gt; 32) as u32,</span><span class="am-ln" data-n="233">            options(nomem, nostack),</span><span class="am-ln" data-n="234">        );</span><span class="am-ln" data-n="235">    }</span><span class="am-ln" data-n="236">}</span></code></pre></figure></div>
+<figure class="am-diagram am-seq"><svg viewBox="0 0 972 486" width="972" height="486" role="img" aria-label="时序图：LAPIC、CPU、IDT、timer_entry、timer_interrupt、main" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><line class="am-lifeline" x1="54" y1="42" x2="54" y2="482"/><g data-key="LAPIC"><rect class="am-actor" x="12" y="8" width="84" height="34" rx="2"/><text x="54" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">LAPIC</text></g><line class="am-lifeline" x1="208.1" y1="42" x2="208.1" y2="482"/><g data-key="CPU"><rect class="am-actor" x="166.1" y="8" width="84" height="34" rx="2"/><text x="208.1" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">CPU</text></g><line class="am-lifeline" x1="320.1" y1="42" x2="320.1" y2="482"/><g data-key="IDT"><rect class="am-actor" x="278.1" y="8" width="84" height="34" rx="2"/><text x="320.1" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">IDT</text></g><line class="am-lifeline" x1="438.3" y1="42" x2="438.3" y2="482"/><g data-key="timer_entry"><rect class="am-actor" x="390.1" y="8" width="96.4" height="34" rx="2"/><text x="438.3" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">timer_entry</text></g><line class="am-lifeline" x1="572.5" y1="42" x2="572.5" y2="482"/><g data-key="timer_interrupt"><rect class="am-actor" x="514.5" y="8" width="116.1" height="34" rx="2"/><text x="572.5" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">timer_interrupt</text></g><line class="am-lifeline" x1="733.8" y1="42" x2="733.8" y2="482"/><g data-key="main"><rect class="am-actor" x="691.8" y="8" width="84" height="34" rx="2"/><text x="733.8" y="25" text-anchor="middle" dominant-baseline="central" font-weight="600">main</text></g><g data-step="0"><text x="131" y="70" text-anchor="middle">向量 32 每 10 ms 一次</text><path class="am-edge" d="M54,80 L206.1,80" marker-end="url(#am2-arrow)"/></g><g data-step="1"><text x="264.1" y="110" text-anchor="middle">按向量 32 查表</text><path class="am-edge" d="M208.1,120 L318.1,120" marker-end="url(#am2-arrow)"/></g><g data-step="2"><text x="379.2" y="150" text-anchor="middle">跳转</text><path class="am-edge" d="M320.1,160 L436.3,160" marker-end="url(#am2-arrow)"/></g><g data-step="3"><text x="505.4" y="190" text-anchor="middle">call</text><path class="am-edge" d="M438.3,200 L570.5,200" marker-end="url(#am2-arrow)"/></g><g data-step="4"><text x="612.5" y="228" dominant-baseline="central">jiffies 原子加一</text><path class="am-edge" d="M572.5,224 H602.5 V244 H574.5" marker-end="url(#am2-arrow)"/></g><g data-step="5"><text x="313.3" y="278" text-anchor="middle">写 EOI</text><path class="am-edge" d="M572.5,288 L56,288" marker-end="url(#am2-arrow)"/></g><g data-step="6"><text x="505.4" y="318" text-anchor="middle">返回</text><path class="am-edge am-edge--dashed" d="M572.5,328 L440.3,328" marker-end="url(#am2-arrow)"/></g><g data-step="7"><text x="323.2" y="358" text-anchor="middle">iretq</text><path class="am-edge am-edge--dashed" d="M438.3,368 L210.1,368" marker-end="url(#am2-arrow)"/></g><g data-step="8"><text x="470.9" y="398" text-anchor="middle">继续 report_jiffies</text><path class="am-edge am-edge--dashed" d="M208.1,408 L731.8,408" marker-end="url(#am2-arrow)"/></g><g data-step="9"><text x="773.8" y="436" dominant-baseline="central">每 100 tick 打印一行</text><path class="am-edge" d="M733.8,432 H763.8 V452 H735.8" marker-end="url(#am2-arrow)"/></g></svg></figure>
+<div class="am-md"><p>handler 加计数后必须写 EOI（End of Interrupt）。LAPIC 用 in-service 位记录「哪条正在处理」；不写 EOI，下一条就不会投递。</p>
+</div></div>
 </section>
 <section class="am-panel" id="panel-D">
 <header class="am-panel-head"><span class="am-panel-id">D</span><h2>架构决定</h2></header>
 <div class="am-panel-body"><div class="am-md"><h3>决定一：中断上下文只做最小工作</h3>
 <p><a href="../../decisions/0001-interrupt-context-minimal-work.md">decisions/0001</a></p>
-<p>选了什么。IRQ32 的 handler 只执行 <code>AtomicU64::fetch_add</code> 和写 LAPIC EOI，随后恢复寄存器并 <code>iretq</code>。主流程在普通上下文读计数，每累计 100 tick 输出一行。</p>
-<p>备选与放弃。另一个方案是 handler 每次中断直接 <code>printk!</code>。它演示路径更短，而且立刻能证明 handler 跑过。我们放弃了这份简单，换来不打断打印路径和更短的关中断窗口。原因是 M2 的 console 还是 <code>static mut</code>，中断里再打印会重入并破坏光标状态。</p>
-<p>失效边界。tick 内要做调度、睡眠唤醒或设备 I/O 时，不能再只做计数，要引入明确的下半部路径。console 以后即使能安全重入，也要单独评估长时间格式化是否适合放在 IRQ handler。</p>
+<p>选了什么。IRQ32 的 handler 只做 <code>AtomicU64::fetch_add</code> 和写 LAPIC EOI，随后 <code>iretq</code>。主流程在普通上下文读计数，每 100 tick 打印一行。</p>
+<p>为什么。M2 的 console 仍是无锁的 <code>static mut</code>。中断里再 <code>printk!</code> 会重入并破坏光标，还会拉长关中断窗口。键盘 Bite 要在中断里打印时，再收敛 D15。</p>
+<p>失效边界。tick 内要做调度、睡眠唤醒或设备 I/O 时，不能再只做计数。</p>
 <h3>决定二：按需补 LAPIC MMIO 页映射</h3>
 <p><a href="../../decisions/0002-lapic-mmio-mapping.md">decisions/0002</a></p>
 <figure class="am-figure"><img data-am-src="figures/lapic-mmio.svg" src="figures/lapic-mmio.svg" alt="LAPIC MMIO 的窄映射：沿用当前 CR3 与 HHDM，只补齐缺失的三层页表和最后一项"><figcaption>LAPIC MMIO 的窄映射：沿用当前 CR3 与 HHDM，只补齐缺失的三层页表和最后一项</figcaption></figure>
-<p>选了什么。沿用当前 CR3 与 HHDM，遍历四级页表，只为 LAPIC 那一张 4 KiB 页补齐缺失的三层页表和最后一项。已有大页映射就直接复用。三张静态页表来自 <code>EXTRA_PAGE_TABLES</code>。这只服务单核、关中断的驱动初始化。</p>
-<p>备选与放弃。一个方案是假设 HHDM 已覆盖全部 MMIO，代码最短，但在目标环境实测失败，触发 #PF。另一个方案是为所有物理地址预建完整 4 KiB 映射，访问规则统一，后续设备驱动不必各自补映射。我们放弃了这份便利，避免在 M3 预建大量当前用不到的映射，也避免提前扩大 M5 的分页工作范围。</p>
-<p>失效边界。进入 M5 的自建页表和通用内存管理后，这段静态补页逻辑要收敛到正式页表接口。需要映射多个设备、动态创建地址空间、支持多核或并发修改页表时，三张静态页和启动期假设都不再成立。</p>
+<p>选了什么。沿用当前 CR3 与 HHDM，只为 LAPIC 那一页补缺失的页表项；已有大页就复用。三张静态页来自 <code>EXTRA_PAGE_TABLES</code>。</p>
+<p>为什么。假设 HHDM 已覆盖全部 MMIO 在目标环境实测会 #PF。预建全物理地址 4 KiB 映射又会提前扩大 M5 范围。</p>
+<p>失效边界。M5 自建页表后，这段静态补页要收敛到正式接口。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-E">
-<header class="am-panel-head"><span class="am-panel-id">E</span><h2>验收</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>在仓库根目录执行：</p>
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>代码领读</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><strong>计数器是一个原子整数</strong>（<code>impl/kernel/src/lapic.rs:120-129</code>）。</p>
 </div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">bash accept/m03-b01.sh</span></code></pre></figure>
-<div class="am-md"><p><code>accept/m03-b01.sh:3-7</code> 列出四条预期：保留 M0/M1/M2 回归输出、IRQ32 以 100 Hz 投递并能返回、普通上下文看到连续样本、无 panic 且 screendump 非空。键盘与 console 锁不在这条验收里。</p>
-<p>实测 PASS，exit code 为 0，独立验收脚本连续跑三次全部通过。</p>
-<ul>
-<li>单次启动，<code>M0: kernel alive</code> 恰好一次，无 panic。</li>
-<li>四个样本：<code>M3: jiffies=100</code>、<code>200</code>、<code>300</code>、<code>400</code>，每步正好加 100。</li>
-<li>screendump 为 1,440,015 字节，解码帧缓冲后确认屏幕上有同样的文本。</li>
-<li>宿主时钟两次独立测量：99.77 Hz 与 99.49 Hz。</li>
-</ul>
-<p>频率不是打印出来的标签。验收脚本的样本数区间只是粗略代理，独立验收另跑两次带单调时间戳的运行才给出 99.77 Hz 与 99.49 Hz。完整记录见 <a href="../../tutor/runs/m03-b01.txt">m03-b01 验收记录</a>。</p>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="120-129"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:120-129</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="120">pub fn jiffies() -&gt; u64 {</span><span class="am-ln am-ln--hl" data-n="121">    JIFFIES.load(Ordering::Relaxed)</span><span class="am-ln" data-n="122">}</span><span class="am-ln" data-n="123"></span><span class="am-ln" data-n="124">/// 中断上下文不格式化、不打印，也不触碰 console。</span><span class="am-ln" data-n="125">pub extern &quot;C&quot; fn timer_interrupt() {</span><span class="am-ln am-ln--hl" data-n="126">    JIFFIES.fetch_add(1, Ordering::Relaxed);</span><span class="am-ln" data-n="127">    // SAFETY: init 在开中断前已写入有效 LAPIC 地址，此后不再修改。</span><span class="am-ln" data-n="128">    unsafe { LAPIC }.write(EOI, 0);</span><span class="am-ln" data-n="129">}</span></code></pre></figure>
+<div class="am-md"><p><code>static JIFFIES: AtomicU64</code> 是全局 64 位原子计数（<code>impl/kernel/src/lapic.rs:46</code>）。<code>fetch_add(1, Ordering::Relaxed)</code> 原子加一；这里只要求不丢计数，所以用最弱内存序。<code>pub extern &quot;C&quot; fn timer_interrupt()</code> 供汇编入口按 C 约定调用；函数体只有加计数和写 EOI，不碰 console。</p>
+<p><strong>向量 32 的入口必须能返回</strong>（<code>impl/kernel/src/idt.rs:242-283</code>）。</p>
+</div>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/idt.rs" data-am-lines="242-261"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/idt.rs:242-261</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="242">#[unsafe(naked)]</span><span class="am-ln" data-n="243">unsafe extern &quot;C&quot; fn timer_entry() {</span><span class="am-ln" data-n="244">    naked_asm!(</span><span class="am-ln" data-n="245">        &quot;push rax&quot;,</span><span class="am-ln" data-n="246">        &quot;push rcx&quot;,</span><span class="am-ln" data-n="247">        &quot;push rdx&quot;,</span><span class="am-ln" data-n="248">        &quot;push rbx&quot;,</span><span class="am-ln" data-n="249">        &quot;push rsi&quot;,</span><span class="am-ln" data-n="250">        &quot;push rdi&quot;,</span><span class="am-ln" data-n="251">        &quot;push rbp&quot;,</span><span class="am-ln" data-n="252">        &quot;push r8&quot;,</span><span class="am-ln" data-n="253">        &quot;push r9&quot;,</span><span class="am-ln" data-n="254">        &quot;push r10&quot;,</span><span class="am-ln" data-n="255">        &quot;push r11&quot;,</span><span class="am-ln" data-n="256">        &quot;push r12&quot;,</span><span class="am-ln" data-n="257">        &quot;push r13&quot;,</span><span class="am-ln" data-n="258">        &quot;push r14&quot;,</span><span class="am-ln" data-n="259">        &quot;push r15&quot;,</span><span class="am-ln" data-n="260">        // rbx 是 callee-saved，Rust handler 会保留它，用它记住寄存器帧的位置。</span><span class="am-ln" data-n="261">        &quot;mov rbx, rsp&quot;,</span></code></pre></figure>
+<div class="am-md"><p><code>#[unsafe(naked)]</code> 表示函数体只能写汇编，编译器不生成序言尾声。入口压栈保存 15 个通用寄存器，用 callee-saved 的 <code>rbx</code> 记住帧位置。</p>
+</div>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/idt.rs" data-am-lines="262-283"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/idt.rs:262-283</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="262">        &quot;and rsp, -16&quot;,</span><span class="am-ln" data-n="263">        &quot;call {handler}&quot;,</span><span class="am-ln" data-n="264">        &quot;mov rsp, rbx&quot;,</span><span class="am-ln" data-n="265">        &quot;pop r15&quot;,</span><span class="am-ln" data-n="266">        &quot;pop r14&quot;,</span><span class="am-ln" data-n="267">        &quot;pop r13&quot;,</span><span class="am-ln" data-n="268">        &quot;pop r12&quot;,</span><span class="am-ln" data-n="269">        &quot;pop r11&quot;,</span><span class="am-ln" data-n="270">        &quot;pop r10&quot;,</span><span class="am-ln" data-n="271">        &quot;pop r9&quot;,</span><span class="am-ln" data-n="272">        &quot;pop r8&quot;,</span><span class="am-ln" data-n="273">        &quot;pop rbp&quot;,</span><span class="am-ln" data-n="274">        &quot;pop rdi&quot;,</span><span class="am-ln" data-n="275">        &quot;pop rsi&quot;,</span><span class="am-ln" data-n="276">        &quot;pop rbx&quot;,</span><span class="am-ln" data-n="277">        &quot;pop rdx&quot;,</span><span class="am-ln" data-n="278">        &quot;pop rcx&quot;,</span><span class="am-ln" data-n="279">        &quot;pop rax&quot;,</span><span class="am-ln am-ln--hl" data-n="280">        &quot;iretq&quot;,</span><span class="am-ln" data-n="281">        handler = sym crate::lapic::timer_interrupt,</span><span class="am-ln" data-n="282">    );</span><span class="am-ln" data-n="283">}</span></code></pre></figure>
+<div class="am-md"><p><code>and rsp, -16</code> 满足 Rust ABI 的栈对齐，<code>call</code> handler 后还原寄存器，最后 <code>iretq</code> 弹出 <code>rip</code>/<code>cs</code>/<code>rflags</code>。异常入口末尾仍是 <code>hlt</code>（<code>impl/kernel/src/idt.rs:155-157</code>）；本课只让向量 32 可返回。</p>
+<p><strong>打印发生在普通上下文</strong>（<code>impl/kernel/src/main.rs:67-80</code>）。</p>
+</div>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/main.rs" data-am-lines="67-80"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/main.rs:67-80</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="67"></span><span class="am-ln" data-n="68">/// 中断只计数；这里在正常上下文读取实际值，每 100 tick 打印一次。</span><span class="am-ln" data-n="69">fn report_jiffies() -&gt; ! {</span><span class="am-ln" data-n="70">    let mut next_report = 100;</span><span class="am-ln" data-n="71">    loop {</span><span class="am-ln am-ln--hl" data-n="72">        let observed = lapic::jiffies();</span><span class="am-ln" data-n="73">        if observed &gt;= next_report {</span><span class="am-ln" data-n="74">            printk!(&quot;M3: jiffies={}\n&quot;, observed);</span><span class="am-ln" data-n="75">            next_report += 100;</span><span class="am-ln" data-n="76">        } else {</span><span class="am-ln" data-n="77">            // SAFETY: 定时器周期中断会唤醒 CPU；没有调度器时无需做其他工作。</span><span class="am-ln" data-n="78">            unsafe { asm!(&quot;hlt&quot;, options(nomem, nostack)) };</span><span class="am-ln" data-n="79">        }</span><span class="am-ln" data-n="80">    }</span></code></pre></figure>
+<div class="am-md"><p><code>fn report_jiffies() -&gt; !</code> 永不返回调用者。多数循环里计数还没到阈值，就走 else 执行 <code>hlt</code>。<code>hlt</code> 不是永久停机：CPU 停在这条指令上等待；可屏蔽中断到来后，先跑完 handler，<code>iretq</code> 回到 <strong><code>hlt</code> 的下一条指令</strong>——相当于 <code>hlt</code> 执行完毕退出，外层 <code>loop</code> 进入下一轮再读 <code>jiffies()</code>。定时器每 10 ms 投递一次。这和 <code>halt()</code> 那种假定不再有有用工作的死循环不同——这里中断已打开，timer 一直在跑。</p>
+<p><strong>两道使能开关</strong>（<code>impl/kernel/src/lapic.rs:131-143</code>）。</p>
+</div>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="131-143"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:131-143</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="131">fn enable_lapic(hhdm_offset: u64, kernel_physical: u64, kernel_virtual: u64) -&gt; Lapic {</span><span class="am-ln am-ln--hl" data-n="132">    let apic_base = read_msr(IA32_APIC_BASE_MSR);</span><span class="am-ln" data-n="133">    if apic_base &amp; APIC_ENABLE == 0 {</span><span class="am-ln" data-n="134">        write_msr(IA32_APIC_BASE_MSR, apic_base | APIC_ENABLE);</span><span class="am-ln" data-n="135">    }</span><span class="am-ln" data-n="136"></span><span class="am-ln" data-n="137">    let physical_base = apic_base &amp; APIC_BASE_MASK;</span><span class="am-ln" data-n="138">    let lapic = Lapic {</span><span class="am-ln" data-n="139">        base: map_mmio_page(physical_base, hhdm_offset, kernel_physical, kernel_virtual),</span><span class="am-ln" data-n="140">    };</span><span class="am-ln am-ln--hl" data-n="141">    lapic.write(SPURIOUS_VECTOR, LAPIC_SOFTWARE_ENABLE | 0xff);</span><span class="am-ln" data-n="142">    lapic</span><span class="am-ln" data-n="143">}</span></code></pre></figure>
+<div class="am-md"><p>MSR bit 11（<code>APIC_ENABLE</code>）是全局使能。映射 MMIO 后，还要写 Spurious Vector 寄存器（偏移 <code>0xF0</code>）：bit 8（<code>LAPIC_SOFTWARE_ENABLE</code>）是软件使能；低 8 位写成 <code>0xff</code> 作为伪中断向量。只开其一，定时器中断仍可能进不来。<code>rdmsr</code>/<code>wrmsr</code> 细节见 <a href="../concepts/x86-msr.html">x86 的 MSR</a>。</p>
+<p><strong>MMIO 只补一页</strong>（<code>impl/kernel/src/lapic.rs:146-190</code>）。沿四级页表走 HHDM 可写的指针，缺哪级补哪级，最后一级带 <code>PWT|PCD</code> 指向 LAPIC 物理页，再 <code>invlpg</code>。逐步对照见 <a href="../concepts/mmio-page-mapping.html">map_mmio_page</a>。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>与原版差异</h2></header>
-<div class="am-panel-body"><div class="am-md"><ul>
-<li><strong>D16 部分收敛。</strong> 向量 32 现在有独立入口，保存并恢复寄存器后用 <code>iretq</code> 返回。向量 33 到 255 仍是空洞，CPU 异常仍打印后停机，异常返回路径没做。</li>
-<li><strong>D17 新登记。</strong> LAPIC MMIO 用三张静态页表页按需补一页映射，未经通用页表接口。M5 收敛。</li>
-<li><strong>D15 不变。</strong> 全局 console 仍是无锁的 <code>static mut</code>。它留到下一个键盘 Bite 收敛，这一课的中断路径不碰 console。</li>
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>验收</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>在仓库根目录 <code>linux-0.11-from-scratch/</code> 的<strong>宿主机</strong>上操作。约定：编译与打 ISO 由 <code>make</code> 自动 <code>docker exec</code> 进构建容器 <code>linux011-rust-build</code> 完成；qemu 在宿主机跑。<strong>不必</strong>手动 <code>docker exec -it</code> 进容器敲命令。首次若镜像不存在，先在 <code>impl/</code> 执行一次 <code>make toolchain</code>。</p>
+<p><strong>1. 构建 ISO</strong></p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">sh</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="sh"><span class="am-ln">make -C impl build</span></code></pre></figure>
+<div class="am-md"><p><strong>2. 图形窗口观察（推荐）</strong></p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">sh</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="sh"><span class="am-ln">make -C impl run</span></code></pre></figure>
+<div class="am-md"><p>启动后等约 6 秒，看屏幕（串口也会打到终端）：应陆续出现 <code>M3: jiffies=100</code>、<code>200</code>、<code>300</code>（约每秒一行）。看够后在 qemu 窗口退出即可。</p>
+<p><strong>3. 需要串口日志文件时</strong></p>
+<p>仍在宿主机、<code>impl/</code> 下启动（若 <code>qemu-system-x86_64</code> 不在 <code>PATH</code>，换成 <code>~/.local/bin/qemu-system-x86_64</code>）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">sh</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="sh"><span class="am-ln">cd impl</span><span class="am-ln">rm -f build/serial.log build/m3-bite1.ppm</span><span class="am-ln">qemu-system-x86_64 -m 128M -boot d -display none -vga std -net none \</span><span class="am-ln">  -monitor stdio \</span><span class="am-ln">  -serial file:build/serial.log \</span><span class="am-ln">  -drive file=../upstream/hdc-0.11.img,format=raw,if=ide \</span><span class="am-ln">  -cdrom build/kernel.iso</span></code></pre></figure>
+<div class="am-md"><p>等约 6 秒让 jiffies 打几行，再在 qemu monitor 提示符下依次输入：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">screendump build/m3-bite1.ppm</span><span class="am-ln">quit</span></code></pre></figure>
+<div class="am-md"><p>然后查看日志：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">sh</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="sh"><span class="am-ln">cat build/serial.log</span></code></pre></figure>
+<div class="am-md"><p><strong>预期</strong></p>
+<ul>
+<li><code>M0: kernel alive</code> 恰好一次；保留 <code>M1</code> / <code>M2: gdt ok</code> / <code>M2: idt ok</code></li>
+<li>出现 <code>M3: LAPIC timer 100 Hz</code></li>
+<li>出现连续的 <code>M3: jiffies=100</code>、<code>200</code>、<code>300</code></li>
+<li>无 <code>PANIC:</code>；若做了 screendump，<code>build/m3-bite1.ppm</code> 存在且非空</li>
 </ul>
-<p>编号说明见 <a href="../../spec/deviations.md">偏差簿</a>。M2 到 M3 的模块改动另见 <a href="figures/arch-diff.svg">架构差异图</a>。</p>
+<p>自动验收封装见 <code>accept/m03-b01.sh</code>（内部即 <code>make -C impl check-m3-b1</code>）。独立 verifier 记录：<code>tutor/runs/m03-b01.txt</code>；宿主时钟两次测量约 99.77 Hz 与 99.49 Hz。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-G">
-<header class="am-panel-head"><span class="am-panel-id">G</span><h2>坑</h2></header>
-<div class="am-panel-body"><div class="am-callout am-callout--warn" role="note"><div class="am-callout-title">第一次访问 LAPIC MMIO 就 #PF</div><div class="am-callout-body am-md"><p>Limine 的 HHDM 是&quot;高半区直接映射&quot;，它不保证覆盖设备 MMIO 页。目标环境的启动页表没有映射 LAPIC 那一页，第一次读寄存器就触发缺页异常。修法是按需补这一页映射（见架构决定二），访问前把最后一级描述符指向 LAPIC 物理页，再执行 invlpg。</p>
-</div></div>
-<div class="am-md"><p>教训很具体：HHDM 覆盖一切只是假设，不是事实。访问任何设备页之前，先确认映射存在。</p>
-</div></div>
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>与原版差异与坑</h2></header>
+<div class="am-panel-body"><div class="am-md"><ul>
+<li><strong>D16 部分收敛。</strong> 向量 32 现有可返回入口；向量 33–255 仍是空洞，CPU 异常仍打印后停机。见 <a href="../../spec/deviations.md">偏差簿</a>。</li>
+<li><strong>D17 新登记。</strong> LAPIC MMIO 用三张静态页表按需补一页，未经通用页表接口；M5 收敛。</li>
+<li><strong>D15 不变。</strong> 全局 console 仍无锁；本课中断路径不碰 console，留给键盘 Bite。</li>
+</ul>
+<p>M2 到 M3 的模块改动见 <a href="figures/arch-diff.svg">架构差异图</a>。</p>
+</div>
+<div class="am-callout am-callout--warn" role="note"><div class="am-callout-title">第一次访问 LAPIC MMIO 就 #PF</div><div class="am-callout-body am-md"><p>Limine 的 HHDM 不保证覆盖设备 MMIO 页。目标环境启动页表没有映射 LAPIC 那一页，第一次读寄存器会缺页。修法是按需补这一页（决定二），写完末级描述符后再 <code>invlpg</code>。</p>
+</div></div></div>
 </section>
 <section class="am-panel" id="panel-H">
 <header class="am-panel-head"><span class="am-panel-id">H</span><h2>自测</h2></header>
@@ -940,15 +922,15 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </ul>
 </div>
 <details><summary>第 4 题答案与解析</summary><p><strong>A</strong>。不写 EOI，LAPIC 的 in-service 位不清，控制器认为上一条还没处理完，不再投递下一条。计数停在 1，而且不会有 panic。</p></details>
-<div class="am-md"><p><strong>5. 把 LVT 的写入从 <code>TIMER_PERIODIC | TIMER_VECTOR</code> 改成只写 <code>TIMER_VECTOR</code>，定时器会怎样？</strong></p>
+<div class="am-md"><p><strong>5. <code>report_jiffies</code> 里 else 分支的 <code>hlt</code> 会永久停机吗？</strong></p>
 <ul>
-<li>A. 变成一次性模式，计到零后停发，样本停在某个值</li>
-<li>B. 频率变成两倍</li>
-<li>C. 变成非屏蔽中断</li>
-<li>D. 不变，因为 divider 决定频率</li>
+<li>A. 不会。下一个定时器中断会唤醒 CPU，<code>loop</code> 继续</li>
+<li>B. 会。<code>hlt</code> 之后只有复位才能继续</li>
+<li>C. 会落到 <code>halt()</code>，不再打印</li>
+<li>D. 只有写了 EOI 才会唤醒；与 <code>hlt</code> 无关</li>
 </ul>
 </div>
-<details><summary>第 5 题答案与解析</summary><p><strong>A</strong>。TIMER_PERIODIC 位决定到零后是否自动重装。丢掉它就是 one-shot，计数到零后不再有中断。divider 只决定计数速度，不决定是否周期。</p></details></div>
+<details><summary>第 5 题答案与解析</summary><p><strong>A</strong>。可屏蔽中断会结束 hlt。LAPIC timer 已 sti 开启，每 10 ms 叫醒一次；iretq 回到 hlt 之后，外层 loop 再读 jiffies。D 说反了：EOI 影响下一条是否投递，hlt 唤醒靠的是中断本身到达 CPU。</p></details></div>
 </section>
 </div>
 </div>
@@ -968,7 +950,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 10:03 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 15:36 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -977,66 +959,42 @@ subtitle: IRQ32 每 10 ms 一次，handler 只加计数并写 EOI，普通上下
 source: linux-0.11-from-scratch · M3
 ---
 
-Lead: LAPIC 定时器以 100 Hz 投递 IRQ32。中断上下文只做两件事：原子计数加一、写 EOI。恢复寄存器后 `iretq` 返回，普通上下文每累计 100 tick 打印一行。宿主时钟两次独立测量为 99.77 Hz 与 99.49 Hz。
+Lead: LAPIC 定时器以 100 Hz 投递向量 32。中断里只做原子计数加一和写 EOI，`iretq` 返回后主流程每 100 tick 打印一行。宿主时钟两次独立测量约 99.5–99.8 Hz。
 
 ## 问题
 
-M2 结束时，内核只会主动打印。屏幕上是启动时那几行固定文本，没有任何东西随时间变化。要看出 CPU 被外部事件打断后还能继续往下跑，需要两样东西。一个是自己到来的中断源，另一个是中断返回后还能被主流程读到的计数器。
+M2 结束时，内核只会主动打印。屏幕上是启动时那几行固定文本，没有任何东西随时间变化。
 
-M2 的异常入口帮不上这个忙。`exception_handler` 打印现场后 `hlt` 停机（`impl/kernel/src/idt.rs:311-347`），它假设异常不可返回。定时器中断必须返回：它打断的可能是任意一段普通内核代码，返回后那段代码要原样继续。
+要看出 CPU 被打断后还能继续跑，需要两样东西：自己到来的中断源，以及中断返回后主流程还能读到的计数器。
 
-这一课要交付的就是这条通路：
+M2 的异常入口帮不上忙。`exception_handler` 打印现场后 `hlt` 停机（`impl/kernel/src/idt.rs:311-347`），它假设异常不可返回。定时器中断必须返回：它可能打断任意一段普通内核代码，返回后那段代码要原样继续。
 
-- LAPIC 定时器以 100 Hz 投递 IRQ32。
-- 向量 32 有独立的可返回入口。
-- 中断上下文只做最小工作。
-- 普通上下文每 100 tick 打印一行。
+本课交付：
+
+- LAPIC 定时器以 100 Hz 投递向量 32
+- 向量 32 有独立的可返回入口
+- 中断上下文只做最小工作
+- 普通上下文每 100 tick 打印一行
 
 ## 背景
 
-```callout info 谁负责产生 tick
-8259 PIC 汇集传统外中断。LAPIC 是 CPU 本地控制器，自带定时器。IOAPIC 把外设 IRQ 路由给 LAPIC。本课的 100 Hz tick 由 LAPIC timer 直接产生，不经过 IOAPIC。
-```
+**谁产生 tick。** 8259 PIC 汇集传统外中断。LAPIC 是每颗 CPU 本地的中断控制器，自带定时器。IOAPIC 把外设 IRQ 路由到 LAPIC。本课的 100 Hz tick 由 LAPIC timer 直接产生，不经过 PIC 或 IOAPIC。
 
-定时器、IOAPIC、IRQ 编号规则都是这一课第一次出现的硬件名词。更细的对照见 [PIC、LAPIC 与 IOAPIC](../concepts/apic-vs-pic.md)。LAPIC 寄存器的基址要靠 MSR 读出来，MSR 是什么见 [x86 的 MSR：型号特定寄存器](../concepts/x86-msr.html)。
+**IRQ 与向量号不是一回事。** IRQ 是外设侧线号；向量号是 CPU 查 IDT 的下标。0–31 留给 CPU 异常；本课把定时器写进向量 32。课文里的「IRQ32」指这条中断的向量号。
 
-一句提醒：屏蔽 legacy PIC 不等于停用 PIT。PIC 是中断控制器，PIT 是可编程定时器，两者不是同一个设备。
+**屏蔽 PIC ≠ 停用 PIT。** PIC 是中断控制器；PIT 是可编程定时器。本课屏蔽两片 legacy PIC，避免旧路径抢向量；PIT channel 2 只当 10 ms 校准秒表，不负责运行期 tick。
 
-### 先修知识：页表怎样把虚拟地址翻译成物理地址
+更细的对照见 [PIC、LAPIC 与 IOAPIC](../concepts/apic-vs-pic.html)。
 
-后面的 `map_mmio_page` 会直接修改页表。先把这一段代码用到的分页知识补齐；这里只讲本课需要的四级分页，不涉及缺页处理和通用内存管理。
+**LAPIC 基址来自 MSR。** 寄存器住在一段物理 MMIO（常见 `0xFEE00000`），地址由 MSR `IA32_APIC_BASE`（`0x1B`）告诉内核，只能用 `rdmsr` / `wrmsr` 读写。见 [x86 的 MSR](../concepts/x86-msr.html)。
 
-**物理地址与虚拟地址不是同一件事。** 物理地址选中实际的内存或设备寄存器，虚拟地址是程序 load/store 使用的地址。开启分页后，CPU 每次访问内存都会查当前页表，把虚拟地址翻译成物理地址。LAPIC 寄存器位于 `physical_base` 这个物理地址；内核想通过 `virtual_base = physical_base + hhdm_offset` 访问它，就必须先在页表中建立“这个虚拟页对应那个物理页”的映射。
-
-**页是地址转换的粒度。** 本课使用 4 KiB（4096 字节）小页，所以虚拟地址低 12 位是页内偏移，翻译时原样保留；高位用来逐级查表。x86-64 四级分页把高位再分成四段，每段 9 位：
-
-```text
-47        39 38        30 29        21 20        12 11         0
-+------------+------------+------------+------------+------------+
-| L4 索引    | L3 索引    | L2 索引    | L1 索引    | 页内偏移   |
-+------------+------------+------------+------------+------------+
-```
-
-四级表依次叫 PML4（L4）、PDPT（L3）、PD（L2）、PT（L1）。每张表正好占一个 4 KiB 页，含 512 个 64 位表项，因此索引范围是 0～511，掩码是 `0x1ff`。这就是代码反复出现 `((virtual_base &gt;&gt; shift) &amp; 0x1ff)` 的原因：右移把对应字段移到最低位，再用掩码取出本级的表项下标。
-
-**CR3 给出查表起点。** 控制寄存器 CR3 保存当前 PML4 的物理地址。前三级表项通常保存下一级页表的物理地址，最后一级表项保存目标物理页的地址；两者还带有权限和属性位。本课会用到的位是：
-
-- `PAGE_PRESENT`：表项有效；为 0 时，沿这条路径访问会触发缺页异常 `#PF`。
-- `PAGE_WRITABLE`：允许写入。
-- `PAGE_LARGE`：在 L3/L2 中表示大页映射，地址翻译到此结束，不再进入下一级。
-- `PAGE_WRITE_THROUGH` 与 `PAGE_CACHE_DISABLE`：控制缓存行为；MMIO 是设备寄存器，不能像普通内存一样缓存读写。
-
-**为什么代码能用普通指针读写页表？** CPU 查页表需要物理地址，而 Rust 指针使用虚拟地址。Limine 提供的 HHDM（Higher Half Direct Map，高半区直接映射）让“物理地址 + `hhdm_offset`”成为访问同一物理页的虚拟地址。因此，代码从表项取出下一级表的物理地址后，加上 `hhdm_offset`，才能构造 `entry_ptr` 去读写那张表。新分配的静态页表则通过内核的物理/虚拟基址换算出物理地址，再写回上级表项。HHDM 具体是什么、它在虚拟地址空间里的位置，见 [HHDM：高半区直接映射](../concepts/hhdm.html)。
-
-**TLB 是地址转换结果的缓存。** CPU 不必每次访存都真的走四级页表，最近用过的转换会缓存在 TLB 中。修改某个虚拟页的映射后，`invlpg` 使这个虚拟地址的旧 TLB 项失效，避免 CPU 继续使用旧翻译。
-
-想先看这套过程跑起来的样子，看 [map_mmio_page：把设备的一页映射进虚拟地址空间](../concepts/mmio-page-mapping.html)。它把「虚拟地址 → 页表 → 物理页」和「这一页被改成了什么」并排画了出来。
+**访问设备页要先有映射。** Limine 的 HHDM 覆盖 RAM，不保证覆盖 LAPIC 那一页。代码按需补一张 4 KiB 映射后再读写寄存器。HHDM 见 [HHDM](../concepts/hhdm.html)；补页过程见 [map_mmio_page](../concepts/mmio-page-mapping.html)。
 
 ## 设计
 
 ![M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main](arch.svg)
 
-### 一、把 LAPIC 变成 100 Hz 的时钟
+### 初始化顺序
 
 ```flow TB
 [屏蔽 legacy PIC] -&gt; [使能 APIC]
@@ -1048,15 +1006,15 @@ M2 的异常入口帮不上这个忙。`exception_handler` 打印现场后 `hlt`
 [LVT 改周期模式并写 INITIAL_COUNT] -&gt; [sti 开可屏蔽中断]
 ```
 
-寄存器写入的顺序有讲究。divider 先设成 16，LVT 先保持屏蔽，校准完成才改成周期模式并写 INITIAL_COUNT，最后 `sti`（`impl/kernel/src/lapic.rs:116`）。在 `sti` 之前，IDT、LAPIC 地址和 handler 都必须就绪，否则第一个 IRQ 会落到空入口。
+divider 先设成 16，LVT 先保持屏蔽。校准完成才改成周期模式并写 `INITIAL_COUNT`，最后 `sti`（`impl/kernel/src/lapic.rs:116`）。在此之前，IDT、LAPIC 地址和 handler 都必须就绪。
 
-PIT 在这里只当秒表用。channel 2 输出一个已知 10 ms 的脉冲，PIT 的重装值由 1.193182 MHz 频率除以 100 得到（`impl/kernel/src/lapic.rs:32-33`）。校准函数让 LAPIC 计数从最大值往下走，等脉冲到达，再用 `u32::MAX - CURRENT_COUNT` 算出这 10 ms 内的计数差（`impl/kernel/src/lapic.rs:193-208`）。这个差值就是以后一个 jiffy 的 INITIAL_COUNT。
+PIT channel 2 给出已知 10 ms 脉冲。校准让 LAPIC 从 `u32::MAX` 往下数，脉冲到达后用差值作为每个 jiffy 的 `INITIAL_COUNT`（`impl/kernel/src/lapic.rs:193-208`）。
 
-### 二、IRQ32 来了以后发生什么
+### 一次 tick 怎么走
 
 ```sequence
 participants: LAPIC, CPU, IDT, timer_entry, timer_interrupt, main
-LAPIC -&gt; CPU: IRQ32 每 10 ms 一次
+LAPIC -&gt; CPU: 向量 32 每 10 ms 一次
 CPU -&gt; IDT: 按向量 32 查表
 IDT -&gt; timer_entry: 跳转
 timer_entry -&gt; timer_interrupt: call
@@ -1068,75 +1026,7 @@ CPU --&gt; main: 继续 report_jiffies
 main -&gt; main: 每 100 tick 打印一行
 ```
 
-CPU 拿向量号查 IDT，落到 `timer_entry`。入口压栈保存 15 个通用寄存器，调用 Rust handler。handler 加计数，再向 LAPIC 写 EOI（End of Interrupt，通知控制器&quot;这条处理完了&quot;）。入口还原寄存器，用 `iretq` 回到被打断的位置，主流程从原处继续。
-
-EOI 这一步不能省。LAPIC 用 in-service 位记录&quot;哪条中断正在处理&quot;，不写 EOI，下一个 IRQ 就不会投递。
-
-### 三、代码要点
-
-**计数器是一个原子整数**（`impl/kernel/src/lapic.rs:120-129`）。
-
-```rust src=impl/kernel/src/lapic.rs lines=120-129 hl=121,126
-```
-
-计数器本体是 `static JIFFIES: AtomicU64 = AtomicU64::new(0);`（`impl/kernel/src/lapic.rs:46`）。`static` 是整个程序期间都存在的全局变量；`AtomicU64` 是 64 位无符号原子整数，`new(0)` 给出初值。`fetch_add(1, Ordering::Relaxed)` 原子地加一并返回加之前的旧值。
-
-`Ordering::Relaxed`（松弛序）是内存序里最弱的一个。它只保证这次加减本身不会读到写了一半的值，不保证它与别的内存操作谁先谁后。这里只需要&quot;不丢计数&quot;，不需要别的顺序，所以选最弱的那个。普通上下文用 `load(Ordering::Relaxed)` 读。
-
-`pub extern &quot;C&quot; fn timer_interrupt()` 是中断处理函数。`pub` 让 `idt` 模块能引用它；`extern &quot;C&quot;` 指定 C 调用约定，让汇编入口能按固定方式调它。函数体只有两行有效代码，就是前面说的加计数和写 EOI。它不格式化、不打印，也不碰 console。
-
-**中断入口单独写一个，因为它必须能返回**（`impl/kernel/src/idt.rs:242-261`）。
-
-```rust src=impl/kernel/src/idt.rs lines=242-261
-```
-
-`#[unsafe(naked)]` 表示这个函数体只能写汇编，编译器不生成函数序言和尾声。`unsafe extern &quot;C&quot; fn` 是裸汇编函数的固定写法。`naked_asm!` 是放汇编的宏。
-
-入口先把 `rax` 到 `r15` 共 15 个通用寄存器压栈，被打断的现场就存在栈上。接着 `mov rbx, rsp` 记住帧的位置。`rbx` 是 callee-saved 寄存器，Rust 约定函数必须替调用者保存它，所以 Rust handler 不会动它。
-
-**还原现场并返回**（`impl/kernel/src/idt.rs:262-283`）。
-
-```rust src=impl/kernel/src/idt.rs lines=262-283 hl=280
-```
-
-`and rsp, -16` 把栈顶对齐到 16 字节，这是 Rust 的 ABI 要求。`call {handler}` 调用 Rust handler。回来后 `mov rsp, rbx` 把栈指针拨回寄存器帧，`pop` 逆序还原 15 个寄存器。最后 `iretq` 弹出 `rip`、`cs`、`rflags`，回到被打断的位置。
-
-异常入口不一样，它末尾是 `hlt` 停机（`impl/kernel/src/idt.rs:155-157`）。异常返回路径还没做，这一课只让向量 32 可返回。
-
-**打印发生在普通上下文**（`impl/kernel/src/main.rs:67-80`）。
-
-```rust src=impl/kernel/src/main.rs lines=67-80 hl=72
-```
-
-`fn report_jiffies() -&gt; !` 的返回类型 `!` 是&quot;永不返回&quot;，表示这个函数不会把控制流交回调用者。`let mut next_report = 100;` 声明一个可变的下次打印阈值。`lapic::jiffies()` 读原子计数，`if observed &gt;= next_report` 判断是否到了阈值。
-
-`printk!` 是宏，参数里的 `{}` 按顺序填入 `observed`。它把同一段文本同时写到屏幕和串口。else 分支执行 `hlt`：没有调度器时，让 CPU 停到下一个中断唤醒是最省事的等待方式。
-
-**MMIO 映射只补一页**（`impl/kernel/src/lapic.rs:146-190`）。下面把前面的分页知识对应到代码。入口先算出要建立的虚拟地址，读取 CR3 得到 L4 根表的物理地址；`EXTRA_PAGE_TABLES` 是预先保留的三张空表，分别用于补齐可能缺失的 L3、L2、L1。L4 根表已经由 Limine 建立，不在此处分配。
-
-```rust src=impl/kernel/src/lapic.rs lines=146-178
-```
-
-循环里的 `[39, 30, 21]` 分别对应 L4、L3、L2 索引的移位量。`index as u64 * 8` 把表项下标换成字节偏移，因为每个表项是 8 字节的 `u64`。`table_physical` 始终是当前表的物理地址，加上 `hhdm_offset` 后才是 Rust 可以解引用的虚拟地址。
-
-如果当前表项的 `PAGE_PRESENT` 为 0，说明下一级表不存在。代码取一张静态页并清零，再把它的虚拟地址换算成物理地址，写入上级表项。换算公式是 `table_virtual - kernel_virtual + kernel_physical`。若表项已经有效，就取出其中的下一级表地址，继续向下走。`PAGE_ADDRESS_MASK` 会去掉低 12 位的属性标志，只保留页表物理地址。遇到 `PAGE_LARGE` 则说明现有大页已经覆盖目标地址，无需再建立 4 KiB 小页映射，直接返回。
-
-走完前三层后，最后处理 L1 表项：
-
-```rust src=impl/kernel/src/lapic.rs lines=180-190
-```
-
-这里用移位 12 取出 L1 索引，把目标 LAPIC 物理页地址连同 `PRESENT | WRITABLE | PWT | PCD` 写入末级表项。此后 CPU 访问 `virtual_base` 时，就能沿四级页表翻译到 `physical_base`。最后对 `virtual_base` 执行 `invlpg`，使这个地址可能存在的旧 TLB 项失效。函数返回的不是物理地址，而是之后 `lapic.read/write` 要使用的虚拟基址。
-
-**LAPIC 基址不是写死的常数**（`impl/kernel/src/lapic.rs:131-143`）。它来自 MSR `IA32_APIC_BASE`（编号 `0x1B`）：低 32 位是 LAPIC 寄存器的物理基址，bit 11 是 x2APIC 模式开关。MSR 既不在内存里也不在 I/O 端口空间，只能用 `rdmsr` / `wrmsr` 读写。
-
-```rust src=impl/kernel/src/lapic.rs lines=131-143 hl=132
-```
-
-**`rdmsr` / `wrmsr` 怎么用**（`impl/kernel/src/lapic.rs:215-236`）。ECX 放 MSR 编号，EDX:EAX 装 64 位值的高、低 32 位——指令一次只搬 32 位，所以要拆成两半。MSR 的完整说明见 [x86 的 MSR：型号特定寄存器](../concepts/x86-msr.html)。
-
-```rust src=impl/kernel/src/lapic.rs lines=215-236 hl=220,229
-```
+handler 加计数后必须写 EOI（End of Interrupt）。LAPIC 用 in-service 位记录「哪条正在处理」；不写 EOI，下一条就不会投递。
 
 ## 架构决定
 
@@ -1144,11 +1034,11 @@ EOI 这一步不能省。LAPIC 用 in-service 位记录&quot;哪条中断正在�
 
 [decisions/0001](../../decisions/0001-interrupt-context-minimal-work.md)
 
-选了什么。IRQ32 的 handler 只执行 `AtomicU64::fetch_add` 和写 LAPIC EOI，随后恢复寄存器并 `iretq`。主流程在普通上下文读计数，每累计 100 tick 输出一行。
+选了什么。IRQ32 的 handler 只做 `AtomicU64::fetch_add` 和写 LAPIC EOI，随后 `iretq`。主流程在普通上下文读计数，每 100 tick 打印一行。
 
-备选与放弃。另一个方案是 handler 每次中断直接 `printk!`。它演示路径更短，而且立刻能证明 handler 跑过。我们放弃了这份简单，换来不打断打印路径和更短的关中断窗口。原因是 M2 的 console 还是 `static mut`，中断里再打印会重入并破坏光标状态。
+为什么。M2 的 console 仍是无锁的 `static mut`。中断里再 `printk!` 会重入并破坏光标，还会拉长关中断窗口。键盘 Bite 要在中断里打印时，再收敛 D15。
 
-失效边界。tick 内要做调度、睡眠唤醒或设备 I/O 时，不能再只做计数，要引入明确的下半部路径。console 以后即使能安全重入，也要单独评估长时间格式化是否适合放在 IRQ handler。
+失效边界。tick 内要做调度、睡眠唤醒或设备 I/O 时，不能再只做计数。
 
 ### 决定二：按需补 LAPIC MMIO 页映射
 
@@ -1156,46 +1046,114 @@ EOI 这一步不能省。LAPIC 用 in-service 位记录&quot;哪条中断正在�
 
 ![LAPIC MMIO 的窄映射：沿用当前 CR3 与 HHDM，只补齐缺失的三层页表和最后一项](figures/lapic-mmio.svg)
 
-选了什么。沿用当前 CR3 与 HHDM，遍历四级页表，只为 LAPIC 那一张 4 KiB 页补齐缺失的三层页表和最后一项。已有大页映射就直接复用。三张静态页表来自 `EXTRA_PAGE_TABLES`。这只服务单核、关中断的驱动初始化。
+选了什么。沿用当前 CR3 与 HHDM，只为 LAPIC 那一页补缺失的页表项；已有大页就复用。三张静态页来自 `EXTRA_PAGE_TABLES`。
 
-备选与放弃。一个方案是假设 HHDM 已覆盖全部 MMIO，代码最短，但在目标环境实测失败，触发 #PF。另一个方案是为所有物理地址预建完整 4 KiB 映射，访问规则统一，后续设备驱动不必各自补映射。我们放弃了这份便利，避免在 M3 预建大量当前用不到的映射，也避免提前扩大 M5 的分页工作范围。
+为什么。假设 HHDM 已覆盖全部 MMIO 在目标环境实测会 #PF。预建全物理地址 4 KiB 映射又会提前扩大 M5 范围。
 
-失效边界。进入 M5 的自建页表和通用内存管理后，这段静态补页逻辑要收敛到正式页表接口。需要映射多个设备、动态创建地址空间、支持多核或并发修改页表时，三张静态页和启动期假设都不再成立。
+失效边界。M5 自建页表后，这段静态补页要收敛到正式接口。
+
+## 代码领读
+
+**计数器是一个原子整数**（`impl/kernel/src/lapic.rs:120-129`）。
+
+```rust src=impl/kernel/src/lapic.rs lines=120-129 hl=121,126
+```
+
+`static JIFFIES: AtomicU64` 是全局 64 位原子计数（`impl/kernel/src/lapic.rs:46`）。`fetch_add(1, Ordering::Relaxed)` 原子加一；这里只要求不丢计数，所以用最弱内存序。`pub extern &quot;C&quot; fn timer_interrupt()` 供汇编入口按 C 约定调用；函数体只有加计数和写 EOI，不碰 console。
+
+**向量 32 的入口必须能返回**（`impl/kernel/src/idt.rs:242-283`）。
+
+```rust src=impl/kernel/src/idt.rs lines=242-261
+```
+
+`#[unsafe(naked)]` 表示函数体只能写汇编，编译器不生成序言尾声。入口压栈保存 15 个通用寄存器，用 callee-saved 的 `rbx` 记住帧位置。
+
+```rust src=impl/kernel/src/idt.rs lines=262-283 hl=280
+```
+
+`and rsp, -16` 满足 Rust ABI 的栈对齐，`call` handler 后还原寄存器，最后 `iretq` 弹出 `rip`/`cs`/`rflags`。异常入口末尾仍是 `hlt`（`impl/kernel/src/idt.rs:155-157`）；本课只让向量 32 可返回。
+
+**打印发生在普通上下文**（`impl/kernel/src/main.rs:67-80`）。
+
+```rust src=impl/kernel/src/main.rs lines=67-80 hl=72
+```
+
+`fn report_jiffies() -&gt; !` 永不返回调用者。多数循环里计数还没到阈值，就走 else 执行 `hlt`。`hlt` 不是永久停机：CPU 停在这条指令上等待；可屏蔽中断到来后，先跑完 handler，`iretq` 回到 **`hlt` 的下一条指令**——相当于 `hlt` 执行完毕退出，外层 `loop` 进入下一轮再读 `jiffies()`。定时器每 10 ms 投递一次。这和 `halt()` 那种假定不再有有用工作的死循环不同——这里中断已打开，timer 一直在跑。
+
+**两道使能开关**（`impl/kernel/src/lapic.rs:131-143`）。
+
+```rust src=impl/kernel/src/lapic.rs lines=131-143 hl=132,141
+```
+
+MSR bit 11（`APIC_ENABLE`）是全局使能。映射 MMIO 后，还要写 Spurious Vector 寄存器（偏移 `0xF0`）：bit 8（`LAPIC_SOFTWARE_ENABLE`）是软件使能；低 8 位写成 `0xff` 作为伪中断向量。只开其一，定时器中断仍可能进不来。`rdmsr`/`wrmsr` 细节见 [x86 的 MSR](../concepts/x86-msr.html)。
+
+**MMIO 只补一页**（`impl/kernel/src/lapic.rs:146-190`）。沿四级页表走 HHDM 可写的指针，缺哪级补哪级，最后一级带 `PWT|PCD` 指向 LAPIC 物理页，再 `invlpg`。逐步对照见 [map_mmio_page](../concepts/mmio-page-mapping.html)。
 
 ## 验收
 
-在仓库根目录执行：
+在仓库根目录 `linux-0.11-from-scratch/` 的**宿主机**上操作。约定：编译与打 ISO 由 `make` 自动 `docker exec` 进构建容器 `linux011-rust-build` 完成；qemu 在宿主机跑。**不必**手动 `docker exec -it` 进容器敲命令。首次若镜像不存在，先在 `impl/` 执行一次 `make toolchain`。
 
-```bash
-bash accept/m03-b01.sh
+**1. 构建 ISO**
+
+```sh
+make -C impl build
 ```
 
-`accept/m03-b01.sh:3-7` 列出四条预期：保留 M0/M1/M2 回归输出、IRQ32 以 100 Hz 投递并能返回、普通上下文看到连续样本、无 panic 且 screendump 非空。键盘与 console 锁不在这条验收里。
+**2. 图形窗口观察（推荐）**
 
-实测 PASS，exit code 为 0，独立验收脚本连续跑三次全部通过。
+```sh
+make -C impl run
+```
 
-- 单次启动，`M0: kernel alive` 恰好一次，无 panic。
-- 四个样本：`M3: jiffies=100`、`200`、`300`、`400`，每步正好加 100。
-- screendump 为 1,440,015 字节，解码帧缓冲后确认屏幕上有同样的文本。
-- 宿主时钟两次独立测量：99.77 Hz 与 99.49 Hz。
+启动后等约 6 秒，看屏幕（串口也会打到终端）：应陆续出现 `M3: jiffies=100`、`200`、`300`（约每秒一行）。看够后在 qemu 窗口退出即可。
 
-频率不是打印出来的标签。验收脚本的样本数区间只是粗略代理，独立验收另跑两次带单调时间戳的运行才给出 99.77 Hz 与 99.49 Hz。完整记录见 [m03-b01 验收记录](../../tutor/runs/m03-b01.txt)。
+**3. 需要串口日志文件时**
 
-## 与原版差异
+仍在宿主机、`impl/` 下启动（若 `qemu-system-x86_64` 不在 `PATH`，换成 `~/.local/bin/qemu-system-x86_64`）：
 
-- **D16 部分收敛。** 向量 32 现在有独立入口，保存并恢复寄存器后用 `iretq` 返回。向量 33 到 255 仍是空洞，CPU 异常仍打印后停机，异常返回路径没做。
-- **D17 新登记。** LAPIC MMIO 用三张静态页表页按需补一页映射，未经通用页表接口。M5 收敛。
-- **D15 不变。** 全局 console 仍是无锁的 `static mut`。它留到下一个键盘 Bite 收敛，这一课的中断路径不碰 console。
+```sh
+cd impl
+rm -f build/serial.log build/m3-bite1.ppm
+qemu-system-x86_64 -m 128M -boot d -display none -vga std -net none \
+  -monitor stdio \
+  -serial file:build/serial.log \
+  -drive file=../upstream/hdc-0.11.img,format=raw,if=ide \
+  -cdrom build/kernel.iso
+```
 
-编号说明见 [偏差簿](../../spec/deviations.md)。M2 到 M3 的模块改动另见 [架构差异图](figures/arch-diff.svg)。
+等约 6 秒让 jiffies 打几行，再在 qemu monitor 提示符下依次输入：
 
-## 坑
+```text
+screendump build/m3-bite1.ppm
+quit
+```
+
+然后查看日志：
+
+```sh
+cat build/serial.log
+```
+
+**预期**
+
+- `M0: kernel alive` 恰好一次；保留 `M1` / `M2: gdt ok` / `M2: idt ok`
+- 出现 `M3: LAPIC timer 100 Hz`
+- 出现连续的 `M3: jiffies=100`、`200`、`300`
+- 无 `PANIC:`；若做了 screendump，`build/m3-bite1.ppm` 存在且非空
+
+自动验收封装见 `accept/m03-b01.sh`（内部即 `make -C impl check-m3-b1`）。独立 verifier 记录：`tutor/runs/m03-b01.txt`；宿主时钟两次测量约 99.77 Hz 与 99.49 Hz。
+
+## 与原版差异与坑
+
+- **D16 部分收敛。** 向量 32 现有可返回入口；向量 33–255 仍是空洞，CPU 异常仍打印后停机。见 [偏差簿](../../spec/deviations.md)。
+- **D17 新登记。** LAPIC MMIO 用三张静态页表按需补一页，未经通用页表接口；M5 收敛。
+- **D15 不变。** 全局 console 仍无锁；本课中断路径不碰 console，留给键盘 Bite。
+
+M2 到 M3 的模块改动见 [架构差异图](figures/arch-diff.svg)。
 
 ```callout warn 第一次访问 LAPIC MMIO 就 #PF
-Limine 的 HHDM 是&quot;高半区直接映射&quot;，它不保证覆盖设备 MMIO 页。目标环境的启动页表没有映射 LAPIC 那一页，第一次读寄存器就触发缺页异常。修法是按需补这一页映射（见架构决定二），访问前把最后一级描述符指向 LAPIC 物理页，再执行 invlpg。
+Limine 的 HHDM 不保证覆盖设备 MMIO 页。目标环境启动页表没有映射 LAPIC 那一页，第一次读寄存器会缺页。修法是按需补这一页（决定二），写完末级描述符后再 `invlpg`。
 ```
-
-教训很具体：HHDM 覆盖一切只是假设，不是事实。访问任何设备页之前，先确认映射存在。
 
 ## 自测
 
@@ -1243,15 +1201,15 @@ Limine 的 HHDM 是&quot;高半区直接映射&quot;，它不保证覆盖设备 
 &lt;details&gt;&lt;summary&gt;第 4 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;A&lt;/strong&gt;。不写 EOI，LAPIC 的 in-service 位不清，控制器认为上一条还没处理完，不再投递下一条。计数停在 1，而且不会有 panic。&lt;/p&gt;&lt;/details&gt;
 ```
 
-**5. 把 LVT 的写入从 `TIMER_PERIODIC | TIMER_VECTOR` 改成只写 `TIMER_VECTOR`，定时器会怎样？**
+**5. `report_jiffies` 里 else 分支的 `hlt` 会永久停机吗？**
 
-- A. 变成一次性模式，计到零后停发，样本停在某个值
-- B. 频率变成两倍
-- C. 变成非屏蔽中断
-- D. 不变，因为 divider 决定频率
+- A. 不会。下一个定时器中断会唤醒 CPU，`loop` 继续
+- B. 会。`hlt` 之后只有复位才能继续
+- C. 会落到 `halt()`，不再打印
+- D. 只有写了 EOI 才会唤醒；与 `hlt` 无关
 
 ```html
-&lt;details&gt;&lt;summary&gt;第 5 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;A&lt;/strong&gt;。TIMER_PERIODIC 位决定到零后是否自动重装。丢掉它就是 one-shot，计数到零后不再有中断。divider 只决定计数速度，不决定是否周期。&lt;/p&gt;&lt;/details&gt;
+&lt;details&gt;&lt;summary&gt;第 5 题答案与解析&lt;/summary&gt;&lt;p&gt;&lt;strong&gt;A&lt;/strong&gt;。可屏蔽中断会结束 hlt。LAPIC timer 已 sti 开启，每 10 ms 叫醒一次；iretq 回到 hlt 之后，外层 loop 再读 jiffies。D 说反了：EOI 影响下一条是否投递，hlt 唤醒靠的是中断本身到达 CPU。&lt;/p&gt;&lt;/details&gt;
 ```
 </textarea>
 <script>

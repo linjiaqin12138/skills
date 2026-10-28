@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="980" viewBox="0 0 1080 980" role="img" aria-label="LAPIC MMIO register bitfields used in this bite">
+  <rect width="1080" height="980" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', sans-serif; fill: #111827; }
+    .title { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13px; fill: #475569; }
+    .sec { font-size: 15px; font-weight: 700; }
+    .lab { font-size: 13px; font-weight: 600; }
+    .tiny { font-size: 11px; fill: #64748b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #334155; }
+    .box { stroke: #64748b; stroke-width: 1.4; }
+    .used { fill: #dcfce7; }
+    .mode { fill: #dbeafe; }
+    .mask { fill: #fde68a; }
+    .val { fill: #e0e7ff; }
+    .rsv { fill: #e2e8f0; }
+    .hint { fill: #fef3c7; }
+  </style>
+
+  <text x="28" y="36" class="title">LAPIC MMIO 寄存器位域（本课用到的 offset）</text>
+  <text x="28" y="58" class="sub">基址来自 MSR IA32_APIC_BASE；每项 32 位，16 字节对齐。绿色 / 蓝色 / 黄色 = 本课写入或依赖的字段</text>
+
+  <text x="28" y="92" class="sec">物理页内布局（节选）</text>
+  <g>
+    <rect x="28" y="104" width="140" height="44" class="box rsv"/><text x="98" y="122" text-anchor="middle" class="mono">+0x0B0</text><text x="98" y="140" text-anchor="middle" class="lab">EOI</text>
+    <rect x="176" y="104" width="140" height="44" class="box used"/><text x="246" y="122" text-anchor="middle" class="mono">+0x0F0</text><text x="246" y="140" text-anchor="middle" class="lab">SVR</text>
+    <rect x="324" y="104" width="140" height="44" class="box mode"/><text x="394" y="122" text-anchor="middle" class="mono">+0x320</text><text x="394" y="140" text-anchor="middle" class="lab">LVT Timer</text>
+    <rect x="472" y="104" width="150" height="44" class="box val"/><text x="547" y="122" text-anchor="middle" class="mono">+0x380</text><text x="547" y="140" text-anchor="middle" class="lab">Initial Count</text>
+    <rect x="630" y="104" width="160" height="44" class="box val"/><text x="710" y="122" text-anchor="middle" class="mono">+0x390</text><text x="710" y="140" text-anchor="middle" class="lab">Current Count</text>
+    <rect x="798" y="104" width="160" height="44" class="box hint"/><text x="878" y="122" text-anchor="middle" class="mono">+0x3E0</text><text x="878" y="140" text-anchor="middle" class="lab">Divide Config</text>
+  </g>
+
+  <text x="28" y="188" class="sec">+0x0F0 Spurious Interrupt Vector Register (SVR)</text>
+  <text x="28" y="208" class="sub">本课写入：LAPIC_SOFTWARE_ENABLE | 0xff → bit8=1，向量=0xFF</text>
+  <g text-anchor="middle">
+    <text x="168" y="232" class="tiny">31:13</text>
+    <text x="360" y="232" class="tiny">12</text>
+    <text x="430" y="232" class="tiny">11:10</text>
+    <text x="510" y="232" class="tiny">9</text>
+    <text x="590" y="232" class="tiny">8</text>
+    <text x="780" y="232" class="tiny">7:0</text>
+  </g>
+  <g>
+    <rect x="28" y="240" width="280" height="70" class="box rsv"/>
+    <rect x="308" y="240" width="104" height="70" class="box rsv"/>
+    <rect x="412" y="240" width="76" height="70" class="box rsv"/>
+    <rect x="488" y="240" width="64" height="70" class="box rsv"/>
+    <rect x="552" y="240" width="96" height="70" class="box used"/>
+    <rect x="648" y="240" width="304" height="70" class="box used"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="168" y="270" class="lab">保留</text>
+    <text x="360" y="266" class="lab">EOI</text><text x="360" y="286" class="tiny">broadcast</text>
+    <text x="450" y="270" class="lab">保留</text>
+    <text x="520" y="266" class="lab">Focus</text><text x="520" y="286" class="tiny">check</text>
+    <text x="600" y="266" class="lab">ASE</text><text x="600" y="286" class="tiny">软件使能</text>
+    <text x="800" y="266" class="lab">Spurious Vector</text><text x="800" y="286" class="tiny">伪中断向量</text>
+  </g>
+  <text x="28" y="334" class="tiny">ASE = APIC Software Enable (bit 8)。Focus / EOI broadcast 本课不写。</text>
+
+  <text x="28" y="372" class="sec">+0x320 LVT Timer</text>
+  <text x="28" y="392" class="sub">本课：先写 TIMER_MASKED|32，校准后改 TIMER_PERIODIC|32</text>
+  <g text-anchor="middle">
+    <text x="120" y="416" class="tiny">31:19</text>
+    <text x="268" y="416" class="tiny">18:17</text>
+    <text x="360" y="416" class="tiny">16</text>
+    <text x="480" y="416" class="tiny">15:12</text>
+    <text x="620" y="416" class="tiny">11:8</text>
+    <text x="820" y="416" class="tiny">7:0</text>
+  </g>
+  <g>
+    <rect x="28" y="424" width="184" height="70" class="box rsv"/>
+    <rect x="212" y="424" width="112" height="70" class="box mode"/>
+    <rect x="324" y="424" width="72" height="70" class="box mask"/>
+    <rect x="396" y="424" width="168" height="70" class="box rsv"/>
+    <rect x="564" y="424" width="112" height="70" class="box rsv"/>
+    <rect x="676" y="424" width="276" height="70" class="box used"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="120" y="454" class="lab">保留</text>
+    <text x="268" y="450" class="lab">Timer Mode</text><text x="268" y="470" class="tiny">00 单次 / 01 周期</text>
+    <text x="360" y="450" class="lab">Mask</text><text x="360" y="470" class="tiny">1=屏蔽</text>
+    <text x="480" y="454" class="lab">保留*</text>
+    <text x="620" y="454" class="lab">保留*</text>
+    <text x="814" y="450" class="lab">Vector</text><text x="814" y="470" class="tiny">本课 = 32</text>
+  </g>
+  <text x="28" y="518" class="tiny">* Timer 表项里 Delivery Mode / 极性等字段保留不用。Mode bit18 还可表示 TSC-Deadline (10)，本课不用。</text>
+
+  <text x="28" y="556" class="sec">+0x3E0 Divide Configuration</text>
+  <text x="28" y="576" class="sub">本课写入 0b0011 → 总线频率 ÷ 16。有效位是 0、1、3；bit 2 恒为 0</text>
+  <g text-anchor="middle">
+    <text x="280" y="600" class="tiny">31:4</text>
+    <text x="620" y="600" class="tiny">3</text>
+    <text x="700" y="600" class="tiny">2</text>
+    <text x="780" y="600" class="tiny">1</text>
+    <text x="860" y="600" class="tiny">0</text>
+  </g>
+  <g>
+    <rect x="28" y="608" width="504" height="70" class="box rsv"/>
+    <rect x="532" y="608" width="96" height="70" class="box hint"/>
+    <rect x="628" y="608" width="96" height="70" class="box rsv"/>
+    <rect x="724" y="608" width="96" height="70" class="box hint"/>
+    <rect x="820" y="608" width="96" height="70" class="box hint"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="280" y="648" class="lab">保留</text>
+    <text x="580" y="638" class="lab">X</text><text x="580" y="658" class="tiny">bit3</text>
+    <text x="676" y="638" class="lab">0</text><text x="676" y="658" class="tiny">固定</text>
+    <text x="772" y="638" class="lab">Y1</text><text x="772" y="658" class="tiny">bit1</text>
+    <text x="868" y="638" class="lab">Y0</text><text x="868" y="658" class="tiny">bit0</text>
+  </g>
+  <text x="28" y="702" class="tiny">除数编码 (X Y1 Y0)：000÷2 · 001÷4 · 010÷8 · 011÷16 · 100÷32 · 101÷64 · 110÷128 · 111÷1</text>
+
+  <text x="28" y="740" class="sec">+0x380 / +0x390 Initial Count · Current Count</text>
+  <g>
+    <rect x="28" y="754" width="924" height="56" class="box val"/>
+    <text x="490" y="778" text-anchor="middle" class="lab">bits 31:0 = 32 位计数值</text>
+    <text x="490" y="798" text-anchor="middle" class="tiny">写 Initial 会装入 Current 并启动/重装；Current 只读。本课校准用 MAX−Current，运行期写每 jiffy 的 Initial</text>
+  </g>
+
+  <text x="28" y="850" class="sec">+0x0B0 EOI (End of Interrupt)</text>
+  <g>
+    <rect x="28" y="864" width="924" height="56" class="box rsv"/>
+    <text x="490" y="888" text-anchor="middle" class="lab">写任意值（本课写 0）= 声明当前 in-service 中断处理完毕</text>
+    <text x="490" y="908" text-anchor="middle" class="tiny">不写 EOI，下一条同级/低优先级中断不会再投递</text>
+  </g>
+
+  <text x="28" y="958" class="sub">对照代码常量：EOI / SPURIOUS_VECTOR / LVT_TIMER / INITIAL_COUNT / CURRENT_COUNT / DIVIDE_CONFIG (impl/kernel/src/lapic.rs)</text>
+</svg>

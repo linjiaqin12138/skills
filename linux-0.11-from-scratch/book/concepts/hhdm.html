@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="paper" data-mode="auto" data-style="80">
+<html lang="zh-CN" data-theme="paper" data-mode="auto" data-style="strict">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -753,25 +753,21 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </style>
 </head>
 <body>
-<div class="am-toolbar" data-am-root-lang="zh-CN" data-am-root-theme="paper" data-am-root-mode="auto" data-am-root-style="80">
+<div class="am-toolbar" data-am-root-lang="zh-CN" data-am-root-theme="paper" data-am-root-mode="auto" data-am-root-style="strict">
 <label class="am-pick">主题<select data-am="theme"><option value="blueprint">图纸</option><option value="shadcn">卡片</option><option value="paper" selected>纸张</option></select></label>
 <label class="am-pick">明暗<select data-am="mode"><option value="auto" selected>跟随系统</option><option value="light">亮</option><option value="dark">暗</option></select></label>
 <button class="am-btn am-btn--reply" type="button" data-am="reply" data-ui="{&quot;button&quot;:&quot;回复&quot;,&quot;comment&quot;:&quot;评论&quot;,&quot;commentHint&quot;:&quot;对这个面板的意见&quot;,&quot;title&quot;:&quot;你的回复&quot;,&quot;hint&quot;:&quot;复制后粘贴到对话里。&quot;,&quot;copy&quot;:&quot;复制回复&quot;,&quot;close&quot;:&quot;关闭&quot;,&quot;suggested&quot;:&quot;建议&quot;,&quot;empty&quot;:&quot;先选择选项，或在面板上写评论。&quot;,&quot;decisions&quot;:&quot;决定&quot;,&quot;comments&quot;:&quot;评论&quot;,&quot;confirmed&quot;:&quot;确认了建议&quot;,&quot;untouched&quot;:&quot;未作答，保留建议&quot;,&quot;was&quot;:&quot;原为&quot;,&quot;typed&quot;:&quot;以 \&quot;&gt;\&quot; 开头的行是读者输入的文字。&quot;,&quot;done&quot;:&quot;已复制 ✓&quot;,&quot;remarks&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">回复</button>
 <button class="am-btn am-btn--remark" type="button" data-am="remark" data-ui="{&quot;button&quot;:&quot;标注&quot;,&quot;hint&quot;:&quot;批注（可选）&quot;,&quot;save&quot;:&quot;保存&quot;,&quot;remove&quot;:&quot;删除&quot;,&quot;section&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">标注</button>
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
-<main class="am-sheet">
-<header class="am-head"><h1>HHDM：高半区直接映射</h1><div class="am-intro am-md"><div class="am-md"><blockquote>
-<p>概念深读（M3 Bite1 背景卡片承诺）。面向知道分页、但不知道 HHDM 是什么的读者。
-读完你应能回答：HHDM 是什么；它在虚拟地址空间里占哪一段；为什么运行时改页表离不开它。</p>
-</blockquote>
+<main class="am-doc">
+<header class="am-head"><h1>HHDM：高半区直接映射</h1><p class="am-sub">物理地址加偏移就能当指针用；设备页仍可能落在窗口内却未映射</p><div class="am-head-meta"><span><b>source</b>x86-64 概念深读</span></div><div class="am-intro am-md"><div class="am-md"><p>Lead: HHDM 把 RAM 原样映到高半区。改页表时用「物理地址 + 偏移」当可写指针。LAPIC 那种设备页即使地址落在窗口内，也不保证有映射。</p>
 <blockquote>
-<p>交互版（推荐）：<a href="figures/hhdm/index.html">figures/hhdm/index.html</a></p>
+<p>概念深读（M3 Bite1）。面向知道分页、但不知道 HHDM 是什么的读者。</p>
 </blockquote>
 </div></div></header>
-<div class="am-frame">
-<div class="am-ruler am-ruler--top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div><div class="am-ruler am-ruler--right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
-<div class="am-grid" style="--cols: 3">
+<div class="am-doc-layout">
+<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 一句话版本</a><a href="#panel-B">B · 它长什么样</a><a href="#panel-C">C · 为什么需要它</a><a href="#panel-D">D · 和「内核镜像在高半区」不是一回事</a><a href="#panel-E">E · 常见误解</a><a href="#panel-F">F · 回到项目</a><a href="#panel-G">G · 去学</a></nav><div class="am-doc-body">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>一句话版本</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>HHDM</strong>（Higher Half Direct Map，高半区直接映射）是启动加载器在虚拟地址空间里划出的一段区间。窗口里的每个虚拟地址都指向同一个偏移的物理地址：</p>
@@ -812,7 +808,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <td>LAPIC 寄存器区（设备，不在 RAM 里）</td>
 </tr>
 </tbody></table></div>
-<p>前三行是 HHDM 真正帮上忙的地方。最后一行是个陷阱：地址落在 HHDM 窗口<b>之内</b>，可那一段不是 RAM，没有任何映射。</p>
+<p>前三行是 HHDM 真正帮上忙的地方。最后一行是个陷阱：地址落在 HHDM 窗口之内，可那一段不是 RAM，没有任何映射。</p>
 <p>第一行给的是内核镜像<strong>起始</strong>物理地址。它的大小不由这个数决定：链接脚本和 BSS 说了算，示例布局里它延伸到 <code>0x0226_0000</code> 附近，约 1.1 MiB。</p>
 </div></div>
 </section>
@@ -877,26 +873,54 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div></div>
 </section>
 <section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>深入阅读</h2></header>
-<div class="am-panel-body"><div class="am-md"><ul>
-<li>实现：<code>impl/kernel/src/lapic.rs:87-98</code>（取 HHDM 偏移）、<code>:162</code>、<code>:181</code>（用它生成页表指针）</li>
-<li>相关概念：<a href="mmio-page-mapping.html">map_mmio_page：把设备的一页映射进虚拟地址空间</a></li>
-<li>课程：<a href="../m03-interrupts/b01-lapic-timer.html">M3 Bite1 · LAPIC 定时器</a></li>
-<li>决策：<a href="../../decisions/0002-lapic-mmio-mapping.md">0002 按需补 LAPIC MMIO 页映射</a></li>
-</ul>
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>回到项目</h2></header>
+<div class="am-panel-body"><div class="am-md"><div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>用点</th>
+<th>代码</th>
+<th>本页哪里讲</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>取 HHDM offset</td>
+<td><code>lapic.rs:87-98</code></td>
+<td>一句话版本</td>
+</tr>
+<tr>
+<td><code>hhdm_offset + table_physical</code> 写页表</td>
+<td><code>lapic.rs:162</code>、<code>:181</code></td>
+<td>为什么需要它</td>
+</tr>
+<tr>
+<td>LAPIC 地址在窗口内但未映射</td>
+<td>决定二 / #PF 坑</td>
+<td>它长什么样（最后一行陷阱）</td>
+</tr>
+</tbody></table></div>
+<p>相关概念：<a href="mmio-page-mapping.html">map_mmio_page</a>。课程：<a href="../m03-interrupts/b01-lapic-timer.html">M3 Bite1</a>。决策：<a href="../../decisions/0002-lapic-mmio-mapping.md">0002</a>。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>去学</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>想继续深入时再看交互版：<a href="figures/hhdm/index.html">figures/hhdm/index.html</a>。删掉外链，上面的用点仍应能对上。</p>
 </div></div>
 </section>
 </div>
 </div>
 </main>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 12:48 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
-<textarea id="am-source" hidden readonly aria-hidden="true"># HHDM：高半区直接映射
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 14:31 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<textarea id="am-source" hidden readonly aria-hidden="true">---
+template: doc
+theme: paper
+title: HHDM：高半区直接映射
+subtitle: 物理地址加偏移就能当指针用；设备页仍可能落在窗口内却未映射
+source: x86-64 概念深读
+---
 
-&gt; 概念深读（M3 Bite1 背景卡片承诺）。面向知道分页、但不知道 HHDM 是什么的读者。
-&gt; 读完你应能回答：HHDM 是什么；它在虚拟地址空间里占哪一段；为什么运行时改页表离不开它。
+Lead: HHDM 把 RAM 原样映到高半区。改页表时用「物理地址 + 偏移」当可写指针。LAPIC 那种设备页即使地址落在窗口内，也不保证有映射。
 
-&gt; 交互版（推荐）：[figures/hhdm/index.html](figures/hhdm/index.html)
-&gt;
+&gt; 概念深读（M3 Bite1）。面向知道分页、但不知道 HHDM 是什么的读者。
 
 ## 一句话版本
 
@@ -919,7 +943,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 | `0x0022_3000` | `0xFFFF800000223000` | BSS 里的静态页表 `EXTRA_PAGE_TABLES[0]` |
 | `0xFEE0_0000` | `0xFFFF8000FEE00000` | LAPIC 寄存器区（设备，不在 RAM 里） |
 
-前三行是 HHDM 真正帮上忙的地方。最后一行是个陷阱：地址落在 HHDM 窗口&lt;b&gt;之内&lt;/b&gt;，可那一段不是 RAM，没有任何映射。
+前三行是 HHDM 真正帮上忙的地方。最后一行是个陷阱：地址落在 HHDM 窗口之内，可那一段不是 RAM，没有任何映射。
 
 第一行给的是内核镜像**起始**物理地址。它的大小不由这个数决定：链接脚本和 BSS 说了算，示例布局里它延伸到 `0x0226_0000` 附近，约 1.1 MiB。
 
@@ -953,12 +977,19 @@ HHDM 解决的是「我手上只有物理地址，怎么写它」。内核镜像
 | 有了 HHDM 就不用管页表了 | 改页表本身离不开 HHDM；设备页还得自己补映射 |
 | HHDM 里的地址和内核镜像地址是一回事 | 两套映射，位置和用途都不同 |
 
-## 深入阅读
+## 回到项目
 
-- 实现：`impl/kernel/src/lapic.rs:87-98`（取 HHDM 偏移）、`:162`、`:181`（用它生成页表指针）
-- 相关概念：[map_mmio_page：把设备的一页映射进虚拟地址空间](mmio-page-mapping.html)
-- 课程：[M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)
-- 决策：[0002 按需补 LAPIC MMIO 页映射](../../decisions/0002-lapic-mmio-mapping.md)
+| 用点 | 代码 | 本页哪里讲 |
+|---|---|---|
+| 取 HHDM offset | `lapic.rs:87-98` | 一句话版本 |
+| `hhdm_offset + table_physical` 写页表 | `lapic.rs:162`、`:181` | 为什么需要它 |
+| LAPIC 地址在窗口内但未映射 | 决定二 / #PF 坑 | 它长什么样（最后一行陷阱） |
+
+相关概念：[map_mmio_page](mmio-page-mapping.html)。课程：[M3 Bite1](../m03-interrupts/b01-lapic-timer.html)。决策：[0002](../../decisions/0002-lapic-mmio-mapping.md)。
+
+## 去学
+
+想继续深入时再看交互版：[figures/hhdm/index.html](figures/hhdm/index.html)。删掉外链，上面的用点仍应能对上。
 </textarea>
 <script>
 (() => {

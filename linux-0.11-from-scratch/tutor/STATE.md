@@ -3,7 +3,7 @@
 ## 当前位置
 - Phase: 3（逐层手搓）进行中
 - 里程碑: **M3 进行中**——Bite1（LAPIC 定时器 IRQ32 @100Hz + jiffies + 可返回中断入口）2026-10-26 独立验收 `bash accept/m03-b01.sh` 通过，记录见 `tutor/runs/m03-b01.txt`；verifier 另用宿主时钟测得 99.49~99.77 Hz。M0/M1/M2 已通过
-- 教程：**M0 Bite1 `book/m00-boot/b01-boot-skeleton.html` + Bite2 `book/m00-boot/b02-iso-boot.html`（2026-10-19 已迁移到草稿+am-render 工作流）**；M1 Bite1 `b01-framebuffer.html` + Bite2 `b02-printk-scroll.html`（book/m01-printk/，尚无草稿，HTML 为唯一产物）；**M2 Bite1 `book/m02-exceptions/b01-gdt-idt.html` + Bite2 `book/m02-exceptions/b02-panic-printing.html`（源稿为同名 `.draft.md`）**；**M3 Bite1 `book/m03-interrupts/b01-lapic-timer.html`（源稿同名 `.draft.md`，8 面板）**；概念 `linear-framebuffer.md` + `gdt-long-mode.html` + `idt-exception-frame.html` + `apic-vs-pic.md`
+- 教程：**M0 Bite1 `book/m00-boot/b01-boot-skeleton.html` + Bite2 `book/m00-boot/b02-iso-boot.html`（2026-10-19 已迁移到草稿+am-render 工作流）**；M1 Bite1 `b01-framebuffer.html` + Bite2 `b02-printk-scroll.html`（book/m01-printk/，尚无草稿，HTML 为唯一产物）；**M2 Bite1 `book/m02-exceptions/b01-gdt-idt.html` + Bite2 `book/m02-exceptions/b02-panic-printing.html`（源稿为同名 `.md` / `.draft.md`）**；**M3 Bite1 `book/m03-interrupts/b01-lapic-timer.html`（源稿同名 `.md`，2026-10-28 按现行 writer 结构重写：问题/背景/设计/架构决定/代码领读/验收 raw 命令/差异与坑/自测，8 面板）**；概念 `apic-vs-pic` / `x86-msr` / `hhdm` / `mmio-page-mapping` 已按 concept-writer「用点+依赖够用；去学仅深入」对齐并重渲
 - 环境：GNU Make 用 `~/.local/bin/make`（apt 下载后用户级解包）；qemu 宿主机用 `~/.local/bin/qemu-system-x86_64`（从 deb 解压，非 apt 安装；缺 ROM 时验收加 `-net none`）；工具链镜像 `linux011-rust-toolchain`✅；`upstream/limine`（v10.8.5-binary）+ `upstream/limine-protocol`（limine.h/PROTOCOL）已恢复；`hdc-0.11.img` 现为 1MB stub（M1 不读盘）
 
 ## 下一步动作
@@ -13,7 +13,9 @@
 
 **2026-10-13**：Limine 协议已改为官方 `limine` crate 0.6.5（D14）。
 
-**教程/概念页工作流变更（2026-10-19，取代下条旧教训）**：草稿是唯一编辑对象，落盘为 `<页面同名>.draft.md` 与 HTML 同目录入 git；修订一律改草稿 + `bin/am-render <草稿> -o <页面>.html` 整页重渲（封装固定 `--style strict`，渲染后把内嵌图片还原为相对路径链接，`data-am-src` 保留原路径）。禁止 `am patch`、禁止手工改 HTML；验收只浏览器目检，不把 HTML 读进上下文。`src=` 代码块会跟随当前代码重渲，正文 `文件:行号` 引用须同次同步（本次已把代码领读面板的 gdt.rs 引用从 20-47/62-96 修正为 22-49/64-98，漂移源是 2026-10-19 用户加的两行 `// Q:` 注释）。
+**教程/概念页工作流（2026-10-28 对齐 clone-from-scratch-tutor）**：源稿为 `book/mNN-*/bKK-*.md`（或历史遗留的 `.draft.md`），`bin/am-render` 整页重渲同名 `.html`（`--style strict`，去内嵌）。禁止 `am patch`、禁止手工改 HTML。概念页正文覆盖本次代码用点及其依赖，讲到够用；「去学」只给深入。课文固定四节（问题/设计/验收/自测），其余有内容才加；验收必须展开 raw 构建与 qemu 命令，不能只写 `accept/`。
+
+**教程/概念页工作流变更（2026-10-19，部分被上条取代）**：曾约定落盘为 `.draft.md`；M3 Bite1 已迁到 `.md`。其余约定（整页重渲、禁止 am patch、行号同步）仍有效。
 
 **2026-10-19 提问补录**：用户问「CS 换掉后为什么能保证新 CS 下 retfq 后面就是 mov ds 那串指令」，解答已整理成条目写进 M2 Bite1「细节展开」（三个折叠面板：返回地址是链接期常量 / 长模式 CS 不改取指地址 / 换错 CS 会 #GP 而非跑错代码），草稿已改 + `am-render` 整页重渲，Bite1 状态不变（仍待用户确认）。
 

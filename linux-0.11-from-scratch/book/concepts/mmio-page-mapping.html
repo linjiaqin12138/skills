@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="paper" data-mode="auto" data-style="80">
+<html lang="zh-CN" data-theme="paper" data-mode="auto" data-style="strict">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -753,28 +753,26 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </style>
 </head>
 <body>
-<div class="am-toolbar" data-am-root-lang="zh-CN" data-am-root-theme="paper" data-am-root-mode="auto" data-am-root-style="80">
+<div class="am-toolbar" data-am-root-lang="zh-CN" data-am-root-theme="paper" data-am-root-mode="auto" data-am-root-style="strict">
 <label class="am-pick">主题<select data-am="theme"><option value="blueprint">图纸</option><option value="shadcn">卡片</option><option value="paper" selected>纸张</option></select></label>
 <label class="am-pick">明暗<select data-am="mode"><option value="auto" selected>跟随系统</option><option value="light">亮</option><option value="dark">暗</option></select></label>
 <button class="am-btn am-btn--reply" type="button" data-am="reply" data-ui="{&quot;button&quot;:&quot;回复&quot;,&quot;comment&quot;:&quot;评论&quot;,&quot;commentHint&quot;:&quot;对这个面板的意见&quot;,&quot;title&quot;:&quot;你的回复&quot;,&quot;hint&quot;:&quot;复制后粘贴到对话里。&quot;,&quot;copy&quot;:&quot;复制回复&quot;,&quot;close&quot;:&quot;关闭&quot;,&quot;suggested&quot;:&quot;建议&quot;,&quot;empty&quot;:&quot;先选择选项，或在面板上写评论。&quot;,&quot;decisions&quot;:&quot;决定&quot;,&quot;comments&quot;:&quot;评论&quot;,&quot;confirmed&quot;:&quot;确认了建议&quot;,&quot;untouched&quot;:&quot;未作答，保留建议&quot;,&quot;was&quot;:&quot;原为&quot;,&quot;typed&quot;:&quot;以 \&quot;&gt;\&quot; 开头的行是读者输入的文字。&quot;,&quot;done&quot;:&quot;已复制 ✓&quot;,&quot;remarks&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">回复</button>
 <button class="am-btn am-btn--remark" type="button" data-am="remark" data-ui="{&quot;button&quot;:&quot;标注&quot;,&quot;hint&quot;:&quot;批注（可选）&quot;,&quot;save&quot;:&quot;保存&quot;,&quot;remove&quot;:&quot;删除&quot;,&quot;section&quot;:&quot;标注&quot;,&quot;kinds&quot;:{&quot;suggestion&quot;:&quot;建议&quot;,&quot;keep&quot;:&quot;保留&quot;,&quot;question&quot;:&quot;疑问&quot;,&quot;concern&quot;:&quot;关注&quot;}}">标注</button>
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
-<main class="am-sheet">
-<header class="am-head"><h1>map_mmio_page：把设备的一页映射进虚拟地址空间</h1><div class="am-intro am-md"><div class="am-md"><blockquote>
-<p>概念深读（M3 Bite1 背景卡片承诺）。面向看得懂四级分页、但没见过「运行时改页表」的读者。
-读完你应能回答：为什么 CPU 查页表用物理地址、而 Rust 指针是虚拟地址；补一个 MMIO 映射到底改了几处内存。</p>
-</blockquote>
+<main class="am-doc">
+<header class="am-head"><h1>map_mmio_page：把设备的一页映射进虚拟地址空间</h1><p class="am-sub">沿四级页表补缺，叶子项指向 LAPIC 物理页并关缓存</p><div class="am-head-meta"><span><b>source</b>x86-64 概念深读</span></div><div class="am-intro am-md"><div class="am-md"><p>Lead: <code>map_mmio_page</code> 只做一件事：在当前页表里为设备那一页补映射。改上级表项、叶子表项，必要时还有新页表页；叶子项带 PCD/PWT，写完再 <code>invlpg</code>。</p>
 <blockquote>
-<p>交互版（推荐）：<a href="figures/mmio-page-map/index.html">figures/mmio-page-map/index.html</a></p>
+<p>概念深读（M3 Bite1）。面向看得懂四级分页、但没见过运行时改页表的读者。</p>
 </blockquote>
 </div></div></header>
-<div class="am-frame">
-<div class="am-ruler am-ruler--top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div><div class="am-ruler am-ruler--right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
-<div class="am-grid" style="--cols: 3">
+<div class="am-doc-layout">
+<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 一句话版本</a><a href="#panel-B">B · 为什么需要搞懂它</a><a href="#panel-C">C · 动画：12 步看完全过程</a><a href="#panel-D">D · 静态页表从哪来</a><a href="#panel-E">E · 常见误解</a><a href="#panel-F">F · 回到项目</a><a href="#panel-G">G · 去学</a></nav><div class="am-doc-body">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>一句话版本</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><code>map_mmio_page</code> 做的事只有一件：<strong>在当前页表里，为「设备所在的那一页物理地址」补出一条映射</strong>。补完返回这个虚拟地址，之后访问设备寄存器就退化成普通的 load/store。</p>
+<p>查表起点在 CR3。长模式下 CR3 装着 PML4 的物理基址；本课只读它并用掩码取出页对齐地址：</p>
+<figure class="am-figure"><img data-am-src="figures/cr3/cr3-bitmap.svg" src="figures/cr3/cr3-bitmap.svg" alt="CR3 位域：IA-32e 分页，PCIDE=0 与 PCIDE=1"><figcaption>CR3 位域：IA-32e 分页，PCIDE=0 与 PCIDE=1</figcaption></figure>
 <p>它改的内存有三处，缺一不可：</p>
 <div class="am-table-wrap"><table>
 <thead>
@@ -864,30 +862,62 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div></div>
 </section>
 <section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>深入阅读</h2></header>
-<div class="am-panel-body"><div class="am-md"><ul>
-<li>实现：<code>impl/kernel/src/lapic.rs:146-191</code>（<code>map_mmio_page</code>）</li>
-<li>决策：<a href="../../decisions/0002-lapic-mmio-mapping.md">0002 按需补 LAPIC MMIO 页映射</a></li>
-<li>前置概念：<a href="x86-msr.html">x86 的 MSR：型号特定寄存器</a>（LAPIC 物理基址从哪来）、<a href="hhdm.html">HHDM：高半区直接映射</a>（写页表的那条通道）</li>
-<li>课程：<a href="../m03-interrupts/b01-lapic-timer.html">M3 Bite1 · LAPIC 定时器</a></li>
-</ul>
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>回到项目</h2></header>
+<div class="am-panel-body"><div class="am-md"><div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>用点</th>
+<th>代码</th>
+<th>本页哪里讲</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>四级遍历与补缺</td>
+<td><code>lapic.rs:160-178</code></td>
+<td>动画 12 步；三个关键点</td>
+</tr>
+<tr>
+<td>叶子项 <code>PWT|PCD</code> + <code>invlpg</code></td>
+<td><code>lapic.rs:180-190</code></td>
+<td>关键点 3</td>
+</tr>
+<tr>
+<td><code>EXTRA_PAGE_TABLES</code> 换算物理地址</td>
+<td><code>lapic.rs:64</code>、<code>:169</code></td>
+<td>静态页表从哪来</td>
+</tr>
+</tbody></table></div>
+<p>决策：<a href="../../decisions/0002-lapic-mmio-mapping.md">0002</a>。前置：<a href="x86-msr.html">MSR</a>、<a href="hhdm.html">HHDM</a>。课程：<a href="../m03-interrupts/b01-lapic-timer.html">M3 Bite1</a>。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>去学</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>想继续深入时再看交互版：<a href="figures/mmio-page-map/index.html">figures/mmio-page-map/index.html</a>。删掉外链，上面的用点仍应能对上。</p>
 </div></div>
 </section>
 </div>
 </div>
 </main>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 11:55 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
-<textarea id="am-source" hidden readonly aria-hidden="true"># map_mmio_page：把设备的一页映射进虚拟地址空间
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 15:03 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<textarea id="am-source" hidden readonly aria-hidden="true">---
+template: doc
+theme: paper
+title: map_mmio_page：把设备的一页映射进虚拟地址空间
+subtitle: 沿四级页表补缺，叶子项指向 LAPIC 物理页并关缓存
+source: x86-64 概念深读
+---
 
-&gt; 概念深读（M3 Bite1 背景卡片承诺）。面向看得懂四级分页、但没见过「运行时改页表」的读者。
-&gt; 读完你应能回答：为什么 CPU 查页表用物理地址、而 Rust 指针是虚拟地址；补一个 MMIO 映射到底改了几处内存。
+Lead: `map_mmio_page` 只做一件事：在当前页表里为设备那一页补映射。改上级表项、叶子表项，必要时还有新页表页；叶子项带 PCD/PWT，写完再 `invlpg`。
 
-&gt; 交互版（推荐）：[figures/mmio-page-map/index.html](figures/mmio-page-map/index.html)
-&gt;
+&gt; 概念深读（M3 Bite1）。面向看得懂四级分页、但没见过运行时改页表的读者。
 
 ## 一句话版本
 
 `map_mmio_page` 做的事只有一件：**在当前页表里，为「设备所在的那一页物理地址」补出一条映射**。补完返回这个虚拟地址，之后访问设备寄存器就退化成普通的 load/store。
+
+查表起点在 CR3。长模式下 CR3 装着 PML4 的物理基址；本课只读它并用掩码取出页对齐地址：
+
+![CR3 位域：IA-32e 分页，PCIDE=0 与 PCIDE=1](figures/cr3/cr3-bitmap.svg)
 
 它改的内存有三处，缺一不可：
 
@@ -963,12 +993,19 @@ let new_physical = table_virtual - kernel_virtual + kernel_physical;
 | 访问 MMIO 和读内存一样 | 指令一样，但必须关缓存，否则读到的是缓存值 |
 | 这段逻辑能一直用 | 决策 0002 写明：进入通用分页后应换成正式页表接口 |
 
-## 深入阅读
+## 回到项目
 
-- 实现：`impl/kernel/src/lapic.rs:146-191`（`map_mmio_page`）
-- 决策：[0002 按需补 LAPIC MMIO 页映射](../../decisions/0002-lapic-mmio-mapping.md)
-- 前置概念：[x86 的 MSR：型号特定寄存器](x86-msr.html)（LAPIC 物理基址从哪来）、[HHDM：高半区直接映射](hhdm.html)（写页表的那条通道）
-- 课程：[M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)
+| 用点 | 代码 | 本页哪里讲 |
+|---|---|---|
+| 四级遍历与补缺 | `lapic.rs:160-178` | 动画 12 步；三个关键点 |
+| 叶子项 `PWT\|PCD` + `invlpg` | `lapic.rs:180-190` | 关键点 3 |
+| `EXTRA_PAGE_TABLES` 换算物理地址 | `lapic.rs:64`、`:169` | 静态页表从哪来 |
+
+决策：[0002](../../decisions/0002-lapic-mmio-mapping.md)。前置：[MSR](x86-msr.html)、[HHDM](hhdm.html)。课程：[M3 Bite1](../m03-interrupts/b01-lapic-timer.html)。
+
+## 去学
+
+想继续深入时再看交互版：[figures/mmio-page-map/index.html](figures/mmio-page-map/index.html)。删掉外链，上面的用点仍应能对上。
 </textarea>
 <script>
 (() => {

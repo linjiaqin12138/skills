@@ -1,10 +1,14 @@
-# HHDM：高半区直接映射
+---
+template: doc
+theme: paper
+title: HHDM：高半区直接映射
+subtitle: 物理地址加偏移就能当指针用；设备页仍可能落在窗口内却未映射
+source: x86-64 概念深读
+---
 
-> 概念深读（M3 Bite1 背景卡片承诺）。面向知道分页、但不知道 HHDM 是什么的读者。
-> 读完你应能回答：HHDM 是什么；它在虚拟地址空间里占哪一段；为什么运行时改页表离不开它。
+Lead: HHDM 把 RAM 原样映到高半区。改页表时用「物理地址 + 偏移」当可写指针。LAPIC 那种设备页即使地址落在窗口内，也不保证有映射。
 
-> 交互版（推荐）：[figures/hhdm/index.html](figures/hhdm/index.html)
->
+> 概念深读（M3 Bite1）。面向知道分页、但不知道 HHDM 是什么的读者。
 
 ## 一句话版本
 
@@ -27,7 +31,7 @@
 | `0x0022_3000` | `0xFFFF800000223000` | BSS 里的静态页表 `EXTRA_PAGE_TABLES[0]` |
 | `0xFEE0_0000` | `0xFFFF8000FEE00000` | LAPIC 寄存器区（设备，不在 RAM 里） |
 
-前三行是 HHDM 真正帮上忙的地方。最后一行是个陷阱：地址落在 HHDM 窗口<b>之内</b>，可那一段不是 RAM，没有任何映射。
+前三行是 HHDM 真正帮上忙的地方。最后一行是个陷阱：地址落在 HHDM 窗口之内，可那一段不是 RAM，没有任何映射。
 
 第一行给的是内核镜像**起始**物理地址。它的大小不由这个数决定：链接脚本和 BSS 说了算，示例布局里它延伸到 `0x0226_0000` 附近，约 1.1 MiB。
 
@@ -61,9 +65,16 @@ HHDM 解决的是「我手上只有物理地址，怎么写它」。内核镜像
 | 有了 HHDM 就不用管页表了 | 改页表本身离不开 HHDM；设备页还得自己补映射 |
 | HHDM 里的地址和内核镜像地址是一回事 | 两套映射，位置和用途都不同 |
 
-## 深入阅读
+## 回到项目
 
-- 实现：`impl/kernel/src/lapic.rs:87-98`（取 HHDM 偏移）、`:162`、`:181`（用它生成页表指针）
-- 相关概念：[map_mmio_page：把设备的一页映射进虚拟地址空间](mmio-page-mapping.html)
-- 课程：[M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)
-- 决策：[0002 按需补 LAPIC MMIO 页映射](../../decisions/0002-lapic-mmio-mapping.md)
+| 用点 | 代码 | 本页哪里讲 |
+|---|---|---|
+| 取 HHDM offset | `lapic.rs:87-98` | 一句话版本 |
+| `hhdm_offset + table_physical` 写页表 | `lapic.rs:162`、`:181` | 为什么需要它 |
+| LAPIC 地址在窗口内但未映射 | 决定二 / #PF 坑 | 它长什么样（最后一行陷阱） |
+
+相关概念：[map_mmio_page](mmio-page-mapping.html)。课程：[M3 Bite1](../m03-interrupts/b01-lapic-timer.html)。决策：[0002](../../decisions/0002-lapic-mmio-mapping.md)。
+
+## 去学
+
+想继续深入时再看交互版：[figures/hhdm/index.html](figures/hhdm/index.html)。删掉外链，上面的用点仍应能对上。

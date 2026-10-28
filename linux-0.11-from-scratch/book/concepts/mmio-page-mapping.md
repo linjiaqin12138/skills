@@ -1,14 +1,22 @@
-# map_mmio_page：把设备的一页映射进虚拟地址空间
+---
+template: doc
+theme: paper
+title: map_mmio_page：把设备的一页映射进虚拟地址空间
+subtitle: 沿四级页表补缺，叶子项指向 LAPIC 物理页并关缓存
+source: x86-64 概念深读
+---
 
-> 概念深读（M3 Bite1 背景卡片承诺）。面向看得懂四级分页、但没见过「运行时改页表」的读者。
-> 读完你应能回答：为什么 CPU 查页表用物理地址、而 Rust 指针是虚拟地址；补一个 MMIO 映射到底改了几处内存。
+Lead: `map_mmio_page` 只做一件事：在当前页表里为设备那一页补映射。改上级表项、叶子表项，必要时还有新页表页；叶子项带 PCD/PWT，写完再 `invlpg`。
 
-> 交互版（推荐）：[figures/mmio-page-map/index.html](figures/mmio-page-map/index.html)
->
+> 概念深读（M3 Bite1）。面向看得懂四级分页、但没见过运行时改页表的读者。
 
 ## 一句话版本
 
 `map_mmio_page` 做的事只有一件：**在当前页表里，为「设备所在的那一页物理地址」补出一条映射**。补完返回这个虚拟地址，之后访问设备寄存器就退化成普通的 load/store。
+
+查表起点在 CR3。长模式下 CR3 装着 PML4 的物理基址；本课只读它并用掩码取出页对齐地址：
+
+![CR3 位域：IA-32e 分页，PCIDE=0 与 PCIDE=1](figures/cr3/cr3-bitmap.svg)
 
 它改的内存有三处，缺一不可：
 
@@ -84,9 +92,16 @@ let new_physical = table_virtual - kernel_virtual + kernel_physical;
 | 访问 MMIO 和读内存一样 | 指令一样，但必须关缓存，否则读到的是缓存值 |
 | 这段逻辑能一直用 | 决策 0002 写明：进入通用分页后应换成正式页表接口 |
 
-## 深入阅读
+## 回到项目
 
-- 实现：`impl/kernel/src/lapic.rs:146-191`（`map_mmio_page`）
-- 决策：[0002 按需补 LAPIC MMIO 页映射](../../decisions/0002-lapic-mmio-mapping.md)
-- 前置概念：[x86 的 MSR：型号特定寄存器](x86-msr.html)（LAPIC 物理基址从哪来）、[HHDM：高半区直接映射](hhdm.html)（写页表的那条通道）
-- 课程：[M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)
+| 用点 | 代码 | 本页哪里讲 |
+|---|---|---|
+| 四级遍历与补缺 | `lapic.rs:160-178` | 动画 12 步；三个关键点 |
+| 叶子项 `PWT\|PCD` + `invlpg` | `lapic.rs:180-190` | 关键点 3 |
+| `EXTRA_PAGE_TABLES` 换算物理地址 | `lapic.rs:64`、`:169` | 静态页表从哪来 |
+
+决策：[0002](../../decisions/0002-lapic-mmio-mapping.md)。前置：[MSR](x86-msr.html)、[HHDM](hhdm.html)。课程：[M3 Bite1](../m03-interrupts/b01-lapic-timer.html)。
+
+## 去学
+
+想继续深入时再看交互版：[figures/mmio-page-map/index.html](figures/mmio-page-map/index.html)。删掉外链，上面的用点仍应能对上。

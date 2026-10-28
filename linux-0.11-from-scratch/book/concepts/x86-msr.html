@@ -768,7 +768,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </blockquote>
 </div></div></header>
 <div class="am-doc-layout">
-<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 一句话</a><a href="#panel-B">B · 它住在哪：和别的寄存器对比</a><a href="#panel-C">C · 怎么读写</a><a href="#panel-D">D · 本项目用它干了什么：LAPIC 基址</a><a href="#panel-E">E · 一个已知边界：x2APIC 模式</a><a href="#panel-F">F · 去学</a><a href="#panel-G">G · 回到项目</a><a href="#panel-H">H · 自测</a></nav><div class="am-doc-body">
+<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 一句话</a><a href="#panel-B">B · 它住在哪：和别的寄存器对比</a><a href="#panel-C">C · 怎么读写</a><a href="#panel-D">D · 本项目用它干了什么：LAPIC 基址</a><a href="#panel-E">E · 一个已知边界：x2APIC 模式</a><a href="#panel-F">F · 回到项目</a><a href="#panel-G">G · 去学</a><a href="#panel-H">H · 自测</a></nav><div class="am-doc-body">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>一句话</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>MSR</strong>（Model-Specific Register）是 x86 额外提供的一类控制寄存器。它们<strong>既不在内存里，也不在 I/O 端口空间</strong>，只能用 <code>rdmsr</code> / <code>wrmsr</code> 两条专用指令读写。编号和每一位的含义由 CPU 厂商定义，所以叫「型号特定」。</p>
@@ -851,33 +851,68 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </tr>
 </thead>
 <tbody><tr>
-<td>低 32 位</td>
-<td>LAPIC 寄存器的物理基址（<code>0xFEE00000</code>）</td>
+<td>基址字段</td>
+<td>LAPIC 寄存器的物理基址（常见 <code>0xFEE00000</code>，需再按页对齐掩码）</td>
 </tr>
 <tr>
 <td>bit 11（EN）</td>
-<td>x2APIC 模式开关：1 = 用 MSR 访问 LAPIC 寄存器，0 = 用 MMIO 访问</td>
+<td>APIC Global Enable：1 = 全局打开 APIC，0 = 关闭</td>
 </tr>
 <tr>
-<td>bit 12（XE）</td>
-<td>x2APIC 扩展格式开关</td>
+<td>bit 10（EXTD）</td>
+<td>x2APIC 模式：1 = 改用 MSR 访问 LAPIC，0 = 仍用 MMIO</td>
 </tr>
 </tbody></table></div>
 <p>于是 LAPIC 初始化是「MSR 决定 MMIO 基址，MMIO 承载实际寄存器」的两层结构：</p>
 </div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">read_msr(0x1B)        →  拿到 0xFEE00000</span><span class="am-ln">        ↓</span><span class="am-ln">map_mmio_page(...)    →  把这一页映射成可访问的虚拟地址</span><span class="am-ln">        ↓</span><span class="am-ln">lapic.write(EOI, 0)   →  往虚拟地址 + 0x0B0 写 0</span></code></pre></figure>
-<div class="am-md"><p>对应代码在 <code>impl/kernel/src/lapic.rs:131-143</code>（<code>enable_lapic</code>）。</p>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">read_msr(0x1B)        →  拿到物理基址，必要时置 bit 11</span><span class="am-ln">        ↓</span><span class="am-ln">map_mmio_page(...)    →  把这一页映射成可访问的虚拟地址</span><span class="am-ln">        ↓</span><span class="am-ln">写 SVR bit 8          →  软件使能本地 APIC</span><span class="am-ln">        ↓</span><span class="am-ln">lapic.write(EOI, 0)   →  往虚拟地址 + 0x0B0 写 0</span></code></pre></figure>
+<div class="am-md"><p>对应代码在 <code>impl/kernel/src/lapic.rs:131-143</code>（<code>enable_lapic</code>）。SVR 软件使能见 <a href="apic-vs-pic.html">PIC、LAPIC 与 IOAPIC</a>。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-E">
 <header class="am-panel-head"><span class="am-panel-id">E</span><h2>一个已知边界：x2APIC 模式</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>EN=1 时，CPU 进入 <strong>x2APIC</strong> 模式，LAPIC 寄存器改用一组 MSR 访问（<code>IA32_APIC_ICR</code>、<code>IA32_APIC_LVT_TIMER</code> 等），此时 <code>0xFEE00000</code> 那段 MMIO 不再有效。</p>
-<p>当前代码读 MSR 拿到基址后，<strong>始终用 MMIO 访问 LAPIC 寄存器</strong>，没有按 EN 位分流。硬件总是从 xAPIC 起步、且引导器不会擅自切 x2APIC，所以现在能跑通；但这是内核后续必须处理的一处边界。</p>
+<div class="am-panel-body"><div class="am-md"><p>bit 10（EXTD）=1 时，CPU 进入 <strong>x2APIC</strong> 模式，LAPIC 寄存器改用一组 MSR 访问（<code>IA32_APIC_ICR</code>、<code>IA32_APIC_LVT_TIMER</code> 等），此时 <code>0xFEE00000</code> 那段 MMIO 不再有效。</p>
+<p>当前代码读 MSR 拿到基址后，<strong>始终用 MMIO 访问 LAPIC 寄存器</strong>，没有按 EXTD 位分流。硬件总是从 xAPIC 起步、且引导器不会擅自切 x2APIC，所以现在能跑通；但这是内核后续必须处理的一处边界。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>去学</h2></header>
-<div class="am-panel-body"><div class="am-md"><ol>
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>回到项目</h2></header>
+<div class="am-panel-body"><div class="am-md"><div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>用点</th>
+<th>代码</th>
+<th>本页哪里讲</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rdmsr</code> 读出 LAPIC 物理基址</td>
+<td><code>lapic.rs:132</code>、<code>:215-223</code></td>
+<td>本项目用它干了什么；怎么读写</td>
+</tr>
+<tr>
+<td>必要时置 MSR bit 11</td>
+<td><code>lapic.rs:133-135</code>、<code>:225-236</code></td>
+<td><code>IA32_APIC_BASE</code> 位表</td>
+</tr>
+<tr>
+<td>始终走 MMIO，未切 x2APIC</td>
+<td><code>enable_lapic</code> 全文</td>
+<td>已知边界：x2APIC</td>
+</tr>
+<tr>
+<td>SVR 软件使能（非 MSR）</td>
+<td><code>lapic.rs:141</code></td>
+<td>见 <a href="apic-vs-pic.html">PIC、LAPIC 与 IOAPIC</a></td>
+</tr>
+</tbody></table></div>
+<p>更完整的上下文见 <a href="../m03-interrupts/b01-lapic-timer.html">M3 Bite1 · LAPIC 定时器</a>。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>去学</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>想继续深入时再看。删掉本节，上面的用点仍应能对上。</p>
+<ol>
 <li><p><a href="https://en.wikipedia.org/wiki/Model-specific_register">Wikipedia：Model-specific register</a></p>
 <ul>
 <li><strong>看哪一段：</strong> &quot;Usage&quot;一节，知道 MSR 编号由厂商分配、Linux 用 <code>msr-index.h</code> 集中定义。</li>
@@ -887,7 +922,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li><p><a href="https://wiki.osdev.org/Model_Specific_Register">OSDev Wiki：Model Specific Register</a></p>
 <ul>
 <li><strong>看哪一段：</strong> 开头对 MSR 的定义，以及 <code>IA32_APIC_BASE</code>、<code>IA32_MISC_ENABLE</code> 两个例子。</li>
-<li><strong>看完能回答：</strong> <code>IA32_APIC_BASE</code> 的 EN 位置 1 之后会发生什么？</li>
+<li><strong>看完能回答：</strong> <code>IA32_APIC_BASE</code> 的 bit 11 与 bit 10 各控制什么？</li>
 </ul>
 </li>
 <li><p>Intel SDM Volume 2（指令集参考）<code>RDMSR</code> / <code>WRMSR</code> 条目，Volume 3（系统编程指南）APIC 章节</p>
@@ -899,25 +934,19 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </ol>
 </div></div>
 </section>
-<section class="am-panel" id="panel-G">
-<header class="am-panel-head"><span class="am-panel-id">G</span><h2>回到项目</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>M3 Bite1 的 LAPIC 初始化就是这条链路的第一个实例：<code>enable_lapic</code> 先 <code>rdmsr</code> 读 <code>IA32_APIC_BASE</code>（<code>impl/kernel/src/lapic.rs:131-143</code>），取出物理基址后再决定是否置位 EN 位；<code>read_msr</code> / <code>write_msr</code> 两个包装在 <code>impl/kernel/src/lapic.rs:215-236</code>。</p>
-<p>更完整的上下文见 <a href="../m03-interrupts/b01-lapic-timer.html">M3 Bite1 · LAPIC 定时器：第一个自己到来的中断</a>，以及 <a href="apic-vs-pic.md">PIC、LAPIC 与 IOAPIC</a>。</p>
-</div></div>
-</section>
 <section class="am-panel" id="panel-H">
 <header class="am-panel-head"><span class="am-panel-id">H</span><h2>自测</h2></header>
 <div class="am-panel-body"><div class="am-md"><ol>
 <li>为什么不能用 <code>mov rax, [0xFEE00000]</code> 读 <code>IA32_APIC_BASE</code>？那个地址上到底是什么？</li>
 <li><code>rdmsr</code> 返回的 64 位值为什么要拆成 EDX 和 EAX 两个寄存器？</li>
-<li>如果 EN 位是 1，当前 <code>lapic.rs</code> 的 MMIO 访问方式还能工作吗？为什么？</li>
+<li>如果 EXTD（bit 10）是 1，当前 <code>lapic.rs</code> 的 MMIO 访问方式还能工作吗？为什么？</li>
 </ol>
 </div></div>
 </section>
 </div>
 </div>
 </main>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-27 15:57 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 14:31 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -983,29 +1012,44 @@ LAPIC 的寄存器住在一段固定物理地址（通常 `0xFEE00000`）。但*
 
 | 位 | 含义 |
 |---|---|
-| 低 32 位 | LAPIC 寄存器的物理基址（`0xFEE00000`） |
-| bit 11（EN） | x2APIC 模式开关：1 = 用 MSR 访问 LAPIC 寄存器，0 = 用 MMIO 访问 |
-| bit 12（XE） | x2APIC 扩展格式开关 |
+| 基址字段 | LAPIC 寄存器的物理基址（常见 `0xFEE00000`，需再按页对齐掩码） |
+| bit 11（EN） | APIC Global Enable：1 = 全局打开 APIC，0 = 关闭 |
+| bit 10（EXTD） | x2APIC 模式：1 = 改用 MSR 访问 LAPIC，0 = 仍用 MMIO |
 
 于是 LAPIC 初始化是「MSR 决定 MMIO 基址，MMIO 承载实际寄存器」的两层结构：
 
 ```text
-read_msr(0x1B)        →  拿到 0xFEE00000
+read_msr(0x1B)        →  拿到物理基址，必要时置 bit 11
         ↓
 map_mmio_page(...)    →  把这一页映射成可访问的虚拟地址
+        ↓
+写 SVR bit 8          →  软件使能本地 APIC
         ↓
 lapic.write(EOI, 0)   →  往虚拟地址 + 0x0B0 写 0
 ```
 
-对应代码在 `impl/kernel/src/lapic.rs:131-143`（`enable_lapic`）。
+对应代码在 `impl/kernel/src/lapic.rs:131-143`（`enable_lapic`）。SVR 软件使能见 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.html)。
 
 ## 一个已知边界：x2APIC 模式
 
-EN=1 时，CPU 进入 **x2APIC** 模式，LAPIC 寄存器改用一组 MSR 访问（`IA32_APIC_ICR`、`IA32_APIC_LVT_TIMER` 等），此时 `0xFEE00000` 那段 MMIO 不再有效。
+bit 10（EXTD）=1 时，CPU 进入 **x2APIC** 模式，LAPIC 寄存器改用一组 MSR 访问（`IA32_APIC_ICR`、`IA32_APIC_LVT_TIMER` 等），此时 `0xFEE00000` 那段 MMIO 不再有效。
 
-当前代码读 MSR 拿到基址后，**始终用 MMIO 访问 LAPIC 寄存器**，没有按 EN 位分流。硬件总是从 xAPIC 起步、且引导器不会擅自切 x2APIC，所以现在能跑通；但这是内核后续必须处理的一处边界。
+当前代码读 MSR 拿到基址后，**始终用 MMIO 访问 LAPIC 寄存器**，没有按 EXTD 位分流。硬件总是从 xAPIC 起步、且引导器不会擅自切 x2APIC，所以现在能跑通；但这是内核后续必须处理的一处边界。
+
+## 回到项目
+
+| 用点 | 代码 | 本页哪里讲 |
+|---|---|---|
+| `rdmsr` 读出 LAPIC 物理基址 | `lapic.rs:132`、`:215-223` | 本项目用它干了什么；怎么读写 |
+| 必要时置 MSR bit 11 | `lapic.rs:133-135`、`:225-236` | `IA32_APIC_BASE` 位表 |
+| 始终走 MMIO，未切 x2APIC | `enable_lapic` 全文 | 已知边界：x2APIC |
+| SVR 软件使能（非 MSR） | `lapic.rs:141` | 见 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.html) |
+
+更完整的上下文见 [M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)。
 
 ## 去学
+
+想继续深入时再看。删掉本节，上面的用点仍应能对上。
 
 1. [Wikipedia：Model-specific register](https://en.wikipedia.org/wiki/Model-specific_register)
    - **看哪一段：** &quot;Usage&quot;一节，知道 MSR 编号由厂商分配、Linux 用 `msr-index.h` 集中定义。
@@ -1013,23 +1057,17 @@ EN=1 时，CPU 进入 **x2APIC** 模式，LAPIC 寄存器改用一组 MSR 访问
 
 2. [OSDev Wiki：Model Specific Register](https://wiki.osdev.org/Model_Specific_Register)
    - **看哪一段：** 开头对 MSR 的定义，以及 `IA32_APIC_BASE`、`IA32_MISC_ENABLE` 两个例子。
-   - **看完能回答：** `IA32_APIC_BASE` 的 EN 位置 1 之后会发生什么？
+   - **看完能回答：** `IA32_APIC_BASE` 的 bit 11 与 bit 10 各控制什么？
 
 3. Intel SDM Volume 2（指令集参考）`RDMSR` / `WRMSR` 条目，Volume 3（系统编程指南）APIC 章节
    - **看哪一段：** SDM Vol.3 的 &quot;x2APIC&quot; 与 &quot;MSR-based APIC&quot; 段落。
    - **看完能回答：** x2APIC 为什么能突破 xAPIC 只能寻址 255 个 LAPIC 的限制？
 
-## 回到项目
-
-M3 Bite1 的 LAPIC 初始化就是这条链路的第一个实例：`enable_lapic` 先 `rdmsr` 读 `IA32_APIC_BASE`（`impl/kernel/src/lapic.rs:131-143`），取出物理基址后再决定是否置位 EN 位；`read_msr` / `write_msr` 两个包装在 `impl/kernel/src/lapic.rs:215-236`。
-
-更完整的上下文见 [M3 Bite1 · LAPIC 定时器：第一个自己到来的中断](../m03-interrupts/b01-lapic-timer.html)，以及 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.md)。
-
 ## 自测
 
 1. 为什么不能用 `mov rax, [0xFEE00000]` 读 `IA32_APIC_BASE`？那个地址上到底是什么？
 2. `rdmsr` 返回的 64 位值为什么要拆成 EDX 和 EAX 两个寄存器？
-3. 如果 EN 位是 1，当前 `lapic.rs` 的 MMIO 访问方式还能工作吗？为什么？
+3. 如果 EXTD（bit 10）是 1，当前 `lapic.rs` 的 MMIO 访问方式还能工作吗？为什么？
 </textarea>
 <script>
 (() => {

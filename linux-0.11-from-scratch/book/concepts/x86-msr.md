@@ -63,29 +63,44 @@ LAPIC 的寄存器住在一段固定物理地址（通常 `0xFEE00000`）。但*
 
 | 位 | 含义 |
 |---|---|
-| 低 32 位 | LAPIC 寄存器的物理基址（`0xFEE00000`） |
-| bit 11（EN） | x2APIC 模式开关：1 = 用 MSR 访问 LAPIC 寄存器，0 = 用 MMIO 访问 |
-| bit 12（XE） | x2APIC 扩展格式开关 |
+| 基址字段 | LAPIC 寄存器的物理基址（常见 `0xFEE00000`，需再按页对齐掩码） |
+| bit 11（EN） | APIC Global Enable：1 = 全局打开 APIC，0 = 关闭 |
+| bit 10（EXTD） | x2APIC 模式：1 = 改用 MSR 访问 LAPIC，0 = 仍用 MMIO |
 
 于是 LAPIC 初始化是「MSR 决定 MMIO 基址，MMIO 承载实际寄存器」的两层结构：
 
 ```text
-read_msr(0x1B)        →  拿到 0xFEE00000
+read_msr(0x1B)        →  拿到物理基址，必要时置 bit 11
         ↓
 map_mmio_page(...)    →  把这一页映射成可访问的虚拟地址
+        ↓
+写 SVR bit 8          →  软件使能本地 APIC
         ↓
 lapic.write(EOI, 0)   →  往虚拟地址 + 0x0B0 写 0
 ```
 
-对应代码在 `impl/kernel/src/lapic.rs:131-143`（`enable_lapic`）。
+对应代码在 `impl/kernel/src/lapic.rs:131-143`（`enable_lapic`）。SVR 软件使能见 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.html)。
 
 ## 一个已知边界：x2APIC 模式
 
-EN=1 时，CPU 进入 **x2APIC** 模式，LAPIC 寄存器改用一组 MSR 访问（`IA32_APIC_ICR`、`IA32_APIC_LVT_TIMER` 等），此时 `0xFEE00000` 那段 MMIO 不再有效。
+bit 10（EXTD）=1 时，CPU 进入 **x2APIC** 模式，LAPIC 寄存器改用一组 MSR 访问（`IA32_APIC_ICR`、`IA32_APIC_LVT_TIMER` 等），此时 `0xFEE00000` 那段 MMIO 不再有效。
 
-当前代码读 MSR 拿到基址后，**始终用 MMIO 访问 LAPIC 寄存器**，没有按 EN 位分流。硬件总是从 xAPIC 起步、且引导器不会擅自切 x2APIC，所以现在能跑通；但这是内核后续必须处理的一处边界。
+当前代码读 MSR 拿到基址后，**始终用 MMIO 访问 LAPIC 寄存器**，没有按 EXTD 位分流。硬件总是从 xAPIC 起步、且引导器不会擅自切 x2APIC，所以现在能跑通；但这是内核后续必须处理的一处边界。
+
+## 回到项目
+
+| 用点 | 代码 | 本页哪里讲 |
+|---|---|---|
+| `rdmsr` 读出 LAPIC 物理基址 | `lapic.rs:132`、`:215-223` | 本项目用它干了什么；怎么读写 |
+| 必要时置 MSR bit 11 | `lapic.rs:133-135`、`:225-236` | `IA32_APIC_BASE` 位表 |
+| 始终走 MMIO，未切 x2APIC | `enable_lapic` 全文 | 已知边界：x2APIC |
+| SVR 软件使能（非 MSR） | `lapic.rs:141` | 见 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.html) |
+
+更完整的上下文见 [M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)。
 
 ## 去学
+
+想继续深入时再看。删掉本节，上面的用点仍应能对上。
 
 1. [Wikipedia：Model-specific register](https://en.wikipedia.org/wiki/Model-specific_register)
    - **看哪一段：** "Usage"一节，知道 MSR 编号由厂商分配、Linux 用 `msr-index.h` 集中定义。
@@ -93,20 +108,14 @@ EN=1 时，CPU 进入 **x2APIC** 模式，LAPIC 寄存器改用一组 MSR 访问
 
 2. [OSDev Wiki：Model Specific Register](https://wiki.osdev.org/Model_Specific_Register)
    - **看哪一段：** 开头对 MSR 的定义，以及 `IA32_APIC_BASE`、`IA32_MISC_ENABLE` 两个例子。
-   - **看完能回答：** `IA32_APIC_BASE` 的 EN 位置 1 之后会发生什么？
+   - **看完能回答：** `IA32_APIC_BASE` 的 bit 11 与 bit 10 各控制什么？
 
 3. Intel SDM Volume 2（指令集参考）`RDMSR` / `WRMSR` 条目，Volume 3（系统编程指南）APIC 章节
    - **看哪一段：** SDM Vol.3 的 "x2APIC" 与 "MSR-based APIC" 段落。
    - **看完能回答：** x2APIC 为什么能突破 xAPIC 只能寻址 255 个 LAPIC 的限制？
 
-## 回到项目
-
-M3 Bite1 的 LAPIC 初始化就是这条链路的第一个实例：`enable_lapic` 先 `rdmsr` 读 `IA32_APIC_BASE`（`impl/kernel/src/lapic.rs:131-143`），取出物理基址后再决定是否置位 EN 位；`read_msr` / `write_msr` 两个包装在 `impl/kernel/src/lapic.rs:215-236`。
-
-更完整的上下文见 [M3 Bite1 · LAPIC 定时器：第一个自己到来的中断](../m03-interrupts/b01-lapic-timer.html)，以及 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.md)。
-
 ## 自测
 
 1. 为什么不能用 `mov rax, [0xFEE00000]` 读 `IA32_APIC_BASE`？那个地址上到底是什么？
 2. `rdmsr` 返回的 64 位值为什么要拆成 EDX 和 EAX 两个寄存器？
-3. 如果 EN 位是 1，当前 `lapic.rs` 的 MMIO 访问方式还能工作吗？为什么？
+3. 如果 EXTD（bit 10）是 1，当前 `lapic.rs` 的 MMIO 访问方式还能工作吗？为什么？
