@@ -21,15 +21,16 @@ coder 只改 `impl/`。验收脚本和决定要改时退回主 agent。
 
 每步的 prompt 指示子代理先读对应文件，并给全该文件的「输入」。同时给出两个偏好路径；coder 和验收执行者还要给出两个 `code-rules.md` 路径。
 
-独立 verifier 的开关读 `~/.clone-from-scratch-tutor/user-prefs.md` 和 `tutor/user-prefs.md` 的「验收」一节。项目级覆盖用户级，未配置时默认开启。
+独立 verifier 和知识依赖审计的开关都读 `~/.clone-from-scratch-tutor/user-prefs.md` 和 `tutor/user-prefs.md` 的「验收」一节。项目级覆盖用户级，未配置时均默认开启；关闭知识依赖审计不跳过行为验收。
 
 1. **coder**：[agents/coder.md](../agents/coder.md)。
 2. **行为与规范验收**：开启独立 verifier 时，启动 [agents/verifier.md](../agents/verifier.md)，主 agent 不复跑脚本；关闭时，主 agent 按同一份 verifier 规则执行。两种情况的实测和检查证据都只认 `tutor/runs/mNN-bKK.txt`，不通过就回 coder。关闭只省去独立子代理，不跳过验收脚本或编码规范检查。
-3. **diagram**，架构有变动时：[agents/diagram.md](../agents/diagram.md)。更新 `book/arch/current.svg`，并把副本放到本课目录的 `arch.svg`。变动图放 `book/mNN-<slug>/figures/arch-diff.svg`。架构没变就不画，`current.svg` 保持原样。
-4. **concept-writer**，本 Bite 有非阻塞概念页要写或要改时：[agents/concept-writer.md](../agents/concept-writer.md)。在 writer 之前完成，背景卡片才链得到页。需求来自 Phase 2 判为不阻塞实操的概念缺口或 writer 退回的需求。writer 退回时，主 agent 先区分课文问题与关键前置缺失；后者回到先修门槛，不用概念页代替先修。与 diagram 可以并行。同一个概念文件同时只有一个作者。
-5. **概念页验收**：简单和中等只核对成稿与返回说明。max 核对返回里的技术验收、语义验收和冷读结论，缺一项退回 concept-writer。主 agent 不代写。写作类子代理用主模型。
-6. **writer**：[agents/writer.md](../agents/writer.md)。它发现还缺概念页时只在返回里提需求，由主 agent 回到第 4 步。
-7. **主 agent 收口**。看这四样：验收结论和 `tutor/runs/` 里的记录一致；diagram 返回的边清单里，对不上代码的那几条（只打开对不上的位置）；课文「验收」是否给出完整 raw 运行命令以及操作、观察、预期现象，而不是用 `accept/` 脚本代替项目运行；浏览器打开本课 HTML，面板不是空的，图在，该动的动画在动，自测是 1 到 5 道选择题。课文里若嵌入了架构决定，其「放弃的成本」必须写出没选方案的好处；写成实现注意事项的，改 `decisions/` 后让 writer 按 writer 规则重写那一节，不要整篇原文回贴。流程类决定本来就不该出现在 HTML 里。
+3. **知识依赖审计**，仅开关开启时由主 agent 执行。对照本 Bite 最终代码 diff、此前课文里已讲解过的概念与 `book/concepts/` 已有页面、读者能力（`tutor/user-prefs.md` 的先修能力表），检查核心执行路径首次出现的机制、指令、数据结构与关键术语。逐项选择一种处置：本课给最小必要讲解；可安全黑盒的后置并登记；当前 Bite 无法独立理解的，回 Phase 2 拆分或调序后再写。黑盒项在 `tutor/STATE.md` 登记概念、首次代码位置、当前契约、承诺展开的 Milestone/Bite 和状态。所有核心首次概念都有前两种处置之一，才准交给 writer；没处置完不交 writer，概念页链接不算处置。交给 writer 的每项至少含概念名、首次代码位置、当前契约、承诺展开的 Milestone/Bite；当场讲解项另附正文要讲的最小内容。本课到期的后置项一并交给 writer。关闭时整步跳过，不向 writer 索要或伪造审计产物。
+4. **diagram**，架构有变动时：[agents/diagram.md](../agents/diagram.md)。更新 `book/arch/current.svg`，并把副本放到本课目录的 `arch.svg`。变动图放 `book/mNN-<slug>/figures/arch-diff.svg`。架构没变就不画，`current.svg` 保持原样。
+5. **concept-writer**，本 Bite 有非阻塞概念页要写或要改时：[agents/concept-writer.md](../agents/concept-writer.md)。在 writer 之前完成，背景卡片才链得到页。需求来自 Phase 2 判为不阻塞实操的概念缺口、知识依赖审计或 writer 退回的需求。概念页只作补充，不能替代正文最小解释。writer 退回时，主 agent 先区分课文问题与关键前置缺失；后者回到先修门槛，不用概念页代替先修。与 diagram 可以并行。同一个概念文件同时只有一个作者。
+6. **概念页验收**：简单和中等只核对成稿与返回说明。max 核对返回里的技术验收、语义验收和冷读结论，缺一项退回 concept-writer。主 agent 不代写。写作类子代理用主模型。
+7. **writer**：[agents/writer.md](../agents/writer.md)。开启审计时交接当场讲解项、黑盒项和到期后置项；关闭时只交接「知识依赖审计：关闭」。它发现还缺概念页时只在返回里提需求，由主 agent 回到第 5 步。
+8. **主 agent 收口**。看这四样：验收结论和 `tutor/runs/` 里的记录一致；diagram 返回的边清单里，对不上代码的那几条（只打开对不上的位置）；课文「验收」是否给出完整 raw 运行命令以及操作、观察、预期现象，而不是用 `accept/` 脚本代替项目运行；浏览器打开本课 HTML，面板不是空的，图在，该动的动画在动，自测是 1 到 5 道选择题。仅审计开启时再检查：核心首次概念均有正文最小解释或合规黑盒说明，到期后置项已展开并在 STATE 标为已闭环，其余后置项仍有明确回访位置。课文里若嵌入了架构决定，其「放弃的成本」必须写出没选方案的好处；写成实现注意事项的，改 `decisions/` 后让 writer 按 writer 规则重写那一节，不要整篇原文回贴。流程类决定本来就不该出现在 HTML 里。
 
 然后更新 `spec/features.md` 里本课交付的行和验收脚本链接，更新 `book/index.md` 和 README 的「现在读到」，更新 `tutor/STATE.md`。最后一个 Bite 通过后，复核本里程碑有没有做了清单外的功能，或漏了清单内的承诺。
 

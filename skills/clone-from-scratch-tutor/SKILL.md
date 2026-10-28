@@ -30,6 +30,7 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 5. 依赖没找到，或验收没过，就停下说明。不交付未验证的产物。
 6. 用户选择先修学习且未达到出口时，对应项目 Bite 不启动 coder。短补可同会话，多轮先修默认独立会话；每轮写盘，不靠 auto compact 记进度。
 7. 先修路线依据、范围裁剪、会话状态与 audit 只进 `tutor/`，不进入 `book/` 或 README 课文。writer 只接收已掌握能力与残余误区。
+8. 知识依赖审计默认开启，可在用户级和项目级偏好文件的「验收」一节关闭，项目级覆盖用户级；后置概念只登记在 `tutor/STATE.md`，不进 `decisions/`。审计与闭环规则见 [phases/phase-3-bite.md](phases/phase-3-bite.md)。
 
 ## 项目目录
 
