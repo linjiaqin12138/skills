@@ -88,5 +88,5 @@ let new_physical = table_virtual - kernel_virtual + kernel_physical;
 
 - 实现：`impl/kernel/src/lapic.rs:146-191`（`map_mmio_page`）
 - 决策：[0002 按需补 LAPIC MMIO 页映射](../../decisions/0002-lapic-mmio-mapping.md)
-- 前置概念：[x86 的 MSR：型号特定寄存器](x86-msr.html)（LAPIC 物理基址从哪来）
+- 前置概念：[x86 的 MSR：型号特定寄存器](x86-msr.html)（LAPIC 物理基址从哪来）、[HHDM：高半区直接映射](hhdm.html)（写页表的那条通道）
 - 课程：[M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)

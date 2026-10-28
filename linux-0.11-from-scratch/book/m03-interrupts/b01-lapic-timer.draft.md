@@ -55,7 +55,7 @@ M2 的异常入口帮不上这个忙。`exception_handler` 打印现场后 `hlt`
 - `PAGE_LARGE`：在 L3/L2 中表示大页映射，地址翻译到此结束，不再进入下一级。
 - `PAGE_WRITE_THROUGH` 与 `PAGE_CACHE_DISABLE`：控制缓存行为；MMIO 是设备寄存器，不能像普通内存一样缓存读写。
 
-**为什么代码能用普通指针读写页表？** CPU 查页表需要物理地址，而 Rust 指针使用虚拟地址。Limine 提供的 HHDM（Higher Half Direct Map，高半区直接映射）让“物理地址 + `hhdm_offset`”成为访问同一物理页的虚拟地址。因此，代码从表项取出下一级表的物理地址后，加上 `hhdm_offset`，才能构造 `entry_ptr` 去读写那张表。新分配的静态页表则通过内核的物理/虚拟基址换算出物理地址，再写回上级表项。
+**为什么代码能用普通指针读写页表？** CPU 查页表需要物理地址，而 Rust 指针使用虚拟地址。Limine 提供的 HHDM（Higher Half Direct Map，高半区直接映射）让“物理地址 + `hhdm_offset`”成为访问同一物理页的虚拟地址。因此，代码从表项取出下一级表的物理地址后，加上 `hhdm_offset`，才能构造 `entry_ptr` 去读写那张表。新分配的静态页表则通过内核的物理/虚拟基址换算出物理地址，再写回上级表项。HHDM 具体是什么、它在虚拟地址空间里的位置，见 [HHDM：高半区直接映射](../concepts/hhdm.html)。
 
 **TLB 是地址转换结果的缓存。** CPU 不必每次访存都真的走四级页表，最近用过的转换会缓存在 TLB 中。修改某个虚拟页的映射后，`invlpg` 使这个虚拟地址的旧 TLB 项失效，避免 CPU 继续使用旧翻译。
 

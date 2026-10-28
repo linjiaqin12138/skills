@@ -221,6 +221,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
         所以每一步都要靠 HHDM 把「下一级表的物理地址」翻译成能写的指针。
       </div>
       <div class="addr" id="hhdm-formula" style="margin-top:6px">entry_ptr = 0xFFFF800000000000 + table_physical + index*8</div>
+      <div class="tagline">还没弄清 HHDM 本身？<a href="../hhdm/index.html">看它的交互版</a>。</div>
     </div>
 
     <div class="card">
@@ -228,7 +229,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
       <div class="bar ram" id="bar-ram"><span class="fillbg"></span><span>0xFFFF800000000000 · HHDM 已覆盖的 RAM</span></div>
       <div class="bar hole" id="bar-hole"><span class="fillbg"></span><span>空洞 · 没有映射</span></div>
       <div class="bar dev" id="bar-lapic"><span class="fillbg"></span><span>0xFFFF8000FEE00000 · LAPIC 页（要手动补）</span></div>
-      <div class="tagline">HHDM 只覆盖内存，LAPIC 是设备寄存器，落在窗口之外——这就是必须手动改页表的原因。</div>
+      <div class="tagline">HHDM 只覆盖内存，不覆盖设备。LAPIC 的地址落在 HHDM 窗口之内的空洞里（那一段是设备，没有 RAM），所以必须手动改页表。</div>
     </div>
   </section>
 
