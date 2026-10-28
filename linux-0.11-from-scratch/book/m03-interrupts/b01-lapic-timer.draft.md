@@ -31,6 +31,36 @@ M2 的异常入口帮不上这个忙。`exception_handler` 打印现场后 `hlt`
 
 一句提醒：屏蔽 legacy PIC 不等于停用 PIT。PIC 是中断控制器，PIT 是可编程定时器，两者不是同一个设备。
 
+### 先修知识：页表怎样把虚拟地址翻译成物理地址
+
+后面的 `map_mmio_page` 会直接修改页表。先把这一段代码用到的分页知识补齐；这里只讲本课需要的四级分页，不涉及缺页处理和通用内存管理。
+
+**物理地址与虚拟地址不是同一件事。** 物理地址选中实际的内存或设备寄存器，虚拟地址是程序 load/store 使用的地址。开启分页后，CPU 每次访问内存都会查当前页表，把虚拟地址翻译成物理地址。LAPIC 寄存器位于 `physical_base` 这个物理地址；内核想通过 `virtual_base = physical_base + hhdm_offset` 访问它，就必须先在页表中建立“这个虚拟页对应那个物理页”的映射。
+
+**页是地址转换的粒度。** 本课使用 4 KiB（4096 字节）小页，所以虚拟地址低 12 位是页内偏移，翻译时原样保留；高位用来逐级查表。x86-64 四级分页把高位再分成四段，每段 9 位：
+
+```text
+47        39 38        30 29        21 20        12 11         0
++------------+------------+------------+------------+------------+
+| L4 索引    | L3 索引    | L2 索引    | L1 索引    | 页内偏移   |
++------------+------------+------------+------------+------------+
+```
+
+四级表依次叫 PML4（L4）、PDPT（L3）、PD（L2）、PT（L1）。每张表正好占一个 4 KiB 页，含 512 个 64 位表项，因此索引范围是 0～511，掩码是 `0x1ff`。这就是代码反复出现 `((virtual_base >> shift) & 0x1ff)` 的原因：右移把对应字段移到最低位，再用掩码取出本级的表项下标。
+
+**CR3 给出查表起点。** 控制寄存器 CR3 保存当前 PML4 的物理地址。前三级表项通常保存下一级页表的物理地址，最后一级表项保存目标物理页的地址；两者还带有权限和属性位。本课会用到的位是：
+
+- `PAGE_PRESENT`：表项有效；为 0 时，沿这条路径访问会触发缺页异常 `#PF`。
+- `PAGE_WRITABLE`：允许写入。
+- `PAGE_LARGE`：在 L3/L2 中表示大页映射，地址翻译到此结束，不再进入下一级。
+- `PAGE_WRITE_THROUGH` 与 `PAGE_CACHE_DISABLE`：控制缓存行为；MMIO 是设备寄存器，不能像普通内存一样缓存读写。
+
+**为什么代码能用普通指针读写页表？** CPU 查页表需要物理地址，而 Rust 指针使用虚拟地址。Limine 提供的 HHDM（Higher Half Direct Map，高半区直接映射）让“物理地址 + `hhdm_offset`”成为访问同一物理页的虚拟地址。因此，代码从表项取出下一级表的物理地址后，加上 `hhdm_offset`，才能构造 `entry_ptr` 去读写那张表。新分配的静态页表则通过内核的物理/虚拟基址换算出物理地址，再写回上级表项。
+
+**TLB 是地址转换结果的缓存。** CPU 不必每次访存都真的走四级页表，最近用过的转换会缓存在 TLB 中。修改某个虚拟页的映射后，`invlpg` 使这个虚拟地址的旧 TLB 项失效，避免 CPU 继续使用旧翻译。
+
+想先看这套过程跑起来的样子，看 [map_mmio_page：把设备的一页映射进虚拟地址空间](../concepts/mmio-page-mapping.html)。它把「虚拟地址 → 页表 → 物理页」和「这一页被改成了什么」并排画了出来。
+
 ## 设计
 
 ![M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main](arch.svg)
@@ -111,14 +141,21 @@ EOI 这一步不能省。LAPIC 用 in-service 位记录"哪条中断正在处理
 
 `printk!` 是宏，参数里的 `{}` 按顺序填入 `observed`。它把同一段文本同时写到屏幕和串口。else 分支执行 `hlt`：没有调度器时，让 CPU 停到下一个中断唤醒是最省事的等待方式。
 
-**MMIO 映射只补一页**（`impl/kernel/src/lapic.rs:165-178`）。
+**MMIO 映射只补一页**（`impl/kernel/src/lapic.rs:146-190`）。下面把前面的分页知识对应到代码。入口先算出要建立的虚拟地址，读取 CR3 得到 L4 根表的物理地址；`EXTRA_PAGE_TABLES` 是预先保留的三张空表，分别用于补齐可能缺失的 L3、L2、L1。L4 根表已经由 Limine 建立，不在此处分配。
 
-```rust src=impl/kernel/src/lapic.rs lines=165-178
+```rust src=impl/kernel/src/lapic.rs lines=146-178
 ```
 
-遍历四级页表时，哪一级描述符的 present 位是 0，就从 `EXTRA_PAGE_TABLES` 里取一张静态页填进去（`impl/kernel/src/lapic.rs:160-178`）。如果撞上大页映射，就直接复用，不再往下走。
+循环里的 `[39, 30, 21]` 分别对应 L4、L3、L2 索引的移位量。`index as u64 * 8` 把表项下标换成字节偏移，因为每个表项是 8 字节的 `u64`。`table_physical` 始终是当前表的物理地址，加上 `hhdm_offset` 后才是 Rust 可以解引用的虚拟地址。
 
-最后一级描述符指向 LAPIC 物理页，并置上 PCD/PWT 两位，禁止 CPU 缓存这块 MMIO。写完执行 `invlpg` 刷新 TLB，新映射立刻生效（`impl/kernel/src/lapic.rs:181-190`）。
+如果当前表项的 `PAGE_PRESENT` 为 0，说明下一级表不存在。代码取一张静态页并清零，再把它的虚拟地址换算成物理地址，写入上级表项。换算公式是 `table_virtual - kernel_virtual + kernel_physical`。若表项已经有效，就取出其中的下一级表地址，继续向下走。`PAGE_ADDRESS_MASK` 会去掉低 12 位的属性标志，只保留页表物理地址。遇到 `PAGE_LARGE` 则说明现有大页已经覆盖目标地址，无需再建立 4 KiB 小页映射，直接返回。
+
+走完前三层后，最后处理 L1 表项：
+
+```rust src=impl/kernel/src/lapic.rs lines=180-190
+```
+
+这里用移位 12 取出 L1 索引，把目标 LAPIC 物理页地址连同 `PRESENT | WRITABLE | PWT | PCD` 写入末级表项。此后 CPU 访问 `virtual_base` 时，就能沿四级页表翻译到 `physical_base`。最后对 `virtual_base` 执行 `invlpg`，使这个地址可能存在的旧 TLB 项失效。函数返回的不是物理地址，而是之后 `lapic.read/write` 要使用的虚拟基址。
 
 **LAPIC 基址不是写死的常数**（`impl/kernel/src/lapic.rs:131-143`）。它来自 MSR `IA32_APIC_BASE`（编号 `0x1B`）：低 32 位是 LAPIC 寄存器的物理基址，bit 11 是 x2APIC 模式开关。MSR 既不在内存里也不在 I/O 端口空间，只能用 `rdmsr` / `wrmsr` 读写。
 

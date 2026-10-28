@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="zh-CN" data-mode="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>map_mmio_page：物理内存 · 页表 · 虚拟内存的联动</title>
+<style>
+:root{
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --bg:#f6f6f3; --paper:#ffffff; --ink:#16181d; --ink2:#4b5260; --ink3:#8b929e;
+  --line:#d6dae1; --line2:#1d2026; --fill:#f3f5f8;
+  --accent:#1d5fbf; --accent-bg:#e4ecf8;
+  --ok:#0f7b52; --ok-bg:#e2f4ec;
+  --warn:#a8620a; --warn-bg:#fdf3e2;
+  --new:#7a3fbf; --new-bg:#f1e9fb;
+  --dev:#b2341f; --dev-bg:#fbeae6;
+  --shadow:0 1px 2px rgba(20,24,33,.06),0 8px 24px rgba(20,24,33,.06);
+}
+html[data-mode="dark"]{
+  --bg:#0d1117; --paper:#151b24; --ink:#e6edf7; --ink2:#a9b8cc; --ink3:#6b7f99;
+  --line:#28323f; --line2:#c9d6e8; --fill:#1b232e;
+  --accent:#6ea8ff; --accent-bg:#16305a;
+  --ok:#5fd39a; --ok-bg:#12352a;
+  --warn:#f0b14a; --warn-bg:#3a2a10;
+  --new:#b18cf0; --new-bg:#2a1f3d;
+  --dev:#ff8a6e; --dev-bg:#3b1f18;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-height:1.6;font-size:14px}
+code,.mono{font-family:var(--font-mono)}
+.wrap{max-width:1480px;margin:0 auto;padding:18px 20px 60px}
+header.top{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+header.top h1{font-size:20px;margin:0 0 4px;letter-spacing:.2px}
+header.top p{margin:0;color:var(--ink2);font-size:13px;max-width:760px}
+.spacer{flex:1}
+button{font-family:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+  border-radius:8px;padding:5px 11px;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{opacity:.88;color:#fff}
+select{font-family:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:5px 8px}
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);
+  border-radius:12px;padding:10px 14px;box-shadow:var(--shadow);margin-bottom:14px}
+.controls .title{font-weight:600;font-size:13px}
+.progress{flex:1;min-width:180px;height:6px;background:var(--fill);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .35s ease}
+.stepcount{font-family:var(--font-mono);font-size:12px;color:var(--ink2)}
+
+.stage{position:relative;display:grid;grid-template-columns:minmax(250px,1fr) minmax(360px,1.35fr) minmax(260px,1fr);
+  gap:14px;align-items:start}
+@media (max-width:1080px){.stage{grid-template-columns:1fr}}
+.col{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
+.col h2{margin:0 0 4px;font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.col .hint{font-size:12px;color:var(--ink3);margin:0 0 10px}
+
+.card{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:var(--fill);
+  transition:border-color .3s,box-shadow .3s,background .3s}
+.card.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.card h3{margin:0 0 6px;font-size:13px;display:flex;align-items:center;gap:6px}
+.card h3 .tag{font-family:var(--font-mono);font-size:11px;color:var(--ink3)}
+.badge{font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;border:1px solid transparent;letter-spacing:.4px}
+.badge.new{background:var(--new-bg);color:var(--new);border-color:var(--new)}
+.badge.exist{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.badge.dev{background:var(--dev-bg);color:var(--dev);border-color:var(--dev)}
+.badge.acc{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+
+.addr{font-family:var(--font-mono);font-size:14px;letter-spacing:.3px}
+.bigaddr{font-family:var(--font-mono);font-size:19px;letter-spacing:.5px;display:block;margin:2px 0 4px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.kv:last-child{border-bottom:0}
+.kv b{font-family:var(--font-mono);font-weight:600}
+.kv .k{color:var(--ink2)}
+
+.bitbar{display:flex;margin:8px 0 4px;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-family:var(--font-mono)}
+.bitbar div{flex:1;text-align:center;font-size:11px;padding:4px 0;color:var(--ink3);transition:.25s;position:relative}
+.bitbar div.hit{background:var(--accent-bg);color:var(--accent);font-weight:700}
+.bitbar div span{display:block;font-size:9px;opacity:.8}
+.bitranges{display:flex;font-family:var(--font-mono);font-size:10px;color:var(--ink3)}
+.bitranges div{flex:1;text-align:center}
+
+.bar{height:34px;border-radius:8px;display:flex;align-items:center;font-size:11px;font-family:var(--font-mono);
+  padding:0 8px;margin-bottom:5px;border:1px solid var(--line);color:var(--ink2);background:var(--fill);position:relative;overflow:hidden}
+.bar .fillbg{position:absolute;inset:0;width:0;background:var(--accent-bg);transition:width .5s}
+.bar.ram .fillbg{background:var(--ok-bg)}
+.bar.hole .fillbg{background:repeating-linear-gradient(45deg,transparent,transparent 6px,var(--fill) 6px,var(--fill) 12px)}
+.bar span{position:relative;z-index:1}
+.bar.hit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.bar.dev{border-color:var(--dev);box-shadow:0 0 0 3px var(--dev-bg)}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--ink3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+td.mono,th.mono{font-family:var(--font-mono)}
+tr.hl td{background:var(--accent-bg)}
+
+.lvl-body{display:flex;gap:10px;align-items:flex-start}
+.lvl-body .grid{flex:0 0 232px}
+.lvl-body .entry{flex:1 1 auto;min-width:0;margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(32,1fr);gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:6px;overflow:hidden;padding:1px}
+.cell{aspect-ratio:1/1;background:var(--paper);border-radius:1px}
+.cell.hit{background:var(--accent)}
+.cell.hitnew{background:var(--dev)}
+.cell.dim{opacity:.45}
+.grid.newtable .cell{background:#f2ecfb}
+html[data-mode="dark"] .grid.newtable .cell{background:#241b38}
+.grid.newtable .cell.hit{background:var(--accent)}
+.grid.newtable .cell.hitnew{background:var(--dev)}
+
+.entry{margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--paper)}
+.entry.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.entry .ttl{font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px}
+.entry .val{font-family:var(--font-mono);font-size:15px;margin:2px 0 4px}
+.entry .note{font-size:12px;color:var(--ink2)}
+.flags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.flag{font-family:var(--font-mono);font-size:10.5px;border-radius:5px;padding:1px 6px;border:1px solid var(--line);color:var(--ink3)}
+.flag.on{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.flag.on.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.flag.on.dev{background:var(--dev-bg);color:var(--dev);border-color:var(--dev)}
+.wptr{margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--warn);
+  border-top:1px dashed var(--line);padding-top:5px}
+.wptr:empty{display:none}
+
+.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+.wire{fill:none;stroke:var(--line2);stroke-width:1.2;opacity:.18;stroke-dasharray:5 5}
+.wire.chain{stroke:var(--accent);opacity:.35}
+.wire.active{opacity:1;stroke-width:2.2;stroke-dasharray:9 7;animation:dash 1.1s linear infinite}
+.wire.write{stroke:var(--warn);opacity:.3}
+.wire.write.active{opacity:1;stroke-width:2;stroke-dasharray:4 6;animation:dash .8s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-32}}
+
+.lower{display:grid;grid-template-columns:minmax(340px,1fr) minmax(320px,1fr);gap:14px;margin-top:14px}
+@media (max-width:1080px){.lower{grid-template-columns:1fr}}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)}
+.panel h2{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
+pre.code{margin:0;background:var(--fill);border:1px solid var(--line);border-radius:8px;padding:8px 0;overflow:auto;max-height:430px;
+  position:relative;font-family:var(--font-mono);font-size:11.5px;line-height:1.65}
+pre.code .ln{display:flex;gap:10px;padding:0 10px}
+pre.code .ln .no{color:var(--ink3);user-select:none;min-width:38px;text-align:right;flex:0 0 auto}
+pre.code .ln .txt{white-space:pre-wrap;overflow-wrap:anywhere;flex:1 1 auto;min-width:0}
+pre.code .ln.hl{background:var(--accent-bg);box-shadow:inset 3px 0 0 var(--accent)}
+pre.code .ln .cm{color:var(--ink3)}
+.narr h3{margin:0 0 6px;font-size:16px}
+.narr p{margin:0 0 10px;color:var(--ink2)}
+.changes{list-style:none;padding:0;margin:0}
+.changes li{font-size:12.5px;padding:5px 0 5px 22px;position:relative;border-bottom:1px dashed var(--line)}
+.changes li:last-child{border-bottom:0}
+.changes li:before{content:"▸";position:absolute;left:4px;color:var(--accent);font-weight:700}
+.changes li code{background:var(--fill);padding:1px 5px;border-radius:4px;font-size:12px}
+.tagline{font-size:12px;color:var(--ink3);margin-top:8px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.log{max-height:230px;overflow:auto}
+.hintline{font-size:12px;color:var(--ink3);margin-top:10px}
+kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>map_mmio_page：物理内存 · 页表 · 虚拟内存的联动</h1>
+    <p>逐步动画演示 <code>impl/kernel/src/lapic.rs:146-191</code> 如何为 LAPIC 的 MMIO 寄存器页补出映射：读 CR3 找到页表根，逐级下降并就地改写页表项，最后让虚拟地址真正落到设备寄存器上。</p>
+  </div>
+  <div class="spacer"></div>
+  <button id="theme-btn">切换深浅色</button>
+</header>
+
+<div class="controls">
+  <span class="title">播放</span>
+  <button id="btn-first" title="回到开头">⏮</button>
+  <button id="btn-prev" title="上一步">◀</button>
+  <button id="btn-play" class="primary" title="播放/暂停">▶ 播放</button>
+  <button id="btn-next" title="下一步">▶</button>
+  <button id="btn-last" title="跳到最后">⏭</button>
+  <select id="speed" title="播放速度">
+    <option value="3200">慢</option>
+    <option value="2000" selected>正常</option>
+    <option value="1100">快</option>
+  </select>
+  <div class="progress"><i id="bar"></i></div>
+  <span class="stepcount" id="counter">1 / 12</span>
+</div>
+
+<div class="stage" id="stage">
+  <!-- 虚拟内存 -->
+  <section class="col">
+    <h2>虚拟内存</h2>
+    <p class="hint">CPU 发出的是虚拟地址</p>
+
+    <div class="card focus" id="card-virt">
+      <h3>目标虚拟地址 <span class="tag">virtual_base</span></h3>
+      <span class="bigaddr" id="v-base">0xFFFF8000FEE00000</span>
+      <div class="kv"><span class="k">物理基址（设备）</span><b>0xFEE00000</b></div>
+      <div class="kv"><span class="k">HHDM 偏移</span><b>0xFFFF800000000000</b></div>
+      <div class="kv"><span class="k">= 虚拟地址</span><b>0xFFFF8000FEE00000</b></div>
+    </div>
+
+    <div class="card">
+      <h3>48 位地址拆成 4 段索引 + 页内偏移</h3>
+      <div class="bitbar" id="bitbar">
+        <div data-b="0">L4<span>256</span></div>
+        <div data-b="1">L3<span>3</span></div>
+        <div data-b="2">L2<span>503</span></div>
+        <div data-b="3">L1<span>0</span></div>
+        <div data-b="4">偏移<span>0x0</span></div>
+      </div>
+      <div class="bitranges">
+        <div>47–39</div><div>38–30</div><div>29–21</div><div>20–12</div><div>11–0</div>
+      </div>
+      <div class="tagline">每级 9 位（掩码 0x1ff），低 12 位是页内偏移，翻译时原样保留。</div>
+    </div>
+
+    <div class="card" id="card-hhdm">
+      <h3>HHDM 通道 <span class="tag">hhdm_offset + 物理地址</span></h3>
+      <div class="tagline" style="margin:0">
+        页表自己也在物理内存里。CPU 查表用物理地址，而 Rust 指针是虚拟地址，
+        所以每一步都要靠 HHDM 把「下一级表的物理地址」翻译成能写的指针。
+      </div>
+      <div class="addr" id="hhdm-formula" style="margin-top:6px">entry_ptr = 0xFFFF800000000000 + table_physical + index*8</div>
+    </div>
+
+    <div class="card">
+      <h3>虚拟地址空间（HHDM 窗口）</h3>
+      <div class="bar ram" id="bar-ram"><span class="fillbg"></span><span>0xFFFF800000000000 · HHDM 已覆盖的 RAM</span></div>
+      <div class="bar hole" id="bar-hole"><span class="fillbg"></span><span>空洞 · 没有映射</span></div>
+      <div class="bar dev" id="bar-lapic"><span class="fillbg"></span><span>0xFFFF8000FEE00000 · LAPIC 页（要手动补）</span></div>
+      <div class="tagline">HHDM 只覆盖内存，LAPIC 是设备寄存器，落在窗口之外——这就是必须手动改页表的原因。</div>
+    </div>
+  </section>
+
+  <!-- 页表 -->
+  <section class="col">
+    <h2>页表（存放在物理内存里的四级树）</h2>
+    <p class="hint">每张表 4 KiB = 512 个 8 字节表项，索引即上一级取出的 9 位</p>
+    <div id="levels"></div>
+  </section>
+
+  <!-- 物理内存 -->
+  <section class="col">
+    <h2>物理内存</h2>
+    <p class="hint">示意，非等比例</p>
+
+    <div class="card" id="card-ram">
+      <h3>RAM 区 <span class="tag">0x00100000 起</span></h3>
+      <div class="kv"><span class="k">内核镜像（代码/数据）</span><b>0x100000</b></div>
+      <div class="kv"><span class="k">BSS · EXTRA_PAGE_TABLES[0]</span><b id="phys-t0">0x223000</b></div>
+      <div class="kv"><span class="k">BSS · EXTRA_PAGE_TABLES[1]</span><b id="phys-t1">0x224000</b></div>
+      <div class="kv"><span class="k">BSS · EXTRA_PAGE_TABLES[2]</span><b id="phys-t2">0x225000</b></div>
+      <div class="kv"><span class="k">PML4（CR3 指向）</span><b>0x221000</b></div>
+      <div class="tagline">三张静态 4 KiB 页表本来就在内核 BSS 里躺着，映射时才被清零并挂进树中。</div>
+    </div>
+
+    <div class="card" id="card-lapic">
+      <h3>MMIO 区 <span class="tag">设备寄存器</span> <span class="badge dev">不可缓存</span></h3>
+      <div class="kv"><span class="k">LAPIC 寄存器页</span><b>0xFEE00000</b></div>
+      <div class="kv"><span class="k">+0x0F0 SPURIOUS_VECTOR</span><b id="lapic-w">—</b></div>
+      <div class="kv"><span class="k">+0x020 APIC ID（只读）</span><b id="lapic-r">—</b></div>
+      <div class="tagline">这张页不是内存，是 CPU 本地中断控制器。写它等于发命令给硬件。</div>
+    </div>
+
+    <div class="card">
+      <h3>本步改动了什么</h3>
+      <ul class="changes" id="changes"><li>还没有任何改动。</li></ul>
+    </div>
+  </section>
+
+  <svg class="wires" id="wires"></svg>
+</div>
+
+<div class="lower">
+  <div class="panel">
+    <h2>代码对照（impl/kernel/src/lapic.rs）</h2>
+    <pre class="code" id="code"></pre>
+  </div>
+  <div class="panel">
+    <h2>解说</h2>
+    <div class="narr">
+      <h3 id="step-title"></h3>
+      <p id="step-text"></p>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>翻译链（虚拟地址 → 页表 → 物理页）</span>
+        <span><i style="background:var(--warn)"></i>写通道（HHDM 写页表）</span>
+        <span><i style="background:var(--accent)"></i>格=本步命中的表项</span>
+        <span><i style="background:var(--dev)"></i>红格=叶子项，指向设备</span>
+      </div>
+      <div class="tagline" id="step-note"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px">
+  <h2>内存改动记录（累积）</h2>
+  <table class="log">
+    <thead><tr><th class="mono">位置</th><th class="mono">改前</th><th class="mono">改后</th><th>含义</th></tr></thead>
+    <tbody id="log"></tbody>
+  </table>
+  <div class="hintline">
+    键盘：<kbd>←</kbd> <kbd>→</kbd> 单步，<kbd>空格</kbd> 播放/暂停。数值说明：LAPIC 物理基址 0xFEE00000、页表项位定义与 <code>hhdm_offset + table_physical + index*8</code> 的算法是真实的；
+    HHDM 偏移、CR3、BSS 地址取常见示例值。
+  </div>
+</div>
+
+</div>
+
+<script>
+const CFG = {
+  virt: '0xFFFF8000FEE00000',
+  phys: '0xFEE00000',
+  hhdm: '0xFFFF800000000000',
+  cr3: '0x221000',
+  idx: [256, 3, 503, 0],
+  tables: [
+    {key:'pml4', name:'PML4', lvl:'L4', phys:'0x221000', shift:39},
+    {key:'pdpt', name:'PDPT', lvl:'L3', phys:null,       shift:30},
+    {key:'pd',   name:'PD',   lvl:'L2', phys:null,       shift:21},
+    {key:'pt',   name:'PT',   lvl:'L1', phys:null,       shift:12}
+  ],
+  extra: [
+    {phys:'0x223000', va:'0xFFFFFFFF80123000'},
+    {phys:'0x224000', va:'0xFFFFFFFF80124000'},
+    {phys:'0x225000', va:'0xFFFFFFFF80125000'}
+  ]
+};
+
+const SRC = [
+[146,'fn map_mmio_page('],
+[147,'    physical_base: u64,'],
+[148,'    hhdm_offset: u64,'],
+[149,'    kernel_physical: u64,'],
+[150,'    kernel_virtual: u64,'],
+[151,') -> u64 {'],
+[152,'    let virtual_base = physical_base + hhdm_offset;'],
+[153,'    let cr3: u64;'],
+[154,'    // SAFETY: 读取当前页树根地址，不修改控制寄存器。'],
+[155,'    unsafe { asm!("mov {}, cr3", out(reg) cr3, options(nomem, nostack, preserves_flags)) };'],
+[156,'    let mut table_physical = cr3 & PAGE_ADDRESS_MASK;'],
+[157,'    // SAFETY: 仅在关中断的单核初始化阶段使用；三个静态页分别供三层页表补缺。'],
+[158,'    let extra_tables = unsafe { &mut *addr_of_mut!(EXTRA_PAGE_TABLES) };'],
+[159,''],
+[160,'    for (level, shift) in [39, 30, 21].into_iter().enumerate() {'],
+[161,'        let index = ((virtual_base >> shift) & 0x1ff) as usize;'],
+[162,'        let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;'],
+[163,'        // SAFETY: CR3 与各级描述符都指向 HHDM 可访问的页表。'],
+[164,'        let mut entry = unsafe { read_volatile(entry_ptr) };'],
+[165,'        if entry & PAGE_PRESENT == 0 {'],
+[166,'            let table = &mut extra_tables[level];'],
+[167,'            table.0.fill(0);'],
+[168,'            let table_virtual = table.0.as_ptr() as u64;'],
+[169,'            let new_physical = table_virtual - kernel_virtual + kernel_physical;'],
+[170,'            entry = new_physical | PAGE_PRESENT | PAGE_WRITABLE;'],
+[171,'            // SAFETY: entry_ptr 是当前级中尚未使用的描述符。'],
+[172,'            unsafe { write_volatile(entry_ptr, entry) };'],
+[173,'        }'],
+[174,'        if entry & PAGE_LARGE != 0 {'],
+[175,'            return virtual_base;'],
+[176,'        }'],
+[177,'        table_physical = entry & PAGE_ADDRESS_MASK;'],
+[178,'    }'],
+[179,''],
+[180,'    let index = ((virtual_base >> 12) & 0x1ff) as usize;'],
+[181,'    let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;'],
+[182,'    // SAFETY: 最后一级描述符指向 LAPIC 物理页，PCD/PWT 禁止缓存 MMIO。'],
+[183,'    unsafe {'],
+[184,'        write_volatile('],
+[185,'            entry_ptr,'],
+[186,'            physical_base | PAGE_PRESENT | PAGE_WRITABLE | PAGE_WRITE_THROUGH | PAGE_CACHE_DISABLE,'],
+[187,'        );'],
+[188,'        asm!("invlpg [{}]", in(reg) virtual_base, options(nostack));'],
+[189,'    }'],
+[190,'    virtual_base'],
+[191,'}']
+];
+
+const STEPS = [
+{
+  t:'出发点：LAPIC 寄存器在物理地址 0xFEE00000',
+  d:'LAPIC 的寄存器不在内存里，而在 CPU 自己的 MMIO 空间里。它的物理地址不是常数，要从 MSR <code>IA32_APIC_BASE</code> 读出来（掩掉 enable 位）。这一页在 RAM 之外，HHDM 不会自动映射它。',
+  code:[132,137], focus:null, wire:null,
+  changes:['本步没有改动任何内存，只读了一个 MSR 拿到 <code>physical_base = 0xFEE00000</code>。']
+},
+{
+  t:'第一步：物理地址 + HHDM 偏移 = 想要的虚拟地址',
+  d:'内核决定用「HHDM 直映射」的风格访问设备：<code>virtual_base = physical_base + hhdm_offset</code>。这个虚拟地址此刻<b>还不存在任何映射</b>，只是我们打算用的地址。接下来要做的，就是让页表兑现这个承诺。',
+  code:[152], focus:'v', wire:'v0',
+  changes:['还没有写内存：这一步只是算出一个虚拟地址 <code>0xFFFF8000FEE00000</code>。']
+},
+{
+  t:'第二步：读 CR3，找到页表的根',
+  d:'CR3 保存当前 PML4 的物理地址（去掉低 12 位标志）。<code>table_physical</code> 从这里开始，一路向下变成「当前这一层页表」的物理地址——后面的每一轮循环它都指向不同的表。',
+  code:[155,156], focus:'v', wire:'v0',
+  changes:['仍然没写内存：<code>table_physical = 0x221000</code>（PML4 的物理地址）。']
+},
+{
+  t:'第三步：把虚拟地址拆成 4 个 9 位索引',
+  d:'虚拟地址 <code>0xFFFF8000FEE00000</code> 被拆成：L4=256、L3=3、L2=503、L1=0、页内偏移=0。每一轮循环用一个索引去当前层表里取表项；取到的表项再给出下一层表的地址。',
+  code:[161], focus:'v', wire:'v0',
+  changes:['仍然没写内存：只是把地址拆成了 5 个数字。']
+},
+{
+  t:'第 1 级：PML4[256] 不存在 → 挂上一张新的 PDPT',
+  d:'先按索引算出表项位置，再用 HHDM 把它变成可写的指针：<code>entry_ptr = hhdm_offset + table_physical + index*8</code>。读出来发现 <code>PAGE_PRESENT</code> 为 0，说明这条路没被映射过。于是从 BSS 的静态页里取一张 4 KiB 出来（清零），把它的<b>物理地址</b>写进 PML4[256]。',
+  code:[161,173], focus:0, wire:'write0',
+  changes:[
+    '取走 <code>EXTRA_PAGE_TABLES[0]</code>（虚拟 <code>0xFFFFFFFF80123000</code> → 物理 <code>0x223000</code>），清零。',
+    '写 <code>PML4[256]</code>：<code>0x0000000000000000</code> → <code>0x0000000000223003</code>（Present + Writable）。'
+  ],
+  note:'注意 new_physical 的算法：静态页的虚拟地址减去内核虚拟基址、加上内核物理基址，就把「我在 BSS 里的位置」换算成「物理内存里的位置」。'
+},
+{
+  t:'第 2 级：PDPT[3] 不存在 → 挂上一张新的 PD',
+  d:'用上一级给的表地址继续下降：<code>table_physical</code> 现在是刚挂上的 PDPT 物理地址 0x223000。取 L3 索引 3，同样是空表项，于是再挂一张新表 <code>EXTRA_PAGE_TABLES[1]</code>（物理 0x224000）到 PDPT[3]。',
+  code:[161,173], focus:1, wire:'write1',
+  changes:[
+    '取走 <code>EXTRA_PAGE_TABLES[1]</code>（虚拟 <code>0xFFFFFFFF80124000</code> → 物理 <code>0x224000</code>），清零。',
+    '写 <code>PDPT[3]</code>：<code>0x0000000000000000</code> → <code>0x0000000000224003</code>（Present + Writable）。'
+  ]
+},
+{
+  t:'第 3 级：PD[503] 不存在 → 挂上一张新的 PT',
+  d:'再降一级：<code>table_physical</code> 变成 PD 的物理地址 0x224000，取 L2 索引 503。第三次遇到空表项，挂上 <code>EXTRA_PAGE_TABLES[2]</code>（物理 0x225000）。到这一步，四级路径的「骨架」全齐了，只差最后一项。',
+  code:[161,173], focus:2, wire:'write2',
+  changes:[
+    '取走 <code>EXTRA_PAGE_TABLES[2]</code>（虚拟 <code>0xFFFFFFFF80125000</code> → 物理 <code>0x225000</code>），清零。',
+    '写 <code>PD[503]</code>：<code>0x0000000000000000</code> → <code>0x0000000000225003</code>（Present + Writable）。'
+  ],
+  note:'循环里每一轮都要先判断：如果表项已经是 Present 且是 LARGE（大页），就直接 return 复用已有映射——那正是 HHDM 里 RAM 的映射方式。LAPIC 页没被大页覆盖，才走到这里。'
+},
+{
+  t:'最后一级：写叶子项 PT[0] = LAPIC 物理页',
+  d:'循环结束后 <code>table_physical</code> 指向最后一级页表 PT（物理 0x225000）。用 L1 索引 0 算出叶子项的位置，把 <code>physical_base</code> 连同 <code>PRESENT | WRITABLE | WRITE_THROUGH | CACHE_DISABLE</code> 一起写进去。后两位很关键：MMIO 是设备寄存器，绝不能像普通内存那样缓存读写。',
+  code:[180,189], focus:3, wire:'write3',
+  changes:[
+    '写 <code>PT[0]</code>：<code>0x0000000000000000</code> → <code>0x00000000FEE0001B</code>（P + W + PWT + PCD）。',
+    '现在 <code>0xFFFF8000FEE00000</code> 这一页被正式映射到 LAPIC 物理页。'
+  ]
+},
+{
+  t:'invlpg：让 CPU 忘掉旧的翻译',
+  d:'刚写进页表的映射，CPU 的 TLB 里可能还留着「这一页没映射」的旧缓存。执行 <code>invlpg [virtual_base]</code>，让这个虚拟地址的 TLB 项失效，下一次访问才会走新的页表。',
+  code:[188], focus:3, wire:'v3',
+  changes:['TLB：作废 <code>0xFFFF8000FEE00000</code> 的旧翻译项（不是内存，是 CPU 内部缓存）。']
+},
+{
+  t:'返回：virtual_base 就是 LAPIC 的访问地址',
+  d:'映射建好，<code>map_mmio_page</code> 返回 <code>virtual_base</code>，被存进 <code>Lapic { base }</code>。此后所有寄存器访问都变成「普通 load/store 虚拟地址 + 偏移」，寄存器偏移如 0xF0、0x390、0x320 就是这页里的字节偏移。',
+  code:[190], focus:3, wire:'v3',
+  changes:['本页工作到此结束：物理内存多了 3 张页表页，页表里多了 4 个有效表项，虚拟空间多了 1 个 4 KiB 映射。']
+},
+{
+  t:'真正访问设备：写 SPURIOUS_VECTOR',
+  d:'执行 <code>lapic.write(SPURIOUS_VECTOR, 0xFF)</code>：CPU 发出虚拟地址 <code>0xFFFF8000FEE000F0</code>。TLB 未命中 → 依次查 PML4[256] → PDPT[3] → PD[503] → PT[0] → 得到物理地址 0xFEE000F0。因为叶子项带 PCD/PWT，这次访问直来直去，不进缓存，直接落到设备寄存器上。',
+  code:[77,79], focus:3, wire:'v3p',
+  changes:['<code>0xFEE000F0</code> 收到值 <code>0xFF</code>：LAPIC 允许软件中断向量 0xFF 通过。设备被真正操作了。']
+},
+{
+  t:'读回来：MMIO 读和普通内存读是同一条指令',
+  d:'再读一次 <code>lapic.read(0x020)</code>（APIC ID）：同一条 load 指令，同一条翻译路径，只是这次方向反过来——从设备把值取回寄存器。CPU 眼里这就是一次普通的内存读。',
+  code:[72,75], focus:3, wire:'v3p',
+  changes:['从 <code>0xFEE00020</code> 读回 APIC ID（示例值 0x1）。']
+}
+];
+
+/* ---------- 状态 ---------- */
+function initState(){
+  const s = {tables:{}, extra:[false,false,false], leaf:null, tlb:false, log:[]};
+  CFG.tables.forEach((t,i)=>{
+    s.tables[t.key] = {phys: i===0 ? CFG.cr3 : null, exists: i===0, entries:{}};
+  });
+  return s;
+}
+function applyStep(s, st, n){
+  switch(n){
+    case 4:
+      s.tables.pdpt.exists = true; s.tables.pdpt.phys = CFG.extra[0].phys;
+      s.extra[0] = true;
+      s.tables.pml4.entries[CFG.idx[0]] = {v:'0x0000000000223003', kind:'new',
+        note:'指向新分配的 PDPT（物理 '+CFG.extra[0].phys+'）', flags:[['P',1],['W',1],['U',0],['PS',0]]};
+      s.log.push(['PML4[256]','0x0000000000000000','0x0000000000223003','挂入新 PDPT（物理 0x223000）']);
+      break;
+    case 5:
+      s.tables.pd.exists = true; s.tables.pd.phys = CFG.extra[1].phys;
+      s.extra[1] = true;
+      s.tables.pdpt.entries[CFG.idx[1]] = {v:'0x0000000000224003', kind:'new',
+        note:'指向新分配的 PD（物理 '+CFG.extra[1].phys+'）', flags:[['P',1],['W',1],['U',0],['PS',0]]};
+      s.log.push(['PDPT[3]','0x0000000000000000','0x0000000000224003','挂入新 PD（物理 0x224000）']);
+      break;
+    case 6:
+      s.tables.pt.exists = true; s.tables.pt.phys = CFG.extra[2].phys;
+      s.extra[2] = true;
+      s.tables.pd.entries[CFG.idx[2]] = {v:'0x0000000000225003', kind:'new',
+        note:'指向新分配的 PT（物理 '+CFG.extra[2].phys+'）', flags:[['P',1],['W',1],['U',0],['PS',0]]};
+      s.log.push(['PD[503]','0x0000000000000000','0x0000000000225003','挂入新 PT（物理 0x225000）']);
+      break;
+    case 7:
+      s.leaf = {v:'0x00000000FEE0001B', kind:'new',
+        note:'指向 LAPIC MMIO 页（物理 0xFEE00000）；PWT+PCD 关闭缓存',
+        flags:[['P',1],['W',1],['PWT',1],['PCD',1]]};
+      s.tables.pt.entries[CFG.idx[3]] = s.leaf;
+      s.log.push(['PT[0]','0x0000000000000000','0x00000000FEE0001B','映射 LAPIC MMIO 页（P/W/PWT/PCD）']);
+      break;
+    case 8:
+      s.tlb = true;
+      s.log.push(['TLB','旧翻译项','已作废','invlpg 0xFFFF8000FEE00000']);
+      break;
+  }
+}
+
+/* ---------- 渲染 ---------- */
+const levelsEl = document.getElementById('levels');
+const LEVEL_HTML = CFG.tables.map((t,i)=>`
+  <div class="card" id="level-${i}" data-level="${i}">
+    <h3>${t.lvl} · ${t.name} <span class="tag" id="phys-${i}">${i===0?CFG.cr3:'（尚未创建）'}</span><span id="badge-${i}"></span></h3>
+    <div class="lvl-body">
+      <div class="grid" id="grid-${i}"></div>
+      <div class="entry" id="entry-${i}">
+        <div class="ttl">索引 <b id="eidx-${i}">—</b> · 表内偏移 <span id="eoff-${i}">—</span></div>
+        <div class="val" id="eval-${i}">—</div>
+        <div class="note" id="enote-${i}">还没走到这一级。</div>
+        <div class="flags" id="eflags-${i}"></div>
+        <div class="wptr" id="wptr-${i}"></div>
+      </div>
+    </div>
+  </div>`).join('');
+levelsEl.innerHTML = LEVEL_HTML;
+CFG.tables.forEach((t,i)=>{
+  const g = document.getElementById('grid-'+i);
+  let h='';
+  for(let k=0;k<512;k++) h += '<div class="cell" data-i="'+k+'"></div>';
+  g.innerHTML = h;
+});
+
+function hex(v){ return '0x' + v.toString(16).toUpperCase().padStart(16,'0'); }
+
+// 写页表时用的指针：hhdm_offset + 父表物理地址 + 索引*8
+function writePtr(parentPhys, index){
+  const v = (BigInt(CFG.hhdm) + BigInt(parentPhys) + BigInt(index)*8n);
+  return '0x' + v.toString(16).toUpperCase().padStart(16,'0');
+}
+
+function buildState(step){
+  const s = initState();
+  for(let i=0;i<=step;i++) applyStep(s, STEPS[i], i);
+  return s;
+}
+
+let cur = 0, playing = false, timer = null;
+
+function render(){
+  const st = STEPS[cur];
+  const s = buildState(cur);
+
+  // 页表卡片
+  CFG.tables.forEach((t,i)=>{
+    const card = document.getElementById('level-'+i);
+    const grid = document.getElementById('grid-'+i);
+    const badge = document.getElementById('badge-'+i);
+    const phys = document.getElementById('phys-'+i);
+    card.classList.toggle('focus', st.focus === i);
+    grid.classList.toggle('newtable', s.tables[t.key].exists && i>0 && s.extra[i-1]);
+    phys.textContent = s.tables[t.key].phys ? ('物理 ' + s.tables[t.key].phys) : '（尚未创建）';
+    badge.innerHTML = (s.tables[t.key].exists && i>0)
+      ? '<span class="badge new">新建</span>' : (i===0 ? '<span class="badge exist">CR3 指向</span>' : '');
+    const cells = grid.children;
+    for(let k=0;k<512;k++){
+      cells[k].className = 'cell';
+      cells[k].classList.toggle('dim', s.tables[t.key].exists);
+    }
+    const e = s.tables[t.key].entries[CFG.idx[i]];
+    const isLeaf = (i===3);
+    if(e){
+      const c = cells[CFG.idx[i]];
+      c.classList.remove('dim');
+      c.classList.add(isLeaf ? 'hitnew' : 'hit');
+    }
+    const entry = document.getElementById('entry-'+i);
+    entry.classList.toggle('focus', st.focus === i);
+    if(e){
+      document.getElementById('eidx-'+i).textContent = CFG.idx[i];
+      document.getElementById('eoff-'+i).textContent = '表内偏移 ' + hex(CFG.idx[i]*8);
+      document.getElementById('eval-'+i).textContent = e.v;
+      document.getElementById('enote-'+i).textContent = e.note;
+      document.getElementById('eflags-'+i).innerHTML = e.flags.map(f=>
+        '<span class="flag '+(f[1]?'on':'')+'">'+f[0]+'</span>').join('');
+    } else {
+      document.getElementById('eidx-'+i).textContent = '—';
+      document.getElementById('eoff-'+i).textContent = '—';
+      document.getElementById('eval-'+i).textContent = (s.tables[t.key].exists ? '0x0000000000000000' : '—');
+      document.getElementById('enote-'+i).textContent = s.tables[t.key].exists
+        ? '这一项还不存在（Present=0）。若走到这里，CPU 访问会触发 #PF。'
+        : '这一层的表还没被创建。';
+      document.getElementById('eflags-'+i).innerHTML = '<span class="flag">P</span><span class="flag">W</span>';
+    }
+    // 写通道：本步是否正在经由 HHDM 写这一级的表项
+    const parentPhys = i === 0 ? CFG.cr3 : (i === 1 ? CFG.extra[0].phys : i === 2 ? CFG.extra[1].phys : CFG.extra[2].phys);
+    document.getElementById('wptr-'+i).textContent =
+      (st.wire === 'write'+i)
+        ? ('HHDM 写入指针 = ' + writePtr(parentPhys, CFG.idx[i]))
+        : '';
+  });
+
+  // 虚拟地址条
+  document.getElementById('v-base').textContent = CFG.virt;
+  const bb = document.getElementById('bitbar');
+  Array.from(bb.children).forEach((d,i)=>{
+    d.classList.toggle('hit', st.focus===i);
+  });
+  const hhdmCard = document.getElementById('card-hhdm');
+  hhdmCard.classList.toggle('focus', String(st.wire||'').startsWith('write'));
+  document.getElementById('card-virt').classList.toggle('focus', st.focus==='v');
+  document.getElementById('card-lapic').classList.toggle('focus', st.wire==='v3p');
+
+  // 物理内存
+  ['phys-t0','phys-t1','phys-t2'].forEach((id,i)=>{
+    document.getElementById(id).textContent = s.extra[i] ? CFG.extra[i].phys : '（未被占用）';
+  });
+  document.getElementById('lapic-w').textContent = cur>=10 ? '0x000000FF' : '—';
+  document.getElementById('lapic-r').textContent = cur>=11 ? '0x00000001' : '—';
+  document.getElementById('bar-lapic').classList.toggle('hit', cur>=10);
+  document.getElementById('bar-ram').classList.toggle('hit', s.extra.some(Boolean));
+
+  // 改动清单
+  document.getElementById('changes').innerHTML = st.changes.map(c=>'<li>'+c+'</li>').join('');
+  // 解说
+  document.getElementById('step-title').textContent = '第 ' + (cur+1) + ' 步 · ' + st.t;
+  document.getElementById('step-text').innerHTML = st.d;
+  document.getElementById('step-note').innerHTML = st.note ? ('<b>要点：</b>'+st.note) : '';
+
+  // 代码
+  const codeEl = document.getElementById('code');
+  codeEl.innerHTML = SRC.map(([n,txt])=>{
+    const hl = (st.code[0]<=n && n<=st.code[1]);
+    const cls = 'ln'+(hl?' hl':'');
+    const comment = /^\s*(\/\/|\/\*)/.test(txt) && txt.trim().startsWith('//');
+    return '<div class="'+cls+'"><span class="no">'+n+'</span><span class="txt'+(comment?' cm':'')+'">'+esc(txt)+'</span></div>';
+  }).join('');
+  const firstHl = codeEl.querySelector('.hl');
+  if(firstHl){
+    codeEl.scrollTop = Math.max(0, firstHl.offsetTop - codeEl.clientHeight/2 + firstHl.offsetHeight/2);
+  }
+
+  // 记录表
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = s.log.length
+    ? s.log.map((r,i)=>'<tr'+(i===s.log.length-1?' class="hl"':'')+'><td class="mono">'+r[0]+'</td><td class="mono">'+r[1]+'</td><td class="mono">'+r[2]+'</td><td>'+r[3]+'</td></tr>').join('')
+    : '<tr><td colspan="4" style="color:var(--ink3)">尚无改动。</td></tr>';
+
+  // 进度
+  document.getElementById('bar').style.width = (cur/(STEPS.length-1)*100)+'%';
+  document.getElementById('counter').textContent = (cur+1)+' / '+STEPS.length;
+
+  drawWires(st);
+}
+function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- 连线 ---------- */
+function drawWires(st){
+  const stage = document.getElementById('stage');
+  const svg = document.getElementById('wires');
+  const sr = stage.getBoundingClientRect();
+  svg.setAttribute('viewBox', '0 0 '+sr.width+' '+sr.height);
+  svg.setAttribute('width', sr.width);
+  svg.setAttribute('height', sr.height);
+  const R = id => {
+    const el = document.getElementById(id);
+    if(!el) return null;
+    const r = el.getBoundingClientRect();
+    return {x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height,
+            cx:r.left-sr.left+r.width/2, cy:r.top-sr.top+r.height/2};
+  };
+  const paths = [];
+  const chainPairs = [
+    {id:'w-v0', from:'card-virt', to:'level-0', w:'chain', dir:'h'},
+    {id:'w-01', from:'level-0',  to:'level-1', w:'chain', dir:'v'},
+    {id:'w-12', from:'level-1',  to:'level-2', w:'chain', dir:'v'},
+    {id:'w-23', from:'level-2',  to:'level-3', w:'chain', dir:'v'},
+    {id:'w-3p', from:'level-3',  to:'card-lapic', w:'chain', dir:'h'}
+  ];
+  const activeMap = {
+    v0:['w-v0'], v1:['w-v0','w-01'], v2:['w-v0','w-01','w-12'], v3:['w-v0','w-01','w-12','w-23'],
+    'v3p':['w-v0','w-01','w-12','w-23','w-3p'],
+    write0:['w-v0'], write1:['w-v0','w-01'], write2:['w-v0','w-01','w-12'], write3:['w-v0','w-01','w-12','w-23']
+  };
+  const active = activeMap[st.wire] || [];
+  chainPairs.forEach(p=>{
+    const a = R(p.from), b = R(p.to);
+    if(!a||!b) return;
+    let d;
+    if(p.dir === 'v'){
+      const rx = a.x + 5;
+      d = 'M '+rx+' '+(a.y+a.h)+' L '+rx+' '+b.y;
+    } else {
+      const x0 = a.x + a.w, y0 = a.y + a.h*0.62, x1 = b.x, y1 = b.y + b.h*0.62;
+      const dx = Math.max(24, Math.abs(x1-x0)/2);
+      d = 'M '+x0+' '+y0+' C '+(x0+dx)+' '+y0+' '+(x1-dx)+' '+y1+' '+x1+' '+y1;
+    }
+    const on = active.includes(p.id);
+    paths.push('<path class="wire '+p.w+(on?' active':'')+'"'+(on?' marker-end="url(#ah)"':'')+' d="'+d+'"/>');
+  });
+  // HHDM 写通道
+  const lvl = {write0:0, write1:1, write2:2, write3:3}[st.wire];
+  if(lvl!==undefined){
+    const b = R('level-'+lvl);
+    if(b){
+      const y = b.y + 18, x0 = b.x - 22, x1 = b.x;
+      paths.push('<path class="wire write active" marker-end="url(#ahw)" d="M '+x0+' '+y+' L '+x1+' '+y+'"/>');
+    }
+  }
+  svg.innerHTML = '<defs>'+
+    '<marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">'+
+    '<polygon points="0 0, 7 3, 0 6" fill="var(--accent)"/></marker>'+
+    '<marker id="ahw" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">'+
+    '<polygon points="0 0, 7 3, 0 6" fill="var(--warn)"/></marker></defs>' + paths.join('');
+}
+
+/* ---------- 控制 ---------- */
+function go(i){
+  cur = Math.max(0, Math.min(STEPS.length-1, i));
+  render();
+}
+function play(){
+  if(playing) return stop();
+  playing = true;
+  document.getElementById('btn-play').textContent = '⏸ 暂停';
+  const tick = ()=>{
+    if(!playing) return;
+    if(cur >= STEPS.length-1){ stop(); return; }
+    go(cur+1);
+    timer = setTimeout(tick, +document.getElementById('speed').value);
+  };
+  timer = setTimeout(tick, +document.getElementById('speed').value);
+}
+function stop(){
+  playing = false;
+  clearTimeout(timer);
+  document.getElementById('btn-play').textContent = '▶ 播放';
+}
+document.getElementById('btn-first').onclick = ()=>{stop();go(0);};
+document.getElementById('btn-prev').onclick = ()=>{stop();go(cur-1);};
+document.getElementById('btn-next').onclick = ()=>{stop();go(cur+1);};
+document.getElementById('btn-last').onclick = ()=>{stop();go(STEPS.length-1);};
+document.getElementById('btn-play').onclick = play;
+document.getElementById('theme-btn').onclick = ()=>{
+  const h = document.documentElement;
+  h.dataset.mode = h.dataset.mode === 'dark' ? 'light' : 'dark';
+  setTimeout(drawWires, 30);
+};
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'){stop();go(cur+1);}
+  else if(e.key==='ArrowLeft'){stop();go(cur-1);}
+  else if(e.code==='Space'){e.preventDefault();play();}
+});
+window.addEventListener('resize', ()=>drawWires(STEPS[cur]));
+
+render();
+</script>
+</body>
+</html>

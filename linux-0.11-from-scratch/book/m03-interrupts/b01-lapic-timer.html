@@ -784,6 +784,23 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div></div>
 <div class="am-md"><p>定时器、IOAPIC、IRQ 编号规则都是这一课第一次出现的硬件名词。更细的对照见 <a href="../concepts/apic-vs-pic.md">PIC、LAPIC 与 IOAPIC</a>。LAPIC 寄存器的基址要靠 MSR 读出来，MSR 是什么见 <a href="../concepts/x86-msr.html">x86 的 MSR：型号特定寄存器</a>。</p>
 <p>一句提醒：屏蔽 legacy PIC 不等于停用 PIT。PIC 是中断控制器，PIT 是可编程定时器，两者不是同一个设备。</p>
+<h3>先修知识：页表怎样把虚拟地址翻译成物理地址</h3>
+<p>后面的 <code>map_mmio_page</code> 会直接修改页表。先把这一段代码用到的分页知识补齐；这里只讲本课需要的四级分页，不涉及缺页处理和通用内存管理。</p>
+<p><strong>物理地址与虚拟地址不是同一件事。</strong> 物理地址选中实际的内存或设备寄存器，虚拟地址是程序 load/store 使用的地址。开启分页后，CPU 每次访问内存都会查当前页表，把虚拟地址翻译成物理地址。LAPIC 寄存器位于 <code>physical_base</code> 这个物理地址；内核想通过 <code>virtual_base = physical_base + hhdm_offset</code> 访问它，就必须先在页表中建立“这个虚拟页对应那个物理页”的映射。</p>
+<p><strong>页是地址转换的粒度。</strong> 本课使用 4 KiB（4096 字节）小页，所以虚拟地址低 12 位是页内偏移，翻译时原样保留；高位用来逐级查表。x86-64 四级分页把高位再分成四段，每段 9 位：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">text</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="text"><span class="am-ln">47        39 38        30 29        21 20        12 11         0</span><span class="am-ln">+------------+------------+------------+------------+------------+</span><span class="am-ln">| L4 索引    | L3 索引    | L2 索引    | L1 索引    | 页内偏移   |</span><span class="am-ln">+------------+------------+------------+------------+------------+</span></code></pre></figure>
+<div class="am-md"><p>四级表依次叫 PML4（L4）、PDPT（L3）、PD（L2）、PT（L1）。每张表正好占一个 4 KiB 页，含 512 个 64 位表项，因此索引范围是 0～511，掩码是 <code>0x1ff</code>。这就是代码反复出现 <code>((virtual_base &gt;&gt; shift) &amp; 0x1ff)</code> 的原因：右移把对应字段移到最低位，再用掩码取出本级的表项下标。</p>
+<p><strong>CR3 给出查表起点。</strong> 控制寄存器 CR3 保存当前 PML4 的物理地址。前三级表项通常保存下一级页表的物理地址，最后一级表项保存目标物理页的地址；两者还带有权限和属性位。本课会用到的位是：</p>
+<ul>
+<li><code>PAGE_PRESENT</code>：表项有效；为 0 时，沿这条路径访问会触发缺页异常 <code>#PF</code>。</li>
+<li><code>PAGE_WRITABLE</code>：允许写入。</li>
+<li><code>PAGE_LARGE</code>：在 L3/L2 中表示大页映射，地址翻译到此结束，不再进入下一级。</li>
+<li><code>PAGE_WRITE_THROUGH</code> 与 <code>PAGE_CACHE_DISABLE</code>：控制缓存行为；MMIO 是设备寄存器，不能像普通内存一样缓存读写。</li>
+</ul>
+<p><strong>为什么代码能用普通指针读写页表？</strong> CPU 查页表需要物理地址，而 Rust 指针使用虚拟地址。Limine 提供的 HHDM（Higher Half Direct Map，高半区直接映射）让“物理地址 + <code>hhdm_offset</code>”成为访问同一物理页的虚拟地址。因此，代码从表项取出下一级表的物理地址后，加上 <code>hhdm_offset</code>，才能构造 <code>entry_ptr</code> 去读写那张表。新分配的静态页表则通过内核的物理/虚拟基址换算出物理地址，再写回上级表项。</p>
+<p><strong>TLB 是地址转换结果的缓存。</strong> CPU 不必每次访存都真的走四级页表，最近用过的转换会缓存在 TLB 中。修改某个虚拟页的映射后，<code>invlpg</code> 使这个虚拟地址的旧 TLB 项失效，避免 CPU 继续使用旧翻译。</p>
+<p>想先看这套过程跑起来的样子，看 <a href="../concepts/mmio-page-mapping.html">map_mmio_page：把设备的一页映射进虚拟地址空间</a>。它把「虚拟地址 → 页表 → 物理页」和「这一页被改成了什么」并排画了出来。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-C">
@@ -821,11 +838,15 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <figure class="am-codeblock" data-am-src="impl/kernel/src/main.rs" data-am-lines="67-80"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/main.rs:67-80</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="67"></span><span class="am-ln" data-n="68">/// 中断只计数；这里在正常上下文读取实际值，每 100 tick 打印一次。</span><span class="am-ln" data-n="69">fn report_jiffies() -&gt; ! {</span><span class="am-ln" data-n="70">    let mut next_report = 100;</span><span class="am-ln" data-n="71">    loop {</span><span class="am-ln am-ln--hl" data-n="72">        let observed = lapic::jiffies();</span><span class="am-ln" data-n="73">        if observed &gt;= next_report {</span><span class="am-ln" data-n="74">            printk!(&quot;M3: jiffies={}\n&quot;, observed);</span><span class="am-ln" data-n="75">            next_report += 100;</span><span class="am-ln" data-n="76">        } else {</span><span class="am-ln" data-n="77">            // SAFETY: 定时器周期中断会唤醒 CPU；没有调度器时无需做其他工作。</span><span class="am-ln" data-n="78">            unsafe { asm!(&quot;hlt&quot;, options(nomem, nostack)) };</span><span class="am-ln" data-n="79">        }</span><span class="am-ln" data-n="80">    }</span></code></pre></figure>
 <div class="am-md"><p><code>fn report_jiffies() -&gt; !</code> 的返回类型 <code>!</code> 是&quot;永不返回&quot;，表示这个函数不会把控制流交回调用者。<code>let mut next_report = 100;</code> 声明一个可变的下次打印阈值。<code>lapic::jiffies()</code> 读原子计数，<code>if observed &gt;= next_report</code> 判断是否到了阈值。</p>
 <p><code>printk!</code> 是宏，参数里的 <code>{}</code> 按顺序填入 <code>observed</code>。它把同一段文本同时写到屏幕和串口。else 分支执行 <code>hlt</code>：没有调度器时，让 CPU 停到下一个中断唤醒是最省事的等待方式。</p>
-<p><strong>MMIO 映射只补一页</strong>（<code>impl/kernel/src/lapic.rs:165-178</code>）。</p>
+<p><strong>MMIO 映射只补一页</strong>（<code>impl/kernel/src/lapic.rs:146-190</code>）。下面把前面的分页知识对应到代码。入口先算出要建立的虚拟地址，读取 CR3 得到 L4 根表的物理地址；<code>EXTRA_PAGE_TABLES</code> 是预先保留的三张空表，分别用于补齐可能缺失的 L3、L2、L1。L4 根表已经由 Limine 建立，不在此处分配。</p>
 </div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="165-178"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:165-178</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="165">        if entry &amp; PAGE_PRESENT == 0 {</span><span class="am-ln" data-n="166">            let table = &amp;mut extra_tables[level];</span><span class="am-ln" data-n="167">            table.0.fill(0);</span><span class="am-ln" data-n="168">            let table_virtual = table.0.as_ptr() as u64;</span><span class="am-ln" data-n="169">            let new_physical = table_virtual - kernel_virtual + kernel_physical;</span><span class="am-ln" data-n="170">            entry = new_physical | PAGE_PRESENT | PAGE_WRITABLE;</span><span class="am-ln" data-n="171">            // SAFETY: entry_ptr 是当前级中尚未使用的描述符。</span><span class="am-ln" data-n="172">            unsafe { write_volatile(entry_ptr, entry) };</span><span class="am-ln" data-n="173">        }</span><span class="am-ln" data-n="174">        if entry &amp; PAGE_LARGE != 0 {</span><span class="am-ln" data-n="175">            return virtual_base;</span><span class="am-ln" data-n="176">        }</span><span class="am-ln" data-n="177">        table_physical = entry &amp; PAGE_ADDRESS_MASK;</span><span class="am-ln" data-n="178">    }</span></code></pre></figure>
-<div class="am-md"><p>遍历四级页表时，哪一级描述符的 present 位是 0，就从 <code>EXTRA_PAGE_TABLES</code> 里取一张静态页填进去（<code>impl/kernel/src/lapic.rs:160-178</code>）。如果撞上大页映射，就直接复用，不再往下走。</p>
-<p>最后一级描述符指向 LAPIC 物理页，并置上 PCD/PWT 两位，禁止 CPU 缓存这块 MMIO。写完执行 <code>invlpg</code> 刷新 TLB，新映射立刻生效（<code>impl/kernel/src/lapic.rs:181-190</code>）。</p>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="146-178"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:146-178</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="146">fn map_mmio_page(</span><span class="am-ln" data-n="147">    physical_base: u64,</span><span class="am-ln" data-n="148">    hhdm_offset: u64,</span><span class="am-ln" data-n="149">    kernel_physical: u64,</span><span class="am-ln" data-n="150">    kernel_virtual: u64,</span><span class="am-ln" data-n="151">) -&gt; u64 {</span><span class="am-ln" data-n="152">    let virtual_base = physical_base + hhdm_offset;</span><span class="am-ln" data-n="153">    let cr3: u64;</span><span class="am-ln" data-n="154">    // SAFETY: 读取当前页树根地址，不修改控制寄存器。</span><span class="am-ln" data-n="155">    unsafe { asm!(&quot;mov {}, cr3&quot;, out(reg) cr3, options(nomem, nostack, preserves_flags)) };</span><span class="am-ln" data-n="156">    let mut table_physical = cr3 &amp; PAGE_ADDRESS_MASK;</span><span class="am-ln" data-n="157">    // SAFETY: 仅在关中断的单核初始化阶段使用；三个静态页分别供三层页表补缺。</span><span class="am-ln" data-n="158">    let extra_tables = unsafe { &amp;mut *addr_of_mut!(EXTRA_PAGE_TABLES) };</span><span class="am-ln" data-n="159"></span><span class="am-ln" data-n="160">    for (level, shift) in [39, 30, 21].into_iter().enumerate() {</span><span class="am-ln" data-n="161">        let index = ((virtual_base &gt;&gt; shift) &amp; 0x1ff) as usize;</span><span class="am-ln" data-n="162">        let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;</span><span class="am-ln" data-n="163">        // SAFETY: CR3 与各级描述符都指向 HHDM 可访问的页表。</span><span class="am-ln" data-n="164">        let mut entry = unsafe { read_volatile(entry_ptr) };</span><span class="am-ln" data-n="165">        if entry &amp; PAGE_PRESENT == 0 {</span><span class="am-ln" data-n="166">            let table = &amp;mut extra_tables[level];</span><span class="am-ln" data-n="167">            table.0.fill(0);</span><span class="am-ln" data-n="168">            let table_virtual = table.0.as_ptr() as u64;</span><span class="am-ln" data-n="169">            let new_physical = table_virtual - kernel_virtual + kernel_physical;</span><span class="am-ln" data-n="170">            entry = new_physical | PAGE_PRESENT | PAGE_WRITABLE;</span><span class="am-ln" data-n="171">            // SAFETY: entry_ptr 是当前级中尚未使用的描述符。</span><span class="am-ln" data-n="172">            unsafe { write_volatile(entry_ptr, entry) };</span><span class="am-ln" data-n="173">        }</span><span class="am-ln" data-n="174">        if entry &amp; PAGE_LARGE != 0 {</span><span class="am-ln" data-n="175">            return virtual_base;</span><span class="am-ln" data-n="176">        }</span><span class="am-ln" data-n="177">        table_physical = entry &amp; PAGE_ADDRESS_MASK;</span><span class="am-ln" data-n="178">    }</span></code></pre></figure>
+<div class="am-md"><p>循环里的 <code>[39, 30, 21]</code> 分别对应 L4、L3、L2 索引的移位量。<code>index as u64 * 8</code> 把表项下标换成字节偏移，因为每个表项是 8 字节的 <code>u64</code>。<code>table_physical</code> 始终是当前表的物理地址，加上 <code>hhdm_offset</code> 后才是 Rust 可以解引用的虚拟地址。</p>
+<p>如果当前表项的 <code>PAGE_PRESENT</code> 为 0，说明下一级表不存在。代码取一张静态页并清零，再把它的虚拟地址换算成物理地址，写入上级表项。换算公式是 <code>table_virtual - kernel_virtual + kernel_physical</code>。若表项已经有效，就取出其中的下一级表地址，继续向下走。<code>PAGE_ADDRESS_MASK</code> 会去掉低 12 位的属性标志，只保留页表物理地址。遇到 <code>PAGE_LARGE</code> 则说明现有大页已经覆盖目标地址，无需再建立 4 KiB 小页映射，直接返回。</p>
+<p>走完前三层后，最后处理 L1 表项：</p>
+</div>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="180-190"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:180-190</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="180">    let index = ((virtual_base &gt;&gt; 12) &amp; 0x1ff) as usize;</span><span class="am-ln" data-n="181">    let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;</span><span class="am-ln" data-n="182">    // SAFETY: 最后一级描述符指向 LAPIC 物理页，PCD/PWT 禁止缓存 MMIO。</span><span class="am-ln" data-n="183">    unsafe {</span><span class="am-ln" data-n="184">        write_volatile(</span><span class="am-ln" data-n="185">            entry_ptr,</span><span class="am-ln" data-n="186">            physical_base | PAGE_PRESENT | PAGE_WRITABLE | PAGE_WRITE_THROUGH | PAGE_CACHE_DISABLE,</span><span class="am-ln" data-n="187">        );</span><span class="am-ln" data-n="188">        asm!(&quot;invlpg [{}]&quot;, in(reg) virtual_base, options(nostack));</span><span class="am-ln" data-n="189">    }</span><span class="am-ln" data-n="190">    virtual_base</span></code></pre></figure>
+<div class="am-md"><p>这里用移位 12 取出 L1 索引，把目标 LAPIC 物理页地址连同 <code>PRESENT | WRITABLE | PWT | PCD</code> 写入末级表项。此后 CPU 访问 <code>virtual_base</code> 时，就能沿四级页表翻译到 <code>physical_base</code>。最后对 <code>virtual_base</code> 执行 <code>invlpg</code>，使这个地址可能存在的旧 TLB 项失效。函数返回的不是物理地址，而是之后 <code>lapic.read/write</code> 要使用的虚拟基址。</p>
 <p><strong>LAPIC 基址不是写死的常数</strong>（<code>impl/kernel/src/lapic.rs:131-143</code>）。它来自 MSR <code>IA32_APIC_BASE</code>（编号 <code>0x1B</code>）：低 32 位是 LAPIC 寄存器的物理基址，bit 11 是 x2APIC 模式开关。MSR 既不在内存里也不在 I/O 端口空间，只能用 <code>rdmsr</code> / <code>wrmsr</code> 读写。</p>
 </div>
 <figure class="am-codeblock" data-am-src="impl/kernel/src/lapic.rs" data-am-lines="131-143"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/lapic.rs:131-143</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="131">fn enable_lapic(hhdm_offset: u64, kernel_physical: u64, kernel_virtual: u64) -&gt; Lapic {</span><span class="am-ln am-ln--hl" data-n="132">    let apic_base = read_msr(IA32_APIC_BASE_MSR);</span><span class="am-ln" data-n="133">    if apic_base &amp; APIC_ENABLE == 0 {</span><span class="am-ln" data-n="134">        write_msr(IA32_APIC_BASE_MSR, apic_base | APIC_ENABLE);</span><span class="am-ln" data-n="135">    }</span><span class="am-ln" data-n="136"></span><span class="am-ln" data-n="137">    let physical_base = apic_base &amp; APIC_BASE_MASK;</span><span class="am-ln" data-n="138">    let lapic = Lapic {</span><span class="am-ln" data-n="139">        base: map_mmio_page(physical_base, hhdm_offset, kernel_physical, kernel_virtual),</span><span class="am-ln" data-n="140">    };</span><span class="am-ln" data-n="141">    lapic.write(SPURIOUS_VECTOR, LAPIC_SOFTWARE_ENABLE | 0xff);</span><span class="am-ln" data-n="142">    lapic</span><span class="am-ln" data-n="143">}</span></code></pre></figure>
@@ -947,7 +968,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-27 15:58 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-28 10:03 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -980,6 +1001,36 @@ M2 的异常入口帮不上这个忙。`exception_handler` 打印现场后 `hlt`
 定时器、IOAPIC、IRQ 编号规则都是这一课第一次出现的硬件名词。更细的对照见 [PIC、LAPIC 与 IOAPIC](../concepts/apic-vs-pic.md)。LAPIC 寄存器的基址要靠 MSR 读出来，MSR 是什么见 [x86 的 MSR：型号特定寄存器](../concepts/x86-msr.html)。
 
 一句提醒：屏蔽 legacy PIC 不等于停用 PIT。PIC 是中断控制器，PIT 是可编程定时器，两者不是同一个设备。
+
+### 先修知识：页表怎样把虚拟地址翻译成物理地址
+
+后面的 `map_mmio_page` 会直接修改页表。先把这一段代码用到的分页知识补齐；这里只讲本课需要的四级分页，不涉及缺页处理和通用内存管理。
+
+**物理地址与虚拟地址不是同一件事。** 物理地址选中实际的内存或设备寄存器，虚拟地址是程序 load/store 使用的地址。开启分页后，CPU 每次访问内存都会查当前页表，把虚拟地址翻译成物理地址。LAPIC 寄存器位于 `physical_base` 这个物理地址；内核想通过 `virtual_base = physical_base + hhdm_offset` 访问它，就必须先在页表中建立“这个虚拟页对应那个物理页”的映射。
+
+**页是地址转换的粒度。** 本课使用 4 KiB（4096 字节）小页，所以虚拟地址低 12 位是页内偏移，翻译时原样保留；高位用来逐级查表。x86-64 四级分页把高位再分成四段，每段 9 位：
+
+```text
+47        39 38        30 29        21 20        12 11         0
++------------+------------+------------+------------+------------+
+| L4 索引    | L3 索引    | L2 索引    | L1 索引    | 页内偏移   |
++------------+------------+------------+------------+------------+
+```
+
+四级表依次叫 PML4（L4）、PDPT（L3）、PD（L2）、PT（L1）。每张表正好占一个 4 KiB 页，含 512 个 64 位表项，因此索引范围是 0～511，掩码是 `0x1ff`。这就是代码反复出现 `((virtual_base &gt;&gt; shift) &amp; 0x1ff)` 的原因：右移把对应字段移到最低位，再用掩码取出本级的表项下标。
+
+**CR3 给出查表起点。** 控制寄存器 CR3 保存当前 PML4 的物理地址。前三级表项通常保存下一级页表的物理地址，最后一级表项保存目标物理页的地址；两者还带有权限和属性位。本课会用到的位是：
+
+- `PAGE_PRESENT`：表项有效；为 0 时，沿这条路径访问会触发缺页异常 `#PF`。
+- `PAGE_WRITABLE`：允许写入。
+- `PAGE_LARGE`：在 L3/L2 中表示大页映射，地址翻译到此结束，不再进入下一级。
+- `PAGE_WRITE_THROUGH` 与 `PAGE_CACHE_DISABLE`：控制缓存行为；MMIO 是设备寄存器，不能像普通内存一样缓存读写。
+
+**为什么代码能用普通指针读写页表？** CPU 查页表需要物理地址，而 Rust 指针使用虚拟地址。Limine 提供的 HHDM（Higher Half Direct Map，高半区直接映射）让“物理地址 + `hhdm_offset`”成为访问同一物理页的虚拟地址。因此，代码从表项取出下一级表的物理地址后，加上 `hhdm_offset`，才能构造 `entry_ptr` 去读写那张表。新分配的静态页表则通过内核的物理/虚拟基址换算出物理地址，再写回上级表项。
+
+**TLB 是地址转换结果的缓存。** CPU 不必每次访存都真的走四级页表，最近用过的转换会缓存在 TLB 中。修改某个虚拟页的映射后，`invlpg` 使这个虚拟地址的旧 TLB 项失效，避免 CPU 继续使用旧翻译。
+
+想先看这套过程跑起来的样子，看 [map_mmio_page：把设备的一页映射进虚拟地址空间](../concepts/mmio-page-mapping.html)。它把「虚拟地址 → 页表 → 物理页」和「这一页被改成了什么」并排画了出来。
 
 ## 设计
 
@@ -1061,14 +1112,21 @@ EOI 这一步不能省。LAPIC 用 in-service 位记录&quot;哪条中断正在�
 
 `printk!` 是宏，参数里的 `{}` 按顺序填入 `observed`。它把同一段文本同时写到屏幕和串口。else 分支执行 `hlt`：没有调度器时，让 CPU 停到下一个中断唤醒是最省事的等待方式。
 
-**MMIO 映射只补一页**（`impl/kernel/src/lapic.rs:165-178`）。
+**MMIO 映射只补一页**（`impl/kernel/src/lapic.rs:146-190`）。下面把前面的分页知识对应到代码。入口先算出要建立的虚拟地址，读取 CR3 得到 L4 根表的物理地址；`EXTRA_PAGE_TABLES` 是预先保留的三张空表，分别用于补齐可能缺失的 L3、L2、L1。L4 根表已经由 Limine 建立，不在此处分配。
 
-```rust src=impl/kernel/src/lapic.rs lines=165-178
+```rust src=impl/kernel/src/lapic.rs lines=146-178
 ```
 
-遍历四级页表时，哪一级描述符的 present 位是 0，就从 `EXTRA_PAGE_TABLES` 里取一张静态页填进去（`impl/kernel/src/lapic.rs:160-178`）。如果撞上大页映射，就直接复用，不再往下走。
+循环里的 `[39, 30, 21]` 分别对应 L4、L3、L2 索引的移位量。`index as u64 * 8` 把表项下标换成字节偏移，因为每个表项是 8 字节的 `u64`。`table_physical` 始终是当前表的物理地址，加上 `hhdm_offset` 后才是 Rust 可以解引用的虚拟地址。
 
-最后一级描述符指向 LAPIC 物理页，并置上 PCD/PWT 两位，禁止 CPU 缓存这块 MMIO。写完执行 `invlpg` 刷新 TLB，新映射立刻生效（`impl/kernel/src/lapic.rs:181-190`）。
+如果当前表项的 `PAGE_PRESENT` 为 0，说明下一级表不存在。代码取一张静态页并清零，再把它的虚拟地址换算成物理地址，写入上级表项。换算公式是 `table_virtual - kernel_virtual + kernel_physical`。若表项已经有效，就取出其中的下一级表地址，继续向下走。`PAGE_ADDRESS_MASK` 会去掉低 12 位的属性标志，只保留页表物理地址。遇到 `PAGE_LARGE` 则说明现有大页已经覆盖目标地址，无需再建立 4 KiB 小页映射，直接返回。
+
+走完前三层后，最后处理 L1 表项：
+
+```rust src=impl/kernel/src/lapic.rs lines=180-190
+```
+
+这里用移位 12 取出 L1 索引，把目标 LAPIC 物理页地址连同 `PRESENT | WRITABLE | PWT | PCD` 写入末级表项。此后 CPU 访问 `virtual_base` 时，就能沿四级页表翻译到 `physical_base`。最后对 `virtual_base` 执行 `invlpg`，使这个地址可能存在的旧 TLB 项失效。函数返回的不是物理地址，而是之后 `lapic.read/write` 要使用的虚拟基址。
 
 **LAPIC 基址不是写死的常数**（`impl/kernel/src/lapic.rs:131-143`）。它来自 MSR `IA32_APIC_BASE`（编号 `0x1B`）：低 32 位是 LAPIC 寄存器的物理基址，bit 11 是 x2APIC 模式开关。MSR 既不在内存里也不在 I/O 端口空间，只能用 `rdmsr` / `wrmsr` 读写。
 
