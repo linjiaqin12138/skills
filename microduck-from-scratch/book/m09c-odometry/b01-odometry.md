@@ -1,35 +1,29 @@
 ---
 template: sheet
 title: M9c Bite 2：相对 odometry（第 26 章）
-subtitle: 双足 FK 加 ALPHA16 鞋底锚点：机器人自己估出走多远、转到哪
+subtitle: 双足几何估相对位移：机器人自己估出走多远、转到哪
 source: clone-from-scratch-tutor · 第 26 章
 ---
 
 ## 问题
 
-仿真里能查 MuJoCo 的 `body_pos`，真机上没有任何测量。给一条向前走 10 秒的命令，策略是开环的：可能走成弧线，也可能偏出几十厘米。走完之后，除了看有没有摔倒，没有人能说偏了多少。
+仿真里能查 MuJoCo 的 `body_pos`，真机上没有这份测量。给一条向前走 10 秒的命令，策略是开环的：可能走成弧线，也可能偏出几十厘米。走完之后，除了看有没有摔倒，说不出偏了多少。
 
-本课交付一个纯软件的相对里程计：每拍用双足几何估出「相对起点走了多远、转了多少度」。估计只进内部诊断；线上 `robot.state` 仍不含 odom（D50，M10）。通用 kinematics crate 也不在本课（D55，M10）。
+本课加上一个纯软件的相对里程计：每拍用双足几何估「相对起点走了多远、转了多少度」。估计只进内部诊断；线上 `robot.state` 仍不含 odom（D50，M10）。通用 kinematics crate 也不在本课（D55，M10）。
 
 ## 背景
 
-**FK** 是 Forward Kinematics，正向运动学：已知各关节角，算出脚（或某个 site）在空间里的位置与朝向。本课每拍用 FK 从关节角推出两只脚，再估躯干走了多远。
+**FK（正向运动学）。** 本课约定：已知关节角，就能推出脚（site）在空间里的位置与朝向；估计器每拍用它得到两只脚。本课不用 IK。推导与几何细节想深入时再读 [鸭子走到哪了？](odometry-blog-zh.html)（[英文原文](https://pollen-robotics.com/microduck/blog/microduck-odometry/)）。
 
-反过来：已知脚要到哪、求关节角，叫 IK（Inverse Kinematics）。本课估计器不用 IK。
+**水平位置靠腿，不靠积加速度。** 本课只向 IMU 要姿态（四元数）；XY 来自鞋底锚点反推。姿态怎么存、怎么读 yaw，见 [四元数](../concepts/quaternion.html)。
 
-**位置不靠积 IMU。** 加速度积成速度再积成位置，小偏差按 $t^2$ 长；hobby 级 IMU 偏置约 $0.05\,\mathrm{m/s}^2$ 时，十秒就能偏出数米。本课只向 IMU 要姿态（四元数）；水平位置来自腿。
-
-**心智模型：鞋底上总有一点钉在地上。** 把该点叫锚点 $a$（落地瞬间冻结世界 XY，$z=0$）。关节角经 FK 给出躯干系下「躯干 → 接触点」向量 $c$；IMU 给出旋转 $R$。躯干位置是从锚点沿腿往回走：
-
-$$p = a - R\,c$$
-
-站着不动时关节不变，$c$ 不变，估计不漂。锚点只在另一鞋底点更低（迈步 / 脚掌滚动）时换。上游同款叙事与侧视动画见中译 [鸭子走到哪了？双足 + IMU 的里程计](odometry-blog-zh.html)（[英文原文](https://pollen-robotics.com/microduck/blog/microduck-odometry/)）。
+**鞋底上总有一点先当「钉在地上」。** 那一点叫锚点。本课先接受：锚点世界位置、腿几何、IMU 姿态合在一起，可以估出躯干走了多远；换脚时换锚。公式与动画在上面的博客里，课文里不当入场券。
 
 ## 设计
 
 ![M9c 当前架构：miniduckd 内新增 impl/src/odometry.rs，无新进程、RPC、网络边与依赖](arch.svg)
 
-每拍做同一件事：
+每拍同一条路径：
 
 ```flow TB
 [新样本] -> [两脚 site 位姿]
@@ -46,102 +40,84 @@ $$p = a - R\,c$$
 换锚并重投影 -> [输出 position 与 yaw]
 ```
 
-六个要点：
+要点：
 
-- **局部两足 FK（正向运动学）**：只实现估计要用的两条腿链。
-- **ALPHA16 鞋底网格**：每脚 16 个点，共 32 点投到世界系。
-- **竞标门限**：世界 z 低于 10mm 的最低点才有资格。
-- **两拍确认**：同一脚连续两拍才换锚。
-- **冻结首次候选**：pending 记住候选首次出现时的局部点与世界 XY。
-- **没有 reset**：原点由首次更新的左脚 site 定死。
+- 只实现估计要用的两条腿链（局部两足 FK），不拉通用 kinematics。
+- 每脚 16 个鞋底点（ALPHA16），共 32 点投到世界系；世界 z 低于 10mm 的最低点才有资格。
+- 同一脚连续两拍才换锚；pending 记住候选**首次出现**时的局部点与世界 XY。
+- 没有 reset：原点由首次更新的左脚 site 定死。
+- 估计跨相位存活：滑行拍、盲拍、disable、scheduler reset、跌倒恢复都不清零。
+- yaw 直接从归一化 IMU 四元数读出；估计进 `FrameSnapshot`，RPC 载荷不变。
 
-估计跨相位存活：滑行拍、盲拍、disable、scheduler reset、跌倒恢复都不清零。yaw 直接从归一化 IMU 四元数读出，不积分陀螺。估计进 `FrameSnapshot` 供集成测试读，RPC 载荷不变。
+聚焦模块见 [odometry 子图](../arch/odometry.svg)。[本课架构差分](figures/arch-diff.svg)。
 
-聚焦模块见 [odometry 子图](../arch/odometry.svg)。也可查看[本课架构差分](figures/arch-diff.svg)。
-
-## 架构决定
-
-完整取舍见[决定 0007](../../decisions/0007-m9c-odometry.md)。
-
-**局部两足 FK（正向运动学），不拉通用 kinematics。** 选了只覆盖两个 foot site 的局部实现。依赖上游 `odometry` / `kinematics` 能复用已交叉验证的 FK，但本课就要处理 MJCF 解析与站点映射，等于提前兑现 D55。局部实现的代价是 D55 落地时要替换它，而不是长期维护两套几何。
-
-**没有 reset，原点由首帧定死。** 首帧用左脚 site 建立相对原点，之后任何事件都不改。跌倒后重选原点，会让「从哪出发」在一次摔倒后失去意义。
-
-**估计放内部诊断，线上字段留给 M10。** 集成测试读 `FrameSnapshot`；`robot.state` 保持原样，D50 仍挂 M10。
-
-| 方案 | 放弃它会丢掉什么 | 结论 |
-|---|---|---|
-| 局部两足 FK + ALPHA16 | — | 采用 |
-| 依赖上游 kinematics / odometry | 已验证的通用 FK | 不采用 |
-| 等 M10 完整 kinematics 再移植 | 无临时抽象 | 不采用：M9c 会继续没有里程计 |
-
-没有新增进程、RPC 方法、网络边或依赖。
+完整取舍见[决定 0007](../../decisions/0007-m9c-odometry.md)。三句结论：局部两足 FK，不依赖上游 crate（D55 落地时再替换）；原点首帧定死、跌倒也不重选；线上 `robot.state` 不加 odom，留给 M10。没有新增进程、RPC 方法、网络边或依赖。
 
 ## 代码领读
 
-### 三件事对应到字段
+`src=` 只能抽连续行段，中间跳行要用手写 sketch（title 带 `sketch`）写 `// ...`。下面示意对齐真码；行号指向 `impl/`。
 
-| 符号 | 含义 | 代码 |
-|---|---|---|
-| $c$ | 躯干系下躯干 → 接触点 | `feet[anchor].point(anchor_local)` |
-| $R$ | IMU 姿态 | `Quat::from_wxyz(quat_wxyz)` |
-| $a$ | 锚点世界 XY | `anchor_xy` |
+### 从控制循环往下看
 
-每拍 `update`：两脚 FK → `reproject`（算 $p=a-Rc$）→ 扫 ALPHA16 找更低点 → `update_pending`（两拍确认才换锚）→ yaw 读 IMU。
+估计器循环外创建一次；每拍只有新鲜且 IMU 就绪才 `update`（`control.rs:448-451`、`48-52`、调用在 `:525`）：
 
-```rust src=impl/src/odometry.rs lines=315-328
+```rust title="control.rs · sketch"
+// ... 相位 / coast / 读传感器 ...
+let mut odometry = Odometry::alpha(); // 循环外一次；跌倒 / reset 不重建
+// ...
+update_odometry(&mut odometry, &sensors, was_fresh, safety.imu_ready());
+// ...
+// FrameSnapshot { ..., odometry: odometry.snapshot() }  // 内部诊断，不进 RPC
+
+fn update_odometry(..., was_fresh: bool, imu_ready: bool) {
+    if was_fresh && imu_ready {
+        odometry.update(&sensors.positions, sensors.imu.quat);
+    }
+}
 ```
 
-### 鞋底最低点是接触代理
+### 一拍 `update`：设计顺序
 
-双足站姿里，可靠贴地的是鞋底。估计器不找接触力，找世界 z 最低的鞋底点。地面是平的，贴地点高度近似为 0；低于 10mm 就说明这一拍有脚落地。
+两脚 FK → 定原点（仅首帧）→ 投影 → 找更低鞋底点 → 两拍确认换锚 → 读 yaw。FK 与 ALPHA16 扫描内部用 `// ...` 跳过（`odometry.rs:315-328`）：
 
-```rust src=impl/src/odometry.rs lines=372-395
+```rust title="odometry.rs · update · sketch"
+pub fn update(&mut self, joints: &[f64; NUM_JOINTS], quat_wxyz: [f64; 4]) {
+    let rotation = Quat::from_wxyz(quat_wxyz).normalized();
+    let feet = [foot_pose(joints, LEFT), foot_pose(joints, RIGHT)]; // FK：细节见博客
+    // ... 首帧用左脚 site 钉相对原点 ...
+    self.reproject(rotation, &feet);
+    let candidate = self.lowest_candidate(rotation, &feet); // 扫 32 点，z<10mm ...
+    self.update_pending(candidate, rotation, &feet);
+    self.yaw = rotation.yaw(); // 读 IMU，不积陀螺
+}
 ```
 
-`lowest_z` 初值就是 10mm。没有任何点低于它，这一拍就没有候选。
+### 换锚与投影
 
-ALPHA16 是每脚 $4\times4$ 网格。站立脚会从脚跟滚到脚尖，接触点在同一只鞋底上也会挪；不采样就会把滚动当成躯干漂移。
+同一脚连续两拍才换；确认用 pending **首次**冻结的 `world_xy`（`odometry.rs:347-356`）。投影对应 $p = a - R\,c$（证明见博客，`362-369`）：
 
-### 一拍不能抢锚，pending 冻结首次候选
+```rust title="odometry.rs · pending / reproject · sketch"
+// update_pending：
+// ... 同脚加 ticks / 换脚重开 / 无候选则清空 ...
+if pending.ticks >= SWITCH_CONFIRM_TICKS {
+    let confirmed = self.pending.take().unwrap();
+    self.anchor_foot = confirmed.foot;
+    self.anchor_local = confirmed.local;
+    self.anchor_xy = confirmed.world_xy; // 冻结的首次 XY，不是确认当拍
+    // ...
+    self.reproject(rotation, feet);
+}
 
-换锚要连续两拍同一脚：FK 与 IMU 都带噪声，单拍最低点可能只是抖动。两拍约 40 ms（50 Hz），短于一步站立相、长于单帧毛刺。
-
-pending 存的是候选**首次出现时**的局部点与世界 XY。确认时沿用这一份，换锚那一拍的躯干位置才和上一拍连续。
-
-```rust src=impl/src/odometry.rs lines=331-360
+fn reproject(&mut self, rotation: Quat, feet: &[Pose; 2]) {
+    let contact_in_trunk = feet[self.anchor_foot].point(self.anchor_local); // c
+    let contact = rotation.rotate(contact_in_trunk); // R c
+    self.position = [
+        self.anchor_xy[0] - contact[0], // a - R c
+        self.anchor_xy[1] - contact[1],
+        -contact[2],
+    ];
+}
 ```
-
-同一脚才累加计数。换成另一只脚，计数从 1 重开。没有任何候选时，pending 直接清空。
-
-### 投影：躯干位置由锚点反推
-
-锚点钉在成为锚点那一刻的世界 XY。代码就是 $p = a - R\,c$：
-
-```rust src=impl/src/odometry.rs lines=362-370
-```
-
-锚点不动时，脚在动，位置跟着动，因此永远连续。
-
-### 一拍的数据要新
-
-估计器只吃新鲜且 IMU 收敛的样本。滑行拍沿用旧样本，盲拍没有样本，两者都不推进估计。门控在控制循环里，不在估计器里。
-
-```rust src=impl/src/control.rs lines=494-525
-```
-
-### 估计不随跌倒或 disable 清零
-
-估计器在循环外创建一次。相位切换、scheduler reset、跌倒恢复都不重建它。
-
-```rust src=impl/src/control.rs lines=440-452
-```
-
-跌倒恢复只清 scheduler 与策略记忆。估计器和锚点原封不动。
-
-### yaw 是读出来的，不是积出来的
-
-yaw 直接取归一化 IMU 四元数。IMU 已经把陀螺融进这个四元数，再积一次会二次积分并累积漂移。
 
 ## 验收
 

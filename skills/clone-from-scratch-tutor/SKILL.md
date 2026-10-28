@@ -127,4 +127,4 @@ compatibility: 需要 git、Node 20+、可探测到的 answer-me-with-html 渲�
 
 ## 主 agent 的话
 
-中文，直接。呈现次序按用户级偏好里的「认知负荷」一节。
+中文，直接。呈现次序按用户级偏好里的「认知负荷」一节。课文与 writer 输出自顶向下：背景只给白话约定并链概念页；代码领读跟设计落到入口与关键几行，细节多省略；少 AI 味硬译与空套话。细节见 [agents/writer.md](agents/writer.md)。

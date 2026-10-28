@@ -9,7 +9,7 @@
 - 源文件：`book/arch/src/upstream.*`
 - 图：`book/arch/upstream.svg`
 
-每个模块配四行字：职责、输入、输出、接口契约。`impl/` 还没有架构，这一阶段不写 `book/arch/current.svg`。
+每个模块配四行字：职责、输入、输出、接口约定。`impl/` 还没有架构，这一阶段不写 `book/arch/current.svg`。
 
 ## 原作者的关键决定
 
