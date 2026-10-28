@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鸭子走到哪了？双足 + IMU 的里程计（中译）</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+<style>
+  :root {
+    --bg: #f6f6f3;
+    --paper: #fff;
+    --ink: #16181d;
+    --muted: #4b5260;
+    --line: #d6dae1;
+    --accent: #1d5fbf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #081322;
+      --paper: #0d1c31;
+      --ink: #e6edf7;
+      --muted: #a9b8cc;
+      --line: #23385a;
+      --accent: #6ea8ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+  }
+  .wrap {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 24px 20px 64px;
+  }
+  .nav {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .nav a { color: var(--accent); }
+  header h1 {
+    font-size: clamp(1.6rem, 4vw, 2.1rem);
+    line-height: 1.25;
+    margin: 0 0 12px;
+  }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .cover {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    display: block;
+    margin: 0 0 24px;
+  }
+  article p { margin: 0 0 1em; }
+  article h2 {
+    font-size: 1.35rem;
+    margin: 2em 0 0.75em;
+    padding-top: 0.4em;
+    border-top: 1px solid var(--line);
+  }
+  article h3 {
+    font-size: 1.1rem;
+    margin: 1.5em 0 0.6em;
+  }
+  .eq, .media {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1em 0 0.4em;
+  }
+  .eq { background: #fff; padding: 8px 10px; border-radius: 4px; }
+  @media (prefers-color-scheme: dark) {
+    .eq { background: #f4f6fa; }
+  }
+  figure {
+    margin: 1.25em 0;
+    padding: 0;
+  }
+  figcaption {
+    font-size: 0.92rem;
+    color: var(--muted);
+    margin-top: 0.45em;
+  }
+  video {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    background: #000;
+    border-radius: 4px;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    margin: 1em 0 1.25em;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    text-align: left;
+  }
+  th { background: color-mix(in srgb, var(--paper) 80%, var(--line)); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  .note {
+    border: 1px solid var(--line);
+    background: var(--paper);
+    padding: 12px 14px;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    margin: 1.5em 0;
+  }
+  footer {
+    margin-top: 3em;
+    padding-top: 1em;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="nav">
+    <a href="b01-odometry.html">← 返回 M9c Bite：相对 odometry</a>
+    ·
+    <a href="https://pollen-robotics.com/microduck/blog/microduck-odometry/">英文原文</a>
+  </nav>
+
+  <header>
+    <img class="cover"
+      src="https://pollen-robotics.com/assets/blog/cover-microduck-odometry.webp"
+      alt="Microduck odometry 封面">
+    <h1>鸭子走到哪了？双足 + IMU 的里程计</h1>
+    <p class="meta">Antoine Pirrone · 2026-10-23 · 约 13 分钟阅读 · 中文译本</p>
+  </header>
+
+  <article>
+    <div class="note">
+      本文译自 Pollen Robotics 博客
+      <a href="https://pollen-robotics.com/microduck/blog/microduck-odometry/">Where did the duck go? Odometry from two feet and an IMU</a>。
+      公式图、视频仍指向原文 CDN；内联公式用 KaTeX 渲染。
+      本仓库对应实现见 <a href="b01-odometry.html">M9c 课文</a> 与
+      <code>impl/src/odometry.rs</code>。
+    </div>
+
+    <p>
+      Microduck 在办公室里走的时候，监控工具会画出一条它「自认走过」的细轨迹。
+      机器人没有轮子可数转数，没有外置相机，IMU 对朝向很拿手、对位置却几乎没用。
+      这条轨迹来自大约 200 行 Rust：控制环 50&nbsp;Hz 每一拍跑一次；它们只依赖一个观察：
+      <strong>任意时刻，两只鞋底里总有某一点贴着地面</strong>。
+    </p>
+    <p>
+      这篇讲的就是那段代码：想法从哪来、那一行数学是什么、估计器何时判定迈了一步，
+      以及走出几米之后估计离真值有多远。
+    </p>
+
+    <figure>
+      <video autoplay loop muted playsinline preload="metadata"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/walk-overview.mp4"></video>
+      <figcaption>
+        MuJoCo 孪生里走了 25 秒，驱动是真实步行策略。黑线是躯干真实轨迹，橙线是里程计相信的轨迹。
+      </figcaption>
+    </figure>
+
+    <h2 id="why-not-imu">为什么不直接积分 IMU？</h2>
+    <p>
+      人们第一个想到的往往是 IMU：有加速度计，加速度积成速度，速度积成位置。
+      麻烦在于沿途一个很小的常值误差会发生什么。重力减得稍偏，或带着一点偏置，
+      位置误差就会按时间的平方涨：
+    </p>
+    <p>
+      <img class="eq"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/eq-imu.svg"
+        alt="Double-integrating a 0.05 m/s² accelerometer bias gives a 2.5 m position error after 10 seconds"
+        width="668" height="27">
+    </p>
+    <p>
+      这里 $p$ 是机器人位置，所以 $\ddot p$ 是世界系加速度。加速度计在自身坐标系测到
+      $a_{\mathrm{meas}}$；$R$ 用 IMU 估计的姿态把它转到世界系；$g$ 是重力——加速度计一直能感到它，必须减掉。
+      其中任意一项的小误差 $\delta a$（传感器偏置，或 $R$ 略偏导致重力漏进水平方向），
+      都会变成按 $t^2$ 增长的位置误差 $\delta p$。
+    </p>
+    <p>
+      $0.05\,\mathrm{m/s}^2$ 的偏置，对 hobby 级 IMU 算好日子。十秒后估计会偏 $2.5\,\mathrm{m}$；
+      而机器人以 $0.15\,\mathrm{m/s}$ 走，实际只走过 $1.5\,\mathrm{m}$。
+      所以我们完全不向 IMU 要位置。朝向它做得好：重力钉住 roll / pitch，陀螺能把 yaw 撑上几分钟——
+      我们只要这些。位置来自腿。
+    </p>
+
+    <h2 id="the-idea">想法：总有一点钉在地上</h2>
+    <p>
+      行走的机器人至少有一只脚在地面上。在那只鞋底上挑一点，叫它<strong>锚点</strong>。
+      它在地上，高度已知，$z=0$；它的 $x$、$y$ 就是落地那一刻所在的位置。
+      从那里起，腿的关节角经正向运动学（FK）告诉你躯干相对锚点在哪，
+      IMU 告诉你躯干往哪边倾。这就是整个估计器。没有任何量在时间上累加；
+      只有当鞋底上另一点比当前锚点更低时，锚点才会移动——从机器人视角看，那就是迈步。
+    </p>
+
+    <figure>
+      <video autoplay loop muted playsinline preload="metadata"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/anchor-walk.mp4"></video>
+      <figcaption>
+        侧视。青色点是锚点，粉箭头是关节角从锚点「看见」的躯干方向，橙线是由此得到的躯干轨迹。
+        每有一只脚落地，锚点就跳过去。
+      </figcaption>
+    </figure>
+
+    <p>
+      这不是我们发明的。Rhoban 的人形机器人在 <code>model_service</code> 里用这类接触里程计已有多年；
+      我们的 <code>odometry</code> crate 是它的移植。腿几何从训练步行策略时同一份 MJCF 读出，
+      估计器与仿真器不可能对小腿长度各执一词。
+    </p>
+
+    <h2 id="the-math">数学就一行</h2>
+    <p>进去的量有三个。</p>
+    <p>
+      第一个是 $c$：躯干「看见」的、从躯干指向接触点的箭头。
+      在躯干上放一个小坐标系：$x$ 朝前、$y$ 朝左、$z$ 朝上，跟着身体平移和倾斜。
+      脚触地在这个系里的位置，只取决于腿的关节角 $q$（髋到踝五个电机角）和腿的尺寸。
+      算它的就是正向运动学 FK：
+    </p>
+    <p>
+      <img class="eq"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/eq-fk.svg"
+        alt="c = FK(q): the contact point in the trunk frame"
+        width="501" height="22">
+    </p>
+    <p>
+      第二个是 $R$：躯干在世界里的朝向。直接来自 IMU 四元数：板上已把加速度计和陀螺融合好。
+      它是一个旋转：作用在躯干系里的箭头上，得到房间坐标系里的同一箭头。
+      所以 $R\,c$ 就是「躯干 → 脚」在房间坐标里的箭头。
+    </p>
+    <p>
+      第三个是 $a$，锚点：接触点在房间里的位置。因为它在地面上，$z=0$；
+      $x$、$y$ 在该点触地时冻结（下一节讲怎么选）。
+    </p>
+    <p>
+      躯干位置 $p$ 就是沿箭头往回走一步：从锚点出发，沿腿走到躯干：
+    </p>
+    <p>
+      <img class="eq"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/eq-reproject.svg"
+        alt="p = a − R c, with a = (a_x, a_y, 0)"
+        width="263" height="79">
+    </p>
+
+    <figure>
+      <video controls playsinline preload="metadata"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/reproject.mp4"></video>
+      <figcaption>
+        逐步演示，可在任意一步暂停。锚点 $a$ 钉在地面上。$c$ 沿躯干自身轴测量，整机倾斜时它不变；
+        同一箭头在房间里的 $R\,c$ 会变。弯腿改 $c$，倾身改 $R$，无论哪种，从 $a$ 沿 $R\,c$ 往回走得到的 $p$ 都会跟着动。
+      </figcaption>
+    </figure>
+
+    <p>
+      两样东西白送：$p$ 里已经包含躯干离地高度；没有任何量随时间累加，
+      所以站着不动的机器人会精确停在原地——不动就不漂。
+    </p>
+    <p>
+      航向是我们唯一从陀螺侧取的量：IMU 姿态的 yaw。没有磁力计，
+      「前方」就是开机时机器人朝的方向。所有消费这份里程计的东西——从
+      <code>robotctl monitor</code> 里的轨迹到建图栈——都只把它当相对运动。
+    </p>
+
+    <h2 id="when-anchor-moves">锚点何时移动？</h2>
+    <p>
+      需要仔细处理的是：哪只鞋底的哪一点才是接触。鞋底不是平板：
+      正在测的 alpha 版 Microduck 有斜切边和略弯的底面，行走时脚从脚跟滚到脚尖，
+      真实接触在一步站立相内会在整个脚印上游走。我们在每只脚的鞋底网格上采 16 个点
+      （覆盖含斜切的完整脚印的 $4\times4$），每一拍用当前估计和同一套 FK，
+      算出全部 32 个点在世界系的位置：
+    </p>
+    <p>
+      <img class="eq"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/eq-corner.svg"
+        alt="w_i = p + R FK(q) k_i, for the 16 sampled points k_i of each sole"
+        width="438" height="22">
+    </p>
+    <p>
+      $k_i$ 是钉在鞋底上的采样点；这里的 $\mathrm{FK}(q)$ 摆的是整只脚而不只一个点，
+      所以 $\mathrm{FK}(q)\,k_i$ 是该点在躯干系的位置。经 $R$ 旋转再加躯干位置 $p$，
+      得到房间里的 $w_i$，而 $w_{i,z}$ 就是它相对地面的高度。
+    </p>
+    <p>
+      锚点按构造在 $z=0$。若另有一点算出低于 0，说明机器人把鞋底某处放到了
+      我们原先叫做「地面」的下方——那一点才是真正的接触。它成为新锚点，
+      并保留它已有的世界 $x$、$y$：
+    </p>
+    <p>
+      <img class="eq"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/eq-switch.svg"
+        alt="if the lowest sole point is below zero for two ticks, the anchor moves to its world x, y"
+        width="415" height="79">
+    </p>
+    <p>
+      保留旧的 $x$、$y$ 才能让估计连续。新锚点就钉在上一拍估计说该点所在的位置，
+      换锚时躯干不会跳。上一站立相里犯下的误差——脚滑了一点、采样点不完全等于真实触点——
+      会被冻进新锚点：既不纠正，也不放大。
+    </p>
+
+    <figure>
+      <video controls playsinline preload="metadata">
+        <source src="https://pollen-robotics.com/assets/blog/microduck-odometry/anchor-rule.webm" type="video/webm">
+        <source src="https://pollen-robotics.com/assets/blog/microduck-odometry/anchor-rule.mp4" type="video/mp4">
+      </video>
+      <figcaption>
+        规则，一拍一拍看；图中每只鞋底只画 5 个采样点以便看清。右侧是估计器算出的、
+        各点相对锚点平面的高度。某点连续两拍低于该平面，就成为锚点：
+        先是脚 A 从脚跟滚到脚尖，再是脚 B 落地、A 抬起。只低一拍的毛刺什么也不改。
+      </figcaption>
+    </figure>
+
+    <p>
+      「两拍」在 50&nbsp;Hz 下是 40&nbsp;ms。存在它，是因为用测得的关节角做 FK 会抖。
+      没有它，单拍毛刺把某点顶到地下半毫米，就会在站立相中途乱搬锚点，估计沾上随机游走。
+      两拍远短于一步站立相，又远长于一次毛刺。
+    </p>
+
+    <figure>
+      <video autoplay loop muted playsinline preload="metadata"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/feet-closeup.mp4"></video>
+      <figcaption>
+        四分之一速、半透明的脚。灰点是每只鞋底 16 个采样点；某点掉到地面下竞标锚点时变粉。
+        大一点的青色球是锚点。脚滚动时它从脚跟走到脚尖，另一只脚落地时跳过去。
+      </figcaption>
+    </figure>
+
+    <p>
+      上面那段 25&nbsp;s 里锚点动了 633 次，其中只有 122 次是换脚；其余是同一只鞋底上滚动时在点之间跳。
+      若只用四角平板模型，就得假装脚在晃时接触点不动——假装出的每一毫米，都会直接进躯干估计。
+    </p>
+
+    <h2 id="cost-and-error">代价多大，偏多少</h2>
+    <p>
+      估计器跑在控制环里，吃的是策略刚刚读到的关节角和 IMU 四元数，不增加总线流量。
+      每拍算两条运动学链（每脚一条），每条推 16 个点，大约一微秒。
+    </p>
+    <p>
+      到底偏多少？我们在真鸭上量过：客厅里用手操行走，真值来自贴在地上的八个 ArUco、
+      角落固定的 4K 相机，以及鸭头上的小标——相机定位大约到厘米。鸭子看不见这套装置；
+      它是为建图工作搭的，录像公开在
+      <a href="https://huggingface.co/datasets/pollen-robotics/SLAM_JJ_Salon_with_GT">🤗 SLAM_JJ_Salon_with_GT</a> 数据集。
+    </p>
+
+    <figure>
+      <video autoplay loop muted playsinline preload="metadata"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/real-walk.mp4"></video>
+      <figcaption>
+        最长一段，约 3× 加速：一分钟走 5.4&nbsp;m，原地转弯很多。绿是相机说的躯干轨迹，蓝是里程计，
+        都在起点对齐。终点偏了 6.5&nbsp;cm。
+      </figcaption>
+    </figure>
+
+    <p>
+      两段录像合计大约九分钟行走，被抱起、坐下或跌倒切开成二十段——这些跳变是里程计看不见的。
+      每段开头把里程计对齐到真值，再跟到段尾。
+    </p>
+
+    <figure>
+      <img class="media"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/real-error.svg"
+        alt="Left: the true path and the odometry path over a 5.4 m stretch, seen from above, ending 6 cm apart. Right: position error against distance walked for all twenty stretches, staying under 12 cm."
+        loading="lazy">
+      <figcaption>
+        真机行走对相机。右侧每条线是一段；高亮的是左侧那段。每条曲线开头几厘米是真值本身的精度，不是里程计的。
+      </figcaption>
+    </figure>
+
+    <table>
+      <thead>
+        <tr>
+          <th>共 20 段，合计 47.5&nbsp;m</th>
+          <th>中位数</th>
+          <th>最差</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>段末位置误差</td>
+          <td>5.7&nbsp;cm</td>
+          <td>11.8&nbsp;cm</td>
+        </tr>
+        <tr>
+          <td>相对走过距离</td>
+          <td>2.9&nbsp;%</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>段末航向误差</td>
+          <td>1.8°</td>
+          <td>4.5°</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      全部行走合起来，误差约为距离的 2.4%；最长一段一分钟 5.4&nbsp;m，终点偏 6.5&nbsp;cm（1.2%）。
+      大约是仿真预测的两倍——符合预期：真脚比仿真更滑，而且这些是手操行走、原地转很多，
+      那正是最吃代价的动作。
+    </p>
+    <p>
+      仿真里能看见误差何时产生：同一套代码对着位置已知的身体跑。
+    </p>
+
+    <figure>
+      <img class="media"
+        src="https://pollen-robotics.com/assets/blog/microduck-odometry/error-chart.svg"
+        alt="Left: top-down paths of the true trunk and the odometry estimate over a 3.5 m simulated walk with a curve and a sharp turn. Right: position error against distance walked, with the turning phases shaded."
+        loading="lazy">
+      <figcaption>
+        开头视频那段仿真。走了 3.5&nbsp;m 后估计距真值 3.8&nbsp;cm（1.1%），其中大约三分之一发生在 3&nbsp;s 急转弯里。
+      </figcaption>
+    </figure>
+
+    <p>
+      误差大多来自估计器唯一的假设：接触点不移动。急转弯时支撑脚在地上搓，
+      滑一毫米，躯干估计就少走一毫米。直线段误差爬得慢得多，来自采样点不完全等于真实触点——
+      每步几毫米、方向随航向变，长走会部分抵消，短走则不会。
+    </p>
+    <p>
+      另一来源是航向。仿真 IMU 的 yaw 完美，所以图上轨迹没有整体旋转。
+      真鸭上，段末航向中位偏 1.8°（最长约一分钟、好几圈），最差 4.5°。
+      再小的航向误差也会旋转之后的每一步：2° 相当于之后每走一米横偏 3.5&nbsp;cm，
+      在较长段落里，这占了相机测到的误差的很大一块。
+    </p>
+
+    <h3>这份里程计不是什么</h3>
+    <p>
+      它不是房间里的绝对位置。它告诉你机器人自开机以来怎么动过，走得越久会越偏。
+      任何需要知道鸭子<strong>在哪</strong>、而不只是<strong>走了多远</strong>的东西，都得另看世界。
+      在 Microduck 上，那是深度传感与建图栈。它们不会丢掉里程计；
+      认出鸭子在哪时就会修正它。那是另一篇文章。
+    </p>
+  </article>
+
+  <footer>
+    <p>
+      中译供本仓库 M9c 课文阅读；媒体版权归原作者 / Pollen Robotics。
+      返回 <a href="b01-odometry.html">M9c Bite：相对 odometry</a>
+      · 阅读
+      <a href="https://pollen-robotics.com/microduck/blog/microduck-odometry/">英文原文</a>。
+    </p>
+  </footer>
+</div>
+</body>
+</html>
