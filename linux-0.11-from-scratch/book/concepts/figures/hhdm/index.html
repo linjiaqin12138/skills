@@ -60,10 +60,25 @@ select{font-size:13px;border:1px solid var(--line);background:var(--paper);color
 .seg.ram{background:var(--ok-bg);color:var(--ok)}
 .seg.hole{background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--fill) 5px,var(--fill) 10px);color:var(--ink3)}
 .seg.dev{background:var(--dev-bg);color:var(--dev);min-width:7px}
+.seg.kimg{background:transparent;border:2px dashed var(--warn);color:var(--warn);font-weight:600}
+.seg.kimg span{background:var(--paper);padding:0 4px;border-radius:4px}
 .seg.hit{outline:2px solid var(--accent);outline-offset:-2px}
 .marker{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);transition:left .12s linear}
 .marker::after{content:"";position:absolute;top:-1px;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;
   border-top:7px solid var(--accent)}
+.pin{position:absolute;top:2px;left:0;transform:translateX(-50%);background:var(--accent);color:#fff;
+  font-family:var(--font-mono);font-size:10px;padding:1px 5px;border-radius:4px;white-space:nowrap;z-index:2}
+.pin.pin-left{transform:translateX(4px)}
+.pin.pin-right{transform:translateX(calc(-100% - 4px))}
+html[data-mode="dark"] .pin{color:#0d1117}
+.mem.zoom{height:70px}
+.ticks{position:relative;height:34px;margin-top:2px}
+.tick{position:absolute;transform:translateX(-50%);font-family:var(--font-mono);font-size:9.5px;color:var(--ink3);white-space:nowrap}
+.tick::before{content:"";position:absolute;left:50%;top:-8px;width:1px;height:6px;background:var(--line2);opacity:.6}
+.tick.row1{top:13px}
+.tick.row1::before{top:-21px;height:19px}
+.tick.k::before{background:var(--warn)}
+.tick.k{color:var(--warn)}
 .memlabel{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10.5px;color:var(--ink3);margin-bottom:14px}
 
 .row2{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
@@ -150,8 +165,13 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
         <div class="seg ram" id="seg-ram" style="left:0;width:50%">RAM（示例到 0x8000_0000）</div>
         <div class="seg hole" id="seg-hole" style="left:50%;width:49.609%">空洞 / 设备区</div>
         <div class="seg dev" id="seg-dev" style="left:99.609%;width:0.391%"></div>
-        <div class="marker" id="mark-phys" style="left:0"></div>
+        <div class="marker" id="mark-phys" style="left:0"><span class="pin" id="pin-phys">—</span></div>
       </div>
+      <div class="memlabel" style="margin-bottom:4px"><span>放大：选中地址附近 ±512 KiB</span><span id="zoom-phys">—</span></div>
+      <div class="mem zoom" id="zoombar-phys">
+        <div class="marker" id="zmark-phys" style="left:50%"><span class="pin" id="zpin-phys">—</span></div>
+      </div>
+      <div class="ticks" id="ticks-phys"></div>
       <div class="memlabel" style="margin-bottom:6px"><span>↑ 同一个物理页，两个地址</span><span></span></div>
     </div>
 
@@ -165,9 +185,14 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
       <div class="mem" id="mem-virt">
         <div class="seg ram" id="vseg-ram" style="left:0;width:50%">RAM 的直接映射</div>
         <div class="seg hole" id="vseg-hole" style="left:50%;width:49.609%">空洞：没有映射</div>
-        <div class="seg dev" id="vseg-dev" style="left:99.609%;width:0.39%"></div>
-        <div class="marker" id="mark-virt" style="left:0"></div>
+        <div class="seg dev" id="vseg-dev" style="left:99.609%;width:0.391%"></div>
+        <div class="marker" id="mark-virt" style="left:0"><span class="pin" id="pin-virt">—</span></div>
       </div>
+      <div class="memlabel" style="margin-bottom:4px"><span>放大：同一段，两个视角</span><span id="zoom-virt">—</span></div>
+      <div class="mem zoom" id="zoombar-virt">
+        <div class="marker" id="zmark-virt" style="left:50%"><span class="pin" id="zpin-virt">—</span></div>
+      </div>
+      <div class="ticks" id="ticks-virt"></div>
       <div class="memlabel" style="margin-bottom:6px"><span>同一段内容，两个视角</span><span></span></div>
     </div>
   </div>
@@ -183,10 +208,14 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
   </div>
   <div class="chips">
     <button data-a="0x0">0x0 RAM 起点</button>
-    <button data-a="0x100000">0x100000 内核镜像</button>
+    <button data-a="0x100000">0x100000 内核镜像起点</button>
     <button data-a="0x221000">0x221000 PML4</button>
-    <button data-a="0x223000">0x223000 静态页表</button>
+    <button data-a="0x223000">0x223000 静态页表[0]</button>
     <button data-a="0xFEE00000">0xFEE00000 LAPIC（设备）</button>
+  </div>
+  <div class="tagline">
+    「0x100000 内核镜像」说的是内核镜像的<b>起始物理地址</b>（第一个字节的位置），不是它的大小。
+    镜像多长由链接脚本和 BSS 决定：示例布局里它从 0x100000 延伸到 0x226000，约 1.1 MiB——放大条里的橙色虚线框就是它的范围。
   </div>
 
   <div class="kv"><span class="k">物理地址</span><b id="out-p">—</b></div>
@@ -318,6 +347,67 @@ const addrEl = document.getElementById('addr');
 const markPhys = document.getElementById('mark-phys');
 const markVirt = document.getElementById('mark-virt');
 
+const RAM_END = 0x80000000n;      // 示例：RAM 覆盖到 2 GiB
+const DEV_START = 0xfee00000n;    // LAPIC 所在物理区
+const OVERVIEW = 0x100000000n;    // 缩略条：4 GiB
+const ZOOM = 0x80000n;            // 放大条：±512 KiB
+// 值得标出来的物理位置（示例布局）
+const KIMG = {start:0x100000n, end:0x226000n};   // 内核镜像的物理范围（示例）
+const KNOWN = [
+  {a:0x100000n, n:'内核镜像起点'},
+  {a:0x221000n, n:'PML4'},
+  {a:0x223000n, n:'静态页表[0]'},
+  {a:0x224000n, n:'静态页表[1]'},
+  {a:0x225000n, n:'静态页表[2]'}
+];
+
+// 画一条放大条：base 是这段的起始物理地址，size 是窗口长度
+function bmin(a,b){ return a < b ? a : b; }
+function bmax(a,b){ return a > b ? a : b; }
+function drawZoom(barId, ticksId, base, size, p, isVirt){
+  const bar = document.getElementById(barId);
+  const ticks = document.getElementById(ticksId);
+  const lo = base, hi = base + size;
+  const segs = [];
+  const push = (a, b, cls, label)=>{ if(b > a) segs.push({a, b, cls, label}); };
+  push(lo, bmin(hi, RAM_END), 'ram', 'RAM');
+  push(bmax(lo, RAM_END), bmin(hi, DEV_START), 'hole', '空洞');
+  push(bmax(lo, DEV_START), hi, 'dev', '设备区');
+  let html = '';
+  segs.forEach(s=>{
+    const l = Number(s.a - lo) / Number(size) * 100;
+    const w = Number(s.b - s.a) / Number(size) * 100;
+    const label = s.label && w > 12 ? '<span>'+s.label+'</span>' : '';
+    html += '<div class="seg '+s.cls+'" style="left:'+l.toFixed(3)+'%;width:'+w.toFixed(3)+'%">'+label+'</div>';
+  });
+  // 内核镜像的范围（叠在 RAM 之上）
+  if(KIMG.end > lo && KIMG.start < hi){
+    const l = Number(bmax(KIMG.start, lo) - lo) / Number(size) * 100;
+    const w = Number(bmin(KIMG.end, hi) - bmax(KIMG.start, lo)) / Number(size) * 100;
+    const label = w > 18 ? '<span>内核镜像</span>' : '';
+    html += '<div class="seg kimg" style="left:'+l.toFixed(3)+'%;width:'+w.toFixed(3)+'%">'+label+'</div>';
+  }
+  // 已知的地址刻度（含窗口右端点），按位置分行，避免文字叠在一起
+  const marks = KNOWN.filter(k=>k.a >= lo && k.a <= hi)
+    .map(k=>({k, l:Math.min(100, Number(k.a - lo) / Number(size) * 100)}))
+    .sort((a,b)=>a.l-b.l);
+  const rowLast = [-99, -99];
+  let th = '';
+  marks.forEach(m=>{
+    let row = rowLast[0] + 12 <= m.l ? 0 : (rowLast[1] + 12 <= m.l ? 1 : -1);
+    if(row < 0) return;                       // 太挤就不画
+    rowLast[row] = m.l;
+    th += '<span class="tick k row'+row+'" style="left:'+m.l.toFixed(3)+'%">'+m.k.n+'</span>';
+  });
+  // 当前地址
+  const lp = Number(p - lo) / Number(size) * 100;
+  const pinText = isVirt ? hexS(p + CFG.hhdm) : hexS(p);
+  const edge = lp < 8 ? ' pin-left' : (lp > 92 ? ' pin-right' : '');
+  html += '<div class="marker" style="left:'+lp.toFixed(3)+'%"><span class="pin'+edge+'">'+pinText+'</span></div>';
+  bar.innerHTML = html;
+  ticks.innerHTML = th;
+}
+
 function setAddr(v){
   const p = BigInt(v);
   const virt = p + CFG.hhdm;
@@ -325,11 +415,23 @@ function setAddr(v){
   document.getElementById('out-p').textContent = hex(p);
   document.getElementById('out-v').textContent = hex(virt);
   document.getElementById('out-page').textContent = (p >> 12n).toString() + '  ↔  ' + ((virt >> 12n) - (CFG.hhdm >> 12n)).toString();
-  // 条上的位置：按 4 GiB 窗口比例
+  // 缩略条上的位置：按 4 GiB 窗口比例
   const frac = Number(p) / Number(CFG.windowSize);
   const pct = Math.max(0, Math.min(100, frac * 100));
   markPhys.style.left = pct + '%';
   markVirt.style.left = pct + '%';
+  const edgeCls = pct < 8 ? ' pin-left' : (pct > 92 ? ' pin-right' : '');
+  document.getElementById('pin-phys').className = 'pin'+edgeCls;
+  document.getElementById('pin-virt').className = 'pin'+edgeCls;
+  document.getElementById('pin-phys').textContent = hexS(p);
+  document.getElementById('pin-virt').textContent = hexS(virt);
+  // 放大条：选中地址附近 ±512 KiB
+  const lo = p > ZOOM ? p - ZOOM : 0n;
+  const hi = lo + 2n * ZOOM;
+  drawZoom('zoombar-phys', 'ticks-phys', lo, 2n*ZOOM, p, false);
+  drawZoom('zoombar-virt', 'ticks-virt', lo, 2n*ZOOM, p, true);
+  document.getElementById('zoom-phys').textContent = hexS(lo) + ' → ' + hexS(hi);
+  document.getElementById('zoom-virt').textContent = hexS(lo + CFG.hhdm) + ' → ' + hexS(hi + CFG.hhdm);
   // 命中区域
   ['seg-ram','seg-hole','seg-dev'].forEach(id=>document.getElementById(id).classList.remove('hit'));
   ['vseg-ram','vseg-hole','vseg-dev'].forEach(id=>document.getElementById(id).classList.remove('hit'));
