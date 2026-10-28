@@ -3,7 +3,7 @@ name: explain-it
 description: >
   诊断并修复"用户不理解某个东西"的问题。当用户表达困惑（"听不懂""看不懂""不懂为什么""太抽象了"），
   或用户显式要求"解释某个概念/原理/机制"时使用。流程：先诊断卡壳类型，再按问题形态选型
-  （文字 / 静图 / 交互页 / 分步演示 / 循环动画 / 讲解视频），调用对应 skill；vendor 里没有就当场准备。
+  （文字 / 静图 / 交互页 / 分步演示 / 视频），调用对应 skill；要视频时转 skills/make-video；其它 vendor 没有就当场准备。
   关键词：解释、听不懂、不明白、太抽象、看不懂、科普、讲人话、举个例子、什么意思、原理是什么、画个图、做个动画。
 ---
 
@@ -68,29 +68,28 @@ description: >
 | 交互 HTML 页 | `vendor/answer-me-with-html` | 多面板讲解页；只写 Markdown draft，用 `bin/am-render` |
 | 分步演示 | `vendor/courseware-builder` | 逐步高亮 + Simulate；内存/页表/握手类首选 |
 | 架构流动画 | `vendor/dashmotion` | 自包含 HTML/SVG，连接线流动、请求点 hop |
-| 循环教学动画 | `vendor/manim-teaching-figures` | 无声 loop mp4 嵌页面；有「该不该动 / 接缝」房规 |
-| 讲解视频 | `vendor/manim-video` | 有旁白的长片；用户明确要「讲课视频」才用 |
+| 循环教学动画 / 讲解视频 | **`skills/make-video`** | 视频路由器：选 manim-teaching-figures / manim-video / claude2video 等；**不要**在 explain-it 里直接点名具体 Manim 包 |
 | 落盘概念页 | `skills/concept-writer` | 「当下听懂」用 explain-it；要可链接的页再转这个 |
 
-细节与上游地址见 [references/media-catalog.md](references/media-catalog.md)。
+非视频类的上游与 prepare 见 [references/media-catalog.md](references/media-catalog.md)。视频类一律交给 `make-video`（其 [references/catalog.md](../make-video/references/catalog.md)）。
 
-**一次只用一个主 skill**（可另加几句文字衔接）。不要并行开两个动画 skill。
+**一次只用一个主 skill**（可另加几句文字衔接）。要视频时只进 `make-video` 一次，由它再选具体包。
 
 ## 第四步：vendor 里没有就当场 prepare
 
-对上表每个 `vendor/<name>`：
+对上表每个 `vendor/<name>`（**不含**已交给 `make-video` 的视频包）：
 
 1. 若已存在 `vendor/<name>/SKILL.md` → 直接 Read 并遵循。
 2. 若不存在 → 按 `references/media-catalog.md` 里该条目的 prepare 命令，把上游 skill **稀疏检出或下载到** `vendor/<name>/`，写一份 `vendor/<name>/VENDOR.md`（上游 URL、许可、收录方式、日期）。
 3. 需要被 Claude Code / Cursor 自动挂载时，再把该目录链到或复制进 `.claude/skills/<name>/`（本仓库惯例）；至少保证本回合能 `Read vendor/<name>/SKILL.md`。
-4. prepare 失败（私有仓、网络、许可不明）→ 降级到下一档媒介（例如 manim → 分步 HTML → 静图 → 文字），并告诉用户缺了什么。
+4. prepare 失败（私有仓、网络、许可不明）→ 降级到下一档媒介（例如 分步 HTML → 静图 → 文字），并告诉用户缺了什么。视频链失败时由 `make-video` 降级或退回本 skill 换媒介。
 
-**不要**全局 `npm i -g` / 往用户家目录塞 skill 作为默认手段；仓库内 `vendor/` 是唯一来源。运行时依赖（Manim、ffmpeg）按该 skill 自己的说明装；缺系统包要 sudo 时停下让用户执行。
+**不要**全局 `npm i -g` / 往用户家目录塞 skill 作为默认手段；仓库内 `vendor/` 是唯一来源。运行时依赖按目标 skill 说明装；缺系统包要 sudo 时停下让用户执行。
 
 ## 第五步：输出与验证
 
-1. 先说诊断 + 选型（一句）：「卡在 A；用分步演示（courseware-builder）。」
-2. prepare（如需）→ Read 目标 SKILL → 按它的流程产出。
+1. 先说诊断 + 选型（一句）：「卡在 A；用分步演示（courseware-builder）。」要视频时写：「转 make-video（循环嵌页 / 旁白片）。」
+2. prepare（如需）→ Read 目标 SKILL（视频则先 Read `skills/make-video`）→ 按它的流程产出。
 3. 正文里给路径/链接；教程项目写进文档引用。
 4. 结尾留验证钩子：复述 / 探测题 / 小判断。
 5. 若是 B：列出「需要先补的知识点」，可提议逐个讲。
