@@ -761,25 +761,25 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
 <main class="am-sheet">
-<header class="am-head"><h1>M9d Bite 2：首训能站能走？（第 28 章）</h1><p class="am-sub">官方 export → headless infer；BAM 与 --no-bam</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 28 章</span></div></header>
+<header class="am-head"><h1>M9d Bite 2：首训能站能走？（第 28 章）</h1><p class="am-sub">官方 export → 本机 viewer；headless 门禁为辅</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 28 章</span></div></header>
 <div class="am-frame">
 <div class="am-ruler am-ruler--top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div><div class="am-ruler am-ruler--right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
 <div class="am-grid" style="--cols: 3">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>问题</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>第 27 章只证明「能训完」。mean_reward 涨了，不等于鸭子在 MuJoCo 里站得住、迈得出步。云机没有显示器，<code>infer_policy.py</code> 又默认开 viewer——容易卡在「权重有了，却看不了」。</p>
-<p>本课消掉的故障是：不会把 <code>model_999.pt</code> 变成可部署 ONNX，也不会在无 GUI 的机器上用与官方同一条物理路径验收站/走雏形。</p>
+<p>本课消掉的故障是：不会把 <code>model_999.pt</code> 变成可部署 ONNX，也不会把权重拷回有显示器的本机用官方 viewer 肉眼验收站/走雏形。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-B">
 <header class="am-panel-head"><span class="am-panel-id">B</span><h2>背景</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>官方 export。</strong> <code>uv run scripts/export.py &lt;TASK&gt; --checkpoint-file …</code> 是烘进 obs normalizer 的安全路径。训练目录里自动冒出的 <code>.onnx</code> 不要默认当发布物。</p>
-<p><strong>headless infer。</strong> 云机缺可用 GLFW/Mesa 时，用 <code>impl/scripts/m9d_infer_headless.py</code>：stub <code>mujoco.viewer</code>，仍调用 <code>infer_policy.PolicyInference</code> + BAM <code>update()</code> + <code>mj_step</code>。取舍见 <a href="../../decisions/0009-m9d-infer-headless.md">0009</a>。</p>
+<p><strong>验收分工。</strong> <strong>肉眼主路径 = 本机</strong>：scp <code>policy_export.onnx</code> → <code>bash impl/scripts/m9d_infer_local.sh</code>（官方 <code>infer_policy.py</code> + GLFW）。云机无显示器时的 JSON 门禁用 <code>m9d_infer_headless.py</code>（辅助）。取舍见 <a href="../../decisions/0009-m9d-infer-headless.md">0009</a>。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-C">
 <header class="am-panel-head"><span class="am-panel-id">C</span><h2>设计</h2></header>
-<div class="am-panel-body"><figure class="am-diagram am-flow"><svg viewBox="0 0 555 323" width="555" height="323" role="img" aria-label="流程图：model_999.pt、官方 export、policy.onnx、headless 站 vx=0、headless 走 vx=0.3 BAM、headless 走 vx=0.3 --no-bam" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M283.1,49 L283.1,60.5 Q283.1,72 283.1,83.5 L283.1,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M283.1,130 L283.1,141.5 Q283.1,153 283.1,164.5 L283.1,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M332.5,204 L403.4,219 Q474.2,234 474.2,249.8 L474.2,265.5" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M283.1,211 L283.1,222.5 Q283.1,234 283.1,249.8 L283.1,265.5" marker-end="url(#am1-arrow)"/></g><g data-step="4"><path class="am-edge" d="M233.7,203.7 L160,218.8 Q86.2,234 86.2,245.5 L86.2,257" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--round" data-key="model_999.pt" data-step="0"><rect class="am-node-shape" x="222.2" y="14" width="121.9" height="35" rx="17.5"/><text x="283.1" y="31.5" text-anchor="middle" dominant-baseline="central">model_999.pt</text></g><g class="am-node am-node--rect" data-key="官方 export" data-step="0"><rect class="am-node-shape" x="235.4" y="95" width="95.3" height="35" rx="3"/><text x="283.1" y="112.5" text-anchor="middle" dominant-baseline="central">官方 export</text></g><g class="am-node am-node--rect am-node--hi" data-key="policy.onnx" data-step="1"><rect class="am-node-shape" x="233.7" y="176" width="98.7" height="35" rx="3"/><text x="283.1" y="193.5" text-anchor="middle" dominant-baseline="central">policy.onnx</text></g><g class="am-node am-node--rect" data-key="headless 站 vx=0" data-step="2"><rect class="am-node-shape" x="407.7" y="265.5" width="133" height="35" rx="3"/><text x="474.2" y="283" text-anchor="middle" dominant-baseline="central">headless 站 vx=0</text></g><g class="am-node am-node--rect" data-key="headless 走 vx=0.3 BAM" data-step="3"><rect class="am-node-shape" x="194.5" y="265.5" width="177.2" height="35" rx="3"/><text x="283.1" y="283" text-anchor="middle" dominant-baseline="central">headless 走 vx=0.3 BAM</text></g><g class="am-node am-node--rect" data-key="headless 走 vx=0.3 --no-bam" data-step="4"><rect class="am-node-shape" x="14" y="257" width="144.5" height="52" rx="3"/><text x="86.2" y="274.5" text-anchor="middle" dominant-baseline="central">headless 走 vx=0.3</text><text x="86.2" y="291.5" text-anchor="middle" dominant-baseline="central">--no-bam</text></g></g></svg></figure>
+<div class="am-panel-body"><figure class="am-diagram am-flow"><svg viewBox="0 0 353 387" width="353" height="387" role="img" aria-label="流程图：model_999.pt、官方 export、policy.onnx、scp 到本机、本机 infer_policy viewer、headless JSON 门禁" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M171.2,49 L171.2,60.5 Q171.2,72 171.2,83.5 L171.2,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M171.2,130 L171.2,141.5 Q171.2,153 171.2,164.5 L171.2,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M205.6,211 L228.3,222.5 Q251,234 251,245.5 L251,257" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M251,292 L251,303.5 Q251,315 251,326.5 L251,338" marker-end="url(#am1-arrow)"/></g><g data-step="4"><path class="am-edge" d="M136.7,211 L114,222.5 Q91.3,234 91.3,245.5 L91.3,257" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--round" data-key="model_999.pt" data-step="0"><rect class="am-node-shape" x="110.2" y="14" width="121.9" height="35" rx="17.5"/><text x="171.2" y="31.5" text-anchor="middle" dominant-baseline="central">model_999.pt</text></g><g class="am-node am-node--rect" data-key="官方 export" data-step="0"><rect class="am-node-shape" x="123.5" y="95" width="95.3" height="35" rx="3"/><text x="171.2" y="112.5" text-anchor="middle" dominant-baseline="central">官方 export</text></g><g class="am-node am-node--rect am-node--hi" data-key="policy.onnx" data-step="1"><rect class="am-node-shape" x="121.8" y="176" width="98.7" height="35" rx="3"/><text x="171.2" y="193.5" text-anchor="middle" dominant-baseline="central">policy.onnx</text></g><g class="am-node am-node--rect" data-key="scp 到本机" data-step="2"><rect class="am-node-shape" x="204.6" y="257" width="92.7" height="35" rx="3"/><text x="251" y="274.5" text-anchor="middle" dominant-baseline="central">scp 到本机</text></g><g class="am-node am-node--rect" data-key="本机 infer_policy viewer" data-step="3"><rect class="am-node-shape" x="163.5" y="338" width="174.9" height="35" rx="3"/><text x="251" y="355.5" text-anchor="middle" dominant-baseline="central">本机 infer_policy viewer</text></g><g class="am-node am-node--rect" data-key="headless JSON 门禁" data-step="4"><rect class="am-node-shape" x="14" y="257" width="154.6" height="35" rx="3"/><text x="91.3" y="274.5" text-anchor="middle" dominant-baseline="central">headless JSON 门禁</text></g></g></svg></figure>
 <div class="am-md"><p>门禁（雏形，不是最终速度跟踪）：</p>
 <div class="am-table-wrap"><table>
 <thead>
@@ -800,8 +800,12 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <td>走 10s，<code>--no-bam</code></td>
 <td>对照：看侧偏与前移差；不挡本课主门</td>
 </tr>
+<tr>
+<td>本机 viewer</td>
+<td>肉眼：站得住、能迈步；键盘可调速</td>
+</tr>
 </tbody></table></div>
-<h3>本次实测（2026-10-29）</h3>
+<h3>云机 headless 实测（2026-10-29）</h3>
 <div class="am-table-wrap"><table>
 <thead>
 <tr>
@@ -826,49 +830,54 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <td>false</td>
 </tr>
 </tbody></table></div>
-<p>说明：1000 iter 仍欠跟踪（指令 0.3、实际平均速度更低），但「能走雏形」已成立。更长训与接我们 daemon 留给后续。</p>
+<p>说明：1000 iter 仍欠跟踪，但「能走雏形」数字门禁已过；<strong>请你本机开 viewer 再肉眼确认一遍</strong>。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-D">
 <header class="am-panel-head"><span class="am-panel-id">D</span><h2>架构决定</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>云上验收选 <strong>headless 复用 PolicyInference</strong>，不用强开 viewer。见 <a href="../../decisions/0009-m9d-infer-headless.md">0009</a>。</p>
+<div class="am-panel-body"><div class="am-md"><p>肉眼验收走 <strong>本机官方 viewer</strong>；云上只用 headless 做可重复 JSON 门禁。见 <a href="../../decisions/0009-m9d-infer-headless.md">0009</a>。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-E">
 <header class="am-panel-head"><span class="am-panel-id">E</span><h2>验收</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>自动门禁（教程仓根）：</p>
+<div class="am-panel-body"><div class="am-md"><h3>A. 本机肉眼（主路径，今晚做这条）</h3>
+<p>在教程仓根执行。本课云机：<code>ssh -p 23 root@117.50.221.204</code>（数据盘 <code>/cloud/cloud-ssd1</code>）。</p>
+<p><strong>1. 拷官方 export 的 ONNX</strong></p>
+<p>若云上还没有 <code>eval/policy_export.onnx</code>，先在云机执行：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">export PATH=&quot;$HOME/.local/bin:$PATH&quot;</span><span class="am-ln">cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl</span><span class="am-ln">uv run scripts/export.py Mjlab-Velocity-Flat-MicroDuck \</span><span class="am-ln">  --checkpoint-file logs/rsl_rl/velocity/2026-10-29_08-00-43_velocity/model_999.pt</span><span class="am-ln">cp -f output.onnx /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx</span></code></pre></figure>
+<div class="am-md"><p>本机拉取（约 800KB，秒级）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">mkdir -p tutor/artifacts/m09d</span><span class="am-ln">scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \</span><span class="am-ln">  tutor/artifacts/m09d/policy_export.onnx</span><span class="am-ln">ls -la tutor/artifacts/m09d/policy_export.onnx</span></code></pre></figure>
+<div class="am-md"><p>（若文件已在 <code>tutor/artifacts/m09d/policy_export.onnx</code>，可跳过 scp。）</p>
+<p><strong>2. 本机准备 <code>microduck_rl</code>（一次）</strong></p>
+<p><code>infer_policy</code> 只要 CPU，但官方 <code>uv sync</code> 仍会拉 torch/CUDA 全家桶（数 GB）。网速差时换快节点 / 全局代理后再 sync；<strong>不要</strong>在已开 FlClash TUN 时再叠 <code>HTTP_PROXY=127.0.0.1:7890</code>。</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">git clone --depth 1 https://github.com/pollen-robotics/microduck_rl.git vendor/microduck_rl</span><span class="am-ln">cd vendor/microduck_rl</span><span class="am-ln">UV_HTTP_TIMEOUT=600 uv sync</span><span class="am-ln">cd ../..</span></code></pre></figure>
+<div class="am-md"><p><strong>3. 开官方 viewer</strong></p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">bash impl/scripts/m9d_infer_local.sh</span></code></pre></figure>
+<div class="am-md"><p>预期：弹出 MuJoCo 窗；鸭子站稳后能迈步。键盘调 <code>vx/vy/yaw</code>（以终端/官方脚本提示为准）。对照 XML PD：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">bash impl/scripts/m9d_infer_local.sh --no-bam</span></code></pre></figure>
+<div class="am-md"><p>脚本：<code>impl/scripts/m9d_infer_local.sh</code>（默认 <code>--new-cmd-obs</code>，61D）。</p>
+<h3>B. 自动门禁（云上 JSON，已跑过）</h3>
 </div>
 <figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">bash accept/m09d-b02.sh</span></code></pre></figure>
-<div class="am-md"><p><strong>云机上手跑（逐步）：</strong></p>
-<p><strong>1. 官方 export</strong></p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">export PATH=&quot;$HOME/.local/bin:$PATH&quot;</span><span class="am-ln">cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl</span><span class="am-ln">uv run scripts/export.py Mjlab-Velocity-Flat-MicroDuck \</span><span class="am-ln">  --checkpoint-file logs/rsl_rl/velocity/2026-10-29_08-00-43_velocity/model_999.pt</span></code></pre></figure>
-<div class="am-md"><p>预期打印 <code>Written …/output.onnx</code>。可拷到 <code>eval/policy_export.onnx</code>。</p>
-<p><strong>2. 站立（BAM）</strong></p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">export PATH=&quot;$HOME/.local/bin:$PATH&quot; MUJOCO_GL=egl</span><span class="am-ln">cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl</span><span class="am-ln">uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \</span><span class="am-ln">  --repo . \</span><span class="am-ln">  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \</span><span class="am-ln">  --seconds 8 --lin-vel-x 0 \</span><span class="am-ln">  --out /cloud/cloud-ssd1/microduck-m9d/eval/stand_bam.json</span></code></pre></figure>
-<div class="am-md"><p>观察 JSON：<code>fell</code> 为 false，<code>min_trunk_z</code> ≥ 0.10。</p>
-<p><strong>3. 行走雏形（BAM）</strong></p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \</span><span class="am-ln">  --repo . \</span><span class="am-ln">  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \</span><span class="am-ln">  --seconds 10 --lin-vel-x 0.3 \</span><span class="am-ln">  --out /cloud/cloud-ssd1/microduck-m9d/eval/walk_bam.json</span></code></pre></figure>
-<div class="am-md"><p>观察：<code>forward_m</code> ≥ 0.30，未倒。</p>
-<p><strong>4. 对照 <code>--no-bam</code>（可选）</strong></p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \</span><span class="am-ln">  --repo . \</span><span class="am-ln">  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \</span><span class="am-ln">  --seconds 10 --lin-vel-x 0.3 --no-bam \</span><span class="am-ln">  --out /cloud/cloud-ssd1/microduck-m9d/eval/walk_nobam.json</span></code></pre></figure>
-<div class="am-md"><p>预期仍可能不倒，但轨迹与 BAM 不同——提醒「训练分布是 BAM」。</p>
-<p>脚本源在教程仓：<code>impl/scripts/m9d_infer_headless.py</code>（拷到云机 eval 目录即可）。</p>
+<div class="am-md"><p>读 <code>tutor/runs/m09d-b02.txt</code>。云机重跑 headless 见附录。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-F">
 <header class="am-panel-head"><span class="am-panel-id">F</span><h2>坑</h2></header>
 <div class="am-panel-body"><div class="am-md"><ul>
-<li>只开 xvfb、不装 Mesa DRI：GLFW <code>could not create window</code>。本课改 headless stub。</li>
-<li>Velocity ONNX 是 <strong>61D</strong>：必须 <code>new_cmd_obs</code>（脚本默认开）；legacy 51D 会维数错。</li>
-<li>自动训练目录 <code>.onnx</code> ≠ 官方 export；部署前走 <code>scripts/export.py</code>。</li>
+<li>云机无显示器 / xvfb 缺 Mesa：不要硬开 viewer，拷 ONNX 回本机。</li>
+<li>Velocity ONNX 是 <strong>61D</strong>：必须 <code>--new-cmd-obs</code>（本地脚本已默认）。</li>
+<li>训练目录自动 <code>.onnx</code> ≠ 官方 export；部署与肉眼验收都走 <code>scripts/export.py</code> 产物。</li>
+<li>本机 <code>uv sync</code> 体积大、易慢：瓶颈常在 PyPI/CUDA 轮子，与 ONNX 拷贝无关。</li>
 </ul>
 </div></div>
 </section>
-<section class="am-panel am-span-wide" id="panel-G" style="grid-column: span 3">
+<section class="am-panel" id="panel-G">
 <header class="am-panel-head"><span class="am-panel-id">G</span><h2>自测</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>1. 部署前应如何从 <code>model_999.pt</code> 得到 ONNX？</strong></p>
 <ul>
@@ -878,23 +887,29 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li>D. 只上传 wandb，不需要本地文件</li>
 </ul>
 <details><summary>答案</summary><p>B。官方路径烘 normalizer。</p>
-</details><p><strong>2. 本课「走雏形」主门禁看什么？</strong></p>
+</details><p><strong>2. 本课肉眼验收主路径是什么？</strong></p>
 <ul>
-<li>A. wandb mean_reward &gt; 200</li>
+<li>A. 只看 wandb mean_reward</li>
+<li>B. 云机强开 <code>infer_policy</code> viewer</li>
+<li>C. scp <code>policy_export.onnx</code> 到本机，跑 <code>m9d_infer_local.sh</code></li>
+<li>D. 只用 <code>--no-bam</code> headless</li>
+</ul>
+<details><summary>答案</summary><p>C。云机无显示器；本机 viewer 是观感主路径。</p>
+</details><p><strong>3. 数字门禁「走雏形」看什么？</strong></p>
+<ul>
+<li>A. 必须均速达到 0.3 m/s</li>
 <li>B. BAM、<code>vx=0.3</code>、10s、<code>forward_m≥0.30</code> 且未倒</li>
-<li>C. 必须达到指令速度 0.3 m/s 均速</li>
-<li>D. 只能在有显示器的机器上点 viewer</li>
+<li>C. 只能在有显示器的机器上点 viewer 才算过</li>
+<li>D. wandb 曲线即可</li>
 </ul>
-<details><summary>答案</summary><p>B。雏形看位移与不倒；精确跟踪留给更长训 / M9e。</p>
-</details><p><strong>3. 为什么还要跑 <code>--no-bam</code>？</strong></p>
-<ul>
-<li>A. 官方训练不用 BAM</li>
-<li>B. 对照：同一策略在 XML PD 下行为会漂，强调训练分布是 BAM</li>
-<li>C. <code>--no-bam</code> 更快所以替代 BAM 验收</li>
-<li>D. 只有 <code>--no-bam</code> 支持 61D</li>
-</ul>
-<details><summary>答案</summary><p>B。</p>
+<details><summary>答案</summary><p>B。雏形看位移与不倒；精确跟踪留给更长训 / M9e。本机 viewer 另做肉眼确认。</p>
 </details>
+</div></div>
+</section>
+<section class="am-panel am-span-wide" id="panel-H" style="grid-column: span 2">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>附录：云机 headless（可选重跑）</h2></header>
+<div class="am-panel-body"><figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">export PATH=&quot;$HOME/.local/bin:$PATH&quot; MUJOCO_GL=egl</span><span class="am-ln">cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl</span><span class="am-ln">uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \</span><span class="am-ln">  --repo . \</span><span class="am-ln">  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \</span><span class="am-ln">  --seconds 10 --lin-vel-x 0.3 \</span><span class="am-ln">  --out /cloud/cloud-ssd1/microduck-m9d/eval/walk_bam.json</span></code></pre></figure>
+<div class="am-md"><p>脚本源：<code>impl/scripts/m9d_infer_headless.py</code>。</p>
 </div></div>
 </section>
 </div>
@@ -915,11 +930,11 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-29 16:40 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-29 18:29 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: sheet
 title: M9d Bite 2：首训能站能走？（第 28 章）
-subtitle: 官方 export → headless infer；BAM 与 --no-bam
+subtitle: 官方 export → 本机 viewer；headless 门禁为辅
 source: clone-from-scratch-tutor · 第 28 章
 ---
 
@@ -927,22 +942,22 @@ source: clone-from-scratch-tutor · 第 28 章
 
 第 27 章只证明「能训完」。mean_reward 涨了，不等于鸭子在 MuJoCo 里站得住、迈得出步。云机没有显示器，`infer_policy.py` 又默认开 viewer——容易卡在「权重有了，却看不了」。
 
-本课消掉的故障是：不会把 `model_999.pt` 变成可部署 ONNX，也不会在无 GUI 的机器上用与官方同一条物理路径验收站/走雏形。
+本课消掉的故障是：不会把 `model_999.pt` 变成可部署 ONNX，也不会把权重拷回有显示器的本机用官方 viewer 肉眼验收站/走雏形。
 
 ## 背景
 
 **官方 export。** `uv run scripts/export.py &lt;TASK&gt; --checkpoint-file …` 是烘进 obs normalizer 的安全路径。训练目录里自动冒出的 `.onnx` 不要默认当发布物。
 
-**headless infer。** 云机缺可用 GLFW/Mesa 时，用 `impl/scripts/m9d_infer_headless.py`：stub `mujoco.viewer`，仍调用 `infer_policy.PolicyInference` + BAM `update()` + `mj_step`。取舍见 [0009](../../decisions/0009-m9d-infer-headless.md)。
+**验收分工。** **肉眼主路径 = 本机**：scp `policy_export.onnx` → `bash impl/scripts/m9d_infer_local.sh`（官方 `infer_policy.py` + GLFW）。云机无显示器时的 JSON 门禁用 `m9d_infer_headless.py`（辅助）。取舍见 [0009](../../decisions/0009-m9d-infer-headless.md)。
 
 ## 设计
 
 ```flow TB
 (model_999.pt) -&gt; 官方 export
 官方 export -&gt; *policy.onnx
-policy.onnx -&gt; headless 站 vx=0
-policy.onnx -&gt; headless 走 vx=0.3 BAM
-policy.onnx -&gt; headless 走 vx=0.3 --no-bam
+policy.onnx -&gt; scp 到本机
+scp 到本机 -&gt; 本机 infer_policy viewer
+policy.onnx -&gt; headless JSON 门禁
 ```
 
 门禁（雏形，不是最终速度跟踪）：
@@ -952,8 +967,9 @@ policy.onnx -&gt; headless 走 vx=0.3 --no-bam
 | 站 8s，BAM，`vx=0` | 未倒（`fell=false`），`min_trunk_z ≥ 0.10` |
 | 走 10s，BAM，`vx=0.3` | 未倒，`forward_m ≥ 0.30` |
 | 走 10s，`--no-bam` | 对照：看侧偏与前移差；不挡本课主门 |
+| 本机 viewer | 肉眼：站得住、能迈步；键盘可调速 |
 
-### 本次实测（2026-10-29）
+### 云机 headless 实测（2026-10-29）
 
 | 试验 | `forward_m` / `min_z` | fell |
 |---|---|---|
@@ -961,78 +977,80 @@ policy.onnx -&gt; headless 走 vx=0.3 --no-bam
 | 走 BAM 0.3 | **+1.06 m** / 0.114 | false |
 | 走 `--no-bam` 0.3 | +0.44 m（侧偏更大） | false |
 
-说明：1000 iter 仍欠跟踪（指令 0.3、实际平均速度更低），但「能走雏形」已成立。更长训与接我们 daemon 留给后续。
+说明：1000 iter 仍欠跟踪，但「能走雏形」数字门禁已过；**请你本机开 viewer 再肉眼确认一遍**。
 
 ## 架构决定
 
-云上验收选 **headless 复用 PolicyInference**，不用强开 viewer。见 [0009](../../decisions/0009-m9d-infer-headless.md)。
+肉眼验收走 **本机官方 viewer**；云上只用 headless 做可重复 JSON 门禁。见 [0009](../../decisions/0009-m9d-infer-headless.md)。
 
 ## 验收
 
-自动门禁（教程仓根）：
+### A. 本机肉眼（主路径，今晚做这条）
 
-```bash
-bash accept/m09d-b02.sh
-```
+在教程仓根执行。本课云机：`ssh -p 23 root@117.50.221.204`（数据盘 `/cloud/cloud-ssd1`）。
 
-**云机上手跑（逐步）：**
+**1. 拷官方 export 的 ONNX**
 
-**1. 官方 export**
+若云上还没有 `eval/policy_export.onnx`，先在云机执行：
 
 ```bash
 export PATH=&quot;$HOME/.local/bin:$PATH&quot;
 cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl
 uv run scripts/export.py Mjlab-Velocity-Flat-MicroDuck \
   --checkpoint-file logs/rsl_rl/velocity/2026-10-29_08-00-43_velocity/model_999.pt
+cp -f output.onnx /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx
 ```
 
-预期打印 `Written …/output.onnx`。可拷到 `eval/policy_export.onnx`。
-
-**2. 站立（BAM）**
+本机拉取（约 800KB，秒级）：
 
 ```bash
-export PATH=&quot;$HOME/.local/bin:$PATH&quot; MUJOCO_GL=egl
-cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl
-uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \
-  --repo . \
-  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \
-  --seconds 8 --lin-vel-x 0 \
-  --out /cloud/cloud-ssd1/microduck-m9d/eval/stand_bam.json
+mkdir -p tutor/artifacts/m09d
+scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \
+  tutor/artifacts/m09d/policy_export.onnx
+ls -la tutor/artifacts/m09d/policy_export.onnx
 ```
 
-观察 JSON：`fell` 为 false，`min_trunk_z` ≥ 0.10。
+（若文件已在 `tutor/artifacts/m09d/policy_export.onnx`，可跳过 scp。）
 
-**3. 行走雏形（BAM）**
+**2. 本机准备 `microduck_rl`（一次）**
+
+`infer_policy` 只要 CPU，但官方 `uv sync` 仍会拉 torch/CUDA 全家桶（数 GB）。网速差时换快节点 / 全局代理后再 sync；**不要**在已开 FlClash TUN 时再叠 `HTTP_PROXY=127.0.0.1:7890`。
 
 ```bash
-uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \
-  --repo . \
-  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \
-  --seconds 10 --lin-vel-x 0.3 \
-  --out /cloud/cloud-ssd1/microduck-m9d/eval/walk_bam.json
+git clone --depth 1 https://github.com/pollen-robotics/microduck_rl.git vendor/microduck_rl
+cd vendor/microduck_rl
+UV_HTTP_TIMEOUT=600 uv sync
+cd ../..
 ```
 
-观察：`forward_m` ≥ 0.30，未倒。
-
-**4. 对照 `--no-bam`（可选）**
+**3. 开官方 viewer**
 
 ```bash
-uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \
-  --repo . \
-  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \
-  --seconds 10 --lin-vel-x 0.3 --no-bam \
-  --out /cloud/cloud-ssd1/microduck-m9d/eval/walk_nobam.json
+bash impl/scripts/m9d_infer_local.sh
 ```
 
-预期仍可能不倒，但轨迹与 BAM 不同——提醒「训练分布是 BAM」。
+预期：弹出 MuJoCo 窗；鸭子站稳后能迈步。键盘调 `vx/vy/yaw`（以终端/官方脚本提示为准）。对照 XML PD：
 
-脚本源在教程仓：`impl/scripts/m9d_infer_headless.py`（拷到云机 eval 目录即可）。
+```bash
+bash impl/scripts/m9d_infer_local.sh --no-bam
+```
+
+脚本：`impl/scripts/m9d_infer_local.sh`（默认 `--new-cmd-obs`，61D）。
+
+### B. 自动门禁（云上 JSON，已跑过）
+
+```bash
+bash accept/m09d-b02.sh
+```
+
+读 `tutor/runs/m09d-b02.txt`。云机重跑 headless 见附录。
 
 ## 坑
 
-- 只开 xvfb、不装 Mesa DRI：GLFW `could not create window`。本课改 headless stub。
-- Velocity ONNX 是 **61D**：必须 `new_cmd_obs`（脚本默认开）；legacy 51D 会维数错。
-- 自动训练目录 `.onnx` ≠ 官方 export；部署前走 `scripts/export.py`。
+- 云机无显示器 / xvfb 缺 Mesa：不要硬开 viewer，拷 ONNX 回本机。
+- Velocity ONNX 是 **61D**：必须 `--new-cmd-obs`（本地脚本已默认）。
+- 训练目录自动 `.onnx` ≠ 官方 export；部署与肉眼验收都走 `scripts/export.py` 产物。
+- 本机 `uv sync` 体积大、易慢：瓶颈常在 PyPI/CUDA 轮子，与 ONNX 拷贝无关。
 
 ## 自测
 
@@ -1049,31 +1067,45 @@ B。官方路径烘 normalizer。
 
 &lt;/details&gt;
 
-**2. 本课「走雏形」主门禁看什么？**
+**2. 本课肉眼验收主路径是什么？**
 
-- A. wandb mean_reward &gt; 200
+- A. 只看 wandb mean_reward
+- B. 云机强开 `infer_policy` viewer
+- C. scp `policy_export.onnx` 到本机，跑 `m9d_infer_local.sh`
+- D. 只用 `--no-bam` headless
+
+&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
+
+C。云机无显示器；本机 viewer 是观感主路径。
+
+&lt;/details&gt;
+
+**3. 数字门禁「走雏形」看什么？**
+
+- A. 必须均速达到 0.3 m/s
 - B. BAM、`vx=0.3`、10s、`forward_m≥0.30` 且未倒
-- C. 必须达到指令速度 0.3 m/s 均速
-- D. 只能在有显示器的机器上点 viewer
+- C. 只能在有显示器的机器上点 viewer 才算过
+- D. wandb 曲线即可
 
 &lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
 
-B。雏形看位移与不倒；精确跟踪留给更长训 / M9e。
+B。雏形看位移与不倒；精确跟踪留给更长训 / M9e。本机 viewer 另做肉眼确认。
 
 &lt;/details&gt;
 
-**3. 为什么还要跑 `--no-bam`？**
+## 附录：云机 headless（可选重跑）
 
-- A. 官方训练不用 BAM
-- B. 对照：同一策略在 XML PD 下行为会漂，强调训练分布是 BAM
-- C. `--no-bam` 更快所以替代 BAM 验收
-- D. 只有 `--no-bam` 支持 61D
+```bash
+export PATH=&quot;$HOME/.local/bin:$PATH&quot; MUJOCO_GL=egl
+cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl
+uv run python /cloud/cloud-ssd1/microduck-m9d/eval/m9d_infer_headless.py \
+  --repo . \
+  --walking /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx \
+  --seconds 10 --lin-vel-x 0.3 \
+  --out /cloud/cloud-ssd1/microduck-m9d/eval/walk_bam.json
+```
 
-&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
-
-B。
-
-&lt;/details&gt;
+脚本源：`impl/scripts/m9d_infer_headless.py`。
 </textarea>
 <script>
 (() => {
