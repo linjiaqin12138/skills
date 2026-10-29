@@ -575,3 +575,17 @@
 - 真机没有 `body_pos`。要实现「仿真与真机同一条软件路径上回答走了多远」、对拍诊断、以后经 `robot.state` 露出（D50→M10），才需要这套估计器
 - 当前作用：控制循环内部 FrameSnapshot 诊断 + 与上游对拍；线上 RPC 仍无 odom
 - 已补进第 26 章「问题」与「设计」末句，并更新决定 `0007` 上下文；整页 strict 重渲
+
+## Q98（读 duck_handmade.xml / M9a，教程读者提问）：body 的 quat 和 geom 的 quat 是什么关系？
+- 不同层，不会在 XML 里合成一个总 quat。嵌套：父 body → 本 body（pos/quat 相对父）→ joint / geom / 子 body
+- body quat：摆连杆坐标系；关节轴、子 body、惯量都挂在这上面。本例 `yaw2roll` 的 pos/quat 对应 odometry `LEFT_LEG[0].rest`
+- geom quat：只把网格摆进本 body；同一 body 上壳 / xl330 / 轴承可各写各的，互不影响关节
+- 改 geom 不改 `left_hip_yaw` 轴、不改 FK；改 body 才会
+- 已补进第 18 章「代码领读」左腿链段（body/geom 分工）并 strict 重渲
+
+## Q99（同上追问）：一般来说 position 和 quat 怎么定？点取物体哪、姿态选哪个方向？
+- 约定，不是唯一物理答案。先定坐标系钉在哪、轴朝哪，再写一切相对量
+- body：原点多半钉铰链中心；姿态优先让转轴落本地 z（好写 `axis="0 0 1"`）；躯干一类才常跟机体轴（x 前 y 左 z 上）
+- geom：跟 CAD/STL 建模原点与轴向，用 pos/quat 贴进已定 body；本课视觉行照抄官方，不手算
+- inertial pos/quat：质心与主轴，相对 body，可与 geom 不一致（坑 2）
+- 已补进第 18 章同段「pos/quat 怎么定」并写入细节展开折叠条

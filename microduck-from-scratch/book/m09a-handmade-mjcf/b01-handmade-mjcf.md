@@ -312,8 +312,14 @@ cd impl/sim/assets
 
 左腿链第一节：body 的 pos/quat 是相对父体的安装位姿（官方编译值），关节 range 逐位对齐。整树 15 body 的文档序就是关节序，下游 velstand 权重按这个顺序读写。视觉网格行跟在关节声明后面：
 
-```xml src=impl/sim/assets/duck_handmade.xml lines=59-67 hl=62-63
+```xml src=impl/sim/assets/duck_handmade.xml lines=59-67 hl=59,62-66
 ```
+
+**body 的 quat 和 geom 的 quat 不是一层东西。** 位姿嵌套是：父 body → 本 body（`pos`/`quat` 相对父）→ 本 body 上的 joint / geom / 子 body。body 的 quat 摆的是**连杆坐标系**（关节轴、子 body、惯量都挂在这上面）；geom 的 quat 只把**这块网格**摆进本 body，同一 body 上几个 geom（壳、xl330、轴承）可以各写各的。改 geom 不会改 `left_hip_yaw` 的轴，也不会改 odometry 腿链用的 `rest`；改 body 的 quat 才会。
+
+**pos / quat 怎么定（约定，不是唯一物理答案）。** body：原点多半钉在**铰链中心**；姿态优先让转轴落在本地 z（好写 `axis="0 0 1"`），躯干一类才常跟机体轴（x 前 y 左 z 上）。
+
+geom 跟 CAD/STL 的建模原点与轴向，用 pos/quat 贴进已定 body；本课视觉行整段照抄官方，因为这层是标定结果。`<inertial>` 的 pos/quat 又是质心与主轴，相对 body，可以和 geom 不一致（见坑 2）。
 
 joint 三个属性各管一件事：**type 管有几个自由度、axis 管绕哪转、range 管能转多远**。
 
@@ -469,5 +475,9 @@ B 组阈值是防回归的代理假设：既然惯量直写官方编译值，误
 <details>
 <summary><b>官方用什么 CAD？gizmo / Robola 是什么？免费吗？本仓怎么开？</b></summary>
 <p><b>Onshape</b>（浏览器 CAD）+ <b>onshape-to-robot</b> 导出 MJCF；硬件 CAD 不开源。<b>gizmo</b> = 选中零件后出现的箭头/圆环操作柄（拖箭头平移、拖圆环旋转）。<b>Robola</b> = 本地 MuJoCo + 浏览器可视化 MJCF 编辑器。Onshape 有 Free（文档全公开）与 Education；Robola 目前免费。本仓用 <code>uv pip install --python .venv robola</code>，在 <code>impl/sim/assets/</code> 下 <code>../../.venv/bin/robola serve ./scene_handmade.xml</code>，浏览器连 9527。Robola 0.2.4 × MuJoCo 3.16 有 JSON 序列化 bug，本仓 .venv 已打补丁。完整表、命令与坑见「代码领读」躯干段装配工具小节。</p>
+</details>
+<details>
+<summary><b>body 的 quat 和 geom 的 quat 是什么关系？pos/quat 一般怎么选？</b></summary>
+<p>不同层：body 相对父 body，摆连杆坐标系（关节轴、子 body、惯量挂在这）；geom 相对本 body，只摆网格外观。同一 body 上多个 geom 互不影响关节。改 geom 不改运动学；改 body 才改。body 原点多半钉铰链中心，姿态优先让转轴落本地 z；geom 跟 CAD/STL 建模系，本课视觉行照抄官方。inertial 的 pos/quat 又是质心与主轴，可与 geom 不一致。正文见「代码领读」左腿链段 body/geom 两段。</p>
 </details>
 ```
