@@ -48,16 +48,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Override agent/env seed (default: MicroduckRlCfg.seed)",
     )
+    p.add_argument(
+        "--save-interval",
+        type=int,
+        default=50,  # 官方 Velocity 默认 250；中间版本回放需要更密
+        help="Checkpoint every N learning iterations (default: 50)",
+    )
     return p.parse_args(argv)
 
 
-def _print_banner(*, handmade_xml: Path, num_envs: int, max_iterations: int, device: str, log_dir: Path) -> None:
+def _print_banner(
+    *,
+    handmade_xml: Path,
+    num_envs: int,
+    max_iterations: int,
+    save_interval: int,
+    device: str,
+    log_dir: Path,
+) -> None:
     print("=" * 60)
     print("m9f_train  |  handmade Velocity (duck_handmade.xml)")
     print("=" * 60)
     print(f"  robot xml     : {handmade_xml}")
     print(f"  num_envs      : {num_envs}")
     print(f"  max_iterations: {max_iterations}")
+    print(f"  save_interval : {save_interval}")
     print(f"  device        : {device}")
     print(f"  log_dir       : {log_dir}")
     print("=" * 60, flush=True)
@@ -98,10 +113,14 @@ def run_train(args: argparse.Namespace) -> None:
     env_cfg.scene.entities = {"robot": HANDMADE_ROBOT_CFG}
     env_cfg.scene.num_envs = args.num_envs
 
+    if args.save_interval < 1:
+        raise SystemExit("--save-interval must be >= 1")
+
     # MicroduckRlCfg is a module-level instance — replace() so we don't mutate shared state.
     agent = replace(
         MicroduckRlCfg,
         max_iterations=args.max_iterations,
+        save_interval=args.save_interval,
         experiment_name="m9f_handmade_velocity",
         run_name="handmade",
     )
@@ -120,6 +139,7 @@ def run_train(args: argparse.Namespace) -> None:
         handmade_xml=HANDMADE_XML,
         num_envs=args.num_envs,
         max_iterations=args.max_iterations,
+        save_interval=args.save_interval,
         device=device,
         log_dir=log_dir,
     )
