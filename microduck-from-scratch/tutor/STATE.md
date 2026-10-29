@@ -6,9 +6,10 @@
 - **当前模式**：项目实现
 - **返回位置**：无（当前在项目实现）
 - **当前先修记录**：`tutor/prerequisites/ppo-reward-dr.md` — **出口已达**；返回摘要：PPO 三步、奖励权重=评分标准、DR 为健壮；误区：非选优淘汰、优势非开跑前算、投机形态不唯一
-- **当前位置**：**M9f Bite 1 待云冒烟（2026-10-29）**——`impl/scripts/m9f_train.py` + `m9f_handmade_robot.py` 已落地；`0011` 起草；accept A–C 过，缺 `tutor/runs/m09f-b01.txt`。D71 有意偏离已登记。
-- **M9e 已取消**：官方模型/脚本/仿真再接入我们无学习意义。
-- **下一步**：云 GPU 跑冒烟 → 写跑证 → verifier → 课文。**要 GPU。**
+- **当前位置**：**M9f Bite 1 云冒烟已过；长训进行中（2026-10-29）**——`m9f_train.py` + handmade；补了 foot sites + IMU sensors；`tutor/runs/m09f-b01.txt` 有 `smoke_ok=1`；云上 `2048×1000` 后台跑（ETA≈25min）。`0011` 仍起草。
+- **云机**：`ssh -p 23 root@117.50.221.204`；工作区 `/cloud/cloud-ssd1/microduck-m9f`；日志 `runs/m09f-train.log`。
+- **M9e 已取消**。
+- **下一步**：等长训结束 → 拉 checkpoint → verifier `accept/m09f-b01.sh` → 课文。
 - **用户裁决（2026-10-29）**：M9e 取消；handmade + **自写训练脚本**。
 - **安全**：会话中曾暴露 wandb API key——请轮换。
 - **M9c 已收官（2026-10-29）**：Bite 1 FallPredictor（D23/D32）+ Bite 2 相对 odometry；决定 `0006`/`0007` 已采纳；档案 `book/m09c-fall-recovery/acceptance.md`。`robot.state` 仍无 odom（D50→M10）。
