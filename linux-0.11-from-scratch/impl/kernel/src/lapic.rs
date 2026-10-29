@@ -1,16 +1,14 @@
-//! LAPIC 定时器：PIT 校准出 100 Hz 周期，IRQ32 只累计 jiffies 并发送 EOI。
+//! LAPIC：100 Hz 定时器（PIT 校准）与 EOI。IRQ32 只累计 jiffies，EOI 由 IDT 分发层统一发送。
 
 use core::arch::asm;
 use core::hint::spin_loop;
-use core::ptr::{addr_of_mut, read_volatile, write_volatile};
+use core::ptr::{read_volatile, write_volatile};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::io::{inb, outb};
+use crate::mmio;
 
-use limine::paging::PagingMode;
-use limine::request::{ExecutableAddressRequest, HhdmRequest, PagingModeRequest};
-
-const TIMER_VECTOR: u32 = 32;
+pub const TIMER_VECTOR: u32 = 32;
 const TIMER_HZ: u32 = 100;
 
 const IA32_APIC_BASE_MSR: u32 = 0x1b; // 0b 0001_1011
@@ -19,6 +17,7 @@ const APIC_BASE_MASK: u64 = 0x0000_000f_ffff_f000; // 0b 0000_0000_0000_0000_000
 
 const EOI: u64 = 0x0b0; // 0b 0000_1011_0000
 const SPURIOUS_VECTOR: u64 = 0x0f0; // 0b 0000_1111_0000
+const ID: u64 = 0x020;
 const LVT_TIMER: u64 = 0x320;
 const INITIAL_COUNT: u64 = 0x380;
 const CURRENT_COUNT: u64 = 0x390;
@@ -36,32 +35,7 @@ const PIT_COMMAND: u16 = 0x43;
 const PIT_GATE: u16 = 0x61;
 const PIT_CHANNEL_2_OUTPUT: u8 = 1 << 5;
 
-const PAGE_PRESENT: u64 = 1 << 0;
-const PAGE_WRITABLE: u64 = 1 << 1;
-const PAGE_WRITE_THROUGH: u64 = 1 << 3;
-const PAGE_CACHE_DISABLE: u64 = 1 << 4;
-const PAGE_LARGE: u64 = 1 << 7;
-const PAGE_ADDRESS_MASK: u64 = 0x000f_ffff_ffff_f000;
-
 static JIFFIES: AtomicU64 = AtomicU64::new(0);
-
-#[used]
-#[unsafe(link_section = ".limine_requests")]
-static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
-
-#[used]
-#[unsafe(link_section = ".limine_requests")]
-static EXECUTABLE_ADDRESS_REQUEST: ExecutableAddressRequest = ExecutableAddressRequest::new();
-
-#[used]
-#[unsafe(link_section = ".limine_requests")]
-static PAGING_MODE_REQUEST: PagingModeRequest =
-    PagingModeRequest::new_exact(PagingMode::X86_64_4LVL);
-
-#[repr(C, align(4096))]
-struct PageTable([u64; 512]);
-
-static mut EXTRA_PAGE_TABLES: [PageTable; 3] = [const { PageTable([0; 512]) }; 3];
 
 #[derive(Clone, Copy)]
 struct Lapic {
@@ -84,19 +58,10 @@ static mut LAPIC: Lapic = Lapic { base: 0 };
 
 /// 配置 LAPIC 与 PIT，校准成功后开启 CPU 可屏蔽中断。
 pub fn init() -> bool {
-    let Some(hhdm) = HHDM_REQUEST.response() else {
-        return false;
-    };
-    let Some(executable) = EXECUTABLE_ADDRESS_REQUEST.response() else {
-        return false;
-    };
-
     mask_legacy_pic();
-    let lapic = enable_lapic(
-        hhdm.offset,
-        executable.physical_base,
-        executable.virtual_base,
-    );
+    let Some(lapic) = enable_lapic() else {
+        return false;
+    };
     // SAFETY: 单核启动阶段只写一次；开中断后 handler 只读该值。
     unsafe { LAPIC = lapic };
 
@@ -121,73 +86,34 @@ pub fn jiffies() -> u64 {
     JIFFIES.load(Ordering::Relaxed)
 }
 
-/// 中断上下文不格式化、不打印，也不触碰 console。
-pub extern "C" fn timer_interrupt() {
+/// 中断上下文不格式化、不打印，也不触碰 console（decisions/0001）。
+pub fn timer_interrupt() {
     JIFFIES.fetch_add(1, Ordering::Relaxed);
+}
+
+/// 告诉 LAPIC 当前中断已处理完，它才会投递同级及更低优先级的下一个中断。
+pub fn end_of_interrupt() {
     // SAFETY: init 在开中断前已写入有效 LAPIC 地址，此后不再修改。
     unsafe { LAPIC }.write(EOI, 0);
 }
 
-fn enable_lapic(hhdm_offset: u64, kernel_physical: u64, kernel_virtual: u64) -> Lapic {
+/// 本核 LAPIC ID（寄存器位 24..31），IOAPIC 路由表用它指定投递目标。
+pub fn id() -> u8 {
+    // SAFETY: 同 end_of_interrupt。
+    (unsafe { LAPIC }.read(ID) >> 24) as u8
+}
+
+fn enable_lapic() -> Option<Lapic> {
     let apic_base = read_msr(IA32_APIC_BASE_MSR);
     if apic_base & APIC_ENABLE == 0 {
         write_msr(IA32_APIC_BASE_MSR, apic_base | APIC_ENABLE);
     }
 
-    let physical_base = apic_base & APIC_BASE_MASK;
     let lapic = Lapic {
-        base: map_mmio_page(physical_base, hhdm_offset, kernel_physical, kernel_virtual),
+        base: mmio::map_page(apic_base & APIC_BASE_MASK)?,
     };
     lapic.write(SPURIOUS_VECTOR, LAPIC_SOFTWARE_ENABLE | 0xff);
-    lapic
-}
-
-/// Limine 的 HHDM 不保证包含 LAPIC MMIO；只在缺失时补这一张 4 KiB 页。
-fn map_mmio_page(
-    physical_base: u64,
-    hhdm_offset: u64,
-    kernel_physical: u64,
-    kernel_virtual: u64,
-) -> u64 {
-    let virtual_base = physical_base + hhdm_offset;
-    let cr3: u64;
-    // SAFETY: 读取当前页树根地址，不修改控制寄存器。
-    unsafe { asm!("mov {}, cr3", out(reg) cr3, options(nomem, nostack, preserves_flags)) };
-    let mut table_physical = cr3 & PAGE_ADDRESS_MASK;
-    // SAFETY: 仅在关中断的单核初始化阶段使用；三个静态页分别供三层页表补缺。
-    let extra_tables = unsafe { &mut *addr_of_mut!(EXTRA_PAGE_TABLES) };
-
-    for (level, shift) in [39, 30, 21].into_iter().enumerate() {
-        let index = ((virtual_base >> shift) & 0x1ff) as usize;
-        let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;
-        // SAFETY: CR3 与各级描述符都指向 HHDM 可访问的页表。
-        let mut entry = unsafe { read_volatile(entry_ptr) };
-        if entry & PAGE_PRESENT == 0 {
-            let table = &mut extra_tables[level];
-            table.0.fill(0);
-            let table_virtual = table.0.as_ptr() as u64;
-            let new_physical = table_virtual - kernel_virtual + kernel_physical;
-            entry = new_physical | PAGE_PRESENT | PAGE_WRITABLE;
-            // SAFETY: entry_ptr 是当前级中尚未使用的描述符。
-            unsafe { write_volatile(entry_ptr, entry) };
-        }
-        if entry & PAGE_LARGE != 0 {
-            return virtual_base;
-        }
-        table_physical = entry & PAGE_ADDRESS_MASK;
-    }
-
-    let index = ((virtual_base >> 12) & 0x1ff) as usize;
-    let entry_ptr = (hhdm_offset + table_physical + index as u64 * 8) as *mut u64;
-    // SAFETY: 最后一级描述符指向 LAPIC 物理页，PCD/PWT 禁止缓存 MMIO。
-    unsafe {
-        write_volatile(
-            entry_ptr,
-            physical_base | PAGE_PRESENT | PAGE_WRITABLE | PAGE_WRITE_THROUGH | PAGE_CACHE_DISABLE,
-        );
-        asm!("invlpg [{}]", in(reg) virtual_base, options(nostack));
-    }
-    virtual_base
+    Some(lapic)
 }
 
 /// 用 PIT channel 2 的 10 ms 输出信号测量 LAPIC 在 divider=16 下的计数差。

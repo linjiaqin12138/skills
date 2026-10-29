@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="300" viewBox="0 0 860 300" role="img" aria-label="cli 只影响执行它的那个核，另一个核仍可同时访问 console">
+  <rect width="860" height="300" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #111827; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 13px; fill: #475569; }
+    .box { font-size: 15px; font-weight: 700; }
+    .lab { font-size: 13px; }
+  </style>
+  <text x="30" y="32" class="title">cli 只管本核：多核下它不再等于「独占」</text>
+  <text x="30" y="54" class="sub">方框 = 一个 CPU 核；线 = 对同一块 console 内存的访问；示意图，不按比例</text>
+
+  <rect x="40" y="80" width="250" height="110" rx="6" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+  <text x="165" y="110" text-anchor="middle" class="box">核 0</text>
+  <text x="165" y="136" text-anchor="middle" class="lab">执行 cli：本核 IF=0</text>
+  <text x="165" y="158" text-anchor="middle" class="lab">在 with 里改 console</text>
+
+  <rect x="570" y="80" width="250" height="110" rx="6" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+  <text x="695" y="110" text-anchor="middle" class="box">核 1</text>
+  <text x="695" y="136" text-anchor="middle" class="lab">它的 IF 没人动</text>
+  <text x="695" y="158" text-anchor="middle" class="lab">同时也在改 console</text>
+
+  <rect x="330" y="220" width="200" height="52" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="430" y="243" text-anchor="middle" class="box">CONSOLE</text>
+  <text x="430" y="262" text-anchor="middle" class="lab">光标、帧缓冲</text>
+
+  <path d="M165 190 L380 220" stroke="#1d4ed8" stroke-width="3" fill="none"/>
+  <path d="M695 190 L480 220" stroke="#b91c1c" stroke-width="3" fill="none"/>
+  <text x="430" y="120" text-anchor="middle" class="lab" style="font-weight:700;fill:#b91c1c">两个核同时写，光标被改乱</text>
+  <text x="430" y="142" text-anchor="middle" class="lab">需要真正的锁（自旋锁），不是关中断</text>
+</svg>

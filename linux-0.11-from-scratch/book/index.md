@@ -9,3 +9,4 @@
 | M2 Bite1 | GDT、IDT 与 CPU 异常 | [b01-gdt-idt.html](m02-exceptions/b01-gdt-idt.html) |
 | M2 Bite2 | panic!：让 Rust 错误可见 | [b02-panic-printing.html](m02-exceptions/b02-panic-printing.html) |
 | M3 Bite1 | LAPIC 定时器：第一个自己到来的中断 | [b01-lapic-timer.html](m03-interrupts/b01-lapic-timer.html) |
+| M3 Bite2 | IOAPIC 键盘 + console 关中断锁 | [b02-keyboard-console-lock.html](m03-interrupts/b02-keyboard-console-lock.html) |

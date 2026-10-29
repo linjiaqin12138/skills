@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="290" viewBox="0 0 1060 290" role="img" aria-label="i8042 ports and status register bits">
+<rect width="1060" height="290" fill="#f8fafc"/>
+<style>
+ text { font-family: 'Noto Sans CJK SC', sans-serif; fill: #111827; }
+ .title { font-size: 20px; font-weight: 700; }
+ .sub { font-size: 13px; fill: #475569; }
+ .lab { font-size: 13px; font-weight: 600; }
+ .tiny { font-size: 11px; fill: #64748b; }
+ .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; fill: #334155; }
+ .monob { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; font-weight: 700; }
+ .box { stroke: #64748b; stroke-width: 1.4; }
+ .used { fill: #dcfce7; } .rsv { fill: #e2e8f0; } .val { fill: #e0e7ff; } .warn { fill: #fde68a; } .no { fill: #f1f5f9; stroke-dasharray: 4 3; }
+</style>
+<text x="24" y="32" class="title">i8042 的两个端口，和状态寄存器（读 0x64）</text>
+<text x="24" y="54" class="sub">每个端口 1 字节，用 inb 读。左边是端口，右边是读出来的这一字节按位拆开。</text>
+<rect x="24" y="76" width="250" height="56" class="box val"/><text x="40" y="100" class="monob">0x60</text><text x="96" y="100" class="lab">读</text><text x="40" y="120" class="lab">数据：键盘送来的扫描码</text>
+<rect x="24" y="144" width="250" height="56" class="box used"/><text x="40" y="168" class="monob">0x64</text><text x="96" y="168" class="lab">读</text><text x="40" y="188" class="lab">状态：右边 8 位</text>
+<rect x="24" y="212" width="250" height="44" class="box no"/><text x="40" y="232" class="monob">0x64</text><text x="96" y="232" class="lab">写</text><text x="40" y="249" class="tiny">控制器命令：本课不写</text>
+<rect x="330" y="120" width="88" height="56" class="box rsv"/>
+<text x="374.0" y="112" text-anchor="middle" class="mono">bit 7</text>
+<rect x="418" y="120" width="88" height="56" class="box rsv"/>
+<text x="462.0" y="112" text-anchor="middle" class="mono">bit 6</text>
+<rect x="506" y="120" width="88" height="56" class="box rsv"/>
+<text x="550.0" y="112" text-anchor="middle" class="mono">bit 5</text>
+<rect x="594" y="120" width="88" height="56" class="box rsv"/>
+<text x="638.0" y="112" text-anchor="middle" class="mono">bit 4</text>
+<rect x="682" y="120" width="88" height="56" class="box rsv"/>
+<text x="726.0" y="112" text-anchor="middle" class="mono">bit 3</text>
+<rect x="770" y="120" width="88" height="56" class="box rsv"/>
+<text x="814.0" y="112" text-anchor="middle" class="mono">bit 2</text>
+<rect x="858" y="120" width="88" height="56" class="box rsv"/>
+<text x="902.0" y="112" text-anchor="middle" class="mono">bit 1</text>
+<rect x="946" y="120" width="88" height="56" class="box used"/>
+<text x="990.0" y="112" text-anchor="middle" class="mono">bit 0</text>
+<text x="374.0" y="154" text-anchor="middle" class="lab">奇偶错误</text>
+<text x="462.0" y="154" text-anchor="middle" class="lab">超时错误</text>
+<text x="550.0" y="154" text-anchor="middle" class="lab">芯片相关</text>
+<text x="638.0" y="154" text-anchor="middle" class="lab">芯片相关</text>
+<text x="726.0" y="154" text-anchor="middle" class="lab">命令/数据</text>
+<text x="814.0" y="154" text-anchor="middle" class="lab">系统标志</text>
+<text x="902.0" y="154" text-anchor="middle" class="lab">输入缓冲满</text>
+<text x="990.0" y="154" text-anchor="middle" class="lab">输出缓冲满</text>
+<path d="M990.0 176 L990.0 216" stroke="#16a34a" stroke-width="2" fill="none"/>
+<rect x="696" y="216" width="338" height="64" class="box used"/>
+<text x="708" y="240" class="lab">本课只看 bit 0：值为 1 才能 inb(0x60)</text>
+<text x="708" y="262" class="tiny">读走后控制器把它清 0；缓冲空了，bit 0 = 0</text>
+<text x="330" y="216" class="tiny">灰色 = 本课不读。</text>
+<text x="330" y="234" class="tiny">位含义取自 OSDev「I8042 PS/2 Controller」。</text>
+</svg>

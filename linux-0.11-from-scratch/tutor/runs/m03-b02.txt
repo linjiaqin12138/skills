@@ -1,0 +1,129 @@
+===== verifier record: m03-b02 =====
+command: bash accept/m03-b02.sh   (仓库根；脚本 cd impl && make check-m3-b2)
+run at: 2026-10-29T16:27~16:29+08:00
+env: docker 构建容器 linux011-rust-build（make 自动 exec）+ 宿主机 qemu-system-x86_64
+verifier: 独立（只读 impl/ accept/ 课文；仅写本文件）
+独立运行次数: 3
+
+===== 行为验收：3 次实测 =====
+--- run1: 退出码=0  stdout=122 行  stderr=31 行
+stdout 尾部（断言阶段 + 结论，逐字）:
+M3: LAPIC timer 100 Hz
+M3: keyboard IRQ1 -> vector 33
+M3: jiffies=100
+helloM3: jiffies=200
+M3: jiffies=300
+M3: jiffies=400
+>>> asserting regression markers, timer samples and keyboard echo…
+M1: fb 800x600x32
+M1: fmt hex=0x002a dec=42 str=ok
+M1: scroll line 00
+M1: scroll line 59
+M2: gdt ok
+M2: idt ok
+M3: LAPIC timer 100 Hz
+M3: keyboard IRQ1 -> vector 33
+M3: jiffies=100
+helloM3: jiffies=200
+M3: jiffies=300
+jiffies samples=4
+helloM3: jiffies=200
+screendump size=1440015
+check-m3-b2 OK
+stderr 摘要: cargo "Finished dev ... 0.0xs" + core future-incompat 警告（环境噪声）+ xorriso/limine 构建输出；无 error、无 panic。
+serial.log 复核: hello 出现 1 次；'M3: jiffies=N' 行 4 条（阈值 3..10）；panic/PANIC/EXCEPTION 0 条；行数 73
+--- run2: 退出码=0  stdout=122 行  stderr=31 行
+stdout 尾部（断言阶段 + 结论，逐字）:
+M3: LAPIC timer 100 Hz
+M3: keyboard IRQ1 -> vector 33
+M3: jiffies=100
+helloM3: jiffies=200
+M3: jiffies=300
+M3: jiffies=400
+>>> asserting regression markers, timer samples and keyboard echo…
+M1: fb 800x600x32
+M1: fmt hex=0x002a dec=42 str=ok
+M1: scroll line 00
+M1: scroll line 59
+M2: gdt ok
+M2: idt ok
+M3: LAPIC timer 100 Hz
+M3: keyboard IRQ1 -> vector 33
+M3: jiffies=100
+helloM3: jiffies=200
+M3: jiffies=300
+jiffies samples=4
+helloM3: jiffies=200
+screendump size=1440015
+check-m3-b2 OK
+stderr 摘要: cargo "Finished dev ... 0.0xs" + core future-incompat 警告（环境噪声）+ xorriso/limine 构建输出；无 error、无 panic。
+serial.log 复核: hello 出现 1 次；'M3: jiffies=N' 行 4 条（阈值 3..10）；panic/PANIC/EXCEPTION 0 条；行数 73
+--- run3: 退出码=0  stdout=122 行  stderr=31 行
+stdout 尾部（断言阶段 + 结论，逐字）:
+M3: LAPIC timer 100 Hz
+M3: keyboard IRQ1 -> vector 33
+M3: jiffies=100
+helloM3: jiffies=200
+M3: jiffies=300
+M3: jiffies=400
+>>> asserting regression markers, timer samples and keyboard echo…
+M1: fb 800x600x32
+M1: fmt hex=0x002a dec=42 str=ok
+M1: scroll line 00
+M1: scroll line 59
+M2: gdt ok
+M2: idt ok
+M3: LAPIC timer 100 Hz
+M3: keyboard IRQ1 -> vector 33
+M3: jiffies=100
+helloM3: jiffies=200
+M3: jiffies=300
+jiffies samples=4
+helloM3: jiffies=200
+screendump size=1440015
+check-m3-b2 OK
+stderr 摘要: cargo "Finished dev ... 0.0xs" + core future-incompat 警告（环境噪声）+ xorriso/limine 构建输出；无 error、无 panic。
+serial.log 复核: hello 出现 1 次；'M3: jiffies=N' 行 4 条（阈值 3..10）；panic/PANIC/EXCEPTION 0 条；行数 73
+
+--- 跨次一致性
+3 份 serial.log 的 md5 完全相同（2d053226768660411dff11181c48a446）：
+sendkey 在 jiffies=100 之后发出，"hello" 总是落在 jiffies=100 与 jiffies=200 之间，输出为 "helloM3: jiffies=200"（hello 无换行，属预期，后接 jiffies 行）。
+screendump: 800x600 P6 PPM，1440015 字节，像素非全零（>10240 阈值），3/3 次通过（同一路径文件，最后一次覆盖）。
+样本数 n=3，3/3 通过，0 次偏差；日志逐字节相同，说明该路径在 QEMU TCG/KVM 下确定性高。n=3 只能说明"无高频失败"，不能给出低概率竞态的置信上界（3/3 通过，95% 置信下界约 p>=0.37）。
+
+===== 逐条对照脚本注释 =====
+1. 构建并启动；M0/M1/M2 回归 marker + 100Hz jiffies 样本仍在 —— 通过（M0 alive 恰 1 次、M1 fb/fmt/scroll 00/59、M2 gdt/idt、M3 LAPIC 100 Hz、jiffies=100/200/300，样本 4 条）。
+2. IOAPIC 将 IRQ1 路由到向量 33；中断上下文回显 —— 通过（"M3: keyboard IRQ1 -> vector 33" 出现；hello 经 keyboard::interrupt → printk 回显）。注：脚本只断言串口 marker 与回显，没有读回 IOAPIC 重定向表；"路由到 33"由回显间接证明。
+3. sendkey h/e/l/l/o 后串口出现连续子串 "hello" —— 通过 3/3。
+4. 全局 console 关中断临界区；tick 与键盘并存不 panic —— 通过（0 panic/EXCEPTION；回显发生在 100Hz tick 运行期间）。静态上 IrqLock 实现见下。
+5. screendump 非空 —— 通过。
+行为验收结论: 通过。
+
+===== 编码规范（code-rules.md：同一函数实现只能一份；本任务新增/触及的重复必须收敛）=====
+项目级 tutor/code-rules.md: 不存在；仅用户级。
+逐项证据:
+A. timer/keyboard 入口共享 —— 通过。
+   - 公共出口只有一份 common_irq_entry（impl/kernel/src/idt.rs:245-290）；timer_entry、keyboard_entry 都由同一宏 irq_entry!（idt.rs:293-305）生成，仅 push 向量号后 jmp（idt.rs:307-308）。
+   - B1 的 timer_entry 自带完整保存/恢复骨架（HEAD 版 idt.rs:242-281），本任务已改为共享骨架，未复制出第二份 keyboard 骨架。
+B. EOI 只一份 —— 通过。lapic::end_of_interrupt（lapic.rs:95-98）仅在 irq_dispatch 末尾调用一次（idt.rs:320）；keyboard.rs 与 lapic::timer_interrupt 内均无 EOI（rg end_of_interrupt 全仓仅此两处：定义与调用）。
+C. map_mmio 只一份 —— 通过。页表遍历/补层函数只在 mmio.rs（map_page:46、entry_pointer:84、take_pool_table_physical:90 附近）；lapic.rs（lapic.rs:113）与 ioapic.rs（ioapic.rs:27）都调用 mmio::map_page。HEAD 版 lapic.rs 里的 map_mmio_page(146) 已删除，rg 无残留（全仓 map_page 仅 1 处定义）。
+D. 其它重复检查 —— 通过。inb/outb 只在 io.rs；read_msr/write_msr 只在 lapic.rs；寄存器 volatile 读写 Lapic::read/write 与 ioapic::write_register 对象与语义不同（LAPIC 直接偏移 vs IOAPIC 间接 IOREGSEL/IOWIN），不构成同一实现。keyboard::init 里"排空输出缓冲"循环与 keyboard::interrupt 循环形似但一个丢弃、一个解码，语义不同，可不合并。
+E. 提示项（非本任务新增，未判不通过，供主 agent 裁决）:
+   - idt.rs:134-148（common_exception_entry）与 idt.rs:247-261（common_irq_entry）的 15 个 push 序列逐行相同，同为 ExceptionFrame 镜像（idt.rs:64-88 注释要求两边同步）。该重复在 B1 就存在（HEAD 版 idt.rs:134、245），本任务重写了 common_irq_entry 但保留了它；两个出口语义不同（一个 hlt 不返回，一个 pop+iretq），所以按"语义不同不强合并"处理。若严格执行"触及即收敛"，可用 macro_rules 生成 push 序列（concat! 拼 naked_asm 字符串）消除。
+结论: 编码规范 通过（含上述 1 条提示）。
+
+===== 其它静态观察（不影响结论）=====
+- irq_lock.rs:36-47：IrqLock::with 不可重入。注释已声明；但 panic 路径（main.rs:120 起 printk!）若在 CONSOLE.with 内部触发（如 console 内 assert/越界 panic），会在锁内再次 with，产生别名 &mut 与 UB；本 Bite 路径未触发。
+- mmio.rs:72-75：遇到已有大页（PAGE_LARGE）直接返回，不改缓存属性；若 HHDM 的大页覆盖设备地址，则 MMIO 是否禁缓存取决于 Limine 映射。QEMU 上已实测可用。
+- mmio.rs POOL_TABLES=4 刚好够 LAPIC+IOAPIC；第三个设备页会 assert 失败（注释已声明）。
+
+===== 覆盖面缺口（标准没覆盖、建议验）=====
+1. 脚本未读回 IOAPIC 重定向表项（vector/mask/dest），"路由到 33"仅靠回显间接证明。
+2. 未覆盖连发/长按（快速 sendkey 压力）下与 100Hz tick 并发的 printk 竞态；当前每键间隔 100ms，且回显与 jiffies 打印只在 hello 前后相邻出现，并未真正压到 console 锁竞争（main 里的 printk 是 10 ms 级稀疏）。建议加：循环 sendkey 数百次 + 校验字符序列完整、无交错/无 panic。
+3. 未验证 break code（松开）与 E0 扩展键被正确丢弃、Shift/大写等被忽略（本 Bite 明确不做修饰键，但 E0 丢弃逻辑是已实现的行为，可加 sendkey ret / up / shift 断言）。
+4. 未验证屏幕上的回显（只断言 screendump 大小>10 KB，PPM 全帧大小恒定 1440015，不能证明非空白；我抽样确认存在非零像素，但脚本本身对"非空"检查等于恒真）。建议比较与基线像素差异或检查 hello 区域像素。
+5. 未验证 handler 内 IF 状态/EOI 后无丢中断：如 jiffies 在键盘风暴期间是否仍近似 100Hz。
+6. 仅 QEMU 默认机（IOAPIC 0xFEC00000 硬编码、GSI1=IRQ1）；未覆盖 -machine q35 或带 ISO override 的情形（课文已声明 MADT 不在本 Bite）。
+
+===== 总结论 =====
+通过：行为 3/3 通过且日志逐字节一致，编码规范无新增重复（timer/keyboard 共用同一 irq_entry!/common_irq_entry/irq_dispatch+EOI；map_page 唯一）；1 条既有的 GPR push 序列重复列为提示项，覆盖面缺口见上。

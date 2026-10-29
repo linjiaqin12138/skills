@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="560" viewBox="0 0 1080 560" role="img" aria-label="IOAPIC redirection table entry bitfields with the keyboard values">
+  <rect width="1080" height="560" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', sans-serif; fill: #111827; }
+    .title { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13px; fill: #475569; }
+    .sec { font-size: 15px; font-weight: 700; }
+    .lab { font-size: 13px; font-weight: 600; }
+    .tiny { font-size: 11px; fill: #64748b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #334155; }
+    .box { stroke: #64748b; stroke-width: 1.4; }
+    .used { fill: #dcfce7; }
+    .mask { fill: #fde68a; }
+    .rsv { fill: #e2e8f0; }
+  </style>
+
+  <text x="28" y="36" class="title">重定向表项（64 位 = 两个 32 位寄存器）</text>
+  <text x="28" y="58" class="sub">以键盘的条目 1 为例。位从左（高）到右（低）；格宽只为排版，不与位数成比例。绿色 = 本课写入，黄色 = 默认 0 的控制位，灰色 = 保留或只读</text>
+
+  <!-- 高半 -->
+  <text x="28" y="96" class="sec">高半 · 寄存器编号 0x13（0x11 + 2×1）· 先写</text>
+  <text x="28" y="116" class="sub">本课写入：LAPIC ID &lt;&lt; 24。ID = 0 时整字为 0x00000000；ID = 3 时为 0x03000000</text>
+  <g text-anchor="middle">
+    <text x="178" y="140" class="tiny">31:24（表项位 63:56）</text>
+    <text x="640" y="140" class="tiny">23:0（表项位 55:32）</text>
+  </g>
+  <g>
+    <rect x="28" y="148" width="300" height="64" class="box used"/>
+    <rect x="328" y="148" width="624" height="64" class="box rsv"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="178" y="174" class="lab">Destination</text>
+    <text x="178" y="196" class="tiny">物理模式下 = 目标 LAPIC ID</text>
+    <text x="640" y="174" class="lab">保留</text>
+    <text x="640" y="196" class="tiny">写 0</text>
+  </g>
+
+  <!-- 低半 -->
+  <text x="28" y="262" class="sec">低半 · 寄存器编号 0x12（0x10 + 2×1）· 后写</text>
+  <text x="28" y="282" class="sub">本课写入：0x21 = 33，其余位全 0。低半一落笔，这一项就按下面的含义生效</text>
+  <g text-anchor="middle">
+    <text x="103" y="306" class="tiny">31:17</text>
+    <text x="213" y="306" class="tiny">16</text>
+    <text x="288" y="306" class="tiny">15</text>
+    <text x="378" y="306" class="tiny">14</text>
+    <text x="468" y="306" class="tiny">13</text>
+    <text x="553" y="306" class="tiny">12</text>
+    <text x="638" y="306" class="tiny">11</text>
+    <text x="728" y="306" class="tiny">10:8</text>
+    <text x="865" y="306" class="tiny">7:0</text>
+  </g>
+  <g>
+    <rect x="28" y="314" width="150" height="76" class="box rsv"/>
+    <rect x="178" y="314" width="70" height="76" class="box mask"/>
+    <rect x="248" y="314" width="80" height="76" class="box mask"/>
+    <rect x="328" y="314" width="100" height="76" class="box rsv"/>
+    <rect x="428" y="314" width="80" height="76" class="box mask"/>
+    <rect x="508" y="314" width="90" height="76" class="box rsv"/>
+    <rect x="598" y="314" width="80" height="76" class="box mask"/>
+    <rect x="678" y="314" width="100" height="76" class="box mask"/>
+    <rect x="778" y="314" width="174" height="76" class="box used"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="103" y="344" class="lab">保留</text><text x="103" y="366" class="tiny">写 0</text>
+    <text x="213" y="344" class="lab">Mask</text><text x="213" y="366" class="tiny">0 = 未屏蔽</text>
+    <text x="288" y="344" class="lab">触发</text><text x="288" y="366" class="tiny">0 = 边沿</text>
+    <text x="378" y="344" class="lab">Remote IRR</text><text x="378" y="366" class="tiny">只读</text>
+    <text x="468" y="344" class="lab">极性</text><text x="468" y="366" class="tiny">0 = 高有效</text>
+    <text x="553" y="344" class="lab">投递状态</text><text x="553" y="366" class="tiny">只读</text>
+    <text x="638" y="344" class="lab">目标模式</text><text x="638" y="366" class="tiny">0 = 物理</text>
+    <text x="728" y="344" class="lab">投递模式</text><text x="728" y="366" class="tiny">000 = Fixed</text>
+    <text x="865" y="344" class="lab">Vector</text><text x="865" y="366" class="tiny">0x21 = 33</text>
+  </g>
+  <g text-anchor="middle">
+    <text x="213" y="382" class="mono">0</text>
+    <text x="288" y="382" class="mono">0</text>
+    <text x="468" y="382" class="mono">0</text>
+    <text x="638" y="382" class="mono">0</text>
+    <text x="728" y="382" class="mono">000</text>
+    <text x="865" y="382" class="mono">0010 0001</text>
+  </g>
+
+  <!-- 对照 -->
+  <text x="28" y="438" class="sec">想改行为时翻哪一位</text>
+  <g>
+    <text x="28" y="462" class="mono">Mask = 1</text><text x="130" y="462" class="sub">屏蔽这根线。Limine 交接时把已有的 Fixed 项置此位；复位后默认也是屏蔽</text>
+    <text x="28" y="484" class="mono">触发 = 1</text><text x="130" y="484" class="sub">电平触发。PCI 类设备常用；键盘是边沿，不用</text>
+    <text x="28" y="506" class="mono">极性 = 1</text><text x="130" y="506" class="sub">低电平有效。键盘线是高有效，不用</text>
+    <text x="28" y="528" class="mono">投递模式</text><text x="130" y="528" class="sub">001 = Lowest Priority，100 = NMI 等；本课只用 000 Fixed：向量字段原样送给目标 LAPIC</text>
+  </g>
+</svg>

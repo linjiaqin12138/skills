@@ -1,4 +1,4 @@
-//! IDT：256 项 64-bit interrupt gate，接管 CPU 异常与 LAPIC IRQ32。
+//! IDT：256 项 64-bit interrupt gate，接管 CPU 异常、定时器 IRQ32 与键盘 IRQ33。
 //!
 //! 异常发生时的栈帧（低地址 → 高地址，即压栈逆序）：
 //!   r15..rax（15 个通用寄存器，common_exception_entry 压入）
@@ -11,7 +11,7 @@ use core::arch::{asm, naked_asm};
 use core::ptr::addr_of_mut;
 
 use crate::gdt::KERNEL_CODE_SEL;
-use crate::printk;
+use crate::{keyboard, lapic, printk};
 
 /// IDT 项数：x86-64 固定 256 个向量（SDM Vol.3 6.10）
 const IDT_ENTRIES: usize = 256;
@@ -238,9 +238,11 @@ define_exceptions! {
     31 => entry_reserved_31                 : no_error_code,
 }
 
-/// IRQ32 独立使用可返回入口；异常仍走上方不返回的公共路径。
+/// 外部中断（IRQ）的公共出口：保存现场 → 交给 Rust 分发 → 恢复现场 → `iretq` 返回。
+/// 与异常出口不同，这里要回到被打断的代码，所以寄存器必须原样恢复。
+/// 各 stub 压入向量号后 jmp 到这里，所有外部向量共用这一份骨架。
 #[unsafe(naked)]
-unsafe extern "C" fn timer_entry() {
+unsafe extern "C" fn common_irq_entry() {
     naked_asm!(
         "push rax",
         "push rcx",
@@ -257,10 +259,12 @@ unsafe extern "C" fn timer_entry() {
         "push r13",
         "push r14",
         "push r15",
+        // 向量号就在 15 个寄存器之上（stub 压的）；作为第一个参数传给 Rust
+        "mov rdi, [rsp + 15 * 8]",
         // rbx 是 callee-saved，Rust handler 会保留它，用它记住寄存器帧的位置。
         "mov rbx, rsp",
         "and rsp, -16",
-        "call {handler}",
+        "call {dispatch}",
         "mov rsp, rbx",
         "pop r15",
         "pop r14",
@@ -277,17 +281,52 @@ unsafe extern "C" fn timer_entry() {
         "pop rdx",
         "pop rcx",
         "pop rax",
+        // 丢掉 stub 压入的向量号，iretq 要求栈顶是 rip
+        "add rsp, 8",
         "iretq",
-        handler = sym crate::lapic::timer_interrupt,
+        dispatch = sym irq_dispatch,
     );
 }
 
-/// 填写 IDT 并 lidt，完成异常与 LAPIC IRQ32 接管。
+/// 生成一个外部中断 stub：只压向量号再跳进公共出口。
+/// 向量号取自各驱动模块的常量，IDT 安装与 stub 压入的值同源。
+macro_rules! irq_entry {
+    ($name:ident, $vector:expr) => {
+        #[unsafe(naked)]
+        unsafe extern "C" fn $name() {
+            naked_asm!(
+                "push {vector}",
+                "jmp {common}",
+                vector = const $vector,
+                common = sym common_irq_entry,
+            );
+        }
+    };
+}
+
+irq_entry!(timer_entry, lapic::TIMER_VECTOR);
+irq_entry!(keyboard_entry, keyboard::KEYBOARD_VECTOR);
+
+/// 外部中断分发：按向量号找驱动，处理完统一发 EOI。
+/// EOI 放在 handler 之后：中断门期间 IF 已清，提前发也不会嵌套，
+/// 但"处理完再 EOI"与决定 0004 的顺序一致，也让每个 handler 不必各记一遍。
+extern "C" fn irq_dispatch(vector: u64) {
+    match vector as u32 {
+        lapic::TIMER_VECTOR => lapic::timer_interrupt(),
+        keyboard::KEYBOARD_VECTOR => keyboard::interrupt(),
+        // 只有上面两个向量装了 stub，其余进不来
+        _ => unreachable!(),
+    }
+    lapic::end_of_interrupt();
+}
+
+/// 填写 IDT 并 lidt，完成异常与外部中断接管。
 pub fn init() {
     // SAFETY: 单核关中断阶段，IDT 只在此处写入一次
     let idt = unsafe { &mut *addr_of_mut!(IDT) };
     install_exception_entries(idt);
-    idt[32] = IdtEntry::interrupt_gate(entry_addr(timer_entry));
+    idt[lapic::TIMER_VECTOR as usize] = IdtEntry::interrupt_gate(entry_addr(timer_entry));
+    idt[keyboard::KEYBOARD_VECTOR as usize] = IdtEntry::interrupt_gate(entry_addr(keyboard_entry));
 
     let idtr = IdtPointer {
         limit: (size_of_val(idt) - 1) as u16,

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 900" width="1700" height="900" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1840 980" width="1840" height="980" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
   <defs>
     <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
@@ -43,140 +43,195 @@
     .metric-value { font-size: 9.5px; font-weight: 700; fill: #111827; }
     </style>
   </defs>
-  <rect data-graph-role="background" width="1700.0" height="900.0" fill="#ffffff"/>
-  <text x="850.0" y="56" text-anchor="middle" class="title">M2 Bite1 → M3 Bite1：新增 100 Hz 中断运行路径</text>
-  <text x="850.0" y="82" text-anchor="middle" class="subtitle">与 current.svg 共享坐标；灰色为保留上下文</text>
-  <g id="kernel-box" data-graph-role="container" data-container-id="kernel-box" data-semantic-role="boundary" data-graph-bounds="300,140,1580,740">
-  <rect data-graph-role="container" x="300.0" y="140.0" width="1280.0" height="600.0" rx="16.0" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <rect data-graph-role="background" width="1840.0" height="980.0" fill="#ffffff"/>
+  <text x="920.0" y="56" text-anchor="middle" class="title">M3 Bite1 → Bite2：键盘 IRQ1 + 共享中断入口</text>
+  <text x="920.0" y="82" text-anchor="middle" class="subtitle">与 current.svg 同坐标；绿=新增，橙=改动，灰=未动</text>
+  <g id="kernel-box" data-graph-role="container" data-container-id="kernel-box" data-semantic-role="boundary" data-graph-bounds="300,140,1790,830">
+  <rect data-graph-role="container" x="300.0" y="140.0" width="1490.0" height="690.0" rx="16.0" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="6 5"/>
   <text x="318.0" y="164.0" class="section">KERNEL（信任边界）</text>
     <rect id="kernel-box-header" data-graph-role="reserved" data-reserved-kind="container-header" x="308" y="146" width="153.24" height="30" fill="none" stroke="none"/>
   </g>
-  <path id="init_idt" data-graph-role="edge" data-edge-id="init_idt" data-source="main" data-target="idt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="8" data-route-stretch="1.064" data-bridges="" d="M 1141,250 L 1141,270 L 1145,270 L 1145,274 L 670,274 L 670,270 L 660,270 L 660,319.6 L 670,319.6 L 670,340" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
-  <path id="iretq" data-graph-role="edge" data-edge-id="iretq" data-source="timer_entry" data-target="main" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 910,340 L 910,290 L 1145,290 L 1159,290 L 1159,250" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
-  <path id="read_jiffies" data-graph-role="edge" data-edge-id="read_jiffies" data-source="main" data-target="jiffies" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.134" data-bridges="" d="M 1240,206 L 1550,206 L 1550,215 L 1550,375 L 1520,375" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
-  <path id="report" data-graph-role="edge" data-edge-id="report" data-source="main" data-target="console" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="5" data-route-stretch="1.078" data-bridges="" d="M 1240,224 L 1260,224 L 1260,215 L 1264,215 L 1264,460 L 1260,460 L 685,460 L 685,510" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
-  <path id="mirror" data-graph-role="edge" data-edge-id="mirror" data-source="console" data-target="serial" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 685,580 L 685,655 L 685,665 L 870,665" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
-  <path id="handoff" data-graph-role="edge" data-edge-id="handoff" data-source="limine" data-target="main" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 210,215 L 1060,215" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
-  <path id="irq32" data-graph-role="edge" data-edge-id="irq32" data-source="lapic_hw" data-target="cpu" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 210,375 L 340,375" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
-  <path id="cpu_idt" data-graph-role="edge" data-edge-id="cpu_idt" data-source="cpu" data-target="idt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 510,375 L 580,375" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
-  <path id="dispatch32" data-graph-role="edge" data-edge-id="dispatch32" data-source="idt" data-target="timer_entry" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 760,375 L 820,375" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
-  <path id="call_timer" data-graph-role="edge" data-edge-id="call_timer" data-source="timer_entry" data-target="timer_interrupt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1000,375 L 1060,375" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
-  <path id="tick-bridge-mask" data-graph-role="bridge-mask" data-owner="tick" d="M 1240,375 L 1259,375 A 5 5 0 0 0 1269,375 L 1340,375" fill="none" stroke="#ffffff" stroke-width="6.9" stroke-linecap="round" stroke-linejoin="round"/>
-  <path id="tick" data-graph-role="edge" data-edge-id="tick" data-source="timer_interrupt" data-target="jiffies" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="1264,375" d="M 1240,375 L 1259,375 A 5 5 0 0 0 1269,375 L 1340,375" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
-  <path id="pixels" data-graph-role="edge" data-edge-id="pixels" data-source="console" data-target="fb" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 770,545 L 870,545" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
-  <g id="node-limine" data-graph-role="node" data-node-id="limine" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,180,210,250">
-  <rect x="40.0" y="180.0" width="170.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="Limine" data-text-max-width="146.0" x="125.0" y="215.0" text-anchor="middle" class="node-title" font-size="18">Limine</text>
-  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="146.0" x="125.0" y="237.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
+  <path id="handoff" data-graph-role="edge" data-edge-id="handoff" data-source="limine" data-target="main" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 210,745 L 870,745 L 870,500" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
+  <path id="init_idt" data-graph-role="edge" data-edge-id="init_idt" data-source="main" data-target="idt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 780,465 L 630,465 L 630,330" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="route33" data-graph-role="edge" data-edge-id="route33" data-source="ioapic" data-target="cpu" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 210,465 L 405,465 L 405,330" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="dispatch33" data-graph-role="edge" data-edge-id="dispatch33" data-source="dispatch" data-target="keyboard" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 1145,330 L 1145,465 L 1310,465" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="read_jiffies" data-graph-role="edge" data-edge-id="read_jiffies" data-source="main" data-target="jiffies" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="3" data-route-stretch="1.222" data-bridges="" d="M 960,456 L 1040,456 L 1040,545 L 1635,545 L 1635,330" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
+  <path id="report" data-graph-role="edge" data-edge-id="report" data-source="main" data-target="console" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 960,474 L 1010,474 L 1010,635 L 1310,635" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
+  <path id="mirror" data-graph-role="edge" data-edge-id="mirror" data-source="console" data-target="serial" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 1395,670 L 1395,755 L 1610,755" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
+  <path id="eoi" data-graph-role="edge" data-edge-id="eoi" data-source="dispatch" data-target="lapic_hw" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.108" data-bridges="" d="M 1145,260 L 1145,205 L 125,205 L 125,260" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="irq32" data-graph-role="edge" data-edge-id="irq32" data-source="lapic_hw" data-target="cpu" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 210,295 L 340,295" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
+  <path id="irq1" data-graph-role="edge" data-edge-id="irq1" data-source="kbd_hw" data-target="ioapic" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 125,570 L 125,500" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="cpu_idt" data-graph-role="edge" data-edge-id="cpu_idt" data-source="cpu" data-target="idt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 470,295 L 550,295" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="to_common" data-graph-role="edge" data-edge-id="to_common" data-source="idt" data-target="common" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 710,295 L 780,295" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="call_dispatch" data-graph-role="edge" data-edge-id="call_dispatch" data-source="common" data-target="dispatch" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 960,295 L 1060,295" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="dispatch32" data-graph-role="edge" data-edge-id="dispatch32" data-source="dispatch" data-target="timer_interrupt" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1230,295 L 1310,295" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="tick" data-graph-role="edge" data-edge-id="tick" data-source="timer_interrupt" data-target="jiffies" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1480,295 L 1550,295" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
+  <path id="iretq" data-graph-role="edge" data-edge-id="iretq" data-source="common" data-target="main" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 870,330 L 870,430" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="kbd_print-bridge-mask" data-graph-role="bridge-mask" data-owner="kbd_print" d="M 1395,500 L 1395,540 A 5 5 0 0 1 1395,550 L 1395,600" fill="none" stroke="#ffffff" stroke-width="6.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="kbd_print" data-graph-role="edge" data-edge-id="kbd_print" data-source="keyboard" data-target="console" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="1395,545" d="M 1395,500 L 1395,540 A 5 5 0 0 1 1395,550 L 1395,600" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="pixels" data-graph-role="edge" data-edge-id="pixels" data-source="console" data-target="fb" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1480,635 L 1610,635" fill="none" stroke="#6b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowH)"/>
+  <g id="node-limine" data-graph-role="node" data-node-id="limine" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,710,210,780">
+  <rect x="40.0" y="710.0" width="170.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Limine" data-text-max-width="146.0" x="125.0" y="745.0" text-anchor="middle" class="node-title" font-size="18">Limine</text>
+  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="146.0" x="125.0" y="767.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
   </g>
-  <g id="node-lapic_hw" data-graph-role="node" data-node-id="lapic_hw" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,340,210,410">
-  <rect x="40.0" y="340.0" width="170.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="LAPIC" data-text-max-width="146.0" x="125.0" y="375.0" text-anchor="middle" class="node-title" font-size="18">LAPIC</text>
-  <text data-text-role="subtitle" data-full-text="【新】100 Hz" data-text-max-width="146.0" x="125.0" y="397.0" text-anchor="middle" class="node-sub" font-size="12">【新】100 Hz</text>
+  <g id="node-lapic_hw" data-graph-role="node" data-node-id="lapic_hw" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,260,210,330">
+  <rect x="40.0" y="260.0" width="170.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="LAPIC" data-text-max-width="146.0" x="125.0" y="295.0" text-anchor="middle" class="node-title" font-size="18">LAPIC</text>
+  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="146.0" x="125.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
   </g>
-  <g id="node-cpu" data-graph-role="node" data-node-id="cpu" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,340,510,410">
-  <rect x="340.0" y="340.0" width="170.0" height="70.0" rx="10.0" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="CPU" data-text-max-width="146.0" x="425.0" y="375.0" text-anchor="middle" class="node-title" font-size="18">CPU</text>
-  <text data-text-role="subtitle" data-full-text="【改】+IRQ32" data-text-max-width="146.0" x="425.0" y="397.0" text-anchor="middle" class="node-sub" font-size="12">【改】+IRQ32</text>
+  <g id="node-kbd_hw" data-graph-role="node" data-node-id="kbd_hw" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,570,210,640">
+  <rect x="40.0" y="570.0" width="170.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="PS/2 键盘" data-text-max-width="146.0" x="125.0" y="605.0" text-anchor="middle" class="node-title" font-size="18">PS/2 键盘</text>
+  <text data-text-role="subtitle" data-full-text="【新】" data-text-max-width="146.0" x="125.0" y="627.0" text-anchor="middle" class="node-sub" font-size="12">【新】</text>
   </g>
-  <g id="node-idt" data-graph-role="node" data-node-id="idt" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="580,340,760,410">
-  <rect x="580.0" y="340.0" width="180.0" height="70.0" rx="10.0" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="idt" data-text-max-width="156.0" x="670.0" y="375.0" text-anchor="middle" class="node-title" font-size="18">idt</text>
-  <text data-text-role="subtitle" data-full-text="【改】+IRQ32 入口" data-text-max-width="156.0" x="670.0" y="397.0" text-anchor="middle" class="node-sub" font-size="12">【改】+IRQ32 入口</text>
+  <g id="node-ioapic" data-graph-role="node" data-node-id="ioapic" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="40,430,210,500">
+  <rect x="40.0" y="430.0" width="170.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="IOAPIC" data-text-max-width="146.0" x="125.0" y="465.0" text-anchor="middle" class="node-title" font-size="18">IOAPIC</text>
+  <text data-text-role="subtitle" data-full-text="【新】IRQ1 → 33" data-text-max-width="146.0" x="125.0" y="487.0" text-anchor="middle" class="node-sub" font-size="12">【新】IRQ1 → 33</text>
   </g>
-  <g id="node-timer_entry" data-graph-role="node" data-node-id="timer_entry" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="820,340,1000,410">
-  <rect x="820.0" y="340.0" width="180.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="timer_entry" data-text-max-width="156.0" x="910.0" y="375.0" text-anchor="middle" class="node-title" font-size="18">timer_entry</text>
-  <text data-text-role="subtitle" data-full-text="【新】可返回" data-text-max-width="156.0" x="910.0" y="397.0" text-anchor="middle" class="node-sub" font-size="12">【新】可返回</text>
+  <g id="node-cpu" data-graph-role="node" data-node-id="cpu" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,260,470,330">
+  <rect x="340.0" y="260.0" width="130.0" height="70.0" rx="10.0" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="CPU" data-text-max-width="106.0" x="405.0" y="295.0" text-anchor="middle" class="node-title" font-size="18">CPU</text>
+  <text data-text-role="subtitle" data-full-text="【改】+向量 33" data-text-max-width="106.0" x="405.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">【改】+向量 33</text>
   </g>
-  <g id="node-timer_interrupt" data-graph-role="node" data-node-id="timer_interrupt" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1060,340,1240,410">
-  <rect x="1060.0" y="340.0" width="180.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="timer_interrupt" data-text-max-width="156.0" x="1150.0" y="375.0" text-anchor="middle" class="node-title" font-size="17.65">timer_interrupt</text>
-  <text data-text-role="subtitle" data-full-text="【新】lapic.rs" data-text-max-width="156.0" x="1150.0" y="397.0" text-anchor="middle" class="node-sub" font-size="12">【新】lapic.rs</text>
+  <g id="node-idt" data-graph-role="node" data-node-id="idt" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="550,260,710,330">
+  <rect x="550.0" y="260.0" width="160.0" height="70.0" rx="10.0" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="idt" data-text-max-width="136.0" x="630.0" y="295.0" text-anchor="middle" class="node-title" font-size="18">idt</text>
+  <text data-text-role="subtitle" data-full-text="【改】stub + common" data-text-max-width="136.0" x="630.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">【改】stub + common</text>
   </g>
-  <g id="node-jiffies" data-graph-role="node" data-node-id="jiffies" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1340,340,1520,410">
-  <rect x="1340.0" y="340.0" width="180.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="JIFFIES" data-text-max-width="156.0" x="1430.0" y="375.0" text-anchor="middle" class="node-title" font-size="18">JIFFIES</text>
-  <text data-text-role="subtitle" data-full-text="【新】AtomicU64" data-text-max-width="156.0" x="1430.0" y="397.0" text-anchor="middle" class="node-sub" font-size="12">【新】AtomicU64</text>
+  <g id="node-common" data-graph-role="node" data-node-id="common" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="780,260,960,330">
+  <rect x="780.0" y="260.0" width="180.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="common_irq_entry" data-text-max-width="156.0" x="870.0" y="295.0" text-anchor="middle" class="node-title" font-size="16.01">common_irq_entry</text>
+  <text data-text-role="subtitle" data-full-text="【新】取代 timer_entry" data-text-max-width="156.0" x="870.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">【新】取代 timer_entry</text>
   </g>
-  <g id="node-main" data-graph-role="node" data-node-id="main" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1060,180,1240,250">
-  <rect x="1060.0" y="180.0" width="180.0" height="70.0" rx="10.0" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="main" data-text-max-width="156.0" x="1150.0" y="215.0" text-anchor="middle" class="node-title" font-size="18">main</text>
-  <text data-text-role="subtitle" data-full-text="【改】+report_jiffies" data-text-max-width="156.0" x="1150.0" y="237.0" text-anchor="middle" class="node-sub" font-size="12">【改】+report_jiffies</text>
+  <g id="node-dispatch" data-graph-role="node" data-node-id="dispatch" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1060,260,1230,330">
+  <rect x="1060.0" y="260.0" width="170.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="irq_dispatch" data-text-max-width="146.0" x="1145.0" y="295.0" text-anchor="middle" class="node-title" font-size="18">irq_dispatch</text>
+  <text data-text-role="subtitle" data-full-text="【新】分发 + 统一 EOI" data-text-max-width="146.0" x="1145.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">【新】分发 + 统一 EOI</text>
   </g>
-  <g id="node-console" data-graph-role="node" data-node-id="console" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="600,510,770,580">
-  <rect x="600.0" y="510.0" width="170.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="console" data-text-max-width="146.0" x="685.0" y="545.0" text-anchor="middle" class="node-title" font-size="18">console</text>
-  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="146.0" x="685.0" y="567.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
+  <g id="node-timer_interrupt" data-graph-role="node" data-node-id="timer_interrupt" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1310,260,1480,330">
+  <rect x="1310.0" y="260.0" width="170.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="timer_interrupt" data-text-max-width="146.0" x="1395.0" y="295.0" text-anchor="middle" class="node-title" font-size="16.52">timer_interrupt</text>
+  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="146.0" x="1395.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
   </g>
-  <g id="node-fb" data-graph-role="node" data-node-id="fb" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="870,510,1050,580">
-  <rect x="870.0" y="510.0" width="180.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="framebuffer" data-text-max-width="156.0" x="960.0" y="545.0" text-anchor="middle" class="node-title" font-size="18">framebuffer</text>
-  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="156.0" x="960.0" y="567.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
+  <g id="node-jiffies" data-graph-role="node" data-node-id="jiffies" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1550,260,1720,330">
+  <rect x="1550.0" y="260.0" width="170.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="JIFFIES" data-text-max-width="146.0" x="1635.0" y="295.0" text-anchor="middle" class="node-title" font-size="18">JIFFIES</text>
+  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="146.0" x="1635.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
   </g>
-  <g id="node-serial" data-graph-role="node" data-node-id="serial" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="870,630,1050,700">
-  <rect x="870.0" y="630.0" width="180.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="serial" data-text-max-width="156.0" x="960.0" y="665.0" text-anchor="middle" class="node-title" font-size="18">serial</text>
-  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="156.0" x="960.0" y="687.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
+  <g id="node-main" data-graph-role="node" data-node-id="main" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="780,430,960,500">
+  <rect x="780.0" y="430.0" width="180.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="main" data-text-max-width="156.0" x="870.0" y="465.0" text-anchor="middle" class="node-title" font-size="18">main</text>
+  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="156.0" x="870.0" y="487.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
   </g>
-  <g id="handoff-label" data-graph-role="label" data-owner="handoff" data-graph-bounds="594.52,184,675.48,204">
-  <rect x="594.52" y="184.0" width="80.96000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="635.0" y="198.0" text-anchor="middle" class="arrow-label">进入 kernel</text>
+  <g id="node-keyboard" data-graph-role="node" data-node-id="keyboard" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1310,430,1480,500">
+  <rect x="1310.0" y="430.0" width="170.0" height="70.0" rx="10.0" fill="#d1fae5" stroke="#10b981" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="keyboard::interrupt" data-text-max-width="146.0" x="1395.0" y="465.0" text-anchor="middle" class="node-title" font-size="13.2">keyboard::interrupt</text>
+  <text data-text-role="subtitle" data-full-text="【新】驱动" data-text-max-width="146.0" x="1395.0" y="487.0" text-anchor="middle" class="node-sub" font-size="12">【新】驱动</text>
   </g>
-  <g id="init_idt-label" data-graph-role="label" data-owner="init_idt" data-graph-bounds="870.5,243,944.5,263">
-  <rect x="870.5" y="243.0" width="74.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="907.5" y="257.0" text-anchor="middle" class="arrow-label">注册 IRQ32</text>
+  <g id="node-console" data-graph-role="node" data-node-id="console" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1310,600,1480,670">
+  <rect x="1310.0" y="600.0" width="170.0" height="70.0" rx="10.0" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="console" data-text-max-width="146.0" x="1395.0" y="635.0" text-anchor="middle" class="node-title" font-size="18">console</text>
+  <text data-text-role="subtitle" data-full-text="【改】+IrqLock" data-text-max-width="146.0" x="1395.0" y="657.0" text-anchor="middle" class="node-sub" font-size="12">【改】+IrqLock</text>
   </g>
-  <g id="irq32-label" data-graph-role="label" data-owner="irq32" data-graph-bounds="225.52,344,324.48,364">
-  <rect x="225.52" y="344.0" width="98.96000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="275.0" y="358.0" text-anchor="middle" class="arrow-label">IRQ32 @100 Hz</text>
+  <g id="node-fb" data-graph-role="node" data-node-id="fb" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1610,600,1770,670">
+  <rect x="1610.0" y="600.0" width="160.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="framebuffer" data-text-max-width="136.0" x="1690.0" y="635.0" text-anchor="middle" class="node-title" font-size="18">framebuffer</text>
+  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="136.0" x="1690.0" y="657.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
   </g>
-  <g id="cpu_idt-label" data-graph-role="label" data-owner="cpu_idt" data-graph-bounds="522.16,344,567.84,364">
-  <rect x="522.16" y="344.0" width="45.68" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="545.0" y="358.0" text-anchor="middle" class="arrow-label">IRQ32</text>
+  <g id="node-serial" data-graph-role="node" data-node-id="serial" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1610,720,1770,790">
+  <rect x="1610.0" y="720.0" width="160.0" height="70.0" rx="10.0" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="serial" data-text-max-width="136.0" x="1690.0" y="755.0" text-anchor="middle" class="node-title" font-size="18">serial</text>
+  <text data-text-role="subtitle" data-full-text="未动" data-text-max-width="136.0" x="1690.0" y="777.0" text-anchor="middle" class="node-sub" font-size="12">未动</text>
   </g>
-  <g id="dispatch32-label" data-graph-role="label" data-owner="dispatch32" data-graph-bounds="772,344,808,364">
-  <rect x="772.0" y="344.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="790.0" y="358.0" text-anchor="middle" class="arrow-label">32</text>
+  <g id="node-timer_entry_gone" data-graph-role="node" data-node-id="timer_entry_gone" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="550,570,720,640">
+  <rect x="550.0" y="570.0" width="170.0" height="70.0" rx="10.0" fill="#e5e7eb" stroke="#6b7280" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="timer_entry" data-text-max-width="146.0" x="635.0" y="605.0" text-anchor="middle" class="node-title" font-size="18">timer_entry</text>
+  <text data-text-role="subtitle" data-full-text="【删】并入 common" data-text-max-width="146.0" x="635.0" y="627.0" text-anchor="middle" class="node-sub" font-size="12">【删】并入 common</text>
   </g>
-  <g id="call_timer-label" data-graph-role="label" data-owner="call_timer" data-graph-bounds="1012,344,1048,364">
-  <rect x="1012.0" y="344.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="1030.0" y="358.0" text-anchor="middle" class="arrow-label">call</text>
+  <g id="handoff-label" data-graph-role="label" data-owner="handoff" data-graph-bounds="499.52,714,580.48,734">
+  <rect x="499.52" y="714.0" width="80.96000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="540.0" y="728.0" text-anchor="middle" class="arrow-label">进入 kernel</text>
   </g>
-  <g id="tick-label" data-graph-role="label" data-owner="tick" data-graph-bounds="1272,344,1308,364">
-  <rect x="1272.0" y="344.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="1290.0" y="358.0" text-anchor="middle" class="arrow-label">+1</text>
+  <g id="init_idt-label" data-graph-role="label" data-owner="init_idt" data-graph-bounds="634.04,434,775.96,454">
+  <rect x="634.04" y="434.0" width="141.92000000000002" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="705.0" y="448.0" text-anchor="middle" class="arrow-label">注册向量 32 / 33 stub</text>
   </g>
-  <g id="iretq-label" data-graph-role="label" data-owner="iretq" data-graph-bounds="1004.66,249,1050.34,269">
-  <rect x="1004.66" y="249.0" width="45.68" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="1027.5" y="263.0" text-anchor="middle" class="arrow-label">iretq</text>
+  <g id="irq32-label" data-graph-role="label" data-owner="irq32" data-graph-bounds="236.56,264,313.44,284">
+  <rect x="236.56" y="264.0" width="76.88" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="275.0" y="278.0" text-anchor="middle" class="arrow-label">32 @100Hz</text>
   </g>
-  <g id="read_jiffies-label" data-graph-role="label" data-owner="read_jiffies" data-graph-bounds="1345.88,175,1444.12,195">
-  <rect x="1345.88" y="175.0" width="98.24000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="1395.0" y="189.0" text-anchor="middle" class="arrow-label">load(Relaxed)</text>
+  <g id="irq1-label" data-graph-role="label" data-owner="irq1" data-graph-bounds="31.68,521,122,541">
+  <rect x="31.68" y="521.0" width="90.32" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="76.84" y="535.0" text-anchor="middle" class="arrow-label">IRQ1 · 扫描码</text>
   </g>
-  <g id="report-label" data-graph-role="label" data-owner="report" data-graph-bounds="928.9,429,1016.1,449">
-  <rect x="928.9" y="429.0" width="87.2" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="972.5" y="443.0" text-anchor="middle" class="arrow-label">每 100 ticks</text>
+  <g id="route33-label" data-graph-role="label" data-owner="route33" data-graph-bounds="255.38,434,359.62,454">
+  <rect x="255.38" y="434.0" width="104.24000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="307.5" y="448.0" text-anchor="middle" class="arrow-label">重定向为向量 33</text>
   </g>
-  <g id="pixels-label" data-graph-role="label" data-owner="pixels" data-graph-bounds="781.2,514,858.8,534">
-  <rect x="781.2" y="514.0" width="77.6" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="820.0" y="528.0" text-anchor="middle" class="arrow-label">文本 → 像素</text>
+  <g id="cpu_idt-label" data-graph-role="label" data-owner="cpu_idt" data-graph-bounds="485.6,264,534.4,284">
+  <rect x="485.6" y="264.0" width="48.8" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="510.0" y="278.0" text-anchor="middle" class="arrow-label">32/33</text>
   </g>
-  <g id="mirror-label" data-graph-role="label" data-owner="mirror" data-graph-bounds="746.5,634,808.5,654">
-  <rect x="746.5" y="634.0" width="62.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
-  <text x="777.5" y="648.0" text-anchor="middle" class="arrow-label">镜像字节</text>
+  <g id="to_common-label" data-graph-role="label" data-owner="to_common" data-graph-bounds="727,264,763,284">
+  <rect x="727.0" y="264.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="745.0" y="278.0" text-anchor="middle" class="arrow-label">jmp</text>
+  </g>
+  <g id="call_dispatch-label" data-graph-role="label" data-owner="call_dispatch" data-graph-bounds="992,264,1028,284">
+  <rect x="992.0" y="264.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1010.0" y="278.0" text-anchor="middle" class="arrow-label">call</text>
+  </g>
+  <g id="dispatch32-label" data-graph-role="label" data-owner="dispatch32" data-graph-bounds="1252,264,1288,284">
+  <rect x="1252.0" y="264.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1270.0" y="278.0" text-anchor="middle" class="arrow-label">32</text>
+  </g>
+  <g id="dispatch33-label" data-graph-role="label" data-owner="dispatch33" data-graph-bounds="1209.5,434,1245.5,454">
+  <rect x="1209.5" y="434.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1227.5" y="448.0" text-anchor="middle" class="arrow-label">33</text>
+  </g>
+  <g id="tick-label" data-graph-role="label" data-owner="tick" data-graph-bounds="1497,264,1533,284">
+  <rect x="1497.0" y="264.0" width="36.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1515.0" y="278.0" text-anchor="middle" class="arrow-label">+1</text>
+  </g>
+  <g id="iretq-label" data-graph-role="label" data-owner="iretq" data-graph-bounds="781.72,366,867,386">
+  <rect x="781.72" y="366.0" width="85.28" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="824.36" y="380.0" text-anchor="middle" class="arrow-label">iretq · 返回</text>
+  </g>
+  <g id="read_jiffies-label" data-graph-role="label" data-owner="read_jiffies" data-graph-bounds="1288.38,514,1386.62,534">
+  <rect x="1288.38" y="514.0" width="98.24000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1337.5" y="528.0" text-anchor="middle" class="arrow-label">load(Relaxed)</text>
+  </g>
+  <g id="report-label" data-graph-role="label" data-owner="report" data-graph-bounds="1093,604,1227,624">
+  <rect x="1093.0" y="604.0" width="134.00000000000003" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1160.0" y="618.0" text-anchor="middle" class="arrow-label">每 100 ticks printk!</text>
+  </g>
+  <g id="kbd_print-label" data-graph-role="label" data-owner="kbd_print" data-graph-bounds="1297.6,554,1392,574">
+  <rect x="1297.6" y="554.0" width="94.4" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1344.8" y="568.0" text-anchor="middle" class="arrow-label">printk!(按键)</text>
+  </g>
+  <g id="pixels-label" data-graph-role="label" data-owner="pixels" data-graph-bounds="1506.2,604,1583.8,624">
+  <rect x="1506.2" y="604.0" width="77.6" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1545.0" y="618.0" text-anchor="middle" class="arrow-label">文本 → 像素</text>
+  </g>
+  <g id="mirror-label" data-graph-role="label" data-owner="mirror" data-graph-bounds="1471.5,724,1533.5,744">
+  <rect x="1471.5" y="724.0" width="62.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="1502.5" y="738.0" text-anchor="middle" class="arrow-label">镜像字节</text>
+  </g>
+  <g id="eoi-label" data-graph-role="label" data-owner="eoi" data-graph-bounds="557.2,174,712.8,194">
+  <rect x="557.2" y="174.0" width="155.6" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="635.0" y="188.0" text-anchor="middle" class="arrow-label">end_of_interrupt · EOI</text>
   </g>
   <g id="legend" data-graph-role="legend">
-    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="796" width="393.2" height="46" rx="10" fill="none" stroke="none"/>
-    <line data-graph-role="decoration" x1="48.0" y1="810.0" x2="78.0" y2="810.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
-    <text data-graph-role="decoration" x="88.0" y="814.0" class="legend">新增模块 / 边</text>
-    <line data-graph-role="decoration" x1="191.60000000000002" y1="810.0" x2="221.60000000000002" y2="810.0" stroke="#f97316" stroke-width="2.4" marker-end="url(#arrowE)"/>
-    <text data-graph-role="decoration" x="231.60000000000002" y="814.0" class="legend">改动模块 / 契约</text>
-    <line data-graph-role="decoration" x1="347.20000000000005" y1="810.0" x2="377.20000000000005" y2="810.0" stroke="#6b7280" stroke-width="2.4" marker-end="url(#arrowH)"/>
-    <text data-graph-role="decoration" x="387.20000000000005" y="814.0" class="legend">未动</text>
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="856" width="468.8" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="48.0" y1="870.0" x2="78.0" y2="870.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="88.0" y="874.0" class="legend">新增模块 / 边</text>
+    <line data-graph-role="decoration" x1="191.60000000000002" y1="870.0" x2="221.60000000000002" y2="870.0" stroke="#f97316" stroke-width="2.4" marker-end="url(#arrowE)"/>
+    <text data-graph-role="decoration" x="231.60000000000002" y="874.0" class="legend">改动模块 / 边</text>
+    <line data-graph-role="decoration" x1="335.20000000000005" y1="870.0" x2="365.20000000000005" y2="870.0" stroke="#6b7280" stroke-width="2.4" marker-end="url(#arrowH)"/>
+    <text data-graph-role="decoration" x="375.20000000000005" y="874.0" class="legend">未动 / 删除（灰块）</text>
   </g>
-  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,848,342,864">
-  <text x="48.0" y="860.0" class="footnote">Style 1 · fireworks · M3 Bite1 vs M2 Bite1</text>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,918,321,934">
+  <text x="48.0" y="930.0" class="footnote">Style 1 · fireworks · M3 Bite2 vs Bite1</text>
   </g>
 </svg>

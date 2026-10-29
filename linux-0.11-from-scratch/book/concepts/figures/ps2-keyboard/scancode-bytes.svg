@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="556" viewBox="0 0 1060 556" role="img" aria-label="Scancode set 1 make/break byte and E0 prefix">
+<rect width="1060" height="556" fill="#f8fafc"/>
+<style>
+ text { font-family: 'Noto Sans CJK SC', sans-serif; fill: #111827; }
+ .title { font-size: 20px; font-weight: 700; }
+ .sub { font-size: 13px; fill: #475569; }
+ .lab { font-size: 13px; font-weight: 600; }
+ .tiny { font-size: 11px; fill: #64748b; }
+ .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; fill: #334155; }
+ .monob { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; font-weight: 700; }
+ .box { stroke: #64748b; stroke-width: 1.4; }
+ .used { fill: #dcfce7; } .rsv { fill: #e2e8f0; } .val { fill: #e0e7ff; } .warn { fill: #fde68a; } .no { fill: #f1f5f9; stroke-dasharray: 4 3; }
+</style>
+<text x="24" y="32" class="title">扫描码集 1：一个字节 = 「松开?」+ 7 位键号</text>
+<text x="24" y="54" class="sub">按 a 键：make = 0x1E；松开：break = 0x1E | 0x80 = 0x9E。同一个键，只差最高位。</text>
+<text x="24" y="122" class="lab">按下 a（make）</text>
+<rect x="180" y="100" width="56" height="36" class="box used"/>
+<text x="208.0" y="124" text-anchor="middle" class="monob">0</text>
+<text x="208.0" y="95" text-anchor="middle" class="tiny">bit7</text>
+<rect x="236" y="100" width="56" height="36" class="box val"/>
+<text x="264.0" y="124" text-anchor="middle" class="monob">0</text>
+<text x="264.0" y="95" text-anchor="middle" class="tiny">bit6</text>
+<rect x="292" y="100" width="56" height="36" class="box val"/>
+<text x="320.0" y="124" text-anchor="middle" class="monob">0</text>
+<text x="320.0" y="95" text-anchor="middle" class="tiny">bit5</text>
+<rect x="348" y="100" width="56" height="36" class="box val"/>
+<text x="376.0" y="124" text-anchor="middle" class="monob">1</text>
+<text x="376.0" y="95" text-anchor="middle" class="tiny">bit4</text>
+<rect x="404" y="100" width="56" height="36" class="box val"/>
+<text x="432.0" y="124" text-anchor="middle" class="monob">1</text>
+<text x="432.0" y="95" text-anchor="middle" class="tiny">bit3</text>
+<rect x="460" y="100" width="56" height="36" class="box val"/>
+<text x="488.0" y="124" text-anchor="middle" class="monob">1</text>
+<text x="488.0" y="95" text-anchor="middle" class="tiny">bit2</text>
+<rect x="516" y="100" width="56" height="36" class="box val"/>
+<text x="544.0" y="124" text-anchor="middle" class="monob">1</text>
+<text x="544.0" y="95" text-anchor="middle" class="tiny">bit1</text>
+<rect x="572" y="100" width="56" height="36" class="box val"/>
+<text x="600.0" y="124" text-anchor="middle" class="monob">0</text>
+<text x="600.0" y="95" text-anchor="middle" class="tiny">bit0</text>
+<text x="644" y="116" class="monob">0x1E</text>
+<text x="644" y="134" class="tiny">bit7=0 → 查表 → 'a'</text>
+<text x="24" y="212" class="lab">松开 a（break）</text>
+<rect x="180" y="190" width="56" height="36" class="box warn"/>
+<text x="208.0" y="214" text-anchor="middle" class="monob">1</text>
+<text x="208.0" y="185" text-anchor="middle" class="tiny">bit7</text>
+<rect x="236" y="190" width="56" height="36" class="box val"/>
+<text x="264.0" y="214" text-anchor="middle" class="monob">0</text>
+<text x="264.0" y="185" text-anchor="middle" class="tiny">bit6</text>
+<rect x="292" y="190" width="56" height="36" class="box val"/>
+<text x="320.0" y="214" text-anchor="middle" class="monob">0</text>
+<text x="320.0" y="185" text-anchor="middle" class="tiny">bit5</text>
+<rect x="348" y="190" width="56" height="36" class="box val"/>
+<text x="376.0" y="214" text-anchor="middle" class="monob">1</text>
+<text x="376.0" y="185" text-anchor="middle" class="tiny">bit4</text>
+<rect x="404" y="190" width="56" height="36" class="box val"/>
+<text x="432.0" y="214" text-anchor="middle" class="monob">1</text>
+<text x="432.0" y="185" text-anchor="middle" class="tiny">bit3</text>
+<rect x="460" y="190" width="56" height="36" class="box val"/>
+<text x="488.0" y="214" text-anchor="middle" class="monob">1</text>
+<text x="488.0" y="185" text-anchor="middle" class="tiny">bit2</text>
+<rect x="516" y="190" width="56" height="36" class="box val"/>
+<text x="544.0" y="214" text-anchor="middle" class="monob">1</text>
+<text x="544.0" y="185" text-anchor="middle" class="tiny">bit1</text>
+<rect x="572" y="190" width="56" height="36" class="box val"/>
+<text x="600.0" y="214" text-anchor="middle" class="monob">0</text>
+<text x="600.0" y="185" text-anchor="middle" class="tiny">bit0</text>
+<text x="644" y="206" class="monob">0x9E</text>
+<text x="644" y="224" class="tiny">bit7=1 → 忽略</text>
+<text x="180" y="262" class="tiny">黄/绿 = bit 7（BREAK_BIT = 1 &lt;&lt; 7）；蓝 = bit 0..6 键号，两行相同。</text>
+<line x1="24" y1="284" x2="1040" y2="284" stroke="#cbd5e1"/>
+<text x="24" y="314" class="title">扩展键：0xE0 前缀 + 一个字节</text>
+<text x="24" y="336" class="sub">小键盘 Enter 的第二个字节和主键盘 Enter 一样是 0x1C。没有前缀识别，它会被回显成换行。</text>
+<text x="24" y="386" class="lab">主 Enter</text>
+<rect x="240" y="362" width="86" height="38" class="box used"/>
+<text x="283" y="387" text-anchor="middle" class="monob">0x1C</text>
+<text x="283" y="418" text-anchor="middle" class="tiny">查表 → 换行</text>
+<rect x="350" y="362" width="86" height="38" class="box warn"/>
+<text x="393" y="387" text-anchor="middle" class="monob">0x9C</text>
+<text x="393" y="418" text-anchor="middle" class="tiny">break 忽略</text>
+<text x="24" y="466" class="lab">小键盘 Enter</text>
+<rect x="240" y="442" width="86" height="38" class="box warn"/>
+<text x="283" y="467" text-anchor="middle" class="monob">0xE0</text>
+<text x="283" y="498" text-anchor="middle" class="tiny">置 PENDING</text>
+<rect x="350" y="442" width="86" height="38" class="box rsv"/>
+<text x="393" y="467" text-anchor="middle" class="monob">0x1C</text>
+<text x="393" y="498" text-anchor="middle" class="tiny">整字节丢弃</text>
+<rect x="460" y="442" width="86" height="38" class="box warn"/>
+<text x="503" y="467" text-anchor="middle" class="monob">0xE0</text>
+<text x="503" y="498" text-anchor="middle" class="tiny">置 PENDING</text>
+<rect x="570" y="442" width="86" height="38" class="box rsv"/>
+<text x="613" y="467" text-anchor="middle" class="monob">0x9C</text>
+<text x="613" y="498" text-anchor="middle" class="tiny">整字节丢弃</text>
+<text x="24" y="540" class="tiny">橙黄 = decode 里被特殊处理的字节；灰 = 被丢弃的「下一字节」；绿 = 会被回显。</text>
+</svg>

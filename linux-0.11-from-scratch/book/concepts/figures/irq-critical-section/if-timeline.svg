@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-label="RFLAGS.IF 随时间变化：A 图恢复进入时的 IF，B 图无条件 sti">
+  <rect width="960" height="640" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #111827; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 13px; fill: #475569; }
+    .lane { font-size: 16px; font-weight: 700; }
+    .lv { font-size: 13px; fill: #475569; }
+    .lab { font-size: 13px; }
+    .mk { font-size: 13px; font-weight: 700; fill: #ffffff; }
+    .bar { font-size: 13px; font-weight: 600; }
+    .grid { stroke: #cbd5e1; stroke-width: 1; stroke-dasharray: 4 4; }
+    .ok { stroke: #1d4ed8; stroke-width: 4; fill: none; stroke-linejoin: miter; }
+    .bad { stroke: #b91c1c; stroke-width: 4; fill: none; stroke-linejoin: miter; }
+  </style>
+
+  <text x="30" y="32" class="title">RFLAGS.IF 随时间的变化</text>
+  <text x="30" y="54" class="sub">横轴：时间（示意，不按比例）· 纵轴：IF 的值，1 = 接受可屏蔽中断，0 = 不接受 · 橙色底 = IF 为 0 的区间</text>
+
+  <text x="30" y="92" class="lv">谁在跑</text>
+  <rect x="100" y="76" width="260" height="26" fill="#dbeafe" stroke="#60a5fa"/>
+  <text x="230" y="94" text-anchor="middle" class="bar">主流程</text>
+  <rect x="360" y="76" width="280" height="26" fill="#ede9fe" stroke="#8b5cf6"/>
+  <text x="500" y="94" text-anchor="middle" class="bar">键盘 handler</text>
+  <rect x="640" y="76" width="260" height="26" fill="#dbeafe" stroke="#60a5fa"/>
+  <text x="770" y="94" text-anchor="middle" class="bar">主流程</text>
+
+  <text x="30" y="124" class="lv">持锁区间</text>
+  <rect x="170" y="108" width="110" height="22" fill="#fde68a" stroke="#d97706"/>
+  <text x="225" y="124" text-anchor="middle" class="bar">with</text>
+  <rect x="440" y="108" width="80" height="22" fill="#fde68a" stroke="#d97706"/>
+  <text x="480" y="124" text-anchor="middle" class="bar">嵌套 with</text>
+
+  <text x="30" y="170" class="lane">A  正确：退出时恢复「进入时的 IF」</text>
+  <rect x="170" y="190" width="110" height="60" fill="#fed7aa" opacity="0.7"/>
+  <rect x="360" y="190" width="280" height="60" fill="#fed7aa" opacity="0.7"/>
+  <line x1="100" y1="190" x2="900" y2="190" class="grid"/>
+  <line x1="100" y1="250" x2="900" y2="250" class="grid"/>
+  <text x="62" y="195" class="lv">IF=1</text>
+  <text x="62" y="255" class="lv">IF=0</text>
+  <path d="M100 190 H170 V250 H280 V190 H360 V250 H640 V190 H900" class="ok"/>
+  <g>
+    <circle cx="170" cy="220" r="11" fill="#1d4ed8"/><text x="170" y="225" text-anchor="middle" class="mk">1</text>
+    <circle cx="280" cy="220" r="11" fill="#1d4ed8"/><text x="280" y="225" text-anchor="middle" class="mk">2</text>
+    <circle cx="360" cy="220" r="11" fill="#1d4ed8"/><text x="360" y="225" text-anchor="middle" class="mk">3</text>
+    <circle cx="440" cy="270" r="11" fill="#1d4ed8"/><text x="440" y="275" text-anchor="middle" class="mk">4</text>
+    <circle cx="520" cy="270" r="11" fill="#1d4ed8"/><text x="520" y="275" text-anchor="middle" class="mk">5</text>
+    <circle cx="640" cy="220" r="11" fill="#1d4ed8"/><text x="640" y="225" text-anchor="middle" class="mk">6</text>
+  </g>
+
+  <text x="30" y="350" class="lane">B  错误：退出时无条件 sti</text>
+  <rect x="170" y="370" width="110" height="60" fill="#fed7aa" opacity="0.7"/>
+  <rect x="360" y="370" width="160" height="60" fill="#fed7aa" opacity="0.7"/>
+  <rect x="520" y="370" width="120" height="60" fill="#fecaca" opacity="0.85"/>
+  <line x1="100" y1="370" x2="900" y2="370" class="grid"/>
+  <line x1="100" y1="430" x2="900" y2="430" class="grid"/>
+  <text x="62" y="375" class="lv">IF=1</text>
+  <text x="62" y="435" class="lv">IF=0</text>
+  <path d="M100 370 H170 V430 H280 V370 H360 V430 H520 V370 H900" class="bad"/>
+  <text x="640" y="452" text-anchor="middle" class="lab" style="fill:#b91c1c;font-weight:700">红色区间：handler 还没做完，IF 已是 1</text>
+  <g>
+    <circle cx="170" cy="400" r="11" fill="#b91c1c"/><text x="170" y="405" text-anchor="middle" class="mk">1</text>
+    <circle cx="280" cy="400" r="11" fill="#b91c1c"/><text x="280" y="405" text-anchor="middle" class="mk">2</text>
+    <circle cx="360" cy="400" r="11" fill="#b91c1c"/><text x="360" y="405" text-anchor="middle" class="mk">3</text>
+    <circle cx="440" cy="450" r="11" fill="#b91c1c"/><text x="440" y="455" text-anchor="middle" class="mk">4</text>
+    <circle cx="520" cy="400" r="11" fill="#b91c1c"/><text x="520" y="405" text-anchor="middle" class="mk">5'</text>
+  </g>
+
+  <line x1="30" y1="480" x2="930" y2="480" stroke="#94a3b8"/>
+  <g class="lab">
+    <text x="30" y="506"><tspan font-weight="700">1</tspan>  主流程进入 with：读到 IF=1，记 was_enabled=true，cli，IF 变 0</text>
+    <text x="30" y="528"><tspan font-weight="700">2</tspan>  with 退出：was_enabled 为 true，sti，IF 回到 1</text>
+    <text x="30" y="550"><tspan font-weight="700">3</tspan>  键盘中断到达（此刻 IF=1）：CPU 经 interrupt gate 进门，自动清 IF；旧 RFLAGS（IF=1）压栈</text>
+    <text x="30" y="572"><tspan font-weight="700">4</tspan>  handler 里的 printk! 进入 with：读到 IF=0，记 was_enabled=false，cli（IF 本来就是 0，无变化）</text>
+    <text x="30" y="594"><tspan font-weight="700">5</tspan>  嵌套 with 退出：was_enabled 为 false，不 sti，IF 保持 0；<tspan fill="#b91c1c" font-weight="700">5'（B 图）无条件 sti，IF 被错误地改成 1</tspan></text>
+    <text x="30" y="616"><tspan font-weight="700">6</tspan>  handler 返回，iretq 从栈上弹出旧 RFLAGS：IF 回到进门前的 1（A、B 两图在此重合，是 iretq 的功劳，不是锁的）</text>
+  </g>
+</svg>

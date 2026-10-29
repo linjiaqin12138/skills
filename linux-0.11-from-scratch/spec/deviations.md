@@ -18,6 +18,8 @@
 | D12 | ~~M1 Bite1：无 `printk`/`core::fmt`、无滚屏；仅固定字符串上屏~~ | **已收敛**（2026-10-15，M1 Bite2） | — | fmt::Write + printk! 双写 + 滚屏已落地，`make -C impl check-m1-b2` 通过 |
 | D13 | 字体：原版 BIOS/内核字库 → 自制 8×16 几何点阵（可打印 ASCII） | 永久豁免·架构 | — | 与 D9 配套；来源标注为手绘，非 GPL/ROM 拷贝；缺字画实心块 |
 | D14 | Limine 协议绑定：手写 `repr(C)` → 官方 `limine` crate 0.6.5 | 永久豁免·架构 | — | 2026-10-13 用户偏好「少造轮子」；行为与手写一致，验收已复跑通过 |
-| D15 | 全局 console 用 `static mut` + `addr_of_mut!`（无锁） | 待收敛 | M3 | 当前单核、无中断、无并发，安全假设成立；M3 引入中断后 printk 可能在中断上下文重入，届时换锁/临界区 |
-| D16 | IDT 向量 33~255 仍为空洞；异常 handler 打印后 hlt 停机，无异常 iret 返回路径 | 待收敛 | M3 后续 Bite 装键盘 handler；M9 COW 缺页需 iret 返回 | **M3 Bite1 部分收敛**：IRQ32 已有独立可返回入口，保存/恢复寄存器并 iretq；M2 CPU 异常仍保持打印后停机，M5 缺页仍是打印口径 |
-| D17 | LAPIC MMIO 用 3 张静态页表页按需补 1 页映射，未经通用页表接口 | 待收敛 | M5 | M3 目标环境 HHDM 未覆盖 LAPIC 页；当前仅单核关中断初始化可用。M5 自建页表与正式内存管理后收敛，见 decisions/0002 |
+| D15 | ~~全局 console 用 `static mut` + `addr_of_mut!`（无锁）~~ | **已收敛**（2026-10-29，M3 Bite2） | — | 换成 `IrqLock` 关中断临界区（decisions/0003）；持锁期间 panic 再 printk 仍可能别名，与改锁前同级残留，多核前再评 |
+| D16 | IDT 向量 34~255 仍为空洞；异常 handler 打印后 hlt 停机，无异常 iret 返回路径 | 待收敛 | M9 COW 缺页需 iret 返回 | **M3 Bite2 部分再收敛**：IRQ32/33 均经共享可返回入口；其余外部向量与异常返回路径仍待后续 |
+| D17 | LAPIC/IOAPIC MMIO 用静态页表页按需补映射，未经通用页表接口 | 待收敛 | M5 | 已抽到 `mmio.rs` 共用；池上限现为 4 张（代理假设：本阶段仅两张设备页）。M5 自建页表后收敛，见 decisions/0002 |
+| D18 | IOAPIC 基址与 GSI 写死（`0xFEC00000` / IRQ1），无 MADT/ISO | 永久豁免·架构 | — | M3 只跑 QEMU 默认机；可移植发现留给设备增多时（decisions/0004） |
+| D19 | 键盘只回显扫描码集 1 可打印键与回车；无 Esc/退格/Tab/修饰键 | 待收敛 | M13（随行规程） | 与 D3 配套；字体缺字形的控制键本 Bite 故意不回显 |

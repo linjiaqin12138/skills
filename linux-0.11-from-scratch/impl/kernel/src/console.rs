@@ -1,12 +1,12 @@
 //! 文本控制台：光标 + fmt::Write（屏幕/串口双写）+ 滚屏。
 //!
-//! 全局实例用 `static mut`：现阶段单核，且 IRQ handler 不访问 console。
-//! 待收敛项：中断上下文打印或引入多核前，必须换成合适的锁封装。
+//! 全局实例放在关中断锁里：主流程与键盘 IRQ handler 都会 printk!，
+//! 不加锁的话，打印到一半被打断会让两边互相改乱光标。见 decisions/0003。
 
 use core::fmt;
-use core::ptr::addr_of_mut;
 
 use crate::fb::{self, COLOR_BG, COLOR_FG};
+use crate::irq_lock::IrqLock;
 use crate::font::{self, FONT_HEIGHT, FONT_WIDTH};
 use crate::limine_fb::Framebuffer;
 use crate::serial;
@@ -75,6 +75,10 @@ impl Console {
     }
 }
 
+// SAFETY: Framebuffer 里的裸指针指向显存，让编译器默认认为它不能跨线程。
+// 本内核单核、没有线程，Console 只经 CONSOLE 的关中断锁访问，不会同时被两个执行流碰到。
+unsafe impl Send for Console {}
+
 /// 屏幕和串口是同一个控制台的两个出口，双写点收在这里：
 /// 每个字节既上屏也镜像到串口，两处内容始终一致。
 impl fmt::Write for Console {
@@ -87,31 +91,25 @@ impl fmt::Write for Console {
     }
 }
 
-static mut CONSOLE: Option<Console> = None;
+/// 未初始化（无 framebuffer 的降级路径）时为 None，printk! 静默丢弃。
+static CONSOLE: IrqLock<Option<Console>> = IrqLock::new(None);
 
 /// 初始化全局控制台并清屏；只在 _start 早期、拿到 framebuffer 后调用一次
 pub fn init(fb: &'static Framebuffer) {
     let mut cons = Console::new(fb);
     cons.clear();
-    // SAFETY: 单核关中断的启动阶段，且全局只在此处写入一次
-    unsafe {
-        *addr_of_mut!(CONSOLE) = Some(cons);
-    }
+    CONSOLE.with(|slot| *slot = Some(cons));
 }
 
-fn global() -> Option<&'static mut Console> {
-    // SAFETY: 单核且 IRQ 不访问 console，不存在并发访问；
-    // 经 addr_of_mut! 拿裸指针再解引用，避免 static_mut_refs lint 的中间引用
-    unsafe { (*addr_of_mut!(CONSOLE)).as_mut() }
-}
-
-/// printk! 的后端；未初始化（无 framebuffer 的降级路径）时静默丢弃
+/// printk! 的后端。整次格式化都在锁内完成，所以一次 printk! 的输出不会被别的 printk! 切开。
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use fmt::Write;
-    if let Some(cons) = global() {
-        let _ = cons.write_fmt(args);
-    }
+    CONSOLE.with(|slot| {
+        if let Some(cons) = slot {
+            let _ = cons.write_fmt(args);
+        }
+    });
 }
 
 /// 格式化打印到全局控制台（屏幕 + 串口），用法同 std 的 print!

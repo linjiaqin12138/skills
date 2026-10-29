@@ -39,7 +39,7 @@ M2 的异常入口帮不上忙。`exception_handler` 打印现场后 `hlt` 停�
 
 ## 设计
 
-![M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main](arch.svg)
+![M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main](arch-b01.svg)
 
 ### 初始化顺序
 
@@ -196,7 +196,7 @@ cat build/serial.log
 - **D17 新登记。** LAPIC MMIO 用三张静态页表按需补一页，未经通用页表接口；M5 收敛。
 - **D15 不变。** 全局 console 仍无锁；本课中断路径不碰 console，留给键盘 Bite。
 
-M2 到 M3 的模块改动见 [架构差异图](figures/arch-diff.svg)。
+M2 到 M3 Bite1 的模块改动见 [架构差异图](figures/arch-diff-b01.svg)。（同目录 `arch-diff.svg` 是 Bite1→Bite2 的变动图。）
 
 ```callout warn 第一次访问 LAPIC MMIO 就 #PF
 Limine 的 HHDM 不保证覆盖设备 MMIO 页。目标环境启动页表没有映射 LAPIC 那一页，第一次读寄存器会缺页。修法是按需补这一页（决定二），写完末级描述符后再 `invlpg`。

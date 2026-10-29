@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="876" height="494" viewBox="0 0 876 494" role="img" aria-label="US keyboard with scan code set 1 make codes, highlighting keys that map to ASCII">
+<rect width="876" height="494" fill="#f8fafc"/>
+<style>
+ text { font-family: 'Noto Sans CJK SC', sans-serif; fill: #111827; }
+ .title { font-size: 20px; font-weight: 700; }
+ .sub { font-size: 13px; fill: #475569; }
+ .lab { font-size: 13px; font-weight: 600; }
+ .tiny { font-size: 11px; fill: #64748b; }
+ .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; fill: #334155; }
+ .monob { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; font-weight: 700; }
+ .box { stroke: #64748b; stroke-width: 1.4; }
+ .used { fill: #dcfce7; } .rsv { fill: #e2e8f0; } .val { fill: #e0e7ff; } .warn { fill: #fde68a; } .no { fill: #f1f5f9; stroke-dasharray: 4 3; }
+</style>
+<text x="24" y="32" class="title">SCANCODE_TO_ASCII：哪些键会被回显</text>
+<text x="24" y="54" class="sub">美式键盘布局。键帽小字 = 扫描码集 1 的 make 码（十六进制）。绿 = 表里有 ASCII；灰 = 表里是 0，不回显。</text>
+<rect x="24" y="76" width="56" height="50" rx="5" class="box rsv"/>
+<text x="52.0" y="98" text-anchor="middle" class="lab">Esc</text>
+<text x="52.0" y="116" text-anchor="middle" class="mono">01</text>
+<rect x="24" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="52.0" y="160" text-anchor="middle" class="lab">`</text>
+<text x="52.0" y="178" text-anchor="middle" class="mono">29</text>
+<rect x="80" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="108.0" y="160" text-anchor="middle" class="lab">1</text>
+<text x="108.0" y="178" text-anchor="middle" class="mono">02</text>
+<rect x="136" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="164.0" y="160" text-anchor="middle" class="lab">2</text>
+<text x="164.0" y="178" text-anchor="middle" class="mono">03</text>
+<rect x="192" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="220.0" y="160" text-anchor="middle" class="lab">3</text>
+<text x="220.0" y="178" text-anchor="middle" class="mono">04</text>
+<rect x="248" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="276.0" y="160" text-anchor="middle" class="lab">4</text>
+<text x="276.0" y="178" text-anchor="middle" class="mono">05</text>
+<rect x="304" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="332.0" y="160" text-anchor="middle" class="lab">5</text>
+<text x="332.0" y="178" text-anchor="middle" class="mono">06</text>
+<rect x="360" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="388.0" y="160" text-anchor="middle" class="lab">6</text>
+<text x="388.0" y="178" text-anchor="middle" class="mono">07</text>
+<rect x="416" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="444.0" y="160" text-anchor="middle" class="lab">7</text>
+<text x="444.0" y="178" text-anchor="middle" class="mono">08</text>
+<rect x="472" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="500.0" y="160" text-anchor="middle" class="lab">8</text>
+<text x="500.0" y="178" text-anchor="middle" class="mono">09</text>
+<rect x="528" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="556.0" y="160" text-anchor="middle" class="lab">9</text>
+<text x="556.0" y="178" text-anchor="middle" class="mono">0A</text>
+<rect x="584" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="612.0" y="160" text-anchor="middle" class="lab">0</text>
+<text x="612.0" y="178" text-anchor="middle" class="mono">0B</text>
+<rect x="640" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="668.0" y="160" text-anchor="middle" class="lab">-</text>
+<text x="668.0" y="178" text-anchor="middle" class="mono">0C</text>
+<rect x="696" y="138" width="56" height="50" rx="5" class="box used"/>
+<text x="724.0" y="160" text-anchor="middle" class="lab">=</text>
+<text x="724.0" y="178" text-anchor="middle" class="mono">0D</text>
+<rect x="752" y="138" width="100" height="50" rx="5" class="box rsv"/>
+<text x="802.0" y="160" text-anchor="middle" class="lab">Bksp</text>
+<text x="802.0" y="178" text-anchor="middle" class="mono">0E</text>
+<rect x="24" y="200" width="84" height="50" rx="5" class="box rsv"/>
+<text x="66.0" y="222" text-anchor="middle" class="lab">Tab</text>
+<text x="66.0" y="240" text-anchor="middle" class="mono">0F</text>
+<rect x="108" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="136.0" y="222" text-anchor="middle" class="lab">q</text>
+<text x="136.0" y="240" text-anchor="middle" class="mono">10</text>
+<rect x="164" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="192.0" y="222" text-anchor="middle" class="lab">w</text>
+<text x="192.0" y="240" text-anchor="middle" class="mono">11</text>
+<rect x="220" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="248.0" y="222" text-anchor="middle" class="lab">e</text>
+<text x="248.0" y="240" text-anchor="middle" class="mono">12</text>
+<rect x="276" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="304.0" y="222" text-anchor="middle" class="lab">r</text>
+<text x="304.0" y="240" text-anchor="middle" class="mono">13</text>
+<rect x="332" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="360.0" y="222" text-anchor="middle" class="lab">t</text>
+<text x="360.0" y="240" text-anchor="middle" class="mono">14</text>
+<rect x="388" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="416.0" y="222" text-anchor="middle" class="lab">y</text>
+<text x="416.0" y="240" text-anchor="middle" class="mono">15</text>
+<rect x="444" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="472.0" y="222" text-anchor="middle" class="lab">u</text>
+<text x="472.0" y="240" text-anchor="middle" class="mono">16</text>
+<rect x="500" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="528.0" y="222" text-anchor="middle" class="lab">i</text>
+<text x="528.0" y="240" text-anchor="middle" class="mono">17</text>
+<rect x="556" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="584.0" y="222" text-anchor="middle" class="lab">o</text>
+<text x="584.0" y="240" text-anchor="middle" class="mono">18</text>
+<rect x="612" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="640.0" y="222" text-anchor="middle" class="lab">p</text>
+<text x="640.0" y="240" text-anchor="middle" class="mono">19</text>
+<rect x="668" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="696.0" y="222" text-anchor="middle" class="lab">[</text>
+<text x="696.0" y="240" text-anchor="middle" class="mono">1A</text>
+<rect x="724" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="752.0" y="222" text-anchor="middle" class="lab">]</text>
+<text x="752.0" y="240" text-anchor="middle" class="mono">1B</text>
+<rect x="780" y="200" width="56" height="50" rx="5" class="box used"/>
+<text x="808.0" y="222" text-anchor="middle" class="lab">\</text>
+<text x="808.0" y="240" text-anchor="middle" class="mono">2B</text>
+<rect x="24" y="262" width="100" height="50" rx="5" class="box rsv"/>
+<text x="74.0" y="284" text-anchor="middle" class="lab">Ctrl</text>
+<text x="74.0" y="302" text-anchor="middle" class="mono">1D</text>
+<rect x="124" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="152.0" y="284" text-anchor="middle" class="lab">a</text>
+<text x="152.0" y="302" text-anchor="middle" class="mono">1E</text>
+<rect x="180" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="208.0" y="284" text-anchor="middle" class="lab">s</text>
+<text x="208.0" y="302" text-anchor="middle" class="mono">1F</text>
+<rect x="236" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="264.0" y="284" text-anchor="middle" class="lab">d</text>
+<text x="264.0" y="302" text-anchor="middle" class="mono">20</text>
+<rect x="292" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="320.0" y="284" text-anchor="middle" class="lab">f</text>
+<text x="320.0" y="302" text-anchor="middle" class="mono">21</text>
+<rect x="348" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="376.0" y="284" text-anchor="middle" class="lab">g</text>
+<text x="376.0" y="302" text-anchor="middle" class="mono">22</text>
+<rect x="404" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="432.0" y="284" text-anchor="middle" class="lab">h</text>
+<text x="432.0" y="302" text-anchor="middle" class="mono">23</text>
+<rect x="460" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="488.0" y="284" text-anchor="middle" class="lab">j</text>
+<text x="488.0" y="302" text-anchor="middle" class="mono">24</text>
+<rect x="516" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="544.0" y="284" text-anchor="middle" class="lab">k</text>
+<text x="544.0" y="302" text-anchor="middle" class="mono">25</text>
+<rect x="572" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="600.0" y="284" text-anchor="middle" class="lab">l</text>
+<text x="600.0" y="302" text-anchor="middle" class="mono">26</text>
+<rect x="628" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="656.0" y="284" text-anchor="middle" class="lab">;</text>
+<text x="656.0" y="302" text-anchor="middle" class="mono">27</text>
+<rect x="684" y="262" width="56" height="50" rx="5" class="box used"/>
+<text x="712.0" y="284" text-anchor="middle" class="lab">'</text>
+<text x="712.0" y="302" text-anchor="middle" class="mono">28</text>
+<rect x="740" y="262" width="118" height="50" rx="5" class="box used"/>
+<text x="799.0" y="284" text-anchor="middle" class="lab">Enter</text>
+<text x="799.0" y="302" text-anchor="middle" class="mono">1C</text>
+<rect x="24" y="324" width="128" height="50" rx="5" class="box rsv"/>
+<text x="88.0" y="346" text-anchor="middle" class="lab">LShift</text>
+<text x="88.0" y="364" text-anchor="middle" class="mono">2A</text>
+<rect x="152" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="180.0" y="346" text-anchor="middle" class="lab">z</text>
+<text x="180.0" y="364" text-anchor="middle" class="mono">2C</text>
+<rect x="208" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="236.0" y="346" text-anchor="middle" class="lab">x</text>
+<text x="236.0" y="364" text-anchor="middle" class="mono">2D</text>
+<rect x="264" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="292.0" y="346" text-anchor="middle" class="lab">c</text>
+<text x="292.0" y="364" text-anchor="middle" class="mono">2E</text>
+<rect x="320" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="348.0" y="346" text-anchor="middle" class="lab">v</text>
+<text x="348.0" y="364" text-anchor="middle" class="mono">2F</text>
+<rect x="376" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="404.0" y="346" text-anchor="middle" class="lab">b</text>
+<text x="404.0" y="364" text-anchor="middle" class="mono">30</text>
+<rect x="432" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="460.0" y="346" text-anchor="middle" class="lab">n</text>
+<text x="460.0" y="364" text-anchor="middle" class="mono">31</text>
+<rect x="488" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="516.0" y="346" text-anchor="middle" class="lab">m</text>
+<text x="516.0" y="364" text-anchor="middle" class="mono">32</text>
+<rect x="544" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="572.0" y="346" text-anchor="middle" class="lab">,</text>
+<text x="572.0" y="364" text-anchor="middle" class="mono">33</text>
+<rect x="600" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="628.0" y="346" text-anchor="middle" class="lab">.</text>
+<text x="628.0" y="364" text-anchor="middle" class="mono">34</text>
+<rect x="656" y="324" width="56" height="50" rx="5" class="box used"/>
+<text x="684.0" y="346" text-anchor="middle" class="lab">/</text>
+<text x="684.0" y="364" text-anchor="middle" class="mono">35</text>
+<rect x="712" y="324" width="128" height="50" rx="5" class="box rsv"/>
+<text x="776.0" y="346" text-anchor="middle" class="lab">RShift</text>
+<text x="776.0" y="364" text-anchor="middle" class="mono">36</text>
+<rect x="24" y="386" width="84" height="50" rx="5" class="box rsv"/>
+<text x="66.0" y="408" text-anchor="middle" class="lab">Alt</text>
+<text x="66.0" y="426" text-anchor="middle" class="mono">38</text>
+<rect x="108" y="386" width="420" height="50" rx="5" class="box used"/>
+<text x="318.0" y="408" text-anchor="middle" class="lab">Space</text>
+<text x="318.0" y="426" text-anchor="middle" class="mono">39</text>
+<rect x="548" y="386" width="84" height="50" rx="5" class="box used"/>
+<text x="590.0" y="408" text-anchor="middle" class="lab">KP *</text>
+<text x="590.0" y="426" text-anchor="middle" class="mono">37</text>
+<text x="24" y="460" class="tiny">KP * 是小键盘乘号，表里是 *；Enter 在表里是换行（\n）。</text>
+<text x="24" y="478" class="tiny">扫描码不小于 0x3A 的键（F1..F12 等）超出表长，.get() 返回 None，同样不回显。</text>
+</svg>

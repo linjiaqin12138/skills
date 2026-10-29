@@ -1,4 +1,4 @@
-//! M3 Bite1：LAPIC 定时器 IRQ32 返回后，普通内核上下文观察并打印 jiffies。
+//! M3 Bite2：IRQ32 定时器 + IRQ33 键盘；主流程观察并打印 jiffies，键盘在中断里回显。
 
 #![no_std]
 #![no_main]
@@ -9,8 +9,12 @@ mod font;
 mod gdt;
 mod idt;
 mod io;
+mod ioapic;
+mod irq_lock;
+mod keyboard;
 mod lapic;
 mod limine_fb;
+mod mmio;
 mod serial;
 
 use core::arch::asm;
@@ -62,6 +66,12 @@ extern "C" fn _start() -> ! {
         halt();
     }
     printk!("M3: LAPIC timer 100 Hz\n");
+
+    if !keyboard::init() {
+        printk!("M3: keyboard IOAPIC routing failed\n");
+        halt();
+    }
+    printk!("M3: keyboard IRQ1 -> vector {}\n", keyboard::KEYBOARD_VECTOR);
     report_jiffies();
 }
 

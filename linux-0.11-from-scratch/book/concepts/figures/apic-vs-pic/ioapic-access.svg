@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-label="IOAPIC indirect register access and the four writes that route the keyboard">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="1080" height="620" fill="#f8fafc"/>
+  <style>
+    text { font-family: 'Noto Sans CJK SC', sans-serif; fill: #111827; }
+    .title { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13px; fill: #475569; }
+    .sec { font-size: 15px; font-weight: 700; }
+    .lab { font-size: 13px; font-weight: 600; }
+    .tiny { font-size: 11px; fill: #64748b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #334155; }
+    .box { stroke: #64748b; stroke-width: 1.4; }
+    .used { fill: #dcfce7; }
+    .mode { fill: #dbeafe; }
+    .rsv { fill: #e2e8f0; }
+    .panel { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.2; }
+    .line { stroke: #475569; stroke-width: 1.6; fill: none; marker-end: url(#arr); }
+  </style>
+
+  <text x="28" y="36" class="title">IOAPIC 的间接访问：两个窗口，一排内部寄存器</text>
+  <text x="28" y="58" class="sub">左：物理地址空间里只有两个 32 位窗口。右：内部寄存器不占地址，靠“编号”选中。绿色 = 本课写入的寄存器</text>
+
+  <!-- 左：MMIO 页 -->
+  <rect x="28" y="90" width="330" height="270" class="panel"/>
+  <text x="48" y="114" class="sec">IOAPIC MMIO 页</text>
+  <text x="48" y="132" class="tiny">物理基址 0xFEC00000（本课写死）</text>
+
+  <rect x="48" y="148" width="290" height="76" class="box mode"/>
+  <text x="62" y="172" class="mono">+0x00</text>
+  <text x="62" y="192" class="lab">IOREGSEL（寄存器选择）</text>
+  <text x="62" y="211" class="tiny">只写“编号”，告诉芯片接下来要碰哪一个</text>
+
+  <rect x="48" y="244" width="290" height="76" class="box used"/>
+  <text x="62" y="268" class="mono">+0x10</text>
+  <text x="62" y="288" class="lab">IOWIN（数据窗口）</text>
+  <text x="62" y="307" class="tiny">读写“刚选中的那个”内部寄存器的 32 位</text>
+  <text x="48" y="346" class="tiny">其余偏移本课不用</text>
+
+  <!-- 右：内部寄存器 -->
+  <rect x="560" y="90" width="490" height="360" class="panel"/>
+  <text x="580" y="114" class="sec">内部寄存器（按编号寻址，每个 32 位）</text>
+  <g>
+    <rect x="580" y="130" width="450" height="30" class="box rsv"/>
+    <rect x="580" y="162" width="450" height="30" class="box rsv"/>
+    <rect x="580" y="194" width="450" height="30" class="box rsv"/>
+    <rect x="580" y="226" width="450" height="30" class="box rsv"/>
+    <rect x="580" y="258" width="450" height="30" class="box used"/>
+    <rect x="580" y="290" width="450" height="30" class="box used"/>
+    <rect x="580" y="322" width="450" height="30" class="box rsv"/>
+    <rect x="580" y="354" width="450" height="30" class="box rsv"/>
+    <rect x="580" y="386" width="450" height="30" class="box rsv"/>
+  </g>
+  <g>
+    <text x="592" y="150" class="mono">0x00</text><text x="660" y="150" class="lab">IOAPIC ID</text><text x="800" y="150" class="tiny">本课不碰</text>
+    <text x="592" y="182" class="mono">0x01</text><text x="660" y="182" class="lab">版本 / 最大条目号</text><text x="800" y="182" class="tiny">本课不碰</text>
+    <text x="592" y="214" class="mono">0x10</text><text x="660" y="214" class="lab">条目 0 · 低半</text><text x="800" y="214" class="tiny">GSI 0</text>
+    <text x="592" y="246" class="mono">0x11</text><text x="660" y="246" class="lab">条目 0 · 高半</text><text x="800" y="246" class="tiny">GSI 0</text>
+    <text x="592" y="278" class="mono">0x12</text><text x="660" y="278" class="lab">条目 1 · 低半</text><text x="800" y="278" class="tiny">GSI 1 = 键盘：向量与控制位</text>
+    <text x="592" y="310" class="mono">0x13</text><text x="660" y="310" class="lab">条目 1 · 高半</text><text x="800" y="310" class="tiny">GSI 1 = 键盘：目标 LAPIC</text>
+    <text x="592" y="342" class="mono">…</text><text x="660" y="342" class="lab">条目 2 … 22</text>
+    <text x="592" y="374" class="mono">0x3E</text><text x="660" y="374" class="lab">条目 23 · 低半</text><text x="800" y="374" class="tiny">GSI 23</text>
+    <text x="592" y="406" class="mono">0x3F</text><text x="660" y="406" class="lab">条目 23 · 高半</text><text x="800" y="406" class="tiny">GSI 23</text>
+  </g>
+  <text x="580" y="438" class="tiny">条目 n 的编号：低半 0x10 + 2n，高半 0x11 + 2n。条目数以芯片为准，QEMU 默认机为 24 个</text>
+
+  <!-- 箭头 -->
+  <path d="M338,186 C450,186 470,290 578,300" class="line"/>
+  <text x="372" y="176" class="tiny">① 写编号 0x13 → 选中</text>
+  <path d="M338,282 C450,282 480,312 578,312" class="line"/>
+  <text x="372" y="334" class="tiny">② 随后读写 IOWIN = 读写它</text>
+
+  <!-- 四次写 -->
+  <text x="28" y="486" class="sec">给键盘（GSI 1）配一项：四次 32 位写，次序固定</text>
+  <g>
+    <rect x="28" y="500" width="240" height="84" class="box mode"/>
+    <rect x="282" y="500" width="240" height="84" class="box used"/>
+    <rect x="536" y="500" width="240" height="84" class="box mode"/>
+    <rect x="790" y="500" width="240" height="84" class="box used"/>
+  </g>
+  <g>
+    <text x="42" y="524" class="lab">第 1 次</text>
+    <text x="42" y="546" class="mono">IOREGSEL ← 0x13</text>
+    <text x="42" y="568" class="tiny">选中条目 1 的高半</text>
+
+    <text x="296" y="524" class="lab">第 2 次</text>
+    <text x="296" y="546" class="mono">IOWIN ← LAPIC ID &lt;&lt; 24</text>
+    <text x="296" y="568" class="tiny">高半写入：投给哪个 LAPIC</text>
+
+    <text x="550" y="524" class="lab">第 3 次</text>
+    <text x="550" y="546" class="mono">IOREGSEL ← 0x12</text>
+    <text x="550" y="568" class="tiny">选中条目 1 的低半</text>
+
+    <text x="804" y="524" class="lab">第 4 次</text>
+    <text x="804" y="546" class="mono">IOWIN ← 0x21</text>
+    <text x="804" y="568" class="tiny">向量 33；Mask 位为 0，此刻起生效</text>
+  </g>
+  <text x="28" y="608" class="sub">对照代码：ioapic.rs 的 route 与 write_register。每次写都是“IOREGSEL 再 IOWIN”一对，所以共两对、四次内存写</text>
+</svg>

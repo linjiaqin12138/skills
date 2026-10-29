@@ -10,7 +10,7 @@ QEMU        := $(shell command -v qemu-system-x86_64 2>/dev/null || echo $(HOME)
 # -boot d：默认启动顺序硬盘在前，会引导 ../upstream/hdc-0.11.img 而不是我们的 CD
 QEMU_FLAGS  := -m 128M -boot d -serial stdio -drive file=../upstream/hdc-0.11.img,format=raw,if=ide
 
-.PHONY: toolchain ctr kernel build run debug check check-m1-b2 check-m2-b2 check-m3-b1 clean help
+.PHONY: toolchain ctr kernel build run debug check check-m1-b2 check-m2-b2 check-m3-b1 check-m3-b2 clean help
 
 help: ## 显示本帮助
 	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*## /  →  /'
@@ -164,6 +164,51 @@ check-m3-b1: build ## M3 Bite1 验收：100 Hz LAPIC jiffies + 中断返回 + sc
 	@sz=$$(wc -c < build/m3-bite1.ppm); echo "screendump size=$$sz"; \
 	  test $$sz -gt 10240
 	@echo "check-m3-b1 OK"
+
+# M3 Bite2：键盘 IRQ1 → IOAPIC → 向量 33，中断里 printk! 回显。
+# 等串口出现 jiffies=100 再发键：下一行 jiffies 在 1 秒后，h/e/l/l/o 在这 1 秒内敲完，
+# "hello" 才不会被 jiffies 行切开（单次 printk! 不会被打断，但两次之间可以）。
+# 最长 15 秒等不到就照常发键，由后面的断言报错。
+check-m3-b2: build ## M3 Bite2 验收：IOAPIC 键盘回显 "hello" + jiffies + screendump
+	@$(DOCKER_EXEC) chown -R --reference=/work /work/build
+	@mkdir -p build
+	@rm -f build/serial.log build/m3-bite2.ppm
+	@echo ">>> starting qemu (wait for jiffies=100, then sendkey hello)…"
+	@( for i in $$(seq 1 150); do \
+	     grep -q -F 'M3: jiffies=100' build/serial.log 2>/dev/null && break; sleep 0.1; done; \
+	   for key in h e l l o; do printf 'sendkey %s\n' $$key; sleep 0.1; done; \
+	   sleep 3; printf 'screendump build/m3-bite2.ppm\nquit\n' ) | \
+	  $(QEMU) -m 128M -boot d -display none -vga std -net none \
+	    -monitor stdio \
+	    -serial file:build/serial.log \
+	    -drive file=../upstream/hdc-0.11.img,format=raw,if=ide \
+	    -cdrom build/kernel.iso; \
+	  rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
+	@echo ">>> serial.log:"
+	@cat build/serial.log
+	@echo ">>> asserting regression markers, timer samples and keyboard echo…"
+	@test "$$(grep -c -F 'M0: kernel alive' build/serial.log)" -eq 1
+	@grep -E 'M1: fb [0-9]+x[0-9]+x[0-9]+' build/serial.log
+	@grep -F 'M1: fmt hex=0x002a dec=42 str=ok' build/serial.log
+	@grep -F 'M1: scroll line 00' build/serial.log
+	@grep -F 'M1: scroll line 59' build/serial.log
+	@grep -F 'M2: gdt ok' build/serial.log
+	@grep -F 'M2: idt ok' build/serial.log
+	@grep -F 'M3: LAPIC timer 100 Hz' build/serial.log
+	@grep -F 'M3: keyboard IRQ1 -> vector 33' build/serial.log
+	@grep -F 'M3: jiffies=100' build/serial.log
+	@grep -F 'M3: jiffies=200' build/serial.log
+	@grep -F 'M3: jiffies=300' build/serial.log
+	@samples=$$(grep -c -E 'M3: jiffies=[0-9]+$$' build/serial.log); \
+	  echo "jiffies samples=$$samples"; test $$samples -ge 3 -a $$samples -le 10
+	@grep -F 'hello' build/serial.log
+	@if grep -q -E 'M2: panic handler entered|^PANIC:|EXCEPTION' build/serial.log; then \
+	  echo "unexpected panic/exception on normal boot path"; exit 1; \
+	fi
+	@test -f build/m3-bite2.ppm
+	@sz=$$(wc -c < build/m3-bite2.ppm); echo "screendump size=$$sz"; \
+	  test $$sz -gt 10240
+	@echo "check-m3-b2 OK"
 
 clean: ## 清理构建产物
 	rm -rf build kernel/target user/target

@@ -1,4 +1,20 @@
-# M3 验收档案（中断：LAPIC 定时器）
+# M3 验收档案（中断：LAPIC 定时器 + IOAPIC 键盘）
+
+## Bite2：IOAPIC 键盘 + console 锁（2026-10-29 通过）
+
+**验收命令**：`bash accept/m03-b02.sh`（exit 0；内部 `make check-m3-b2`）
+
+**涉及代码文件**：`irq_lock.rs`、`mmio.rs`、`ioapic.rs`、`keyboard.rs`（新建）；`console.rs` / `idt.rs` / `lapic.rs` / `main.rs` / `Makefile`（改）
+
+**实测**：独立 verifier 3/3 通过；串口含连续 `hello`；jiffies 样本 4 条/次；无 panic；screendump 1,440,015 字节。记录：[tutor/runs/m03-b02.txt](../../tutor/runs/m03-b02.txt)
+
+**架构决定**：`decisions/0003`、`0004`（状态起草，待用户确认后转已采纳）
+
+**架构图**：`book/arch/current.svg`（Bite2 顶层）、本课 `arch.svg`、`figures/arch-diff.svg`（Bite1→Bite2）。Bite1 历史切片另存 `arch-b01.svg` / `figures/arch-diff-b01.svg`。
+
+**教程**：`b02-keyboard-console-lock.html`；概念页 `apic-vs-pic`（更新）、`irq-critical-section`、`ps2-keyboard`。
+
+**偏差**：D15 已收敛；D16 部分再收敛；D17 备注更新；新增 D18/D19。
 
 ## Bite1：LAPIC 定时器 IRQ32 @100Hz（2026-10-26 通过）
 
@@ -18,8 +34,8 @@
 
 **覆盖缺口（记录在案，未修）**：脚本未直接断言频率、只检查截图大小未检查内容；MMIO 映射分支在日志中不可观测；寄存器保存/恢复只有间接证据；本次构建为增量编译。
 
-**架构决定**：`decisions/0001-interrupt-context-minimal-work.md`（中断上下文只做计数与 EOI）、`decisions/0002-lapic-mmio-mapping.md`（按需补一页 MMIO 映射），状态均为「起草」，待用户确认本 Bite 后转「已采纳」。
+**架构决定**：`decisions/0001`、`0002` 已在进入 Bite2 时改为「已采纳」。
 
-**架构图**：`book/arch/current.svg`（顶层运行时路径）、`book/m03-interrupts/arch.svg`（本课副本）、`book/m03-interrupts/figures/arch-diff.svg`（M2→M3 变动）、`book/m03-interrupts/figures/lapic-mmio.svg`（MMIO 映射结构单独成图）。图源为 `book/arch/src/current.json` 与 `book/m03-interrupts/figures/src/*.json`；fireworks validate / render / check 均通过。
+**架构图（Bite1 历史）**：`arch-b01.svg`、`figures/arch-diff-b01.svg`（M2→Bite1）；MMIO 子图 `figures/lapic-mmio.svg`。权威 `current.svg` / `arch.svg` / `arch-diff.svg` 已演进为 Bite2。
 
 **教程与概念页复验（2026-10-28 按现行 writer / concept-writer 重写）**：源稿 `b01-lapic-timer.md`（由 `.draft.md` 迁入）strict 渲染 0 警告，8 个面板（问题 / 背景 / 设计 / 架构决定 / 代码领读 / 验收含 raw qemu 命令 / 与原版差异与坑 / 自测 5 题）。概念页 `apic-vs-pic`、`x86-msr`、`hhdm`、`mmio-page-mapping` 均含「回到项目」用点对照表；「去学」仅作深入。

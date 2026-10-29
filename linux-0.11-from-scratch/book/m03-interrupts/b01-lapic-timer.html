@@ -791,7 +791,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </section>
 <section class="am-panel" id="panel-C">
 <header class="am-panel-head"><span class="am-panel-id">C</span><h2>设计</h2></header>
-<div class="am-panel-body"><div class="am-md"><figure class="am-figure"><img data-am-src="arch.svg" src="arch.svg" alt="M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main"><figcaption>M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main</figcaption></figure>
+<div class="am-panel-body"><div class="am-md"><figure class="am-figure"><img data-am-src="arch-b01.svg" src="arch-b01.svg" alt="M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main"><figcaption>M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main</figcaption></figure>
 <h3>初始化顺序</h3>
 </div>
 <figure class="am-diagram am-flow"><svg viewBox="0 0 199 700" width="199" height="700" role="img" aria-label="流程图：屏蔽 legacy PIC、使能 APIC、映射 LAPIC MMIO 页、divider 16 且 LVT 屏蔽、PIT channel 2 给 10 ms 参照、量出这 10 ms 的计数值、LVT 改周期模式并写 INITIAL_COUNT、sti 开可屏蔽中断" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M99.2,49 L99.2,60.5 Q99.2,72 99.2,83.5 L99.2,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M99.2,130 L99.2,141.5 Q99.2,153 99.2,164.5 L99.2,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M99.2,211 L99.2,222.5 Q99.2,234 99.2,245.5 L99.2,257" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M99.2,292 L99.2,308 Q99.2,324 99.2,340 L99.2,356" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="82.7" y="315" width="33" height="18" rx="3"/><text x="99.2" y="324" text-anchor="middle" dominant-baseline="central">参照</text></g></g><g data-step="4"><path class="am-edge" d="M99.2,408 L99.2,424 Q99.2,440 99.2,456 L99.2,472" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="82.7" y="431" width="33" height="18" rx="3"/><text x="99.2" y="440" text-anchor="middle" dominant-baseline="central">测量</text></g></g><g data-step="5"><path class="am-edge" d="M99.2,507 L99.2,518.5 Q99.2,530 99.2,541.5 L99.2,553" marker-end="url(#am1-arrow)"/></g><g data-step="6"><path class="am-edge" d="M99.2,605 L99.2,616.5 Q99.2,628 99.2,639.5 L99.2,651" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="屏蔽 legacy PIC" data-step="0"><rect class="am-node-shape" x="37.1" y="14" width="124.2" height="35" rx="3"/><text x="99.2" y="31.5" text-anchor="middle" dominant-baseline="central">屏蔽 legacy PIC</text></g><g class="am-node am-node--rect" data-key="使能 APIC" data-step="0"><rect class="am-node-shape" x="55" y="95" width="88.6" height="35" rx="3"/><text x="99.2" y="112.5" text-anchor="middle" dominant-baseline="central">使能 APIC</text></g><g class="am-node am-node--rect" data-key="映射 LAPIC MMIO 页" data-step="1"><rect class="am-node-shape" x="21.3" y="176" width="155.9" height="35" rx="3"/><text x="99.2" y="193.5" text-anchor="middle" dominant-baseline="central">映射 LAPIC MMIO 页</text></g><g class="am-node am-node--rect" data-key="divider 16 且 LVT 屏蔽" data-step="2"><rect class="am-node-shape" x="16.6" y="257" width="165.3" height="35" rx="3"/><text x="99.2" y="274.5" text-anchor="middle" dominant-baseline="central">divider 16 且 LVT 屏蔽</text></g><g class="am-node am-node--rect" data-key="PIT channel 2 给 10 ms 参照" data-step="3"><rect class="am-node-shape" x="14" y="356" width="170.5" height="52" rx="3"/><text x="99.2" y="373.5" text-anchor="middle" dominant-baseline="central">PIT channel 2 给 10 ms</text><text x="99.2" y="390.5" text-anchor="middle" dominant-baseline="central">参照</text></g><g class="am-node am-node--rect" data-key="量出这 10 ms 的计数值" data-step="4"><rect class="am-node-shape" x="17.4" y="472" width="163.7" height="35" rx="3"/><text x="99.2" y="489.5" text-anchor="middle" dominant-baseline="central">量出这 10 ms 的计数值</text></g><g class="am-node am-node--rect" data-key="LVT 改周期模式并写 INITIAL_COUNT" data-step="5"><rect class="am-node-shape" x="24.5" y="553" width="149.4" height="52" rx="3"/><text x="99.2" y="570.5" text-anchor="middle" dominant-baseline="central">LVT 改周期模式并写</text><text x="99.2" y="587.5" text-anchor="middle" dominant-baseline="central">INITIAL_COUNT</text></g><g class="am-node am-node--rect" data-key="sti 开可屏蔽中断" data-step="6"><rect class="am-node-shape" x="36.5" y="651" width="125.5" height="35" rx="3"/><text x="99.2" y="668.5" text-anchor="middle" dominant-baseline="central">sti 开可屏蔽中断</text></g></g></svg></figure>
@@ -879,7 +879,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li><strong>D17 新登记。</strong> LAPIC MMIO 用三张静态页表按需补一页，未经通用页表接口；M5 收敛。</li>
 <li><strong>D15 不变。</strong> 全局 console 仍无锁；本课中断路径不碰 console，留给键盘 Bite。</li>
 </ul>
-<p>M2 到 M3 的模块改动见 <a href="figures/arch-diff.svg">架构差异图</a>。</p>
+<p>M2 到 M3 Bite1 的模块改动见 <a href="figures/arch-diff-b01.svg">架构差异图</a>。（同目录 <code>arch-diff.svg</code> 是 Bite1→Bite2 的变动图。）</p>
 </div>
 <div class="am-callout am-callout--warn" role="note"><div class="am-callout-title">第一次访问 LAPIC MMIO 就 #PF</div><div class="am-callout-body am-md"><p>Limine 的 HHDM 不保证覆盖设备 MMIO 页。目标环境启动页表没有映射 LAPIC 那一页，第一次读寄存器会缺页。修法是按需补这一页（决定二），写完末级描述符后再 <code>invlpg</code>。</p>
 </div></div></div>
@@ -992,7 +992,7 @@ M2 的异常入口帮不上忙。`exception_handler` 打印现场后 `hlt` 停�
 
 ## 设计
 
-![M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main](arch.svg)
+![M3 Bite1 顶层运行时路径：LAPIC 经 CPU 与 IDT 找到 timer_entry，handler 更新 jiffies 后 iretq 回到 main](arch-b01.svg)
 
 ### 初始化顺序
 
@@ -1149,7 +1149,7 @@ cat build/serial.log
 - **D17 新登记。** LAPIC MMIO 用三张静态页表按需补一页，未经通用页表接口；M5 收敛。
 - **D15 不变。** 全局 console 仍无锁；本课中断路径不碰 console，留给键盘 Bite。
 
-M2 到 M3 的模块改动见 [架构差异图](figures/arch-diff.svg)。
+M2 到 M3 Bite1 的模块改动见 [架构差异图](figures/arch-diff-b01.svg)。（同目录 `arch-diff.svg` 是 Bite1→Bite2 的变动图。）
 
 ```callout warn 第一次访问 LAPIC MMIO 就 #PF
 Limine 的 HHDM 不保证覆盖设备 MMIO 页。目标环境启动页表没有映射 LAPIC 那一页，第一次读寄存器会缺页。修法是按需补这一页（决定二），写完末级描述符后再 `invlpg`。
