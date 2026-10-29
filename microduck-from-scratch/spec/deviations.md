@@ -66,10 +66,11 @@
 | D68 | ~~BAM 站稳后 `vx` 进不了步态~~ **2026-10-14 Bite 8 已收敛（用户裁决）**。行走不动点根因=公开 velstand 权重对训练分布内小命令不响应（官方双侧一致），行走验收改 vx=0.8 ≥2.0m。**残余登记（非我方偏差）**：0.3 不走是上游权重现状，M9 自训策略时真正解决 | M8 Bite 6 | M8 Bite 8 | **已收敛**（2026-10-14；残余指向上游权重，M9 解决） |
 | D69 | **Bite 9 新登记（coder 实现期发现的原版未移植行为）**：① 盲拍（滑行窗耗尽）时原版仍写 hold——known_positions 抱持目标（robotd/src/main.rs:2807,2881），我们维持跳拍不写；② RESET_AFTER_PAUSE=200ms 恢复重置（:144,2780-2784）未移植；③ 总线掉读日志限流 BUS_DROP_QUIET 未移植 | Bite 9（发现即登记） | 挂 M10（读失败处理面，随硬件批） | 待收敛（挂 M10） |
 | D70 | ~~自建 box 足底在官方滑动摩擦 1.0 下能站但行走打滑；初版采用固定代理值 2.0 达到行走门槛~~ **M9a Bite 3 修订已收敛**：每侧鞋底拆成薄承重底层 + 主体上层两个 box，滑动摩擦回到官方 CPU 值 1.0；3 次闭环 vx=0.8 行走 dx=2.604783/2.604783/2.605613m。残余是 primitive 接触近似，非摩擦系数偏差 | M9a Bite 3（coder 行走实验发现） | M9a Bite 3 修订 | **已收敛（2026-10-25）** |
+| D71 | M9f 自训 Velocity 挂 `duck_handmade.xml`（groundcontact 系 AABB），不用官方 Flat 默认的 `robot_walk.xml`（仅足底）。刻意让训练身体=部署仿真身体；与官方公开权重分布不同 | M9f Bite 1（用户裁决） | 永久保留（路线目标） | **有意偏离**（2026-10-29） |
 
 ## Phase 4 附：拿不准项裁决（2026-10-15）
 
-1. odometry crate：~~建议豁免~~ ~~改挂 M9~~ **M9c Bite 2 已交付**（`impl/src/odometry.rs` 局部 FK + ALPHA16；state 的 odom 字段仍归 D50→M10）。
+1. odometry crate：~~建议豁免~~ ~~改挂 M9~~ **M9c Bite 2 已收敛（2026-10-29 确认）**（`impl/src/odometry.rs` 局部 FK + ALPHA16；state 的 odom 字段仍归 D50→M10）。
 2. robot.remoteSessionActive：挂 M10（恒 false 补齐，随方法面齐整）。
 3. account.*：不豁免，并入 D60（updaterd 的 Hub 网络面，M10）。
 4. pad.* / padd：**不豁免**，M10 真机批重新评估——用户有 Xbox 手柄，原版 padd 正是用 Xbox Wireless Controller 开发测试（upstream/padd/）；pad.bindings/bind 的配置写面属性随 D52。

@@ -11,5 +11,7 @@
 | 第 24 章 | M9b Bite 3：训练操作判断 | [m09b-train-pipeline/b03-ops-manual.html](m09b-train-pipeline/b03-ops-manual.html) |
 | 第 25 章 | M9c Bite 1：FallPredictor + Limp/Posing | [m09c-fall-recovery/b01-fall-recovery.html](m09c-fall-recovery/b01-fall-recovery.html) |
 | 第 26 章 | M9c Bite 2：相对 odometry | [m09c-odometry/b01-odometry.html](m09c-odometry/b01-odometry.html) |
+| 第 27 章 | M9d Bite 1：云 4090 冒烟 | [m09d-cloud-train/b01-cloud-smoke.html](m09d-cloud-train/b01-cloud-smoke.html) |
+| 第 28 章 | M9d Bite 2：首训能站能走？ | [m09d-cloud-train/b02-infer-stand-walk.html](m09d-cloud-train/b02-infer-stand-walk.html) |
 
-更早章节见各 `book/mNN-*/` 目录。现在读到：**第 26 章**。
+更早章节见各 `book/mNN-*/` 目录。现在读到：**第 28 章**。

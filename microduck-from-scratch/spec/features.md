@@ -53,7 +53,7 @@ D2（FakeIo 无真实 Dynamixel 串口协议）已豁免，硬件驱动面整体
 | duck-control crate（控制/观测/模型/总线） | duck-control/ | 内联 impl/src/{control,obs,model,io,policy,safety,scheduler}.rs | 未登记缺口（D52；挂 M10） |
 | robotd-params crate（配置参数面） | robotd-params/ | 无；阈值硬编码（impl/src/main.rs:43-47 等） | 未登记缺口（D52；挂 M10） |
 | kinematics crate（FK/IK、robot.look/model） | kinematics/ | 无 | 未登记缺口（D55；挂 M10） |
-| odometry crate（接触里程计） | odometry/ | impl/src/odometry.rs（M9c Bite 2：局部双足 FK + ALPHA16；内部 FrameSnapshot；线上 odom 字段仍归 D50） | 已交付（M9c Bite 2；D50→M10） |
+| odometry crate（接触里程计） | odometry/ | impl/src/odometry.rs（M9c Bite 2：局部双足 FK + ALPHA16；内部 FrameSnapshot；线上 odom 字段仍归 D50） | 已交付并确认（M9c；D50→M10） |
 | duck-ble crate | upstream/Cargo.toml:7 | 无 | 建议豁免（BLE 库） |
 | duck-ether crate | upstream/Cargo.toml:7（不在 default-members :21） | 无 | 建议豁免（传输库） |
 | duck-detect crate（+bin duck-bench） | duck-detect/Cargo.toml | 无 | 建议豁免（NPU 检测器） |
@@ -312,9 +312,9 @@ updater.toml（upstream/deploy/updater.toml，179 行）：
 | Reward / curriculum 解剖 | 已交付 Bite 2（已确认）；**课文降级**（用户判仍对参数） | `accept/m09b-b02.sh`（CI） |
 | train / export / manifest 操作手册 | 已交付 Bite 3（已确认）；操作判断题，无代码领读 | `accept/m09b-b03.sh` |
 
-## M9c 交付记录（进行中）
+## M9c 交付记录（已收官 · 2026-10-29）
 
 | 功能项 | 手搓状态 | 验收 |
 |---|---|---|
 | FallPredictor + Limp/Posing（D23/D32） | 已交付 Bite 1（已确认）；默认 OFF，`MINIDUCK_LIMP_FALL=1` 显式开启 | `accept/m09c-b01.sh` |
-| 相对 odometry（接触里程计） | 已交付 Bite 2（等确认）；局部 FK + ALPHA16；RPC 不加 odom（D50→M10） | `accept/m09c-b02.sh` |
+| 相对 odometry（接触里程计） | 已交付 Bite 2（已确认）；局部 FK + ALPHA16；RPC 不加 odom（D50→M10） | `accept/m09c-b02.sh` |

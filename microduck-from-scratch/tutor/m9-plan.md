@@ -27,27 +27,36 @@
 - 新概念：PPO 与奖励塑形、域随机化
 - **拆课教训（2026-10-25）**：Bite 1 只做 obs/action 静态对账，用户判「无知识增量、不该独立成章」。此后 M9b 每课必须带可迁移判断（奖励投机/课程节奏/操作决策），契约核对并进正文附录，不再单开对账章。
 
-### M9c · 策略面调度语义对齐①（CPU，可与 M9b 并行或交错）
+### M9c · 策略面调度语义对齐①（CPU，可与 M9b 并行或交错）— **已收官（2026-10-29）**
 
 - 目标：不依赖自训权重的挂账先清
 - 内容：D23+D32 FallPredictor 移植（陀螺外推预测 + Limp/Posing 三态机；仿真里可构造摔倒验证）；odometry crate 评估与移植决策
-- 收敛：D23、D32、odometry
-- 验收：accept-m9 系列（FakeIo/sim 构造跌倒场景）+ 全回归
-- 进度：Bite 1 已确认（D23/D32 收敛）；**Bite 2 已交付（2026-10-26，等确认）**——相对 odometry，`accept/m09c-b02.sh` 全绿，决定 `0007` 起草；确认后 M9c 收官
+- 收敛：D23、D32、odometry（估计器）；D50 odom 字段仍挂 M10
+- 验收：`accept/m09c-b01.sh` + `accept/m09c-b02.sh` + 全回归；档案 `book/m09c-fall-recovery/acceptance.md`
+- 进度：Bite 1/2 均已确认；决定 `0006`/`0007` 已采纳
 
-### M9d · 云上训练（GPU，上机器时开）
+### M9d · 云上训练（GPU）— **已收官（2026-10-29）**
 
-- 目标：Vast.ai 5090 实例搭建 + 官方冒烟 + 小规模首训
-- 内容：uv sync（注意 protobuf/onnx/zmq 三个 override）；冒烟 64 envs × 5 iter；首训 1024-4096 envs × 数百-1500 iter；infer_policy.py A/B（BAM vs --no-bam）
-- 验收：首训 checkpoint 在 infer_policy.py 里能站/能走雏形；学习曲线健康
+- 目标：云 GPU 实例搭建 + 官方冒烟 + 小规模首训
+- **算力修订（2026-10-29）**：用户选用国内云 **RTX 4090**（原定 Vast.ai 5090）；决定见 `decisions/0008-m9d-cloud-4090.md`
+- 内容：uv sync（注意 protobuf/onnx/zmq 三个 override）；冒烟 64 envs × 5 iter；首训 1024-4096 envs × 数百-1500 iter（4090 OOM 则降 envs）；官方 export + headless infer A/B（BAM vs --no-bam）
+- 验收：首训 checkpoint 经 `export.py` 后，在 headless `PolicyInference` 路径能站/能走雏形；学习曲线健康
 - 前置：M9b（操作手册）、用户买好云实例
+- 进度：Bite 1/2 均已确认；`0008`/`0009` **已采纳**；档案 `acceptance.md` + `acceptance-b02.md`
 
-### M9e · Velocity 从零训 + 全链路闭环 + 调度对齐②（GPU + CPU）
+### M9e · 官方权重进我们 daemon — **取消（2026-10-29）**
 
-- 目标：自训 ONNX 进我们自己的 sim + Rust daemon 闭环；剩余调度挂账清零
-- 内容：正式训练 Velocity → export.py 出 ONNX → manifest 冒烟校验（[1,61]→[1,14]、NaN 拒绝）→ 速度扫描 0.1-0.4 m/s 在我们闭环里验收；manifest schema 2 对齐（chain/unwind_s/slot/kind）、D28 mode 面、D29 chain/unwind、D30 热换/carry_over、D33 stand 槽裁决
-- 收敛：「0.3 不走」（自训策略解决，行走验收加回 vx=0.3 档，阈值训完实测再钉）、D35 残余、D28/D29/D30/D33
-- 验收：accept-m9e 速度跟踪误差带（分布级断言）+ 全回归
+- **取消理由（用户原话）**：官方模型 + 官方脚本训出的权重，再在官方仿真上能跑，接入我们的模型没什么意义。
+- 草稿 `0010` / `accept/m09e-b01.sh` 作废，不交付。
+
+### M9f · handmade + 自写训练脚本（GPU）— **进行中**
+
+- 目标：策略在 **我们的** `duck_handmade` 上、用 **我们写的训练入口** 长大；训推同分布
+- **硬约束**：入口脚本在 `impl/`；可 import mjlab / rsl_rl / 官方 env cfg 工厂；**禁止** `uv run train` / 官方 `train_cli` 当主路径；不从零重写 PPO
+- **Bite 1（当前）**：自写 train 入口 + 把 `duck_handmade.xml` 换进 Velocity 的 robot `EntityCfg`；云冒烟 64×5；决定 `0011`
+- 后续 Bite：同脚本长训 → 自写/薄封装 export → handmade 分布站/走验收；daemon 对接另排
+- 注：官方 Velocity Flat 默认 `robot_walk.xml`（仅足底）；我们挂 handmade（groundcontact 系 AABB）。刻意让 **训练身体 = 部署仿真身体**
+- 前置：M9a；M9d 仅证明云机能跑通（流程参考，配方不复用为终态权重）；**要 GPU**
 
 ## 覆盖核对（Phase 2 硬性映射表）
 
@@ -56,8 +65,8 @@
 | D4 sim 协议面 | M9a（Bite 4 已收敛） |
 | D26 接触穿透 | M9a（已收敛） |
 | D70 自建足底摩擦代理值 | M9a（Bite 3 修订后收敛） |
-| D23+D32 FallPredictor | M9c |
-| odometry | M9c |
+| D23+D32 FallPredictor | M9c（已收敛） |
+| odometry | M9c（估计器已收敛；D50 字段→M10） |
 | 「0.3 不走」上游权重 | M9e |
 | D35 roulade 残余 | M9e（自训能力落地后重训/复验） |
 | D28 mode/roller 槽 | M9e |

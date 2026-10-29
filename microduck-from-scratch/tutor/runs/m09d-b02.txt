@@ -1,0 +1,97 @@
+===== M9d B02 infer evidence =====
+Thu Oct 29 08:39:09 UTC 2026
+{
+  "onnx": "/cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx",
+  "seconds": 8.0,
+  "cmd": {
+    "vx": 0.0,
+    "vy": 0.0,
+    "wz": 0.0
+  },
+  "no_bam": false,
+  "new_cmd_obs": true,
+  "obs_dim": 61,
+  "start_xyz": [
+    0.0,
+    0.0,
+    0.125
+  ],
+  "end_xyz": [
+    -0.04053555882942602,
+    0.028676275856511786,
+    0.11985314835766311
+  ],
+  "dx": -0.04053555882942602,
+  "dy": 0.028676275856511786,
+  "forward_m": -0.04053555882942602,
+  "min_trunk_z": 0.11437824266465778,
+  "mean_trunk_z": 0.1191468780177528,
+  "fell": false,
+  "wall_s": 0.4569830894470215,
+  "ctrl_steps": 400
+}
+---
+{
+  "onnx": "/cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx",
+  "seconds": 10.0,
+  "cmd": {
+    "vx": 0.3,
+    "vy": 0.0,
+    "wz": 0.0
+  },
+  "no_bam": false,
+  "new_cmd_obs": true,
+  "obs_dim": 61,
+  "start_xyz": [
+    0.0,
+    0.0,
+    0.125
+  ],
+  "end_xyz": [
+    1.0560006750467066,
+    -0.516644834920163,
+    0.1206099555268718
+  ],
+  "dx": 1.0560006750467066,
+  "dy": -0.516644834920163,
+  "forward_m": 1.0560006750467066,
+  "min_trunk_z": 0.11421950239723876,
+  "mean_trunk_z": 0.11914981244355984,
+  "fell": false,
+  "wall_s": 0.5290884971618652,
+  "ctrl_steps": 500
+}
+---
+{
+  "onnx": "/cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx",
+  "seconds": 10.0,
+  "cmd": {
+    "vx": 0.3,
+    "vy": 0.0,
+    "wz": 0.0
+  },
+  "no_bam": true,
+  "new_cmd_obs": true,
+  "obs_dim": 61,
+  "start_xyz": [
+    0.0,
+    0.0,
+    0.125
+  ],
+  "end_xyz": [
+    0.44009824773650946,
+    -1.0606123876397535,
+    0.1210705601594181
+  ],
+  "dx": 0.44009824773650946,
+  "dy": -1.0606123876397535,
+  "forward_m": 0.44009824773650946,
+  "min_trunk_z": 0.11411073626019244,
+  "mean_trunk_z": 0.12056367204934906,
+  "fell": false,
+  "wall_s": 0.21372652053833008,
+  "ctrl_steps": 500
+}
+---
+-rw-r--r-- 1 root root 793962 Oct 29 08:35 /cloud/cloud-ssd1/microduck-m9d/eval/policy_export.onnx
+Written /cloud/cloud-ssd1/microduck-m9d/microduck_rl/output.onnx

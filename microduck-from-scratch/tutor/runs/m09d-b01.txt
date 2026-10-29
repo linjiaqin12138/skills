@@ -1,0 +1,55 @@
+===== M9d B01 smoke evidence =====
+Thu Oct 29 07:59:12 UTC 2026
+10-60-193-20
+GPU 0: NVIDIA GeForce RTX 4090 (UUID: GPU-f905293b-cd9b-9211-0079-8786b4453913)
+NVIDIA GeForce RTX 4090, 595.80, 24564 MiB
+python 3.12.11
+torch 2.9.1+cu128
+cuda 12.8
+gpu NVIDIA GeForce RTX 4090
+---
+smoke_ok=1
+2026-10-29T07:58:57Z
+GPU 0: NVIDIA GeForce RTX 4090 (UUID: GPU-f905293b-cd9b-9211-0079-8786b4453913)
+torch 2.9.1+cu128
+---
+GPU 0: NVIDIA GeForce RTX 4090 (UUID: GPU-f905293b-cd9b-9211-0079-8786b4453913)
+NVIDIA GeForce RTX 4090, 595.80, 24564 MiB
+torch 2.9.1+cu128
+gpu NVIDIA GeForce RTX 4090
+     "cuda:0"   : "NVIDIA GeForce RTX 4090" (24 GiB, sm_89, mempool enabled)
+torch 2.9.1+cu128
+gpu NVIDIA GeForce RTX 4090
+     "cuda:0"   : "NVIDIA GeForce RTX 4090" (24 GiB, sm_89, mempool enabled)
+                         Iteration time: 2.15s
+                         Iteration time: 1.94s
+                         Iteration time: 1.29s
+                         Iteration time: 1.30s
+                         Iteration time: 1.22s
+SMOKE_PASS
+---
+          Episode_Reward/head_pose_bias: 0.0000
+        Episode_Metrics/mean_action_acc: 1.8754
+          Curriculum/action_rate_weight: -0.1000
+               Curriculum/standing_envs: 0.0200
+             Curriculum/head_pose_range: 0.0700
+             Curriculum/body_pose_range: 0.0500
+                   Curriculum/com_range: 0.0030
+              Curriculum/head_com_range: 0.0030
+       Curriculum/head_pose_bias_weight: 0.0000
+             Metrics/twist/error_vel_xy: 0.0284
+            Metrics/twist/error_vel_yaw: 0.1631
+           Episode_Termination/time_out: 0.0000
+          Episode_Termination/fell_over: 2.4167
+Episode_Termination/out_of_terrain_bounds: 0.0000
+          Episode_Termination/nan_state: 0.0000
+          Metrics/angular_momentum_mean: 0.0118
+                  Metrics/air_time_mean: 0.0540
+               Metrics/peak_height_mean: 0.0109
+             Metrics/slip_velocity_mean: 0.1071
+--------------------------------------------------------------------------------
+                         Iteration time: 1.22s
+                           Time elapsed: 00:00:07
+                                    ETA: 00:00:00
+
+SMOKE_PASS

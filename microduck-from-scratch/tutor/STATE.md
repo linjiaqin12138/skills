@@ -6,8 +6,13 @@
 - **当前模式**：项目实现
 - **返回位置**：无（当前在项目实现）
 - **当前先修记录**：`tutor/prerequisites/ppo-reward-dr.md` — **出口已达**；返回摘要：PPO 三步、奖励权重=评分标准、DR 为健壮；误区：非选优淘汰、优势非开跑前算、投机形态不唯一
-- **当前位置**：**M9c Bite 2 已交付（2026-10-26，等用户确认）**——相对 odometry（局部双足 FK + ALPHA16）；126 单测 + live 行走/转身 + M8 全回归全绿；教程第 26 章；决定 `0007` 起草。`robot.state` 仍无 odom（D50→M10）。
-- **下一步**：用户确认后采纳 `0007`；**M9c 收官**。其后默认 **M9d 云上训练（GPU，Vast.ai）**——需用户开云机时再启动；本 VM 可先做 M9d 前置侦察/手册，或跳到其他支线。M9c Bite 1（`0006`）与 M9b Bite 3（`0005`）已确认采纳。
+- **当前位置**：**M9f Bite 1 待云冒烟（2026-10-29）**——`impl/scripts/m9f_train.py` + `m9f_handmade_robot.py` 已落地；`0011` 起草；accept A–C 过，缺 `tutor/runs/m09f-b01.txt`。D71 有意偏离已登记。
+- **M9e 已取消**：官方模型/脚本/仿真再接入我们无学习意义。
+- **下一步**：云 GPU 跑冒烟 → 写跑证 → verifier → 课文。**要 GPU。**
+- **用户裁决（2026-10-29）**：M9e 取消；handmade + **自写训练脚本**。
+- **安全**：会话中曾暴露 wandb API key——请轮换。
+- **M9c 已收官（2026-10-29）**：Bite 1 FallPredictor（D23/D32）+ Bite 2 相对 odometry；决定 `0006`/`0007` 已采纳；档案 `book/m09c-fall-recovery/acceptance.md`。`robot.state` 仍无 odom（D50→M10）。
+- **M9c Bite 2 已确认（2026-10-29）**：相对 odometry（局部双足 FK + ALPHA16）；`accept/m09c-b02.sh` 全绿；教程第 26 章；`0007` 已采纳。
 - **M9c Bite 1 已确认（2026-10-26）**：FallPredictor + Limp/Posing（D23/D32 收敛）；默认 OFF，`MINIDUCK_LIMP_FALL=1`；教程第 25 章；`0006` 已采纳。
 - **M9a Bite 1 已交付（2026-10-20）**：自建 MJCF 身体模型全绿，D26 收敛。M8/Phase 4 已收官（2026-10-15），复盘在 `tutor/phases/phase-4.md`。
 - **M8 Bite 1–5 已交付**：C1 接口对齐 + C2 诊断。见 `book/m08-convergence/acceptance.md`
@@ -31,7 +36,7 @@
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（book/m06-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（book/m07-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：impl/src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept/m07-b01.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
 | M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 tutor/phases/phase-4.md |
-| M9 仿真与训练（批次 2） | **进行中**：M9a/M9b 收官；M9c Bite 1 已确认；**M9c Bite 2 odometry 已交付（等确认）**。其后 M9d（GPU）/ M9e |
+| M9 仿真与训练（批次 2） | **进行中**：M9a/M9b/M9c 已收官。下一步 M9d（GPU）/ M9e |
 | M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
 | M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
 
