@@ -34,12 +34,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=[],
         help="Explicit .pt path (repeatable). Overrides --log-dir glob if set.",
     )
-    p.add_argument("--num-envs", type=int, default=4, help="Parallel envs for replay")
+    p.add_argument(
+        "--num-envs",
+        type=int,
+        default=1,  # 多环境会拼屏，单只鸭子更清晰
+        help="Parallel envs for replay (default: 1)",
+    )
     p.add_argument(
         "--video-length",
         type=int,
         default=300,  # 300 steps × 0.02s = 6s wall sim time
         help="Env steps to record per checkpoint",
+    )
+    p.add_argument("--video-width", type=int, default=1280, help="Render width")
+    p.add_argument("--video-height", type=int, default=720, help="Render height")
+    p.add_argument(
+        "--camera-distance",
+        type=float,
+        default=1.2,  # 官方 ViewerCfg 默认 5.0，对 ~25cm 鸭子太远
+        help="Viewer camera distance (meters)",
     )
     p.add_argument(
         "--every",
@@ -90,6 +103,9 @@ def _replay_one(
     out_dir: Path,
     num_envs: int,
     video_length: int,
+    video_width: int,
+    video_height: int,
+    camera_distance: float,
     no_terminations: bool,
     device: str,
 ) -> Path:
@@ -110,6 +126,10 @@ def _replay_one(
     env_cfg = make_microduck_velocity_env_cfg(play=True)
     env_cfg.scene.entities = {"robot": HANDMADE_ROBOT_CFG}
     env_cfg.scene.num_envs = num_envs
+    env_cfg.viewer.width = video_width
+    env_cfg.viewer.height = video_height
+    env_cfg.viewer.distance = camera_distance
+    env_cfg.viewer.max_extra_envs = 0
     if no_terminations:
         env_cfg.terminations = {}
 
@@ -124,6 +144,7 @@ def _replay_one(
     print(f"m9f_replay | handmade | {ckpt.name}")
     print(f"  xml     : {HANDMADE_XML}")
     print(f"  device  : {device}")
+    print(f"  size    : {video_width}x{video_height}  dist={camera_distance}")
     print(f"  steps   : {video_length}")
     print(f"  out     : {ckpt_video_dir}")
     print("=" * 60, flush=True)
@@ -190,6 +211,9 @@ def main(argv: list[str] | None = None) -> None:
             out_dir=out_dir,
             num_envs=args.num_envs,
             video_length=args.video_length,
+            video_width=args.video_width,
+            video_height=args.video_height,
+            camera_distance=args.camera_distance,
             no_terminations=args.no_terminations,
             device=device,
         )
