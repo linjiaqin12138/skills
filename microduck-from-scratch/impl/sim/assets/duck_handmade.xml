@@ -259,6 +259,16 @@
     </body>
   </worldbody>
 
+  <!-- mjlab Velocity 观测：与官方 robot_walk.xml sensors.xml 同名（训练侧读 robot/imu_*） -->
+  <sensor>
+    <framequat name="orientation" objtype="site" noise="0.001" objname="imu" />
+    <gyro name="angular-velocity" site="imu" noise="0.005" />
+    <gyro name="imu_ang_vel" site="imu" />
+    <velocimeter name="imu_lin_vel" site="imu" />
+    <accelerometer name="imu_accel" site="imu" />
+    <subtreeangmom name="root_angmom" body="trunk_base" />
+  </sensor>
+
   <!-- 网格与材质：逐字照抄官方 robot_groundcontact.xml（STL 为 CC BY-NC-SA 4.0，
        XML/材质数值为 Apache-2.0，台账见 PROVENANCE.md） -->
   <asset>
