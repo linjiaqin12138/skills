@@ -1,0 +1,14 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/miniduck-9ef4d0f74dde4d3e)
+
+running 1 test
+test scheduler::tests::walk_action_scale_defaults_and_overrides ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 126 filtered out; finished in 0.00s
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+stand_ok z=0.12030454798606732
+hello <- {"jsonrpc":"2.0","id":1,"result":{"api_version":1,"service":"miniduckd"}}
+walk vx=0.3: x0=-0.012688345776982633 x1=1.3201496103237864 forward=1.332837956100769 z=0.11860345109535116 skill/fallen=walk False
+M9e Bite 1 验收 PASS：自训 ONNX 闭环站 + vx=0.3 走雏形 forward=1.332837956100769

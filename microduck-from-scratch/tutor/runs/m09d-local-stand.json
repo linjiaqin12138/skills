@@ -1,0 +1,30 @@
+{
+  "onnx": "/home/jqlin/Project/skills/microduck-from-scratch/tutor/artifacts/m09d/policy_export.onnx",
+  "seconds": 8.0,
+  "cmd": {
+    "vx": 0.0,
+    "vy": 0.0,
+    "wz": 0.0
+  },
+  "no_bam": false,
+  "new_cmd_obs": true,
+  "obs_dim": 61,
+  "start_xyz": [
+    0.0,
+    0.0,
+    0.125
+  ],
+  "end_xyz": [
+    -0.04344433773063932,
+    0.022321498129945057,
+    0.1185453913067239
+  ],
+  "dx": -0.04344433773063932,
+  "dy": 0.022321498129945057,
+  "forward_m": -0.04344433773063932,
+  "min_trunk_z": 0.11437824266465778,
+  "mean_trunk_z": 0.11911915032513418,
+  "fell": false,
+  "wall_s": 0.15993189811706543,
+  "ctrl_steps": 400
+}

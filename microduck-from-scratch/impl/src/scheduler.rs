@@ -117,9 +117,25 @@ pub const GROUND_PICK_END_TICKS: u64 = 140; // 0.7 × 200
 /// DEFAULT_SITSTAND_RISE_S）。
 pub const SIT_RISE_TICKS: u64 = 50; // 1.0s × 50Hz
 
-/// walk 槽 action_scale：velstand 的训练属性（M3 时是 control.rs 的
-/// ACTION_SCALE；原型 alpha 默认 0.9，不是 standing 的 1.0）。
+/// walk 槽 action_scale 缺省：公开 velstand 的训练属性（原型 alpha 0.9）。
+/// 自训 Velocity（M9d/M9e，scale=1.0）用环境变量覆盖，见 `walk_action_scale`。
 pub const WALK_ACTION_SCALE: f64 = 0.9;
+
+/// 解析 walk 槽 action_scale。`None` / 非法 / 非正数 → [`WALK_ACTION_SCALE`]。
+pub fn parse_walk_action_scale(raw: Option<&str>) -> f64 {
+    match raw {
+        Some(s) => match s.parse::<f64>() {
+            Ok(v) if v.is_finite() && v > 0.0 => v,
+            _ => WALK_ACTION_SCALE,
+        },
+        None => WALK_ACTION_SCALE,
+    }
+}
+
+/// 运行时 walk 槽尺度：读 `MINIDUCK_WALK_ACTION_SCALE`，缺省 0.9。
+pub fn walk_action_scale() -> f64 {
+    parse_walk_action_scale(std::env::var("MINIDUCK_WALK_ACTION_SCALE").ok().as_deref())
+}
 /// sitstand 槽 action_scale：原版 start_sit_toggle 把整个坐/起周期钉在 1.0
 ///（upstream/robotd/src/control.rs:582-584 注释）。
 pub const SITSTAND_ACTION_SCALE: f64 = 1.0;
@@ -332,7 +348,7 @@ impl Cascade {
                     c.twist = [0.0; 3];
                     (Net::SitStand, c, SITSTAND_ACTION_SCALE)
                 }
-                Sit::Up => (Net::Walk, *client, WALK_ACTION_SCALE),
+                Sit::Up => (Net::Walk, *client, walk_action_scale()),
             }
         };
 
@@ -618,6 +634,20 @@ mod tests {
     }
 
     #[test]
+    fn walk_action_scale_defaults_and_overrides() {
+        assert_eq!(parse_walk_action_scale(None), 0.9);
+        assert_eq!(parse_walk_action_scale(Some("1.0")), 1.0);
+        assert_eq!(parse_walk_action_scale(Some("0.9")), 0.9);
+        assert_eq!(parse_walk_action_scale(Some("")), WALK_ACTION_SCALE);
+        assert_eq!(parse_walk_action_scale(Some("nope")), WALK_ACTION_SCALE);
+        assert_eq!(parse_walk_action_scale(Some("-1")), WALK_ACTION_SCALE);
+        assert_eq!(parse_walk_action_scale(Some("0")), WALK_ACTION_SCALE);
+        assert_eq!(parse_walk_action_scale(Some("nan")), WALK_ACTION_SCALE);
+        // 无环境变量时，运行时入口与缺省常量一致。
+        assert_eq!(walk_action_scale(), WALK_ACTION_SCALE);
+    }
+
+    #[test]
     fn walk_is_the_default_and_passes_the_client_command_through() {
         let mut c = cascade();
         let client = client_command();
@@ -625,7 +655,7 @@ mod tests {
         assert_eq!(d.net, Net::Walk);
         assert_eq!(d.command, client, "walk 支路不改客户端命令");
         assert_eq!(d.label, "walk");
-        assert_eq!(d.action_scale, WALK_ACTION_SCALE);
+        assert_eq!(d.action_scale, walk_action_scale());
         assert!(d.switched, "第一拍从 None 到 Walk 算切换");
         assert!(!c.busy());
 

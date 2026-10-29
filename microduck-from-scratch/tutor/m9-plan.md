@@ -44,17 +44,20 @@
 - 前置：M9b（操作手册）、用户买好云实例
 - 进度：Bite 1/2 均已确认；`0008`/`0009` **已采纳**；档案 `acceptance.md` + `acceptance-b02.md`
 
-### M9e · 官方权重进我们 daemon — **取消（2026-10-29）**
+### M9e · 自训官方分布权重进我们 daemon — **Bite 1 待确认（2026-10-29）**
 
-- **取消理由（用户原话）**：官方模型 + 官方脚本训出的权重，再在官方仿真上能跑，接入我们的模型没什么意义。
-- 草稿 `0010` / `accept/m09e-b01.sh` 作废，不交付。
+- 目标：M9d 的 `policy_export.onnx`（官方 Velocity 配方自训）接到 **我们的** `miniduckd` + handmade BAM；对照官方 `infer_policy` viewer
+- 内容：`MINIDUCK_POLICY` 指向自训 ONNX；`MINIDUCK_WALK_ACTION_SCALE=1.0`（训练契约；公开 velstand 缺省仍 0.9）；站 + `vx=0.3` 走雏形
+- 决定：`0010`（起草）
+- 验收：`accept/m09e-b01.sh` PASS（forward≈1.33m）；课文第 29 章
+- 注：与 M9f（handmade 上自训）并存——M9e 证集成栈，M9f 证训推同分布
 
-### M9f · handmade + 自写训练脚本（GPU）— **进行中**
+### M9f · handmade + 自写训练脚本（GPU）— **Bite 1 待确认**
 
 - 目标：策略在 **我们的** `duck_handmade` 上、用 **我们写的训练入口** 长大；训推同分布
 - **硬约束**：入口脚本在 `impl/`；可 import mjlab / rsl_rl / 官方 env cfg 工厂；**禁止** `uv run train` / 官方 `train_cli` 当主路径；不从零重写 PPO
-- **Bite 1（当前）**：自写 train 入口 + 把 `duck_handmade.xml` 换进 Velocity 的 robot `EntityCfg`；云冒烟 64×5；决定 `0011`
-- 后续 Bite：同脚本长训 → 自写/薄封装 export → handmade 分布站/走验收；daemon 对接另排
+- **Bite 1**：自写 train 入口 + handmade `EntityCfg`；云冒烟 64×5；长训 `2048×4000` + HD replay 已跑；课文第 30 章；决定 `0011`（起草）
+- 后续 Bite：自写/薄封装 export → handmade 分布站/走验收；daemon 对接另排
 - 注：官方 Velocity Flat 默认 `robot_walk.xml`（仅足底）；我们挂 handmade（groundcontact 系 AABB）。刻意让 **训练身体 = 部署仿真身体**
 - 前置：M9a；M9d 仅证明云机能跑通（流程参考，配方不复用为终态权重）；**要 GPU**
 

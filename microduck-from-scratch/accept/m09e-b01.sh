@@ -105,7 +105,7 @@ STAND_Z=$(wait_stand)
 echo "stand_ok z=$STAND_Z"
 
 X0=$(body | awk '{print $1}')
-./target/debug/mini-duckctl move --vx 0.3 --secs 10 >/dev/null
+./target/debug/mini-duckctl move 0.3 0 0 --secs 10 >/dev/null || fail "move"
 X1=$(body | awk '{print $1}')
 Z1=$(body | awk '{print $3}')
 INFO=$(state_snapshot)

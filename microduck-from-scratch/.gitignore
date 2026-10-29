@@ -7,3 +7,13 @@
 /impl/tests/fixtures/*.onnx
 __pycache__/
 MUJOCO_LOG.TXT
+
+# 训练/回放产物（模型、视频、打包）— 本地保留，不进仓
+/tutor/artifacts/**/*.pt
+/tutor/artifacts/**/*.onnx
+/tutor/artifacts/**/*.mp4
+/tutor/artifacts/**/*.tar.gz
+/tutor/artifacts/**/checkpoints/
+/tutor/artifacts/**/videos/
+/vendor/
+/reference/

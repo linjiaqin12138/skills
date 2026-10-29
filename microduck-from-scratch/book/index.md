@@ -13,5 +13,7 @@
 | 第 26 章 | M9c Bite 2：相对 odometry | [m09c-odometry/b01-odometry.html](m09c-odometry/b01-odometry.html) |
 | 第 27 章 | M9d Bite 1：云 4090 冒烟 | [m09d-cloud-train/b01-cloud-smoke.html](m09d-cloud-train/b01-cloud-smoke.html) |
 | 第 28 章 | M9d Bite 2：首训能站能走？ | [m09d-cloud-train/b02-infer-stand-walk.html](m09d-cloud-train/b02-infer-stand-walk.html) |
+| 第 29 章 | M9e Bite 1：自训策略进我们的 daemon | [m09e-daemon-policy/b01-daemon-selftrain.html](m09e-daemon-policy/b01-daemon-selftrain.html) |
+| 第 30 章 | M9f Bite 1：自写训练入口 + handmade | [m09f-handmade-train/b01-own-train-handmade.html](m09f-handmade-train/b01-own-train-handmade.html) |
 
-更早章节见各 `book/mNN-*/` 目录。现在读到：**第 28 章**。
+更早章节见各 `book/mNN-*/` 目录。现在读到：**第 30 章**。
