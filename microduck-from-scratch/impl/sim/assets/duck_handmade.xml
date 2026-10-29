@@ -116,6 +116,9 @@
                 <geom name="left_foot_collision_part2" class="collision" pos="-0.006829835485 -0.01650534056 -0.01580097211"
                       quat="0.4923998867 -0.5081082529 -0.489826422 0.5093509901"
                       size="0.005073626526 0.02174140592 0.02722997068" friction="1.0 0.005 0.0001" />
+                <!-- Velocity foot_height_scan：与官方 robot_walk/groundcontact 同名同姿 -->
+                <site group="3" name="left_foot" pos="0 -0.0238146 -0.0140852"
+                      quat="0 0 -0.707107 -0.707107" />
               </body>
             </body>
           </body>
@@ -246,6 +249,8 @@
                 <geom name="right_foot_collision_part2" class="collision" pos="0.006829947801 -0.01650530462 -0.01580106801"
                       quat="0.5093512617 0.4898263251 0.5081093808 0.4923985384"
                       size="0.005073633045 0.02174145758 0.02722982717" friction="1.0 0.005 0.0001" />
+                <site group="3" name="right_foot" pos="0 -0.0238146 -0.0140852"
+                      quat="0.707107 -0.707107 0 0" />
               </body>
             </body>
           </body>
