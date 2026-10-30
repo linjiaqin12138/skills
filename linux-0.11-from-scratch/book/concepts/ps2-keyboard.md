@@ -101,7 +101,7 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 {表里有非 0 ASCII?} -> [None]: 否
 ```
 
-```rust src=impl/kernel/src/keyboard.rs lines=56-71
+```rust src=impl/kernel/src/keyboard.rs lines=56-70
 ```
 
 - 返回类型 `Option<u8>`：要么 `Some(字节)`，要么 `None`（什么也不回显）。
@@ -128,10 +128,10 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 
 键盘是外设，IRQ 要经 IOAPIC 才能到 CPU，这和 LAPIC 定时器直接走本地入口不同。本课只用 `ioapic::route` 这一个入口：
 
-```rust src=impl/kernel/src/keyboard.rs lines=34-42
+```rust src=impl/kernel/src/keyboard.rs lines=34-41
 ```
 
-- 参数 `KEYBOARD_GSI = 1`：QEMU 默认机上，ISA IRQ1 对应的全局中断线号也是 1。
+- `acpi::keyboard_route` 从 MADT / ISO 查出 IOAPIC 基址、GSI 与触发属性；QEMU 默认机实测 GSI 为 1，但不再写死。
 - `KEYBOARD_VECTOR = 33`：紧挨定时器的 32。IOAPIC 内部怎么记这条路由，见 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.html)，本页不展开。
 - 必须在 IDT 装好向量 33 之后再调用，否则中断来了没有入口。
 
@@ -175,7 +175,7 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 | 行规程（Backspace 删字、行缓冲） | no | handler 来一个字符回显一个 |
 | 写 `0x64` 发控制器命令 | no | 沿用默认状态；自检、开关翻译位等是后置话题 |
 | 鼠标（IRQ12） | no | 只接 IRQ1 |
-| 在非 QEMU 默认机上运行 | no | IOAPIC 基址与 GSI 固定（决定 0004） |
+| MADT / ISO 发现 IOAPIC 路由 | yes | Bite3 已收敛 D18；真机尚未实测 |
 
 ## 回到项目
 
@@ -186,7 +186,7 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 | `BREAK_BIT`：松开忽略 | `keyboard.rs:21-22`、`:64-66` | 扫描码集 1 |
 | `0xE0` 丢下一字节 | `keyboard.rs:20`、`:30-32`、`:57-63` | 0xE0 前缀；decode |
 | `SCANCODE_TO_ASCII` 只映射可打印 + 回车 | `keyboard.rs:24-28`、`:67-70` | 查表 |
-| 中断来自 IOAPIC、向量 33 | `keyboard.rs:10-12`、`:41`；`idt.rs:308-329` | 中断侧；[PIC、LAPIC 与 IOAPIC](apic-vs-pic.html) |
+| 中断来自 IOAPIC、向量 33 | `keyboard.rs:10`、`:34-40`；`idt.rs:308-329` | 中断侧；[PIC、LAPIC 与 IOAPIC](apic-vs-pic.html) |
 | `printk!` 在 IRQ 里 | `keyboard.rs:50` | 中断侧末段 |
 
 ## 去学

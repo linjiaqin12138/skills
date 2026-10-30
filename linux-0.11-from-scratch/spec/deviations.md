@@ -20,6 +20,6 @@
 | D14 | Limine 协议绑定：手写 `repr(C)` → 官方 `limine` crate 0.6.5 | 永久豁免·架构 | — | 2026-10-13 用户偏好「少造轮子」；行为与手写一致，验收已复跑通过 |
 | D15 | ~~全局 console 用 `static mut` + `addr_of_mut!`（无锁）~~ | **已收敛**（2026-10-29，M3 Bite2） | — | 换成 `IrqLock` 关中断临界区（decisions/0003）；持锁期间 panic 再 printk 仍可能别名，与改锁前同级残留，多核前再评 |
 | D16 | IDT 向量 34~255 仍为空洞；异常 handler 打印后 hlt 停机，无异常 iret 返回路径 | 待收敛 | M9 COW 缺页需 iret 返回 | **M3 Bite2 部分再收敛**：IRQ32/33 均经共享可返回入口；其余外部向量与异常返回路径仍待后续 |
-| D17 | LAPIC/IOAPIC MMIO 用静态页表页按需补映射，未经通用页表接口 | 待收敛 | M5 | 已抽到 `mmio.rs` 共用；池上限现为 4 张（代理假设：本阶段仅两张设备页）。M5 自建页表后收敛，见 decisions/0002 |
-| D18 | IOAPIC 基址与 GSI 写死（`0xFEC00000` / IRQ1），无 MADT/ISO | 永久豁免·架构 | — | M3 只跑 QEMU 默认机；可移植发现留给设备增多时（decisions/0004） |
+| D17 | LAPIC/IOAPIC/ACPI 物理页用静态页表页按需补映射，未经通用页表接口 | 待收敛 | M5 | 已抽到 `mmio.rs` 共用；池上限现为 8 张。M5 自建页表后收敛，见 decisions/0002 |
+| D18 | ~~IOAPIC 基址与 GSI 写死（`0xFEC00000` / IRQ1），无 MADT/ISO~~ | **已收敛**（2026-10-30，M3 Bite3） | — | Limine RSDP → RSDT/XSDT → MADT；应用 ISO 的 GSI、极性与触发方式，无硬编码回退（decisions/0005） |
 | D19 | 键盘只回显扫描码集 1 可打印键与回车；无 Esc/退格/Tab/修饰键 | 待收敛 | M13（随行规程） | 与 D3 配套；字体缺字形的控制键本 Bite 故意不回显 |

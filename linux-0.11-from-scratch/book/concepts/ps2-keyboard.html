@@ -808,7 +808,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>写 <code>0x64</code> 能让控制器自检、开关端口、改翻译位。本课不写，沿用固件与 QEMU 留下的默认状态。</p>
 <p><strong>bit 0 是「输出缓冲满」。</strong> 它为 1 时，<code>0x60</code> 里才有新字节。代码里叫 <code>STATUS_OUTPUT_FULL</code>：</p>
 </div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="14-17"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:14-17</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="14">const DATA_PORT: u16 = 0x60;</span><span class="am-ln" data-n="15">const STATUS_PORT: u16 = 0x64;</span><span class="am-ln" data-n="16">/// 状态寄存器位 0：输出缓冲区有数据可读。不先查就读 0x60 会拿到过期字节。</span><span class="am-ln" data-n="17">const STATUS_OUTPUT_FULL: u8 = 1 &lt;&lt; 0;</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="14-17"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:14-17</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="14">/// 状态寄存器位 0：输出缓冲区有数据可读。不先查就读 0x60 会拿到过期字节。</span><span class="am-ln" data-n="15">const STATUS_OUTPUT_FULL: u8 = 1 &lt;&lt; 0;</span><span class="am-ln" data-n="16"></span><span class="am-ln" data-n="17">/// 扩展键前缀：其后的一个字节属于方向键、右 Ctrl 等扩展键，本 Bite 忽略。</span></code></pre></figure>
 <div class="am-md"><ul>
 <li><code>1 &lt;&lt; 0</code> 是把 1 左移 0 位，值就是 <code>0b0000_0001</code>。</li>
 <li><code>inb(STATUS_PORT) &amp; STATUS_OUTPUT_FULL</code> 按位与：只留下 bit 0。结果不为 0，就是缓冲里有字节。</li>
@@ -826,7 +826,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li>最高位（bit 7）就是「松开」标志。代码里叫 <code>BREAK_BIT</code>：</li>
 </ul>
 </div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="21-22"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:21-22</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="21">/// 扫描码集 1 里，最高位置位表示松开（break），否则是按下（make）。</span><span class="am-ln" data-n="22">const BREAK_BIT: u8 = 1 &lt;&lt; 7;</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="21-22"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:21-22</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="21"></span><span class="am-ln" data-n="22">/// 扫描码集 1 的 make code → ASCII，下标即扫描码（0x00..=0x39），0 = 不回显。</span></code></pre></figure>
 <div class="am-md"><ul>
 <li>判断松开：<code>scancode &amp; BREAK_BIT != 0</code>。</li>
 <li>按住不放，硬件会不断重发 make 码。回显也就重复出现，这是预期行为。</li>
@@ -840,7 +840,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>问题在第二个字节。小键盘 Enter 的第二个字节是 <code>0x1C</code>，和主键盘 Enter 一样。如果不认前缀，小键盘 Enter 会被当成主键盘 Enter，也回显成换行。</p>
 <p>本课的做法很粗：见到 <code>0xE0</code>，记下「下一个字节要丢」，下一个字节无论是什么都丢掉。</p>
 </div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="30-32"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:30-32</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="30">/// 上一个字节是 0xE0 前缀时，下一个字节要整个丢弃。</span><span class="am-ln" data-n="31">/// 只有键盘 handler 读写它，用原子量是为了不用 `static mut`，不是为了并发。</span><span class="am-ln" data-n="32">static EXTENDED_PENDING: AtomicBool = AtomicBool::new(false);</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="30-32"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:30-32</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="30">static EXTENDED_PENDING: AtomicBool = AtomicBool::new(false);</span><span class="am-ln" data-n="31"></span><span class="am-ln" data-n="32">/// 清空控制器里残留的字节，再按 MADT / ISO 把 IRQ1 路由到向量 33。</span></code></pre></figure>
 <div class="am-md"><ul>
 <li><code>EXTENDED_PENDING</code> 必须是 <code>static</code>。<code>0xE0</code> 和后面那个字节可能落在两次 handler 调用里，普通局部变量活不过一次调用。</li>
 <li><code>AtomicBool</code> 是「可以安全读写的布尔值」。这里选它只是为了不写 <code>static mut</code>，不是为了多线程。</li>
@@ -852,7 +852,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <section class="am-panel" id="panel-E">
 <header class="am-panel-head"><span class="am-panel-id">E</span><h2>decode：一个字节的去向</h2></header>
 <div class="am-panel-body"><figure class="am-diagram am-flow"><svg viewBox="0 0 598 624" width="598" height="624" role="img" aria-label="流程图：收到一个字节、是 0xE0?、置 PENDING、None、PENDING 为真?、清 PENDING、bit 7 = 1?、表里有非 0 ASCII?" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M323.4,49 L323.4,60.5 Q323.4,72 323.4,83.5 L323.4,95" marker-end="url(#am2-arrow)"/></g><g data-step="1"><path class="am-edge" d="M361.2,134 L445.6,158.5 Q530,183 530,213 Q530,243 530,273 Q530,303 530,333 Q530,363 530,393 Q530,423 530,444.3 L530,465.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="519.2" y="294" width="21.5" height="18" rx="3"/><text x="530" y="303" text-anchor="middle" dominant-baseline="central">是</text></g></g><g data-step="2"><path class="am-edge" d="M530,500.5 L530,521.8 Q530,543 447,563.7 L364,584.5" marker-end="url(#am2-arrow)"/></g><g data-step="3"><path class="am-edge" d="M301.7,141.2 L276.9,162.1 Q252,183 252,199 L252,215" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="241.3" y="174" width="21.5" height="18" rx="3"/><text x="252" y="183" text-anchor="middle" dominant-baseline="central">否</text></g></g><g data-step="4"><path class="am-edge" d="M290,259.8 L338.6,281.4 Q387.2,303 387.2,333 Q387.2,363 387.2,393 Q387.2,423 387.2,444.3 L387.2,465.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="376.4" y="354" width="21.5" height="18" rx="3"/><text x="387.2" y="363" text-anchor="middle" dominant-baseline="central">是</text></g></g><g data-step="5"><path class="am-edge" d="M387.2,500.5 L387.2,521.8 Q387.2,543 369.3,559 L351.5,575" marker-end="url(#am2-arrow)"/></g><g data-step="6"><path class="am-edge" d="M231.8,265 L214.3,284 Q196.8,303 196.8,319 L196.8,335" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="186.1" y="294" width="21.5" height="18" rx="3"/><text x="196.8" y="303" text-anchor="middle" dominant-baseline="central">否</text></g></g><g data-step="7"><path class="am-edge" d="M220.3,380.6 L248.6,401.8 Q276.8,423 276.8,453 Q276.8,483 276.8,513 Q276.8,543 294.6,559 L312.5,575" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="248.8" y="474" width="56" height="18" rx="3"/><text x="276.8" y="483" text-anchor="middle" dominant-baseline="central">是，松开</text></g></g><g data-step="8"><path class="am-edge" d="M173.4,380.6 L145.1,401.8 Q116.9,423 116.9,439 L116.9,455" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="106.2" y="414" width="21.5" height="18" rx="3"/><text x="116.9" y="423" text-anchor="middle" dominant-baseline="central">否</text></g></g><g data-step="9"><path class="am-edge" d="M107.7,508.5 L101.4,525.7 Q95.1,543 95.1,559 L95.1,575" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="84.4" y="534" width="21.5" height="18" rx="3"/><text x="95.1" y="543" text-anchor="middle" dominant-baseline="central">是</text></g></g><g data-step="10"><path class="am-edge" d="M140.1,504.7 L160.5,523.8 Q181,543 240.5,562.5 L300,582" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="170.2" y="534" width="21.5" height="18" rx="3"/><text x="181" y="543" text-anchor="middle" dominant-baseline="central">否</text></g></g></g><g><g class="am-node am-node--round" data-key="收到一个字节" data-step="0"><rect class="am-node-shape" x="264.4" y="14" width="118" height="35" rx="17.5"/><text x="323.4" y="31.5" text-anchor="middle" dominant-baseline="central">收到一个字节</text></g><g class="am-node am-node--diamond" data-key="是 0xE0?" data-step="0"><polygon class="am-node-shape" points="323.4,95 385.6,123 323.4,151 261.3,123"/><text x="323.4" y="123" text-anchor="middle" dominant-baseline="central">是 0xE0?</text></g><g class="am-node am-node--rect" data-key="置 PENDING" data-step="1"><rect class="am-node-shape" x="476.6" y="465.5" width="106.8" height="35" rx="3"/><text x="530" y="483" text-anchor="middle" dominant-baseline="central">置 PENDING</text></g><g class="am-node am-node--rect" data-key="None" data-step="2"><rect class="am-node-shape" x="300" y="575" width="64" height="35" rx="3"/><text x="332" y="592.5" text-anchor="middle" dominant-baseline="central">None</text></g><g class="am-node am-node--diamond" data-key="PENDING 为真?" data-step="3"><polygon class="am-node-shape" points="252,215 347.3,243 252,271 156.7,243"/><text x="252" y="243" text-anchor="middle" dominant-baseline="central">PENDING 为真?</text></g><g class="am-node am-node--rect" data-key="清 PENDING" data-step="4"><rect class="am-node-shape" x="333.8" y="465.5" width="106.8" height="35" rx="3"/><text x="387.2" y="483" text-anchor="middle" dominant-baseline="central">清 PENDING</text></g><g class="am-node am-node--diamond" data-key="bit 7 = 1?" data-step="6"><polygon class="am-node-shape" points="196.8,335 260.2,363 196.8,391 133.5,363"/><text x="196.8" y="363" text-anchor="middle" dominant-baseline="central">bit 7 = 1?</text></g><g class="am-node am-node--diamond" data-key="表里有非 0 ASCII?" data-step="8"><polygon class="am-node-shape" points="116.9,455 219.8,483 116.9,511 14,483"/><text x="116.9" y="483" text-anchor="middle" dominant-baseline="central">表里有非 0 ASCII?</text></g><g class="am-node am-node--rect am-node--hi" data-key="Some ASCII" data-step="9"><rect class="am-node-shape" x="44.5" y="575" width="101.3" height="35" rx="3"/><text x="95.1" y="592.5" text-anchor="middle" dominant-baseline="central">Some ASCII</text></g></g></svg></figure>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="56-71"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:56-71</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="56">fn decode(scancode: u8) -&gt; Option&lt;u8&gt; {</span><span class="am-ln" data-n="57">    if scancode == EXTENDED_PREFIX {</span><span class="am-ln" data-n="58">        EXTENDED_PENDING.store(true, Ordering::Relaxed);</span><span class="am-ln" data-n="59">        return None;</span><span class="am-ln" data-n="60">    }</span><span class="am-ln" data-n="61">    if EXTENDED_PENDING.swap(false, Ordering::Relaxed) {</span><span class="am-ln" data-n="62">        return None;</span><span class="am-ln" data-n="63">    }</span><span class="am-ln" data-n="64">    if scancode &amp; BREAK_BIT != 0 {</span><span class="am-ln" data-n="65">        return None;</span><span class="am-ln" data-n="66">    }</span><span class="am-ln" data-n="67">    match SCANCODE_TO_ASCII.get(scancode as usize) {</span><span class="am-ln" data-n="68">        Some(&amp;ascii) if ascii != 0 =&gt; Some(ascii),</span><span class="am-ln" data-n="69">        _ =&gt; None,</span><span class="am-ln" data-n="70">    }</span><span class="am-ln" data-n="71">}</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="56-70"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:56-70</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="56">    if scancode == EXTENDED_PREFIX {</span><span class="am-ln" data-n="57">        EXTENDED_PENDING.store(true, Ordering::Relaxed);</span><span class="am-ln" data-n="58">        return None;</span><span class="am-ln" data-n="59">    }</span><span class="am-ln" data-n="60">    if EXTENDED_PENDING.swap(false, Ordering::Relaxed) {</span><span class="am-ln" data-n="61">        return None;</span><span class="am-ln" data-n="62">    }</span><span class="am-ln" data-n="63">    if scancode &amp; BREAK_BIT != 0 {</span><span class="am-ln" data-n="64">        return None;</span><span class="am-ln" data-n="65">    }</span><span class="am-ln" data-n="66">    match SCANCODE_TO_ASCII.get(scancode as usize) {</span><span class="am-ln" data-n="67">        Some(&amp;ascii) if ascii != 0 =&gt; Some(ascii),</span><span class="am-ln" data-n="68">        _ =&gt; None,</span><span class="am-ln" data-n="69">    }</span><span class="am-ln" data-n="70">}</span></code></pre></figure>
 <div class="am-md"><ul>
 <li>返回类型 <code>Option&lt;u8&gt;</code>：要么 <code>Some(字节)</code>，要么 <code>None</code>（什么也不回显）。</li>
 <li>关卡顺序有意义：先认 <code>0xE0</code>，再处理「上一个是 <code>0xE0</code>」，然后才看 break 位。所以 <code>E0 9C</code> 里的 <code>9C</code>，由前缀规则丢掉，break 规则轮不到它。</li>
@@ -864,7 +864,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <header class="am-panel-head"><span class="am-panel-id">F</span><h2>查表：哪些键会回显</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><code>SCANCODE_TO_ASCII</code> 是一张 <code>0x3A</code> 字节的表：<strong>下标是 make 码，内容是 ASCII，0 表示不回显。</strong></p>
 </div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="24-28"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:24-28</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="24">/// 扫描码集 1 的 make code → ASCII，下标即扫描码（0x00..=0x39），0 = 不回显。</span><span class="am-ln" data-n="25">/// Esc / Backspace / Tab / 修饰键都留 0：字体里没有它们的字形，修饰键也不在本 Bite 范围。</span><span class="am-ln" data-n="26">/// 类型标成定长数组，让编译器核对长度恰为 0x3a。</span><span class="am-ln" data-n="27">const SCANCODE_TO_ASCII: &amp;[u8; 0x3a] =</span><span class="am-ln" data-n="28">    b&quot;\0\x001234567890-=\0\0qwertyuiop[]\n\0asdfghjkl;&#39;`\0\\zxcvbnm,./\0*\0 &quot;;</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="24-28"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:24-28</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="24">/// 类型标成定长数组，让编译器核对长度恰为 0x3a。</span><span class="am-ln" data-n="25">const SCANCODE_TO_ASCII: &amp;[u8; 0x3a] =</span><span class="am-ln" data-n="26">    b&quot;\0\x001234567890-=\0\0qwertyuiop[]\n\0asdfghjkl;&#39;`\0\\zxcvbnm,./\0*\0 &quot;;</span><span class="am-ln" data-n="27"></span><span class="am-ln" data-n="28">/// 上一个字节是 0xE0 前缀时，下一个字节要整个丢弃。</span></code></pre></figure>
 <div class="am-md"><figure class="am-figure"><img data-am-src="figures/ps2-keyboard/scancode-map.svg" src="figures/ps2-keyboard/scancode-map.svg" alt="SCANCODE_TO_ASCII：绿色键有 ASCII，灰色键表里是 0"><figcaption>SCANCODE_TO_ASCII：绿色键有 ASCII，灰色键表里是 0</figcaption></figure>
 <ul>
 <li>只映射可打印字符、空格和回车（<code>0x1C</code> → <code>\n</code>）。</li>
@@ -880,16 +880,16 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <header class="am-panel-head"><span class="am-panel-id">G</span><h2>中断侧：从 IRQ1 到 handler</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>键盘是外设，IRQ 要经 IOAPIC 才能到 CPU，这和 LAPIC 定时器直接走本地入口不同。本课只用 <code>ioapic::route</code> 这一个入口：</p>
 </div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="34-42"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:34-42</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="34">/// 清空控制器里残留的字节，再把 IRQ1 路由到向量 33。</span><span class="am-ln" data-n="35">/// 必须在 IDT 已装好向量 33 之后调用。</span><span class="am-ln" data-n="36">pub fn init() -&gt; bool {</span><span class="am-ln" data-n="37">    // 残留字节不清掉，输出缓冲区一直满着，控制器不会再触发新的 IRQ1</span><span class="am-ln" data-n="38">    while inb(STATUS_PORT) &amp; STATUS_OUTPUT_FULL != 0 {</span><span class="am-ln" data-n="39">        inb(DATA_PORT);</span><span class="am-ln" data-n="40">    }</span><span class="am-ln" data-n="41">    ioapic::route(KEYBOARD_GSI, KEYBOARD_VECTOR as u8, lapic::id())</span><span class="am-ln" data-n="42">}</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="34-41"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:34-41</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="34">pub fn init() -&gt; Option&lt;acpi::KeyboardRoute&gt; {</span><span class="am-ln" data-n="35">    // 残留字节不清掉，输出缓冲区一直满着，控制器不会再触发新的 IRQ1</span><span class="am-ln" data-n="36">    while inb(STATUS_PORT) &amp; STATUS_OUTPUT_FULL != 0 {</span><span class="am-ln" data-n="37">        inb(DATA_PORT);</span><span class="am-ln" data-n="38">    }</span><span class="am-ln" data-n="39">    let route = acpi::keyboard_route()?;</span><span class="am-ln" data-n="40">    ioapic::route(route, KEYBOARD_VECTOR as u8, lapic::id()).then_some(route)</span><span class="am-ln" data-n="41">}</span></code></pre></figure>
 <div class="am-md"><ul>
-<li>参数 <code>KEYBOARD_GSI = 1</code>：QEMU 默认机上，ISA IRQ1 对应的全局中断线号也是 1。</li>
+<li><code>acpi::keyboard_route</code> 从 MADT / ISO 查出 IOAPIC 基址、GSI 与触发属性；QEMU 默认机实测 GSI 为 1，但不再写死。</li>
 <li><code>KEYBOARD_VECTOR = 33</code>：紧挨定时器的 32。IOAPIC 内部怎么记这条路由，见 <a href="apic-vs-pic.html">PIC、LAPIC 与 IOAPIC</a>，本页不展开。</li>
 <li>必须在 IDT 装好向量 33 之后再调用，否则中断来了没有入口。</li>
 </ul>
 <p><strong>为什么 <code>init</code> 要先清缓冲再 <code>route</code>。</strong> 注释写得直白：残留字节不清掉，输出缓冲区一直满着，控制器不会再触发新的 IRQ1。路由一打开，如果缓冲里正好有开机遗留的字节，键盘就永远「哑」了。</p>
 <p><strong>handler 读到空为止。</strong></p>
 </div>
-<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="44-53"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:44-53</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="44">/// 向量 33 的 handler（由 idt 分发层调用，EOI 由分发层发）。</span><span class="am-ln" data-n="45">pub fn interrupt() {</span><span class="am-ln" data-n="46">    // 一次中断可能积了多个字节，读到缓冲区空为止</span><span class="am-ln" data-n="47">    while inb(STATUS_PORT) &amp; STATUS_OUTPUT_FULL != 0 {</span><span class="am-ln" data-n="48">        let scancode = inb(DATA_PORT);</span><span class="am-ln" data-n="49">        if let Some(ch) = decode(scancode) {</span><span class="am-ln" data-n="50">            printk!(&quot;{}&quot;, ch as char);</span><span class="am-ln" data-n="51">        }</span><span class="am-ln" data-n="52">    }</span><span class="am-ln" data-n="53">}</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="impl/kernel/src/keyboard.rs" data-am-lines="44-53"><figcaption class="am-code-head"><span class="am-code-title">impl/kernel/src/keyboard.rs:44-53</span><span class="am-code-lang">rust</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="rust"><span class="am-ln" data-n="44">pub fn interrupt() {</span><span class="am-ln" data-n="45">    // 一次中断可能积了多个字节，读到缓冲区空为止</span><span class="am-ln" data-n="46">    while inb(STATUS_PORT) &amp; STATUS_OUTPUT_FULL != 0 {</span><span class="am-ln" data-n="47">        let scancode = inb(DATA_PORT);</span><span class="am-ln" data-n="48">        if let Some(ch) = decode(scancode) {</span><span class="am-ln" data-n="49">            printk!(&quot;{}&quot;, ch as char);</span><span class="am-ln" data-n="50">        }</span><span class="am-ln" data-n="51">    }</span><span class="am-ln" data-n="52">}</span><span class="am-ln" data-n="53"></span></code></pre></figure>
 <div class="am-md"><ul>
 <li>进入这个函数前，调度层已经按向量 33 选中它；返回之后，调度层统一写 LAPIC 的 EOI（<code>irq_dispatch</code>，<code>idt.rs:313-322</code>）。handler 自己不发 EOI。</li>
 <li>一次中断可能积了多个字节，所以用 <code>while</code> 反复读，直到状态 bit 0 变 0。OSDev 说中断里可以不查 bit 0，直接读一个字节；本代码多查一次，是为了得到「读到空」的退出条件。</li>
@@ -994,9 +994,9 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <td>只接 IRQ1</td>
 </tr>
 <tr>
-<td>在非 QEMU 默认机上运行</td>
-<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span></span></td>
-<td>IOAPIC 基址与 GSI 固定（决定 0004）</td>
+<td>MADT / ISO 发现 IOAPIC 路由</td>
+<td>yes</td>
+<td>Bite3 已收敛 D18；真机尚未实测</td>
 </tr>
 </tbody></table></div>
 </div></div>
@@ -1038,7 +1038,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </tr>
 <tr>
 <td>中断来自 IOAPIC、向量 33</td>
-<td><code>keyboard.rs:10-12</code>、<code>:41</code>；<code>idt.rs:308-329</code></td>
+<td><code>keyboard.rs:10</code>、<code>:34-40</code>；<code>idt.rs:308-329</code></td>
 <td>中断侧；<a href="apic-vs-pic.html">PIC、LAPIC 与 IOAPIC</a></td>
 </tr>
 <tr>
@@ -1112,7 +1112,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-29 16:38 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-30 17:06 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: doc
 theme: paper
@@ -1216,7 +1216,7 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 {表里有非 0 ASCII?} -&gt; [None]: 否
 ```
 
-```rust src=impl/kernel/src/keyboard.rs lines=56-71
+```rust src=impl/kernel/src/keyboard.rs lines=56-70
 ```
 
 - 返回类型 `Option&lt;u8&gt;`：要么 `Some(字节)`，要么 `None`（什么也不回显）。
@@ -1243,10 +1243,10 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 
 键盘是外设，IRQ 要经 IOAPIC 才能到 CPU，这和 LAPIC 定时器直接走本地入口不同。本课只用 `ioapic::route` 这一个入口：
 
-```rust src=impl/kernel/src/keyboard.rs lines=34-42
+```rust src=impl/kernel/src/keyboard.rs lines=34-41
 ```
 
-- 参数 `KEYBOARD_GSI = 1`：QEMU 默认机上，ISA IRQ1 对应的全局中断线号也是 1。
+- `acpi::keyboard_route` 从 MADT / ISO 查出 IOAPIC 基址、GSI 与触发属性；QEMU 默认机实测 GSI 为 1，但不再写死。
 - `KEYBOARD_VECTOR = 33`：紧挨定时器的 32。IOAPIC 内部怎么记这条路由，见 [PIC、LAPIC 与 IOAPIC](apic-vs-pic.html)，本页不展开。
 - 必须在 IDT 装好向量 33 之后再调用，否则中断来了没有入口。
 
@@ -1290,7 +1290,7 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 | 行规程（Backspace 删字、行缓冲） | no | handler 来一个字符回显一个 |
 | 写 `0x64` 发控制器命令 | no | 沿用默认状态；自检、开关翻译位等是后置话题 |
 | 鼠标（IRQ12） | no | 只接 IRQ1 |
-| 在非 QEMU 默认机上运行 | no | IOAPIC 基址与 GSI 固定（决定 0004） |
+| MADT / ISO 发现 IOAPIC 路由 | yes | Bite3 已收敛 D18；真机尚未实测 |
 
 ## 回到项目
 
@@ -1301,7 +1301,7 @@ Pause 键发 6 个字节，以 `0xE1` 开头。逐字节过一遍 `decode`，结
 | `BREAK_BIT`：松开忽略 | `keyboard.rs:21-22`、`:64-66` | 扫描码集 1 |
 | `0xE0` 丢下一字节 | `keyboard.rs:20`、`:30-32`、`:57-63` | 0xE0 前缀；decode |
 | `SCANCODE_TO_ASCII` 只映射可打印 + 回车 | `keyboard.rs:24-28`、`:67-70` | 查表 |
-| 中断来自 IOAPIC、向量 33 | `keyboard.rs:10-12`、`:41`；`idt.rs:308-329` | 中断侧；[PIC、LAPIC 与 IOAPIC](apic-vs-pic.html) |
+| 中断来自 IOAPIC、向量 33 | `keyboard.rs:10`、`:34-40`；`idt.rs:308-329` | 中断侧；[PIC、LAPIC 与 IOAPIC](apic-vs-pic.html) |
 | `printk!` 在 IRQ 里 | `keyboard.rs:50` | 中断侧末段 |
 
 ## 去学

@@ -112,11 +112,13 @@ MSR 的 APIC Global Enable 与 SVR 的 Software Enable 是两道开关。只开�
 
 没有配表项，这根线就不会产生向量。Limine 交接时屏蔽了 IOAPIC 里已有的 Fixed 项，PIC 也已屏蔽，键盘就没有任何出路。
 
-### 固定基址与页映射
+### MADT 发现基址与页映射
 
-IOAPIC 的寄存器也是 MMIO，物理基址本课写死为 `0xFEC00000`（`ioapic.rs:10`）。这是 QEMU 默认机的位置。真机应从 ACPI 的 MADT 表读出；本课不做这件事，见「边界」。
+IOAPIC 的寄存器也是 MMIO。LAPIC 能从 `IA32_APIC_BASE` MSR 读基址（`lapic.rs:106-114`），IOAPIC 没有这种通用 MSR。因此 `acpi::keyboard_route` 读取 MADT 取得基址，再用 ISO 条目确认 IRQ 与 GSI 的接线（`acpi.rs:25-50`）。QEMU 默认机实测发现 `0xFEC00000` / GSI 1，但这些值不再写死。详见 [ACPI MADT 硬件发现](acpi-madt.html)。
 
-HHDM 不保证覆盖这一页，所以 `route` 先调 `mmio::map_page(0xFEC00000)`（`ioapic.rs:27`）。机制与 LAPIC 页完全相同：补缺页表层级，叶子项关缓存，返回物理地址加 HHDM 偏移得到的虚拟地址。详见 [map_mmio_page](mmio-page-mapping.html) 与 [HHDM](hhdm.html)。IOAPIC 页与 LAPIC 页不在同一个 2 MiB 内，所以多补一张页表。
+RSDP、根表和 MADT 的物理页不一定已被 HHDM 覆盖，因此 `map_physical` 也复用 `mmio::map_page`（`acpi.rs:54-57`）。D18 已在 Bite3 收敛；D17 的通用页表改造仍留到 M5。
+
+HHDM 不保证覆盖这一页，所以 `route` 对 MADT 给出的基址调用 `mmio::map_page`（`ioapic.rs:23`）。机制与 LAPIC 页完全相同：补缺页表层级，叶子项关缓存，返回物理地址加 HHDM 偏移得到的虚拟地址。详见 [map_mmio_page](mmio-page-mapping.html) 与 [HHDM](hhdm.html)。IOAPIC 页与 LAPIC 页不在同一个 2 MiB 内，所以多补一张页表。
 
 ### 间接访问：两个窗口，一排内部寄存器
 
@@ -129,9 +131,9 @@ IOAPIC 在地址空间里只露出两个 32 位寄存器，其余寄存器靠编
 1. 把寄存器**编号**写进 IOREGSEL（`+0x00`）。
 2. 读或写 IOWIN（`+0x10`），碰到的就是刚选中的那个寄存器。
 
-重定向表从编号 `0x10` 开始，每项占两个连续编号：第 n 项低半 `0x10 + 2n`，高半 `0x11 + 2n`（`ioapic.rs:15-16`、`:30`）。键盘 GSI = 1，所以低半是 `0x12`，高半是 `0x13`。
+重定向表从编号 `0x10` 开始，每项占两个连续编号：第 n 项低半 `0x10 + 2n`，高半 `0x11 + 2n`（`ioapic.rs:14`、`:26`）。QEMU 默认机的键盘 GSI = 1，所以低半是 `0x12`，高半是 `0x13`。
 
-代码里的 `write_register` 就是这一对写（`ioapic.rs:38-44`）。两次都用 `write_volatile`：它告诉编译器这是真实的设备写，不许合并或删掉。
+代码里的 `write_register` 就是这一对写（`ioapic.rs:41-47`）。两次都用 `write_volatile`：它告诉编译器这是真实的设备写，不许合并或删掉。
 
 ### 重定向表项：64 位，两半
 
@@ -139,30 +141,22 @@ IOAPIC 在地址空间里只露出两个 32 位寄存器，其余寄存器靠编
 
 ![IOAPIC 重定向表项位域：高半 Destination，低半 Vector 与各控制位](figures/apic-vs-pic/ioapic-redirection-entry.svg)
 
-本课只主动写两个字段：
+本课写入这些字段（`ioapic.rs:22-37`）：
 
-- **Vector**（低半位 7:0）：写 `33 = 0x21`。`route` 用 `& 0xff` 取低 8 位（`ioapic.rs:20`、`:34`）。
-- **Destination**（高半位 31:24）：写 `LAPIC ID << 24`（`ioapic.rs:21-22`、`:33`）。物理目标模式下，这个字段就是目标 LAPIC 的 ID。
+- **Vector**（低半位 7:0）：写 `33 = 0x21`。
+- **Destination**（高半位 31:24）：写 `LAPIC ID << 24`。物理目标模式下，这个字段就是目标 LAPIC 的 ID。
+- **Polarity / Trigger**：按 MADT 的 ISO flags 设置位 13 / 15；QEMU 默认机是高电平、边沿，所以这两位为 0。
+- 其余位为 0：Fixed 投递、物理目标、未屏蔽。
 
-其余位本课都写 0。低 32 位里除向量外全 0 的含义（`ioapic.rs:18-19`）：
-
-| 位 | 值 0 的含义 | 对键盘够不够 |
-|---|---|---|
-| 投递模式 10:8 | Fixed：把 Vector 字段原样送给目标 LAPIC | 够 |
-| 目标模式 11 | 物理：Destination 当 LAPIC ID | 单核够 |
-| 极性 13 | 高电平有效 | ISA 键盘线如此 |
-| 触发 15 | 边沿触发 | ISA 键盘线如此 |
-| Mask 16 | 未屏蔽，放行 | 必须为 0 才有中断 |
-
-投递状态（位 12）与 Remote IRR（位 14）是只读位，写入无效。需要电平触发或低有效的设备，再把对应位置 1；键盘不需要。
+投递状态（位 12）与 Remote IRR（位 14）是只读位，写入无效。电平触发还需要处理后清 Remote IRR，当前只验收边沿键盘。
 
 ### 为什么先写高半、后写低半
 
-Mask 位在低半。复位后表项处于屏蔽状态，低半一写入，Mask = 0，这一项立刻生效。若先写低半，生效的那一刻高半还是旧值，向量会投给错误的 LAPIC。先写高半，生效时目标已经就位（`ioapic.rs:32-34`）。
+Mask 位在低半。复位后表项处于屏蔽状态，低半一写入，Mask = 0，这一项立刻生效。若先写低半，生效的那一刻高半还是旧值，向量会投给错误的 LAPIC。先写高半，生效时目标已经就位（`ioapic.rs:35-37`）。
 
 ### 手算一次：键盘这一项
 
-输入：GSI = 1，向量 33，LAPIC ID = 0（QEMU 单核时通常如此【合理推断】）。`route` 依次做四次写：
+输入：QEMU 默认机发现的 GSI = 1，向量 33，LAPIC ID = 0（QEMU 单核时通常如此【合理推断】）。`route` 依次做四次写：
 
 | 次序 | 目标 | 值 | 作用 |
 |---|---|---|---|
@@ -175,7 +169,7 @@ Mask 位在低半。复位后表项处于屏蔽状态，低半一写入，Mask =
 
 ### 一次按键走完全程
 
-`keyboard::init` 先清空键盘控制器里残留的字节，再调 `ioapic::route(1, 33, lapic::id())`（`keyboard.rs:36-42`，路由调用在 `:41`）。调用时 IDT 里必须已有向量 33 的入口，所以 `idt::init` 排在前面（`idt.rs:308`、`:329`）。
+`keyboard::init` 先清空键盘控制器里残留的字节，再把 `acpi::keyboard_route()` 的结果交给 `ioapic::route`（`keyboard.rs:34-40`）。调用时 IDT 里必须已有向量 33 的入口，所以 `idt::init` 排在前面（`idt.rs:308`、`:329`）。
 
 之后每按一次键：
 
@@ -189,9 +183,8 @@ Mask 位在低半。复位后表项处于屏蔽状态，低半一写入，Mask =
 
 ### 边界
 
-- **基址与引脚写死。** `0xFEC00000`、键盘 GSI = 1 都按 QEMU 默认机假定，不解析 MADT，也不处理中断源覆盖（项目偏差 D18，`decisions/0004`）。换机型或真机要改为查表发现。
-- **只有一个 IOAPIC，只路由一根线。** 多 IOAPIC、多核目标、Lowest Priority、电平触发都不在本课。
-- **电平触发要多一步。** 电平触发的线，处理完要对 IOAPIC 清 Remote IRR；本课的边沿键盘不涉及。
+- **只实测一个 IOAPIC、一根键盘线。** MADT / ISO 发现已实现；多 IOAPIC 的完整范围管理、多核目标与 Lowest Priority 尚未覆盖。
+- **电平触发要多一步。** ISO 的电平属性能写入表项，但处理后还要清 IOAPIC Remote IRR；当前只验收边沿键盘。
 
 ## 本课有 / 没有
 
@@ -200,9 +193,9 @@ Mask 位在低半。复位后表项处于屏蔽状态，低半一写入，Mask =
 | LAPIC timer 100 Hz | ok | 直接产生向量 32 |
 | 屏蔽 legacy PIC | ok | 避免旧路径干扰 |
 | PIT 作校准秒表 | ok | 不负责运行期 tick |
-| IOAPIC 路由键盘 IRQ1 | ok | 固定基址，GSI 1 → 向量 33 |
-| MADT 发现 IOAPIC / 中断源覆盖 | no | 写死 QEMU 默认值（D18） |
-| 电平触发、多 IOAPIC、多核目标 | no | 键盘用不到 |
+| IOAPIC 路由键盘 IRQ1 | ok | MADT 给出基址与 GSI |
+| MADT 发现 IOAPIC / 中断源覆盖 | ok | Bite3 已收敛 D18 |
+| 多 IOAPIC、多核目标、电平触发完整处理 | no | 当前只验收单 IOAPIC 边沿键盘 |
 | PIC 投递外中断 | no | 已整片屏蔽 |
 
 ## 回到项目
@@ -210,18 +203,17 @@ Mask 位在低半。复位后表项处于屏蔽状态，低半一写入，Mask =
 | 用点 | 代码 | 本页哪里讲 |
 |---|---|---|
 | 屏蔽 PIC、PIT 只校准 | `lapic.rs:61`、`:119-139` | PIC 与 PIT；本课有/没有 |
-| 向量 32 / 33 与 IRQ、GSI | `lapic.rs:11`、`keyboard.rs:10-12` | IRQ、GSI 与向量号 |
+| 向量 32 / 33 与 IRQ、GSI | `lapic.rs:11`、`keyboard.rs:10` | IRQ、GSI 与向量号 |
 | MSR 全局使能 + SVR 软件使能 | `lapic.rs:106-117` | LAPIC 本课用到什么 |
 | timer → IDT，不经 IOAPIC | `lapic.rs:60-83` | 四者怎么串；一次按键走完全程 |
-| 固定基址 `0xFEC00000` 与页映射 | `ioapic.rs:10`、`:27` | 固定基址与页映射 |
-| IOREGSEL / IOWIN 间接访问 | `ioapic.rs:12-13`、`:38-44` | 间接访问 |
-| 表项编号 `0x10 + 2*gsi` | `ioapic.rs:15-16`、`:30` | 间接访问 |
-| 先写高半（`ID << 24`）再写低半（向量） | `ioapic.rs:21-22`、`:32-34` | 重定向表项；为什么先写高半 |
-| 低位全 0 的含义 | `ioapic.rs:18-20` | 重定向表项 |
+| MADT 基址、GSI 与页映射 | `acpi.rs:25-57`、`ioapic.rs:23` | MADT 发现基址与页映射 |
+| IOREGSEL / IOWIN 间接访问 | `ioapic.rs:10-11`、`:41-47` | 间接访问 |
+| 表项编号 `0x10 + 2*gsi` | `ioapic.rs:14`、`:26` | 间接访问 |
+| 先写高半（`ID << 24`）再写低半（向量与 flags） | `ioapic.rs:18-19`、`:35-37` | 重定向表项；为什么先写高半 |
 | LAPIC ID 来源 | `lapic.rs:100-104` | LAPIC 本课用到什么 |
-| 键盘 GSI 1 → 向量 33 | `keyboard.rs:10-12`、`:41` | 一次按键走完全程 |
+| 键盘 IRQ1 → 向量 33 | `keyboard.rs:34-40` | 一次按键走完全程 |
 | 向量 33 入口与 EOI | `idt.rs:308`、`:316-320`、`:329` | 一次按键走完全程 |
-| 基址写死、无 MADT | `spec/deviations.md` D18 | 边界 |
+| MADT / ISO 发现已收敛 | `spec/deviations.md` D18 | 边界 |
 
 更完整的课文见 [M3 Bite1 · LAPIC 定时器](../m03-interrupts/b01-lapic-timer.html)。相关概念：[x86 的 MSR](x86-msr.html)、[HHDM](hhdm.html)、[map_mmio_page](mmio-page-mapping.html)。
 
@@ -235,7 +227,7 @@ Mask 位在低半。复位后表项处于屏蔽状态，低半一写入，Mask =
 
 2. [OSDev Notes：APIC](https://github.com/dreamportdev/Osdev-Notes/blob/master/02_Architecture/07_APIC.md)
    - **看哪一段：** “I/O APIC”下的“I/O APIC Registers”“Reading data from I/O APIC”“IO Redirection Table (IOREDTBL)”，以及“Interrupt source overrides”。
-   - **看完能回答：** 真机上 IOAPIC 基址和 GSI 从哪里查？本课写死的值为什么只在 QEMU 默认机成立？
+   - **看完能回答：** 真机上 IOAPIC 基址和 GSI 从哪里查？ISO flags 怎样映射到重定向表项？
 
 3. [OSDev Notes：Timer](https://github.com/dreamportdev/Osdev-Notes/blob/master/02_Architecture/08_Timers.md)
    - **看哪一段：** “Types and Characteristics”“Calibrating Timers”，以及“Local APIC Timer”开头。

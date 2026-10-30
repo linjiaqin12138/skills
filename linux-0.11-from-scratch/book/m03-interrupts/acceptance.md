@@ -1,5 +1,21 @@
 # M3 验收档案（中断：LAPIC 定时器 + IOAPIC 键盘）
 
+## Bite3：ACPI MADT / ISO 硬件发现（2026-10-30 通过）
+
+**验收命令**：`bash accept/m03-b03.sh`（exit 0；内部 `make check-m3-b3`）；`bash accept/m03-b02.sh` 回归也通过。
+
+**涉及代码文件**：`acpi.rs`（新建）；`keyboard.rs` / `ioapic.rs` / `mmio.rs` / `main.rs` / `Makefile`（改）。
+
+**实测**：串口报告 `MADT IOAPIC base=0xfec00000 IRQ1 -> GSI 1 polarity=high trigger=edge`；该值来自 RSDP→XSDT→MADT，不是硬编码。连续 `hello`、jiffies 100/200/300/400、无 panic / 异常；screendump 1,440,015 字节。
+
+**架构决定**：`decisions/0005` 已采纳，取代 0004。
+
+**架构图**：Bite3 `arch.svg` 与 `figures/arch-diff.svg`；Bite2 历史切片 `arch-b02.svg` / `figures/arch-diff-b02.svg`。
+
+**教程**：`b03-acpi-madt.html`；概念页新增 `acpi-madt`。
+
+**偏差**：D18 已收敛；D17 静态页表池扩至 8，仍待 M5。
+
 ## Bite2：IOAPIC 键盘 + console 锁（2026-10-29 通过）
 
 **验收命令**：`bash accept/m03-b02.sh`（exit 0；内部 `make check-m3-b2`）

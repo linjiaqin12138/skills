@@ -23,23 +23,23 @@ Bite1 已经有了自己到来的 tick：每秒一行 `M3: jiffies=…`。但屏
 
 ## 背景
 
-**IOAPIC 管外设线。** LAPIC 定时器不经 IOAPIC；键盘必须经它。本课约定：QEMU 默认机上 IOAPIC 物理基址写死为 `0xFEC00000`，把 GSI 1（键盘 IRQ1）配成 Fixed 投递、向量 33，目标为本核 LAPIC ID。深入见 [PIC、LAPIC 与 IOAPIC](../concepts/apic-vs-pic.html)。
+**IOAPIC 管外设线。** LAPIC 定时器不经 IOAPIC；键盘必须经它。本课把 QEMU 默认机的 IOAPIC 物理基址固定为 `0xFEC00000`，把键盘 IRQ1 对应的 GSI 1 配成 Fixed 投递、向量 33，目标为本核 LAPIC ID。深入见 [PIC、LAPIC 与 IOAPIC](../concepts/apic-vs-pic.html)。
 
-**黑盒：不查 MADT。** ACPI MADT / ISO 的作用是发现 IOAPIC 基址与中断重定向。本课约定写死 `0xFEC00000`（偏差 D18）；解析过程不展开。设备增多、换机型时再回访。
+**MADT 是固件留下的中断硬件清单。** ACPI 是操作系统从固件读取硬件描述的一套机制，MADT（Multiple APIC Description Table）是其中描述 LAPIC、IOAPIC 及中断接线的表。通常应由它查出 IOAPIC 基址，并通过 ISO（Interrupt Source Override，中断源覆盖）得知 IRQ 与 GSI 不完全相同时的接法；本课不解析这张表，直接使用上面的 QEMU 默认值（偏差 D18）。换机型或真机时再补这一步。
+
+**PS/2 是键盘与控制器之间的传统接口。** 这里的控制器在 PC 上常称 i8042：它收下键盘发来的扫描码，放进输出缓冲区，再拉 IRQ1 通知 CPU。CPU 通过 I/O 端口与它通信：读 `0x60` 取扫描码，读 `0x64` 查看缓冲区是否有数据。本课只读这两个端口，不向控制器发命令；只处理扫描码集 1 的按下码，忽略松开码与 `0xE0` 扩展键。见 [PS/2 键盘](../concepts/ps2-keyboard.html)。
 
 **IrqLock：关中断等于独占。** 单核上，另一个能碰 console 的执行流只有 IRQ handler。`IrqLock::with` 进门先读 RFLAGS.IF 再 `cli`，出门只在「进来时 IF 为 1」才 `sti`。中断门进门时 IF 已是 0，handler 里拿锁属于嵌套关中断，释放时不得误开 IF。见 [关中断临界区](../concepts/irq-critical-section.html)。
 
-**PS/2 只读两个端口。** `0x60` 是数据口，`0x64` 是状态口。本课只读：状态 bit 0 表示输出缓冲有字节；扫描码集 1 里 bit 7 置位是松开（break），否则是按下（make）；`0xE0` 开头的扩展键整段丢掉。见 [PS/2 键盘](../concepts/ps2-keyboard.html)。
-
-**黑盒：不写 `0x64` 发命令。** 往 `0x64` 写能改控制器（自检、开关端口等）。本课约定只读，沿用固件与 QEMU 默认状态；需要发命令时再回访。
-
-**两条外部中断共用骨架。** `timer_entry` / `keyboard_entry` 只压各自向量号，都跳进 `common_irq_entry`；Rust 侧 `irq_dispatch` 按向量找驱动，末尾统一写 LAPIC EOI。这是本课的设计落点，不另开概念页。
+**两条外部中断共用入口骨架。** 外部中断进来后都要保存寄存器、找到对应 handler、通知 LAPIC 处理结束（EOI），最后恢复寄存器并 `iretq` 返回。本课让 `timer_entry` 与 `keyboard_entry` 只负责压入各自向量号，其余步骤统一放进 `common_irq_entry` 和 `irq_dispatch`，避免维护两份容易走样的汇编入口。
 
 ## 设计
 
-![M3 顶层：键盘经 IOAPIC 进向量 33；定时器与键盘共享 common_irq_entry / irq_dispatch；console 经 IrqLock](arch.svg)
+![M3 Bite2 顶层：键盘经 IOAPIC 进向量 33；定时器与键盘共享 common_irq_entry / irq_dispatch；console 经 IrqLock](arch-b02.svg)
 
-相对 Bite1 的模块与边：新增 `ioapic`、`keyboard`、`IrqLock`，以及共享的 `common_irq_entry` + `irq_dispatch`。对照见 [架构差异图](figures/arch-diff.svg)。
+相对 Bite1，新增 `ioapic`、`keyboard`、`IrqLock`，以及共享的 `common_irq_entry` + `irq_dispatch`：
+
+![相对 Bite1 的架构差异：新增 IOAPIC、键盘、公共中断入口与 IrqLock](figures/arch-diff-b02.svg)
 
 ### 启动时多两步
 
@@ -71,29 +71,9 @@ common_irq_entry --> CPU: iretq
 
 ## 架构决定
 
-### 决定一：console 用关中断临界区
+### [console 用关中断临界区](../../decisions/0003-console-irq-safe-lock.md)
 
-[decisions/0003](../../decisions/0003-console-irq-safe-lock.md)
-
-选了什么。`printk!` 与 console 初始化走同一把 `IrqLock`：拿锁前 `cli`，释放时按进入时的 IF 恢复。键盘 handler 与主流程（含 jiffies 打印）都经此路径。
-
-为什么。本课要证明「中断上下文能安全打印」，并按承诺收敛 D15。
-
-放弃的成本。把扫描码丢进缓冲、主流程再打印会更短中断路径、本课也可少改 console——我们没要这份简单。引入可睡眠互斥或带嵌套计数的完整自旋锁，多核以后更省事——我们没要这份超前完备。
-
-失效边界。多核，或 console 持锁期间需要开中断等待时，关中断独占不够用。
-
-### 决定二：IOAPIC 固定基址路由键盘
-
-[decisions/0004](../../decisions/0004-ioapic-keyboard-irq.md)
-
-选了什么。IOAPIC MMIO 固定 `0xFEC00000`；IRQ1 → Fixed、向量 33、目标本核 LAPIC ID。IDT 再装一条可返回入口，与 timer 共享保存 / 恢复 / `iretq` 骨架。只回显扫描码集 1 的 make code；break、`0xE0` 扩展键、修饰键本课不做。
-
-为什么。与 Bite1「屏蔽 PIC、走 APIC」同一条故事线，并兑现「键盘走 IOAPIC」。
-
-放弃的成本。重新启用 8259 接键盘改动面更小——我们没要这份捷径。解析 ACPI MADT / Limine 拓扑动态找 IOAPIC，换机型更稳——我们没要这份可移植性。
-
-失效边界。IOAPIC 不在该基址、键盘不在 GSI 1、或多 IOAPIC 时，必须改为查表发现。
+### [IOAPIC 固定基址路由键盘](../../decisions/0004-ioapic-keyboard-irq.md)
 
 ## 代码领读
 
@@ -237,7 +217,7 @@ cat build/serial.log
 - **D15 已收敛。** 全局 console 换成 `IrqLock` 关中断临界区。见 [偏差簿](../../spec/deviations.md)。
 - **D16 部分再收敛。** IRQ32 / 33 均经共享可返回入口；其余外部向量与异常返回路径仍待后续。
 - **D17 备注更新。** MMIO 补页已抽到 `mmio.rs` 共用；池上限 4 张（本阶段两张设备页）。M5 收敛。
-- **D18 新登记（永久豁免·架构）。** IOAPIC 基址与 GSI 写死，无 MADT/ISO。
+- **D18 已在 Bite3 收敛。** 本课保留当时的 QEMU 固定值；后续由 MADT/ISO 发现取代。
 - **D19 新登记。** 键盘只回显扫描码集 1 可打印键与回车；无 Esc / 退格 / Tab / 修饰键。
 - **D3 仍待收敛。** 只回显，无行规程。
 

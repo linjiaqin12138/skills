@@ -210,5 +210,42 @@ check-m3-b2: build ## M3 Bite2 验收：IOAPIC 键盘回显 "hello" + jiffies + 
 	  test $$sz -gt 10240
 	@echo "check-m3-b2 OK"
 
+# M3 Bite3：RSDP → RSDT/XSDT → MADT 发现 IOAPIC 与 IRQ1 的 ISO 路由。
+check-m3-b3: build ## M3 Bite3 验收：MADT/ISO 发现 + 键盘回显 + jiffies
+	@$(DOCKER_EXEC) chown -R --reference=/work /work/build
+	@mkdir -p build
+	@rm -f build/serial.log build/m3-bite3.ppm
+	@echo ">>> starting qemu (wait for jiffies=100, then sendkey hello)…"
+	@( for i in $$(seq 1 150); do \
+	     grep -q -F 'M3: jiffies=100' build/serial.log 2>/dev/null && break; sleep 0.1; done; \
+	   for key in h e l l o; do printf 'sendkey %s\n' $$key; sleep 0.1; done; \
+	   sleep 3; printf 'screendump build/m3-bite3.ppm\nquit\n' ) | \
+	  $(QEMU) -m 128M -boot d -display none -vga std -net none \
+	    -monitor stdio \
+	    -serial file:build/serial.log \
+	    -drive file=../upstream/hdc-0.11.img,format=raw,if=ide \
+	    -cdrom build/kernel.iso; \
+	  rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 124 ]
+	@echo ">>> serial.log:"
+	@cat build/serial.log
+	@echo ">>> asserting MADT discovery, regression markers and keyboard echo…"
+	@test "$$(grep -c -F 'M0: kernel alive' build/serial.log)" -eq 1
+	@grep -F 'M2: gdt ok' build/serial.log
+	@grep -F 'M2: idt ok' build/serial.log
+	@grep -F 'M3: LAPIC timer 100 Hz' build/serial.log
+	@grep -F 'M3: MADT IOAPIC base=0xfec00000 IRQ1 -> GSI 1 polarity=high trigger=edge' build/serial.log
+	@grep -F 'M3: keyboard IRQ1 -> vector 33' build/serial.log
+	@grep -F 'M3: jiffies=100' build/serial.log
+	@grep -F 'M3: jiffies=200' build/serial.log
+	@grep -F 'M3: jiffies=300' build/serial.log
+	@grep -F 'hello' build/serial.log
+	@if grep -q -E 'M2: panic handler entered|^PANIC:|EXCEPTION|keyboard MADT discovery.*failed' build/serial.log; then \
+	  echo "unexpected discovery failure/panic/exception"; exit 1; \
+	fi
+	@test -f build/m3-bite3.ppm
+	@sz=$$(wc -c < build/m3-bite3.ppm); echo "screendump size=$$sz"; \
+	  test $$sz -gt 10240
+	@echo "check-m3-b3 OK"
+
 clean: ## 清理构建产物
 	rm -rf build kernel/target user/target

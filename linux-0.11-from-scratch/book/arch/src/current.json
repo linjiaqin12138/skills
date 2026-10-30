@@ -40,6 +40,19 @@
       "flat": true
     },
     {
+      "id": "acpi",
+      "kind": "rect",
+      "x": 300,
+      "y": 710,
+      "width": 200,
+      "height": 70,
+      "label": "acpi",
+      "sublabel": "RSDP → MADT / ISO",
+      "fill": "#d1fae5",
+      "stroke": "#10b981",
+      "flat": true
+    },
+    {
       "id": "lapic_hw",
       "kind": "rect",
       "x": 40,
@@ -73,7 +86,7 @@
       "width": 170,
       "height": 70,
       "label": "IOAPIC",
-      "sublabel": "0xFEC00000 · MMIO",
+      "sublabel": "MADT 发现基址 · MMIO",
       "fill": "#eff6ff",
       "stroke": "#3b82f6",
       "flat": true
@@ -223,6 +236,28 @@
     }
   ],
   "arrows": [
+    {
+      "id": "rsdp",
+      "source": "limine",
+      "target": "acpi",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "data",
+      "label": "RSDP"
+    },
+    {
+      "id": "discover_route",
+      "source": "acpi",
+      "target": "keyboard",
+      "source_port": "top",
+      "target_port": "left",
+      "flow": "data",
+      "label": "IOAPIC base · GSI · flags",
+      "route_points": [
+        [400, 530],
+        [1280, 530]
+      ]
+    },
     {
       "id": "handoff",
       "source": "limine",
@@ -450,8 +485,8 @@
       ]
     }
   ],
-  "title": "M3 Bite2 顶层架构：键盘 IRQ1 + 100 Hz 定时器",
-  "subtitle": "向量 32/33 共用 common_irq_entry → irq_dispatch；lapic / ioapic 共用 mmio::map_page；LAPIC 窄映射见 lapic-mmio.svg",
+  "title": "M3 Bite3 顶层架构：ACPI 发现 + 键盘中断",
+  "subtitle": "RSDP → MADT / ISO 提供 IOAPIC base、GSI 与 flags；向量 32/33 仍共用中断入口",
   "legend": [
     {
       "flow": "control",
@@ -463,8 +498,8 @@
     },
     {
       "flow": "data",
-      "label": "原子读取"
+      "label": "读取 / 发现配置"
     }
   ],
-  "footer": "Style 1 · fireworks · M3 Bite2 顶层权威图"
+  "footer": "Style 1 · fireworks · M3 Bite3 顶层权威图"
 }

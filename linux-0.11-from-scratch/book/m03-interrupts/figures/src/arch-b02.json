@@ -1,0 +1,470 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "text_policy": "strict",
+  "quality_profile": "standard",
+  "width": 1840,
+  "height": 980,
+  "containers": [
+    {
+      "id": "kernel-box",
+      "x": 300,
+      "y": 140,
+      "width": 1490,
+      "height": 690,
+      "label": "kernel（信任边界）",
+      "fill": "#faf5ff",
+      "stroke": "#8b5cf6"
+    }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 870,
+  "legend_locked": true,
+  "footer_x": 48,
+  "footer_y": 930,
+  "nodes": [
+    {
+      "id": "limine",
+      "kind": "rect",
+      "x": 40,
+      "y": 710,
+      "width": 170,
+      "height": 70,
+      "label": "Limine",
+      "sublabel": "启动交接",
+      "fill": "#fff7ed",
+      "stroke": "#f97316",
+      "flat": true
+    },
+    {
+      "id": "lapic_hw",
+      "kind": "rect",
+      "x": 40,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "LAPIC",
+      "sublabel": "定时器 · MMIO",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6",
+      "flat": true
+    },
+    {
+      "id": "kbd_hw",
+      "kind": "rect",
+      "x": 40,
+      "y": 570,
+      "width": 170,
+      "height": 70,
+      "label": "PS/2 键盘",
+      "sublabel": "扫描码 · IRQ1",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6",
+      "flat": true
+    },
+    {
+      "id": "ioapic",
+      "kind": "rect",
+      "x": 40,
+      "y": 430,
+      "width": 170,
+      "height": 70,
+      "label": "IOAPIC",
+      "sublabel": "0xFEC00000 · MMIO",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6",
+      "flat": true
+    },
+    {
+      "id": "cpu",
+      "kind": "rect",
+      "x": 340,
+      "y": 260,
+      "width": 130,
+      "height": 70,
+      "label": "CPU",
+      "sublabel": "向量 32 / 33",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6",
+      "flat": true
+    },
+    {
+      "id": "idt",
+      "kind": "rect",
+      "x": 550,
+      "y": 260,
+      "width": 160,
+      "height": 70,
+      "label": "idt",
+      "sublabel": "stub 32 / 33",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "common",
+      "kind": "rect",
+      "x": 780,
+      "y": 260,
+      "width": 180,
+      "height": 70,
+      "label": "common_irq_entry",
+      "sublabel": "共享出口 · iretq",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "dispatch",
+      "kind": "rect",
+      "x": 1060,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "irq_dispatch",
+      "sublabel": "按向量分发 + EOI",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "timer_interrupt",
+      "kind": "rect",
+      "x": 1310,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "timer_interrupt",
+      "sublabel": "lapic.rs",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "jiffies",
+      "kind": "rect",
+      "x": 1550,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "JIFFIES",
+      "sublabel": "AtomicU64 · Relaxed",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6",
+      "flat": true
+    },
+    {
+      "id": "main",
+      "kind": "rect",
+      "x": 780,
+      "y": 430,
+      "width": 180,
+      "height": 70,
+      "label": "main",
+      "sublabel": "report_jiffies",
+      "fill": "#ffffff",
+      "stroke": "#8b5cf6",
+      "flat": true
+    },
+    {
+      "id": "keyboard",
+      "kind": "rect",
+      "x": 1310,
+      "y": 430,
+      "width": 170,
+      "height": 70,
+      "label": "keyboard::interrupt",
+      "sublabel": "读 0x60/0x64 · decode",
+      "fill": "#ede9fe",
+      "stroke": "#7c3aed",
+      "flat": true
+    },
+    {
+      "id": "console",
+      "kind": "rect",
+      "x": 1310,
+      "y": 600,
+      "width": 170,
+      "height": 70,
+      "label": "console",
+      "sublabel": "IrqLock · printk!",
+      "fill": "#ffffff",
+      "stroke": "#8b5cf6",
+      "flat": true
+    },
+    {
+      "id": "fb",
+      "kind": "rect",
+      "x": 1610,
+      "y": 600,
+      "width": 160,
+      "height": 70,
+      "label": "framebuffer",
+      "sublabel": "像素输出",
+      "fill": "#ffffff",
+      "stroke": "#8b5cf6",
+      "flat": true
+    },
+    {
+      "id": "serial",
+      "kind": "rect",
+      "x": 1610,
+      "y": 720,
+      "width": 160,
+      "height": 70,
+      "label": "serial",
+      "sublabel": "16550 字节流",
+      "fill": "#ffffff",
+      "stroke": "#8b5cf6",
+      "flat": true
+    }
+  ],
+  "arrows": [
+    {
+      "id": "handoff",
+      "source": "limine",
+      "target": "main",
+      "source_port": "right",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "进入 kernel",
+      "route_points": [
+        [
+          870,
+          745
+        ]
+      ]
+    },
+    {
+      "id": "init_idt",
+      "source": "main",
+      "target": "idt",
+      "source_port": "left",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "注册向量 32 / 33 stub",
+      "route_points": [
+        [
+          630,
+          465
+        ]
+      ]
+    },
+    {
+      "id": "irq32",
+      "source": "lapic_hw",
+      "target": "cpu",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "32 @100Hz"
+    },
+    {
+      "id": "irq1",
+      "source": "kbd_hw",
+      "target": "ioapic",
+      "source_port": "top",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "IRQ1 · 扫描码"
+    },
+    {
+      "id": "route33",
+      "source": "ioapic",
+      "target": "cpu",
+      "source_port": "right",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "重定向为向量 33",
+      "route_points": [
+        [
+          405,
+          465
+        ]
+      ]
+    },
+    {
+      "id": "cpu_idt",
+      "source": "cpu",
+      "target": "idt",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "32/33"
+    },
+    {
+      "id": "to_common",
+      "source": "idt",
+      "target": "common",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "jmp"
+    },
+    {
+      "id": "call_dispatch",
+      "source": "common",
+      "target": "dispatch",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "call"
+    },
+    {
+      "id": "dispatch32",
+      "source": "dispatch",
+      "target": "timer_interrupt",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "32"
+    },
+    {
+      "id": "dispatch33",
+      "source": "dispatch",
+      "target": "keyboard",
+      "source_port": "bottom",
+      "target_port": "left",
+      "flow": "control",
+      "label": "33",
+      "route_points": [
+        [
+          1145,
+          465
+        ]
+      ]
+    },
+    {
+      "id": "tick",
+      "source": "timer_interrupt",
+      "target": "jiffies",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "+1"
+    },
+    {
+      "id": "iretq",
+      "source": "common",
+      "target": "main",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "iretq · 返回"
+    },
+    {
+      "id": "read_jiffies",
+      "source": "main",
+      "target": "jiffies",
+      "source_port": "right",
+      "target_port": "bottom",
+      "flow": "data",
+      "label": "load(Relaxed)",
+      "route_points": [
+        [
+          1040,
+          456
+        ],
+        [
+          1040,
+          545
+        ],
+        [
+          1635,
+          545
+        ]
+      ]
+    },
+    {
+      "id": "report",
+      "source": "main",
+      "target": "console",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "每 100 ticks printk!",
+      "route_points": [
+        [
+          1010,
+          474
+        ],
+        [
+          1010,
+          635
+        ]
+      ]
+    },
+    {
+      "id": "kbd_print",
+      "source": "keyboard",
+      "target": "console",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "write",
+      "label": "printk!(按键)"
+    },
+    {
+      "id": "pixels",
+      "source": "console",
+      "target": "fb",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "文本 → 像素"
+    },
+    {
+      "id": "mirror",
+      "source": "console",
+      "target": "serial",
+      "source_port": "bottom",
+      "target_port": "left",
+      "flow": "write",
+      "label": "镜像字节",
+      "route_points": [
+        [
+          1395,
+          755
+        ]
+      ]
+    },
+    {
+      "id": "eoi",
+      "source": "dispatch",
+      "target": "lapic_hw",
+      "source_port": "top",
+      "target_port": "top",
+      "flow": "control",
+      "label": "end_of_interrupt · EOI",
+      "route_points": [
+        [
+          1145,
+          205
+        ],
+        [
+          125,
+          205
+        ]
+      ]
+    }
+  ],
+  "title": "M3 Bite2 顶层架构：键盘 IRQ1 + 100 Hz 定时器",
+  "subtitle": "向量 32/33 共用 common_irq_entry → irq_dispatch；lapic / ioapic 共用 mmio::map_page；LAPIC 窄映射见 lapic-mmio.svg",
+  "legend": [
+    {
+      "flow": "control",
+      "label": "控制 / 中断"
+    },
+    {
+      "flow": "write",
+      "label": "写 / 原子更新"
+    },
+    {
+      "flow": "data",
+      "label": "原子读取"
+    }
+  ],
+  "footer": "Style 1 · fireworks · M3 Bite2 顶层权威图"
+}

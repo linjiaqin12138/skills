@@ -3,6 +3,7 @@
 #![no_std]
 #![no_main]
 
+mod acpi;
 mod console;
 mod fb;
 mod font;
@@ -67,10 +68,17 @@ extern "C" fn _start() -> ! {
     }
     printk!("M3: LAPIC timer 100 Hz\n");
 
-    if !keyboard::init() {
-        printk!("M3: keyboard IOAPIC routing failed\n");
+    let Some(route) = keyboard::init() else {
+        printk!("M3: keyboard MADT discovery or IOAPIC routing failed\n");
         halt();
-    }
+    };
+    printk!(
+        "M3: MADT IOAPIC base={:#x} IRQ1 -> GSI {} polarity={} trigger={}\n",
+        route.ioapic_base,
+        route.gsi,
+        if route.active_low { "low" } else { "high" },
+        if route.level_triggered { "level" } else { "edge" },
+    );
     printk!("M3: keyboard IRQ1 -> vector {}\n", keyboard::KEYBOARD_VECTOR);
     report_jiffies();
 }

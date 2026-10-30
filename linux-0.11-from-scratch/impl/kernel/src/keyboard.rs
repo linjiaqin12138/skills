@@ -1,15 +1,13 @@
 //! PS/2 键盘：IRQ1 经 IOAPIC 投到向量 33，handler 里把扫描码转 ASCII 并回显。
 //!
-//! 只做回显（D3）：没有行规程、没有 Shift 等修饰键。见 decisions/0004。
+//! 只做回显（D3）：没有行规程、没有 Shift 等修饰键。路由发现见 decisions/0005。
 
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use crate::io::inb;
-use crate::{ioapic, lapic, printk};
+use crate::{acpi, ioapic, lapic, printk};
 
 pub const KEYBOARD_VECTOR: u32 = 33;
-/// ISA IRQ1；QEMU 默认机上 GSI 与之同号。
-const KEYBOARD_GSI: u8 = 1;
 
 const DATA_PORT: u16 = 0x60;
 const STATUS_PORT: u16 = 0x64;
@@ -31,14 +29,15 @@ const SCANCODE_TO_ASCII: &[u8; 0x3a] =
 /// 只有键盘 handler 读写它，用原子量是为了不用 `static mut`，不是为了并发。
 static EXTENDED_PENDING: AtomicBool = AtomicBool::new(false);
 
-/// 清空控制器里残留的字节，再把 IRQ1 路由到向量 33。
+/// 清空控制器里残留的字节，再按 MADT / ISO 把 IRQ1 路由到向量 33。
 /// 必须在 IDT 已装好向量 33 之后调用。
-pub fn init() -> bool {
+pub fn init() -> Option<acpi::KeyboardRoute> {
     // 残留字节不清掉，输出缓冲区一直满着，控制器不会再触发新的 IRQ1
     while inb(STATUS_PORT) & STATUS_OUTPUT_FULL != 0 {
         inb(DATA_PORT);
     }
-    ioapic::route(KEYBOARD_GSI, KEYBOARD_VECTOR as u8, lapic::id())
+    let route = acpi::keyboard_route()?;
+    ioapic::route(route, KEYBOARD_VECTOR as u8, lapic::id()).then_some(route)
 }
 
 /// 向量 33 的 handler（由 idt 分发层调用，EOI 由分发层发）。

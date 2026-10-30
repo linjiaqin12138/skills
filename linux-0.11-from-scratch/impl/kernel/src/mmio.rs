@@ -17,10 +17,9 @@ const PAGE_CACHE_DISABLE: u64 = 1 << 4;
 const PAGE_LARGE: u64 = 1 << 7;
 const PAGE_ADDRESS_MASK: u64 = 0x000f_ffff_ffff_f000;
 
-/// 静态页表池容量。第一张设备页最坏要补 3 层（PDPT/PD/PT），
-/// 第二张设备页（IOAPIC 与 LAPIC 隔着不同的 2 MiB）再补 1 张 PT，共 4。
-/// 再加设备要来这里加大（代理假设：M3 只有 LAPIC + IOAPIC 两张页）。
-const POOL_TABLES: usize = 4;
+/// 静态页表池容量。前两张设备页最坏用 4 张；ACPI 根表与 MADT 各再补 1 张 PT。
+/// 这是 M3 启动期固定上限，M5 自建页表后移除。
+const POOL_TABLES: usize = 8;
 
 #[used]
 #[unsafe(link_section = ".limine_requests")]
@@ -41,10 +40,14 @@ struct PageTable([u64; 512]);
 static mut TABLE_POOL: [PageTable; POOL_TABLES] = [const { PageTable([0; 512]) }; POOL_TABLES];
 static mut POOL_USED: usize = 0;
 
+pub fn hhdm_offset() -> Option<u64> {
+    Some(HHDM_REQUEST.response()?.offset)
+}
+
 /// 让一页设备物理内存在 HHDM 里可访问（禁缓存），返回其虚拟地址；
 /// Limine 没给出所需响应时返回 None。只能在关中断的单核启动阶段调用。
 pub fn map_page(physical_base: u64) -> Option<u64> {
-    let hhdm_offset = HHDM_REQUEST.response()?.offset;
+    let hhdm_offset = hhdm_offset()?;
     let executable = EXECUTABLE_ADDRESS_REQUEST.response()?;
     let virtual_base = physical_base + hhdm_offset;
 

@@ -1,0 +1,26 @@
+M3 Bite3 验收记录（2026-10-30）
+
+实现范围
+- Limine RsdpRequest → RSDT/XSDT → MADT。
+- 校验 RSDP/SDT checksum、长度与 MADT 变长条目边界。
+- IOAPIC base、GSI start 与 IRQ1 ISO flags 送入 KeyboardRoute。
+- 无 MADT/映射结果时不回退到 0xFEC00000。
+- ACPI 物理页复用 mmio::map_page，静态池 4→8。
+
+实测
+1. make -C impl build：通过。
+2. bash accept/m03-b03.sh：通过（exit 0）。
+   - M3: MADT IOAPIC base=0xfec00000 IRQ1 -> GSI 1 polarity=high trigger=edge
+   - M3: keyboard IRQ1 -> vector 33
+   - hello 与 jiffies=100/200/300/400 出现。
+   - 无 PANIC / EXCEPTION / MADT 初始化失败。
+   - m3-bite3.ppm = 1,440,015 字节。
+3. bash accept/m03-b02.sh：回归通过（exit 0），键盘与定时器行为不变。
+
+排障记录
+- 重复 HHDM_REQUEST 导致 Limine request ID conflict：改为复用 mmio 的请求。
+- RSDP 位于低 1MiB，HHDM 未覆盖，直接解引用触发 #14：改为按需映射 ACPI 物理页。
+
+覆盖边界
+- 仅 QEMU 默认机实测；该机的发现值与旧常量相同。
+- 跨页 ACPI 表、多 IOAPIC 完整范围管理、真机尚未验收。

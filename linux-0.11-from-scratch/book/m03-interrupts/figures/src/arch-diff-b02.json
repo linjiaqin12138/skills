@@ -1,0 +1,504 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "text_policy": "strict",
+  "quality_profile": "standard",
+  "width": 1840,
+  "height": 980,
+  "containers": [
+    {
+      "id": "kernel-box",
+      "x": 300,
+      "y": 140,
+      "width": 1490,
+      "height": 690,
+      "label": "kernel（信任边界）",
+      "fill": "#f9fafb",
+      "stroke": "#9ca3af"
+    }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 870,
+  "legend_locked": true,
+  "footer_x": 48,
+  "footer_y": 930,
+  "nodes": [
+    {
+      "id": "limine",
+      "kind": "rect",
+      "x": 40,
+      "y": 710,
+      "width": 170,
+      "height": 70,
+      "label": "Limine",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "lapic_hw",
+      "kind": "rect",
+      "x": 40,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "LAPIC",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "kbd_hw",
+      "kind": "rect",
+      "x": 40,
+      "y": 570,
+      "width": 170,
+      "height": 70,
+      "label": "PS/2 键盘",
+      "sublabel": "【新】",
+      "fill": "#d1fae5",
+      "stroke": "#10b981",
+      "flat": true
+    },
+    {
+      "id": "ioapic",
+      "kind": "rect",
+      "x": 40,
+      "y": 430,
+      "width": 170,
+      "height": 70,
+      "label": "IOAPIC",
+      "sublabel": "【新】IRQ1 → 33",
+      "fill": "#d1fae5",
+      "stroke": "#10b981",
+      "flat": true
+    },
+    {
+      "id": "cpu",
+      "kind": "rect",
+      "x": 340,
+      "y": 260,
+      "width": 130,
+      "height": 70,
+      "label": "CPU",
+      "sublabel": "【改】+向量 33",
+      "fill": "#fef3c7",
+      "stroke": "#d97706",
+      "flat": true
+    },
+    {
+      "id": "idt",
+      "kind": "rect",
+      "x": 550,
+      "y": 260,
+      "width": 160,
+      "height": 70,
+      "label": "idt",
+      "sublabel": "【改】stub + common",
+      "fill": "#fef3c7",
+      "stroke": "#d97706",
+      "flat": true
+    },
+    {
+      "id": "common",
+      "kind": "rect",
+      "x": 780,
+      "y": 260,
+      "width": 180,
+      "height": 70,
+      "label": "common_irq_entry",
+      "sublabel": "【新】取代 timer_entry",
+      "fill": "#d1fae5",
+      "stroke": "#10b981",
+      "flat": true
+    },
+    {
+      "id": "dispatch",
+      "kind": "rect",
+      "x": 1060,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "irq_dispatch",
+      "sublabel": "【新】分发 + 统一 EOI",
+      "fill": "#d1fae5",
+      "stroke": "#10b981",
+      "flat": true
+    },
+    {
+      "id": "timer_interrupt",
+      "kind": "rect",
+      "x": 1310,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "timer_interrupt",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "jiffies",
+      "kind": "rect",
+      "x": 1550,
+      "y": 260,
+      "width": 170,
+      "height": 70,
+      "label": "JIFFIES",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "main",
+      "kind": "rect",
+      "x": 780,
+      "y": 430,
+      "width": 180,
+      "height": 70,
+      "label": "main",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "keyboard",
+      "kind": "rect",
+      "x": 1310,
+      "y": 430,
+      "width": 170,
+      "height": 70,
+      "label": "keyboard::interrupt",
+      "sublabel": "【新】驱动",
+      "fill": "#d1fae5",
+      "stroke": "#10b981",
+      "flat": true
+    },
+    {
+      "id": "console",
+      "kind": "rect",
+      "x": 1310,
+      "y": 600,
+      "width": 170,
+      "height": 70,
+      "label": "console",
+      "sublabel": "【改】+IrqLock",
+      "fill": "#fef3c7",
+      "stroke": "#d97706",
+      "flat": true
+    },
+    {
+      "id": "fb",
+      "kind": "rect",
+      "x": 1610,
+      "y": 600,
+      "width": 160,
+      "height": 70,
+      "label": "framebuffer",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "serial",
+      "kind": "rect",
+      "x": 1610,
+      "y": 720,
+      "width": 160,
+      "height": 70,
+      "label": "serial",
+      "sublabel": "未动",
+      "fill": "#f3f4f6",
+      "stroke": "#9ca3af",
+      "flat": true
+    },
+    {
+      "id": "timer_entry_gone",
+      "kind": "rect",
+      "x": 550,
+      "y": 570,
+      "width": 170,
+      "height": 70,
+      "label": "timer_entry",
+      "sublabel": "【删】并入 common",
+      "fill": "#e5e7eb",
+      "stroke": "#6b7280",
+      "flat": true
+    }
+  ],
+  "arrows": [
+    {
+      "id": "handoff",
+      "source": "limine",
+      "target": "main",
+      "source_port": "right",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "进入 kernel",
+      "route_points": [
+        [
+          870,
+          745
+        ]
+      ],
+      "color": "#6b7280"
+    },
+    {
+      "id": "init_idt",
+      "source": "main",
+      "target": "idt",
+      "source_port": "left",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "注册向量 32 / 33 stub",
+      "route_points": [
+        [
+          630,
+          465
+        ]
+      ],
+      "color": "#f97316"
+    },
+    {
+      "id": "irq32",
+      "source": "lapic_hw",
+      "target": "cpu",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "32 @100Hz",
+      "color": "#6b7280"
+    },
+    {
+      "id": "irq1",
+      "source": "kbd_hw",
+      "target": "ioapic",
+      "source_port": "top",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "IRQ1 · 扫描码",
+      "color": "#10b981"
+    },
+    {
+      "id": "route33",
+      "source": "ioapic",
+      "target": "cpu",
+      "source_port": "right",
+      "target_port": "bottom",
+      "flow": "control",
+      "label": "重定向为向量 33",
+      "route_points": [
+        [
+          405,
+          465
+        ]
+      ],
+      "color": "#10b981"
+    },
+    {
+      "id": "cpu_idt",
+      "source": "cpu",
+      "target": "idt",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "32/33",
+      "color": "#f97316"
+    },
+    {
+      "id": "to_common",
+      "source": "idt",
+      "target": "common",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "jmp",
+      "color": "#10b981"
+    },
+    {
+      "id": "call_dispatch",
+      "source": "common",
+      "target": "dispatch",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "call",
+      "color": "#10b981"
+    },
+    {
+      "id": "dispatch32",
+      "source": "dispatch",
+      "target": "timer_interrupt",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "32",
+      "color": "#f97316"
+    },
+    {
+      "id": "dispatch33",
+      "source": "dispatch",
+      "target": "keyboard",
+      "source_port": "bottom",
+      "target_port": "left",
+      "flow": "control",
+      "label": "33",
+      "route_points": [
+        [
+          1145,
+          465
+        ]
+      ],
+      "color": "#10b981"
+    },
+    {
+      "id": "tick",
+      "source": "timer_interrupt",
+      "target": "jiffies",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "+1",
+      "color": "#6b7280"
+    },
+    {
+      "id": "iretq",
+      "source": "common",
+      "target": "main",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "iretq · 返回",
+      "color": "#f97316"
+    },
+    {
+      "id": "read_jiffies",
+      "source": "main",
+      "target": "jiffies",
+      "source_port": "right",
+      "target_port": "bottom",
+      "flow": "data",
+      "label": "load(Relaxed)",
+      "route_points": [
+        [
+          1040,
+          456
+        ],
+        [
+          1040,
+          545
+        ],
+        [
+          1635,
+          545
+        ]
+      ],
+      "color": "#6b7280"
+    },
+    {
+      "id": "report",
+      "source": "main",
+      "target": "console",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "每 100 ticks printk!",
+      "route_points": [
+        [
+          1010,
+          474
+        ],
+        [
+          1010,
+          635
+        ]
+      ],
+      "color": "#6b7280"
+    },
+    {
+      "id": "kbd_print",
+      "source": "keyboard",
+      "target": "console",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "write",
+      "label": "printk!(按键)",
+      "color": "#10b981"
+    },
+    {
+      "id": "pixels",
+      "source": "console",
+      "target": "fb",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "文本 → 像素",
+      "color": "#6b7280"
+    },
+    {
+      "id": "mirror",
+      "source": "console",
+      "target": "serial",
+      "source_port": "bottom",
+      "target_port": "left",
+      "flow": "write",
+      "label": "镜像字节",
+      "route_points": [
+        [
+          1395,
+          755
+        ]
+      ],
+      "color": "#6b7280"
+    },
+    {
+      "id": "eoi",
+      "source": "dispatch",
+      "target": "lapic_hw",
+      "source_port": "top",
+      "target_port": "top",
+      "flow": "control",
+      "label": "end_of_interrupt · EOI",
+      "route_points": [
+        [
+          1145,
+          205
+        ],
+        [
+          125,
+          205
+        ]
+      ],
+      "color": "#f97316"
+    }
+  ],
+  "title": "M3 Bite1 → Bite2：键盘 IRQ1 + 共享中断入口",
+  "subtitle": "与 current.svg 同坐标；绿=新增，橙=改动，灰=未动",
+  "legend": [
+    {
+      "flow": "write",
+      "color": "#10b981",
+      "label": "新增模块 / 边"
+    },
+    {
+      "flow": "data",
+      "color": "#f97316",
+      "label": "改动模块 / 边"
+    },
+    {
+      "flow": "control",
+      "color": "#6b7280",
+      "label": "未动 / 删除（灰块）"
+    }
+  ],
+  "footer": "Style 1 · fireworks · M3 Bite2 vs Bite1"
+}
