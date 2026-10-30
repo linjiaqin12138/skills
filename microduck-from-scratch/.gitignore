@@ -17,3 +17,6 @@ MUJOCO_LOG.TXT
 /tutor/artifacts/**/videos/
 /vendor/
 /reference/
+# 云上训完 scp 回来的回放视频（体积大，不进仓）
+/tutor/artifacts/**/*.mp4
+/tutor/artifacts/m09f/
