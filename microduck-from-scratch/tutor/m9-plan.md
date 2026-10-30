@@ -52,14 +52,16 @@
 - 验收：`accept/m09e-b01.sh` PASS（forward≈1.33m）；课文第 29 章
 - 注：与 M9f（handmade 上自训）并存——M9e 证集成栈，M9f 证训推同分布
 
-### M9f · handmade + 自写训练脚本（GPU）— **Bite 1 待确认**
+### M9f · handmade + 自有训练环境（GPU）— **Bite 1 待用户确认（2026-10-30）**
 
-- 目标：策略在 **我们的** `duck_handmade` 上、用 **我们写的训练入口** 长大；训推同分布
-- **硬约束**：入口脚本在 `impl/`；可 import mjlab / rsl_rl / 官方 env cfg 工厂；**禁止** `uv run train` / 官方 `train_cli` 当主路径；不从零重写 PPO
-- **Bite 1**：自写 train 入口 + handmade `EntityCfg`；云冒烟 64×5；长训 `2048×4000` + HD replay 已跑；课文第 30 章；决定 `0011`（起草）
-- 后续 Bite：自写/薄封装 export → handmade 分布站/走验收；daemon 对接另排
-- 注：官方 Velocity Flat 默认 `robot_walk.xml`（仅足底）；我们挂 handmade（groundcontact 系 AABB）。刻意让 **训练身体 = 部署仿真身体**
-- 前置：M9a；M9d 仅证明云机能跑通（流程参考，配方不复用为终态权重）；**要 GPU**
+- 目标：策略在 **我们的** `duck_handmade` 上、用 **我们拥有的任务定义与训练脚本** 从头学习；训推同分布
+- **2026-10-30 用户裁决**：旧方案只自写入口、仍复用官方 MicroDuck 任务配方，不满足学习要求；旧实现与失败产物删除重来
+- **硬约束**：主路径不 import `mjlab_microduck`；显式拥有机器人配置、观测、动作、命令、奖励、终止、随机化、课程与 PPO 超参。MuJoCo / mjlab 通用组件 / rsl_rl / BAM 作为依赖轮子，不从零重写
+- **Bite 1 已验收**：M9d 基线验环境、64×5 冒烟、站高门控短训、2048 env 至 1000 轮；终局 z=0.1212m、5s 位移 1.4306m、vx=0.294，HD 为直立前进；`accept/m09f-b01.sh` PASS
+- 决定：`0012`（起草）；课文第 30 章；档案 `book/m09f-handmade-train/acceptance.md`
+- 后续 Bite：自有 export → handmade 分布站/走验收；daemon 对接另排
+- 注：训练身体 = 部署仿真身体；双层鞋底的四个 collision geom 都显式进入接触与摩擦配置
+- 前置：M9a；M9d 提供云环境与已知可行走对照；**要 GPU**
 
 ## 覆盖核对（Phase 2 硬性映射表）
 

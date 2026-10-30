@@ -1,596 +1,121 @@
-[mdp] Patches 1-2 active: NaN-safe reward/advantage
-[mdp] Patch 4 active: ONNX export filters passive_* joints
-[mdp] Patch 5 active: MICRODUCK_WARM_START=1 restarts curricula after checkpoint load
-============================================================
-m9f_train  |  handmade Velocity (duck_handmade.xml)
-============================================================
-  robot xml     : /cloud/cloud-ssd1/microduck-m9f/skills/microduck-from-scratch/impl/sim/assets/duck_handmade.xml
-  num_envs      : 64
-  max_iterations: 5
-  device        : cuda:0
-  log_dir       : /cloud/cloud-ssd1/microduck-m9f/logs/smoke_imu
-============================================================
-/cloud/cloud-ssd1/microduck-m9d/microduck_rl/.venv/lib/python3.12/site-packages/mjlab/entity/entity.py:149: UserWarning: Actuator config matched 14 joint(s) but the same expressions also match 3 site(s): imu, left_foot, right_foot. Add a separate config with transmission_type=TransmissionType.SITE if those should be actuated too.
-  self._add_actuators()
-Setting seed: 42
-Warp 1.12.0 initialized:
-   CUDA Toolkit 12.9, Driver 13.2
-   Devices:
-     "cpu"      : "x86_64"
-     "cuda:0"   : "NVIDIA GeForce RTX 4090" (24 GiB, sm_89, mempool enabled)
-   Kernel cache:
-     /root/.cache/warp/1.12.0
-Warp DeprecationWarning: The symbol `warp.context.runtime` will soon be removed from the public API. It can still be accessed from `warp._src.context.runtime` but might be changed or removed without notice.
-Module mujoco_warp._src.smooth 95a0b8b load on device 'cuda:0' took 3.86 ms  (cached)
-Module mujoco_warp._src.collision_driver 88f7770 load on device 'cuda:0' took 0.49 ms  (cached)
-Module _nxn_broadphase__locals__kernel_e73b1315 e73b131 load on device 'cuda:0' took 0.51 ms  (cached)
-Module ccd_kernel_builder__locals__ccd_kernel_c9a289e6 c9a289e load on device 'cuda:0' took 2.40 ms  (cached)
-Module _primitive_narrowphase__locals__primitive_narrowphase_d09e43d7 d09e43d load on device 'cuda:0' took 0.70 ms  (cached)
-Module mujoco_warp._src.constraint 27c5750 load on device 'cuda:0' took 1.94 ms  (cached)
-Module _efc_contact_init__locals__kernel_fda71e14 fda71e1 load on device 'cuda:0' took 0.43 ms  (cached)
-Module _efc_contact_jac_dense__locals__kernel_7974b597 cc0fc30 load on device 'cuda:0' took 0.51 ms  (cached)
-Module _efc_contact_update__locals__kernel_90315d53 90315d5 load on device 'cuda:0' took 0.48 ms  (cached)
-Module mujoco_warp._src.sensor 7fc0378 load on device 'cuda:0' took 3.57 ms  (cached)
-Module mujoco_warp._src.forward f60f76d load on device 'cuda:0' took 1.58 ms  (cached)
-Module mujoco_warp._src.passive 1a5e55c load on device 'cuda:0' took 1.45 ms  (cached)
-Module mujoco_warp._src.forward 8ebfcb1 load on device 'cuda:0' took 2.14 ms  (cached)
-Module mujoco_warp._src.support dd3f924 load on device 'cuda:0' took 0.54 ms  (cached)
-Module _tile_cholesky_factorize_solve__locals__cholesky_factorize_solve_b16bf393 b7e5d5f load on device 'cuda:0' took 47.34 ms  (cached)
-Module mujoco_warp._src.solver b116efb load on device 'cuda:0' took 1.89 ms  (cached)
-Module solve_init_jaref__locals__kernel_5208712d 5208712 load on device 'cuda:0' took 0.47 ms  (cached)
-Module mul_m_dense__locals___mul_m_dense_b66df345 b66df34 load on device 'cuda:0' took 0.46 ms  (cached)
-Module update_constraint_efc__locals__kernel_32935e9d 32935e9 load on device 'cuda:0' took 0.50 ms  (cached)
-Module update_constraint_gauss_cost__locals__kernel_baf8e129 baf8e12 load on device 'cuda:0' took 0.49 ms  (cached)
-Module update_gradient_JTDAJ_dense_tiled__locals__kernel_9404d42c b63011f load on device 'cuda:0' took 0.81 ms  (cached)
-Module update_gradient_cholesky__locals__kernel_5ee47d83 324a2ff load on device 'cuda:0' took 48.20 ms  (cached)
-Module linesearch_jv_fused__locals__kernel_7bf09094 7bf0909 load on device 'cuda:0' took 0.50 ms  (cached)
-Module linesearch_prepare_gauss__locals__kernel_97347d38 97347d3 load on device 'cuda:0' took 0.49 ms  (cached)
-Module update_constraint_efc__locals__kernel_3c1a9816 3c1a981 load on device 'cuda:0' took 0.47 ms  (cached)
-Module _contact_sort__locals__contact_sort_304c86df 6c97b35 load on device 'cuda:0' took 0.50 ms  (cached)
-Module mujoco_warp._src.derivative d0e2fd7 load on device 'cuda:0' took 0.82 ms  (cached)
-Module reset_data__locals__reset_xfrc_applied_e7898c5c e7898c5 load on device 'cuda:0' took 0.42 ms  (cached)
-Module reset_data__locals__reset_qM_10d3c793 10d3c79 load on device 'cuda:0' took 0.40 ms  (cached)
-Module reset_data__locals__reset_mocap_ff71f630 ff71f63 load on device 'cuda:0' took 0.40 ms  (cached)
-Module reset_data__locals__reset_contact_df686d47 df686d4 load on device 'cuda:0' took 0.41 ms  (cached)
-Module reset_data__locals__reset_nworld_6e0d904e 6e0d904 load on device 'cuda:0' took 0.50 ms  (cached)
-[BamActuator] model='m6' joints=14 kt=0.3660 R=2.8114 vin=range=(6.5, 8.2) drop_gain_range=(0.0, 0.2) force_limit=±1.07Nm friction_base=0.0048 friction_viscous=0.0054 envs=64 device=cuda:0
-Module mujoco_warp._src.render_util 94fd13e load on device 'cuda:0' took 0.68 ms  (cached)
-Module mujoco_warp._src.bvh 08f985a load on device 'cuda:0' took 0.86 ms  (cached)
-Module mujoco_warp._src.ray c8f2bb3 load on device 'cuda:0' took 1.42 ms  (cached)
+M9f Bite 1 rebuilt own-task verification
+Date: 2026-10-30
+Cloud: RTX 4090, /cloud/cloud-ssd1/microduck-m9f
+Python: /cloud/cloud-ssd1/microduck-m9d/microduck_rl/.venv/bin/python
 
-+---------------------------------+
-|         Base Environment        |
-+------------------------+--------+
-| Property               | Value  |
-+------------------------+--------+
-| Number of environments | 64     |
-| Environment device     | cuda:0 |
-| Environment seed       | 42     |
-| Physics step-size      | 0.005  |
-| Environment step-size  | 0.02   |
-+------------------------+--------+
+[static]
+bash accept/m09f-b01.sh --static-only
+own_source_gate_ok
+handmade_contact_gate_ok
+python_syntax_gate_ok
+exit_code=0
 
-[INFO] <EventManager> contains 3 active terms.
-+-------------------------------------+
-| Active Event Terms in Mode: 'reset' |
-+-------+-----------------------------+
-| Index | Name                        |
-+-------+-----------------------------+
-|   0   | reset_base                  |
-|   1   | reset_robot_joints          |
-|   2   | reset_action_history        |
-|   3   | randomize_com               |
-|   4   | randomize_head_com          |
-|   5   | randomize_joint_friction    |
-|   6   | randomize_armature          |
-+-------+-----------------------------+
-+----------------------------------------------+
-|    Active Event Terms in Mode: 'interval'    |
-+-------+------------+-------------------------+
-| Index | Name       | Interval time range (s) |
-+-------+------------+-------------------------+
-|   0   | push_robot |        (3.0, 6.0)       |
-+-------+------------+-------------------------+
-+---------------------------------------+
-| Active Event Terms in Mode: 'startup' |
-+-------+-------------------------------+
-| Index | Name                          |
-+-------+-------------------------------+
-|   0   | foot_friction                 |
-|   1   | encoder_bias                  |
-|   2   | base_com                      |
-|   3   | expand_bam_friction_fields    |
-|   4   | randomize_mass_inertia        |
-+-------+-------------------------------+
-+-----------------------------+
-| Domain Randomization Fields |
-+-------+---------------------+
-| Index | Field Name          |
-+-------+---------------------+
-|   0   | geom_friction       |
-|   1   | body_ipos           |
-|   2   | body_subtreemass    |
-|   3   | dof_invweight0      |
-|   4   | body_invweight0     |
-|   5   | tendon_length0      |
-|   6   | tendon_invweight0   |
-|   7   | dof_frictionloss    |
-|   8   | dof_damping         |
-|   9   | body_mass           |
-|   10  | body_inertia        |
-|   11  | body_iquat          |
-|   12  | dof_armature        |
-+-------+---------------------+
+[known-good baseline in own env]
+checkpoint=/cloud/cloud-ssd1/microduck-m9d/microduck_rl/logs/rsl_rl/velocity/2026-10-29_08-00-43_velocity/model_999.pt
+command: impl/scripts/m9f_evaluate.py --num-envs 16 --seconds 5 --vx 0.3
+root_z_mean=0.1200695634
+root_z_min=0.1135305613
+low_height_fraction=0.0
+displacement_mean=0.7409428358
+actual_vx_mean=0.1513130218
+air_time_mean=0.1097032502
+contact_fraction=0.5380000472
+evaluation_ok=1
+baseline_replay: replay_ok=1, 1280x720, 250 steps
+baseline_ok=1
+exit_code=0
 
-Module repeat_array_kernel_39317a34 b712927 load on device 'cuda:0' took 0.48 ms  (cached)
-Module repeat_array_kernel_39317a34 18fcc7e load on device 'cuda:0' took 0.51 ms  (cached)
-Module repeat_array_kernel_39317a34 5cde7e8 load on device 'cuda:0' took 0.56 ms  (cached)
-Module repeat_array_kernel_39317a34 0fe3117 load on device 'cuda:0' took 0.69 ms  (cached)
-[INFO] <CommandManager> contains 3 active terms.
-+------------------------------------------------+
-|              Active Command Terms              |
-+-------+-----------+----------------------------+
-| Index | Name      |            Type            |
-+-------+-----------+----------------------------+
-|   0   | twist     | VelocityCommandCommandOnly |
-|   1   | head_pose |     UniformPoseCommand     |
-|   2   | body_pose |     UniformPoseCommand     |
-+-------+-----------+----------------------------+
-
-[INFO] <ActionManager> contains 1 active terms.
-+---------------------------------+
-| Active Action Terms (shape: 14) |
-+-------+-----------+-------------+
-| Index | Name      |   Dimension |
-+-------+-----------+-------------+
-|   0   | joint_pos |          14 |
-+-------+-----------+-------------+
-
-[INFO] <ObservationManager> contains 2 groups.
-+-----------------------------------------------------------+
-| Active Observation Terms in Group: 'actor' (shape: (61,)) |
-+-----------+----------------------------------+------------+
-|   Index   | Name                             |   Shape    |
-+-----------+----------------------------------+------------+
-|     0     | base_ang_vel                     |    (3,)    |
-|     1     | projected_gravity                |    (3,)    |
-|     2     | joint_pos                        |   (14,)    |
-|     3     | joint_vel                        |   (14,)    |
-|     4     | actions                          |   (14,)    |
-|     5     | command                          |    (3,)    |
-|     6     | head_command                     |    (4,)    |
-|     7     | body_command                     |    (6,)    |
-+-----------+----------------------------------+------------+
-+------------------------------------------------------------+
-| Active Observation Terms in Group: 'critic' (shape: (76,)) |
-+----------+------------------------------------+------------+
-|  Index   | Name                               |   Shape    |
-+----------+------------------------------------+------------+
-|    0     | base_lin_vel                       |    (3,)    |
-|    1     | base_ang_vel                       |    (3,)    |
-|    2     | projected_gravity                  |    (3,)    |
-|    3     | joint_pos                          |   (14,)    |
-|    4     | joint_vel                          |   (14,)    |
-|    5     | actions                            |   (14,)    |
-|    6     | command                            |    (3,)    |
-|    7     | foot_height                        |    (2,)    |
-|    8     | foot_air_time                      |    (2,)    |
-|    9     | foot_contact                       |    (2,)    |
-|    10    | foot_contact_forces                |    (6,)    |
-|    11    | head_command                       |    (4,)    |
-|    12    | body_command                       |    (6,)    |
-+----------+------------------------------------+------------+
-wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /root/.netrc.
-wandb: Currently logged in as: linjiaqin8 (linjiaqin8-na) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: setting up run hmubkdx6
-wandb: Tracking run with wandb version 0.24.0
-wandb: Run data is saved locally in /cloud/cloud-ssd1/microduck-m9d/microduck_rl/wandb/run-20261029_093548-hmubkdx6
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run smoke_imu
-wandb: ⭐️ View project at https://wandb.ai/linjiaqin8-na/mjlab_microduck
-wandb: 🚀 View run at https://wandb.ai/linjiaqin8-na/mjlab_microduck/runs/hmubkdx6
-wandb: WARNING Symlinked 1 file into the W&B run directory; call wandb.save again to sync new files.
-wandb: WARNING Symlinked 1 file into the W&B run directory; call wandb.save again to sync new files.
-wandb: WARNING Symlinked 1 file into the W&B run directory; call wandb.save again to sync new files.
-wandb: WARNING Symlinked 1 file into the W&B run directory; call wandb.save again to sync new files.
-
-[INFO] <TerminationManager> contains 4 active terms.
-+------------------------------------------+
-|         Active Termination Terms         |
-+-------+-----------------------+----------+
-| Index | Name                  | Time Out |
-+-------+-----------------------+----------+
-|   0   | time_out              |   True   |
-|   1   | fell_over             |  False   |
-|   2   | out_of_terrain_bounds |   True   |
-|   3   | nan_state             |  False   |
-+-------+-----------------------+----------+
-
-[INFO] <RewardManager> contains 16 active terms.
-+-----------------------------------------+
-|           Active Reward Terms           |
-+-------+------------------------+--------+
-| Index | Name                   | Weight |
-+-------+------------------------+--------+
-|   0   | track_linear_velocity  |    2.0 |
-|   1   | track_angular_velocity |    2.0 |
-|   2   | upright                |    2.0 |
-|   3   | pose                   |    1.0 |
-|   4   | body_ang_vel           |  -0.05 |
-|   5   | angular_momentum       |  -0.02 |
-|   6   | dof_pos_limits         |   -1.0 |
-|   7   | action_rate_l2         |   -0.1 |
-|   8   | air_time               |    3.0 |
-|   9   | foot_clearance         |   -2.0 |
-|   10  | foot_swing_height      |  -0.25 |
-|   11  | foot_slip              |   -0.1 |
-|   12  | self_collisions        |   -1.0 |
-|   13  | head_pose_tracking     |    2.0 |
-|   14  | body_pose_tracking     |    0.0 |
-|   15  | head_pose_bias         |    0.0 |
-+-------+------------------------+--------+
-
-[INFO] <CurriculumManager> contains 7 active terms.
-+-------------------------------+
-|    Active Curriculum Terms    |
-+-------+-----------------------+
-| Index | Name                  |
-+-------+-----------------------+
-|   0   | action_rate_weight    |
-|   1   | standing_envs         |
-|   2   | head_pose_range       |
-|   3   | body_pose_range       |
-|   4   | com_range             |
-|   5   | head_com_range        |
-|   6   | head_pose_bias_weight |
-+-------+-----------------------+
-
-[INFO] <MetricsManager> contains 1 active terms.
-+-------------------------+
-|   Active Metrics Terms  |
-+-------+-----------------+
-| Index | Name            |
-+-------+-----------------+
-|   0   | mean_action_acc |
-+-------+-----------------+
-
-[INFO] <NullRecorderManager> (inactive)
-Module mujoco_warp._src.io 4b387a0 load on device 'cuda:0' took 6.01 ms  (cached)
-Module _tile_cholesky_factorize__locals__cholesky_factorize_a02b7349 3d3b894 load on device 'cuda:0' took 38.15 ms  (cached)
-Module _tile_cholesky_solve__locals__cholesky_solve_8c82e9f1 95f6085 load on device 'cuda:0' took 38.49 ms  (cached)
---------------------------------------------------------------------------------
-Resolved observation sets: 
-	 actor :  ('actor',)
-	 critic :  ('critic',)
---------------------------------------------------------------------------------
-Actor Model: MLPModel(
-  (obs_normalizer): EmpiricalNormalization()
-  (distribution): GaussianDistribution()
-  (mlp): MLP(
-    (0): Linear(in_features=61, out_features=512, bias=True)
-    (1): ELU(alpha=1.0)
-    (2): Linear(in_features=512, out_features=256, bias=True)
-    (3): ELU(alpha=1.0)
-    (4): Linear(in_features=256, out_features=128, bias=True)
-    (5): ELU(alpha=1.0)
-    (6): Linear(in_features=128, out_features=14, bias=True)
-  )
-)
-Critic Model: MLPModel(
-  (obs_normalizer): EmpiricalNormalization()
-  (mlp): MLP(
-    (0): Linear(in_features=76, out_features=512, bias=True)
-    (1): ELU(alpha=1.0)
-    (2): Linear(in_features=512, out_features=256, bias=True)
-    (3): ELU(alpha=1.0)
-    (4): Linear(in_features=256, out_features=128, bias=True)
-    (5): ELU(alpha=1.0)
-    (6): Linear(in_features=128, out_features=1, bias=True)
-  )
-)
-Storing git diff for 'microduck_rl' in: /cloud/cloud-ssd1/microduck-m9f/logs/smoke_imu/git/microduck_rl.diff
-Storing git diff for 'skills' in: /cloud/cloud-ssd1/microduck-m9f/logs/smoke_imu/git/skills.diff
-################################################################################
-[1m                             Learning iteration 0/5                             [0m 
-
-                               Run name: handmade
-                            Total steps: 1536 
-                       Steps per second: 917 
-                        Collection time: 1.411s 
-                          Learning time: 0.262s 
-                        Mean value loss: 0.0638
-                    Mean surrogate loss: -0.0348
-                      Mean entropy loss: 19.8596
-                            Mean reward: 0.34
-                    Mean episode length: 20.25
-                        Mean action std: 1.00
-   Episode_Reward/track_linear_velocity: 0.0059
-  Episode_Reward/track_angular_velocity: 0.0015
-                 Episode_Reward/upright: 0.0122
-                    Episode_Reward/pose: 0.0041
-            Episode_Reward/body_ang_vel: -0.0027
-        Episode_Reward/angular_momentum: -0.0000
-          Episode_Reward/dof_pos_limits: -0.0001
-          Episode_Reward/action_rate_l2: -0.0274
-                Episode_Reward/air_time: 0.0044
-          Episode_Reward/foot_clearance: -0.0001
-       Episode_Reward/foot_swing_height: -0.0005
-               Episode_Reward/foot_slip: -0.0000
-         Episode_Reward/self_collisions: -0.0010
-      Episode_Reward/head_pose_tracking: 0.0159
-      Episode_Reward/body_pose_tracking: 0.0000
-          Episode_Reward/head_pose_bias: 0.0000
-        Episode_Metrics/mean_action_acc: 1.4051
-          Curriculum/action_rate_weight: -0.1000
-               Curriculum/standing_envs: 0.0200
-             Curriculum/head_pose_range: 0.0700
-             Curriculum/body_pose_range: 0.0500
-                   Curriculum/com_range: 0.0030
-              Curriculum/head_com_range: 0.0030
-       Curriculum/head_pose_bias_weight: 0.0000
-             Metrics/twist/error_vel_xy: 0.0079
-            Metrics/twist/error_vel_yaw: 0.0499
-           Episode_Termination/time_out: 0.6250
-          Episode_Termination/fell_over: 0.2083
-Episode_Termination/out_of_terrain_bounds: 0.0000
-          Episode_Termination/nan_state: 0.0000
-          Metrics/angular_momentum_mean: 0.0092
-                  Metrics/air_time_mean: 0.1027
-               Metrics/peak_height_mean: 0.0054
-             Metrics/slip_velocity_mean: 0.0733
---------------------------------------------------------------------------------
-                         Iteration time: 1.67s
-                           Time elapsed: 00:00:01
-                                    ETA: 00:00:06
-
-################################################################################
-[1m                             Learning iteration 1/5                             [0m 
-
-                               Run name: handmade
-                            Total steps: 3072 
-                       Steps per second: 1158 
-                        Collection time: 1.219s 
-                          Learning time: 0.106s 
-                        Mean value loss: 0.0553
-                    Mean surrogate loss: -0.0418
-                      Mean entropy loss: 19.8532
-                            Mean reward: 0.69
-                    Mean episode length: 31.28
-                        Mean action std: 1.00
-   Episode_Reward/track_linear_velocity: 0.0289
-  Episode_Reward/track_angular_velocity: 0.0019
-                 Episode_Reward/upright: 0.0275
-                    Episode_Reward/pose: 0.0084
-            Episode_Reward/body_ang_vel: -0.0218
-        Episode_Reward/angular_momentum: -0.0000
-          Episode_Reward/dof_pos_limits: -0.0006
-          Episode_Reward/action_rate_l2: -0.0946
-                Episode_Reward/air_time: 0.0356
-          Episode_Reward/foot_clearance: -0.0003
-       Episode_Reward/foot_swing_height: -0.0009
-               Episode_Reward/foot_slip: -0.0000
-         Episode_Reward/self_collisions: -0.0029
-      Episode_Reward/head_pose_tracking: 0.0571
-      Episode_Reward/body_pose_tracking: 0.0000
-          Episode_Reward/head_pose_bias: 0.0000
-        Episode_Metrics/mean_action_acc: 1.9016
-          Curriculum/action_rate_weight: -0.1000
-               Curriculum/standing_envs: 0.0200
-             Curriculum/head_pose_range: 0.0700
-             Curriculum/body_pose_range: 0.0500
-                   Curriculum/com_range: 0.0030
-              Curriculum/head_com_range: 0.0030
-       Curriculum/head_pose_bias_weight: 0.0000
-             Metrics/twist/error_vel_xy: 0.0265
-            Metrics/twist/error_vel_yaw: 0.1622
-           Episode_Termination/time_out: 0.0833
-          Episode_Termination/fell_over: 2.1667
-Episode_Termination/out_of_terrain_bounds: 0.0000
-          Episode_Termination/nan_state: 0.0000
-          Metrics/angular_momentum_mean: 0.0114
-                  Metrics/air_time_mean: 0.1511
-               Metrics/peak_height_mean: 0.0129
-             Metrics/slip_velocity_mean: 0.0881
---------------------------------------------------------------------------------
-                         Iteration time: 1.33s
-                           Time elapsed: 00:00:02
-                                    ETA: 00:00:04
-wandb: WARNING Symlinked 1 file into the W&B run directory; call wandb.save again to sync new files.
-wandb: updating run metadata
-wandb: uploading model_4.pt; uploading smoke_imu.onnx; uploading output.log; uploading wandb-summary.json
-wandb: uploading model_4.pt; uploading smoke_imu.onnx; uploading config.yaml
-wandb: uploading model_4.pt
-wandb: uploading history steps 0-4, summary, console lines 0-270
-wandb: 
-wandb: Run history:
-wandb:    Curriculum/action_rate_weight ▁▁▁▁▁
-wandb:       Curriculum/body_pose_range ▁▁▁▁▁
-wandb:             Curriculum/com_range ▁▁▁▁▁
-wandb:        Curriculum/head_com_range ▁▁▁▁▁
-wandb: Curriculum/head_pose_bias_weight ▁▁▁▁▁
-wandb:       Curriculum/head_pose_range ▁▁▁▁▁
-wandb:         Curriculum/standing_envs ▁▁▁▁▁
-wandb:  Episode_Metrics/mean_action_acc ▁████
-wandb:    Episode_Reward/action_rate_l2 █▁▁▁▁
-wandb:          Episode_Reward/air_time ▁▇▇██
-wandb:                              +34 ...
-wandb: 
-wandb: Run summary:
-wandb:    Curriculum/action_rate_weight -0.1
-wandb:       Curriculum/body_pose_range 0.05
-wandb:             Curriculum/com_range 0.003
-wandb:        Curriculum/head_com_range 0.003
-wandb: Curriculum/head_pose_bias_weight 0
-wandb:       Curriculum/head_pose_range 0.07
-wandb:         Curriculum/standing_envs 0.02
-wandb:  Episode_Metrics/mean_action_acc 1.92375
-wandb:    Episode_Reward/action_rate_l2 -0.09649
-wandb:          Episode_Reward/air_time 0.03978
-wandb:                              +34 ...
-wandb: 
-wandb: 🚀 View run smoke_imu at: https://wandb.ai/linjiaqin8-na/mjlab_microduck/runs/hmubkdx6
-wandb: ⭐️ View project at: https://wandb.ai/linjiaqin8-na/mjlab_microduck
-wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 5 other file(s)
-wandb: Find logs at: ./wandb/run-20261029_093548-hmubkdx6/logs
-
-################################################################################
-[1m                             Learning iteration 2/5                             [0m 
-
-                               Run name: handmade
-                            Total steps: 4608 
-                       Steps per second: 1610 
-                        Collection time: 0.867s 
-                          Learning time: 0.087s 
-                        Mean value loss: 0.0503
-                    Mean surrogate loss: -0.0441
-                      Mean entropy loss: 19.8391
-                            Mean reward: 0.71
-                    Mean episode length: 34.27
-                        Mean action std: 1.00
-   Episode_Reward/track_linear_velocity: 0.0248
-  Episode_Reward/track_angular_velocity: 0.0019
-                 Episode_Reward/upright: 0.0262
-                    Episode_Reward/pose: 0.0085
-            Episode_Reward/body_ang_vel: -0.0231
-        Episode_Reward/angular_momentum: -0.0000
-          Episode_Reward/dof_pos_limits: -0.0004
-          Episode_Reward/action_rate_l2: -0.0968
-                Episode_Reward/air_time: 0.0388
-          Episode_Reward/foot_clearance: -0.0003
-       Episode_Reward/foot_swing_height: -0.0012
-               Episode_Reward/foot_slip: -0.0000
-         Episode_Reward/self_collisions: -0.0026
-      Episode_Reward/head_pose_tracking: 0.0572
-      Episode_Reward/body_pose_tracking: 0.0000
-          Episode_Reward/head_pose_bias: 0.0000
-        Episode_Metrics/mean_action_acc: 1.8986
-          Curriculum/action_rate_weight: -0.1000
-               Curriculum/standing_envs: 0.0200
-             Curriculum/head_pose_range: 0.0700
-             Curriculum/body_pose_range: 0.0500
-                   Curriculum/com_range: 0.0030
-              Curriculum/head_com_range: 0.0030
-       Curriculum/head_pose_bias_weight: 0.0000
-             Metrics/twist/error_vel_xy: 0.0299
-            Metrics/twist/error_vel_yaw: 0.1625
-           Episode_Termination/time_out: 0.0000
-          Episode_Termination/fell_over: 2.5417
-Episode_Termination/out_of_terrain_bounds: 0.0000
-          Episode_Termination/nan_state: 0.0000
-          Metrics/angular_momentum_mean: 0.0115
-                  Metrics/air_time_mean: 0.1513
-               Metrics/peak_height_mean: 0.0134
-             Metrics/slip_velocity_mean: 0.0883
---------------------------------------------------------------------------------
-                         Iteration time: 0.95s
-                           Time elapsed: 00:00:03
-                                    ETA: 00:00:02
-
-################################################################################
-[1m                             Learning iteration 3/5                             [0m 
-
-                               Run name: handmade
-                            Total steps: 6144 
-                       Steps per second: 1664 
-                        Collection time: 0.825s 
-                          Learning time: 0.098s 
-                        Mean value loss: 0.0523
-                    Mean surrogate loss: -0.0442
-                      Mean entropy loss: 19.8262
-                            Mean reward: 0.65
-                    Mean episode length: 34.48
-                        Mean action std: 1.00
-   Episode_Reward/track_linear_velocity: 0.0250
-  Episode_Reward/track_angular_velocity: 0.0019
-                 Episode_Reward/upright: 0.0226
-                    Episode_Reward/pose: 0.0079
-            Episode_Reward/body_ang_vel: -0.0217
-        Episode_Reward/angular_momentum: -0.0000
-          Episode_Reward/dof_pos_limits: -0.0007
-          Episode_Reward/action_rate_l2: -0.0962
-                Episode_Reward/air_time: 0.0425
-          Episode_Reward/foot_clearance: -0.0003
-       Episode_Reward/foot_swing_height: -0.0012
-               Episode_Reward/foot_slip: -0.0000
-         Episode_Reward/self_collisions: -0.0037
-      Episode_Reward/head_pose_tracking: 0.0572
-      Episode_Reward/body_pose_tracking: 0.0000
-          Episode_Reward/head_pose_bias: 0.0000
-        Episode_Metrics/mean_action_acc: 1.9101
-          Curriculum/action_rate_weight: -0.1000
-               Curriculum/standing_envs: 0.0200
-             Curriculum/head_pose_range: 0.0700
-             Curriculum/body_pose_range: 0.0500
-                   Curriculum/com_range: 0.0030
-              Curriculum/head_com_range: 0.0030
-       Curriculum/head_pose_bias_weight: 0.0000
-             Metrics/twist/error_vel_xy: 0.0300
-            Metrics/twist/error_vel_yaw: 0.1822
-           Episode_Termination/time_out: 0.0000
-          Episode_Termination/fell_over: 2.0833
-Episode_Termination/out_of_terrain_bounds: 0.0000
-          Episode_Termination/nan_state: 0.0000
-          Metrics/angular_momentum_mean: 0.0119
-                  Metrics/air_time_mean: 0.1362
-               Metrics/peak_height_mean: 0.0105
-             Metrics/slip_velocity_mean: 0.0914
---------------------------------------------------------------------------------
-                         Iteration time: 0.92s
-                           Time elapsed: 00:00:04
-                                    ETA: 00:00:01
-
-################################################################################
-[1m                             Learning iteration 4/5                             [0m 
-
-                               Run name: handmade
-                            Total steps: 7680 
-                       Steps per second: 1557 
-                        Collection time: 0.879s 
-                          Learning time: 0.107s 
-                        Mean value loss: 0.0620
-                    Mean surrogate loss: -0.0442
-                      Mean entropy loss: 19.8148
-                            Mean reward: 0.64
-                    Mean episode length: 34.68
-                        Mean action std: 1.00
-   Episode_Reward/track_linear_velocity: 0.0251
-  Episode_Reward/track_angular_velocity: 0.0020
-                 Episode_Reward/upright: 0.0255
-                    Episode_Reward/pose: 0.0076
-            Episode_Reward/body_ang_vel: -0.0224
-        Episode_Reward/angular_momentum: -0.0000
-          Episode_Reward/dof_pos_limits: -0.0006
-          Episode_Reward/action_rate_l2: -0.0965
-                Episode_Reward/air_time: 0.0398
-          Episode_Reward/foot_clearance: -0.0003
-       Episode_Reward/foot_swing_height: -0.0013
-               Episode_Reward/foot_slip: -0.0000
-         Episode_Reward/self_collisions: -0.0037
-      Episode_Reward/head_pose_tracking: 0.0562
-      Episode_Reward/body_pose_tracking: 0.0000
-          Episode_Reward/head_pose_bias: 0.0000
-        Episode_Metrics/mean_action_acc: 1.9238
-          Curriculum/action_rate_weight: -0.1000
-               Curriculum/standing_envs: 0.0200
-             Curriculum/head_pose_range: 0.0700
-             Curriculum/body_pose_range: 0.0500
-                   Curriculum/com_range: 0.0030
-              Curriculum/head_com_range: 0.0030
-       Curriculum/head_pose_bias_weight: 0.0000
-             Metrics/twist/error_vel_xy: 0.0305
-            Metrics/twist/error_vel_yaw: 0.1652
-           Episode_Termination/time_out: 0.0000
-          Episode_Termination/fell_over: 1.7917
-Episode_Termination/out_of_terrain_bounds: 0.0000
-          Episode_Termination/nan_state: 0.0000
-          Metrics/angular_momentum_mean: 0.0105
-                  Metrics/air_time_mean: 0.1371
-               Metrics/peak_height_mean: 0.0114
-             Metrics/slip_velocity_mean: 0.0884
---------------------------------------------------------------------------------
-                         Iteration time: 0.99s
-                           Time elapsed: 00:00:05
-                                    ETA: 00:00:00
-
+[own PPO smoke]
+command: impl/scripts/m9f_train.py --num-envs 64 --max-iterations 5 --save-interval 5 --log-dir logs/smoke_64x5 --smoke
+actor_obs=61 action=14 critic_obs=70
+bam_joints=14
+nan_state=0 at every logged iteration
 smoke_ok=1
+exit_code=0
+
+[short attempt 1: full command mix]
+command: impl/scripts/m9f_train.py --num-envs 512 --max-iterations 300 --save-interval 50 --log-dir logs/short_512x300
+train_finished=1
+exit_code=0
+evaluation: model_299.pt, 16 envs, 5s, vx=0.3
+root_z_mean=0.1118080020
+low_height_fraction=0.0
+displacement_mean=0.0086188177
+actual_vx_mean=-0.0015590163
+air_time_mean=1.9474116564
+contact_fraction=0.9946250315
+video=short_model_299.mp4, replay_ok=1
+verdict=FAIL: upright but nearly stationary; do not extend training
+next=forward-only commands, track_linear weight 4, angular weight 0, no early pushes; smoke_forward smoke_ok=1
+
+[short attempt 2: forward-only Gaussian tracking]
+command: impl/scripts/m9f_train.py --num-envs 512 --max-iterations 300 --save-interval 50 --log-dir logs/forward_512x300
+train_finished=1
+exit_code=0
+model_100: displacement_mean=0.0196034908, root_z_mean=0.1174504608, contact_fraction=0.9937500358
+model_299: displacement_mean=0.0217001792, root_z_mean=0.1109255850, actual_vx_mean=0.0042826440, air_time_mean=1.4756624699, contact_fraction=0.9943750501
+verdict=FAIL: still stationary; Gaussian track reward has zero forward gradient at actual vx=0
+next=add forward_velocity linear/clamped reward weight 2; smoke_progress smoke_ok=1
+
+[short attempt 3: ungated forward progress]
+command: impl/scripts/m9f_train.py --num-envs 512 --max-iterations 300 --save-interval 50 --log-dir logs/progress_512x300
+train_finished=1
+exit_code=0
+model_50: displacement_mean=0.1578115523, root_z_mean=0.0575829893
+model_100: displacement_mean=0.1836438626, root_z_mean=0.0691583008
+model_250: displacement_mean=1.8512488604, root_z_mean=0.0735758692, actual_vx_mean=0.4071171582
+model_299: displacement_mean=1.8237494230, root_z_mean=0.0714418143, low_height_fraction=0.9127500653, actual_vx_mean=0.3809554875, air_time_mean=0.1257596314
+verdict=FAIL: fast but crouched locomotion; forward rewards need a standing-height gate
+next=gate track/forward/air rewards to zero at 0.085m and full at 0.115m; smoke_gated smoke_ok=1
+
+[short attempt 4: standing-height-gated locomotion]
+command: impl/scripts/m9f_train.py --num-envs 512 --max-iterations 300 --save-interval 50 --log-dir logs/gated_512x300
+train_finished=1
+exit_code=0
+model_50: displacement_mean=0.1272630394, root_z_mean=0.1103670076
+model_100: displacement_mean=0.0279031917, root_z_mean=0.1168331429
+model_299: root_z_mean=0.1207963377, root_z_min=0.1131597012, low_height_fraction=0.0, displacement_mean=0.9598423243, actual_vx_mean=0.2685694695, air_time_mean=0.4853599072, contact_fraction=0.6902500391
+video=gated_model_299.mp4, replay_ok=1, visual=effective upright forward gait
+short_train_ok=1
+
+[comparison running]
+own moving checkpoint model_250 + gated resume to iteration 550, 300 additional iterations
+resumed_from=logs/progress_512x300/model_250.pt remaining_iterations=300
+
+[comparison result]
+gated_resume model_549: root_z_mean=0.1175353155, displacement_mean=0.3460689783, actual_vx_mean=0.1845707148, air_time_mean=0.3594217896
+verdict=inferior to gated scratch model_299; mainline uses gated scratch
+
+[main training]
+command: impl/scripts/m9f_train.py --num-envs 2048 --max-iterations 1000 --save-interval 100 --resume-from logs/gated_512x300/model_299.pt --log-dir logs/main_2048x1000
+status=running
+
+[main training completed]
+train_finished=1
+exit_code=0
+checkpoint=logs/main_2048x1000/model_999.pt
+local_checkpoint=tutor/artifacts/m09f/checkpoints/model_999.pt
+evaluation: 16 envs, 5s, vx=0.3, deterministic play config
+root_z_mean=0.1211708188
+root_z_min=0.1134709045
+root_z_max=0.1267579049
+low_height_fraction=0.0
+displacement_mean=1.4306216240
+displacement_min=1.3717052937
+displacement_max=1.4676427841
+actual_vx_mean=0.2939598560
+air_time_mean=0.1615033895
+contact_fraction=0.5216250420
+video=tutor/artifacts/m09f/videos/main_model_999.mp4, 1280x720, replay_ok=1
+visual=effective upright forward walking, no crouched in-place gait
+
+[verification]
+bash accept/m09f-b01.sh
+own_source_gate_ok
+handmade_contact_gate_ok
+python_syntax_gate_ok
+gait_check_ok=1
+M9f Bite 1 验收 PASS：自有环境 + GPU 训练 + 定量步态
+exit_code=0
+coding_review=PASS: no official MicroDuck imports, shared env/robot config, per-foot 4-to-2 contact aggregation, obs layout matches obs.rs
+independent_subagent=unavailable (provider rate limit); main agent executed the accept script and static review instead

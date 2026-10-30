@@ -23,6 +23,7 @@
 1. **M8 收尾（当前）**：C 线——先把非硬件、不依赖硬件的内容对齐（robot.move+vy / robot.enable{on,toggle} / robot.subscribe / safeToRestart 预检），并移植 BAM 执行器模型让 sit/roulade 真正站起来；其余功能缺口**不豁免**，分配到后续批次
 2. **M9 批次：仿真与训练**——自建仿真模型（MJCF）、自己训策略（不满足于用现成 ONNX），代码继续对齐相关部分（microduck_rl 侧）。**算力裁决（2026-10-16）**：云 GPU 主力（Vast.ai 5090），GPU 步骤后置——先 CPU 侧（本 VM）学仿真搭建与训练管线，再开训练里程碑。拆分见 tutor/m9-plan.md
    - **2026-10-29 用户裁决（修订）**：先开 **M9f**（handmade + 自写训练入口）。同日晚改回：**M9e 恢复执行**——M9d 自训的官方分布 ONNX 接到我们的 `miniduckd` + handmade BAM（对照官方 viewer）。M9f 仍保留（训推同分布）。
+   - **2026-10-30 用户裁决（M9f 重做）**：只自写入口但套官方 MicroDuck 任务 class/配方，不满足学习要求。旧 M9f 实现与失败产物删除；新实现除 MuJoCo、mjlab 通用组件、rsl_rl、BAM 等依赖轮子外，机器人配置与完整训练任务尽量自己写，主路径不复用 `mjlab_microduck`。
 3. **M10 批次：驱动与硬件**——学驱动编程；硬件后补（不是现在），**可能不用官方硬件**；已有 Xbox 手柄（原版 padd 正是用 Xbox Wireless Controller 开发测试的，upstream/padd/）。代码继续对齐相关部分——**此批完成后项目完全对齐原项目**
 4. **M11 批次：结构与外壳**——自学 3D 建模与打印，外壳模块自己构建。与代码无关
 

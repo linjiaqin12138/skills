@@ -1,247 +1,219 @@
 ---
 template: sheet
-title: M9f Bite 1：自写训练入口 + handmade（第 30 章）
-subtitle: 训推同身体；入口是我们的脚本，不是 uv run train
+title: M9f Bite 1：手搓 handmade 训练环境（第 30 章）
+subtitle: 从自己的 MJCF 写任务；基线验环境，PPO 从随机权重学会直立前进
 source: clone-from-scratch-tutor · 第 30 章
 ---
 
 ## 问题
 
-M9d 在云上把官方 `uv run train` + 官方 `robot_walk` 跑通了；M9e 把那份官方分布 ONNX 接到了我们的 daemon。那条路证的是**集成栈**，不是**训推同身体**——权重仍在官方身体上长大。
+已有的 M9d 权重能走，只证明官方身体和官方任务配方有效。把 `duck_handmade.xml` 塞进官方 Velocity class，仍然是在猜官方假设：每脚只有一块鞋底、奖励和课程适合自己的身体。
 
-现在要消掉的故障是：还在用官方 train CLI 训官方身体，或以为包一层 `uv run train` 就算「自己的训练入口」。
-
-本课钉死两件事：身体是 `duck_handmade.xml`；入口是我们写的 `m9f_train.py`，在官方 uv 环境里跑这份 `.py`。
-
-## 背景
-
-**handmade 身体。** M9a 手写的 `duck_handmade.xml`：碰撞盒 + 官方惯量对账，与 `impl/sim` 部署同源。详见 [M9a Bite 1](../m09a-handmade-mjcf/b01-handmade-mjcf.html)。
-
-**Velocity 奖励与课程。** 本课仍走官方 `make_microduck_velocity_env_cfg` 工厂：奖励权重、课程阶梯、BAM 执行器都不重写。配方直觉见 [M9b Bite 2](../m09b-train-pipeline/b02-reward-curriculum.html)。PPO 三步、优势估计细节本课当黑盒，不重讲。
+训练脚本能跑完，策略却可能站稳不动或低姿态快走。只换官方 class，也学不到训练环境怎么写。本课去掉这些故障。新的主路径不使用 `mjlab_microduck`；MuJoCo、mjlab 通用管理器、rsl_rl 和 BAM 只作为依赖轮子。
 
 ## 设计
 
 ```flow TB
-(m9f_train.py) -> make_microduck_velocity_env_cfg
-make_microduck_velocity_env_cfg -> *换 entities robot
-换 entities robot -> ManagerBasedRlEnv
-ManagerBasedRlEnv -> MicroduckOnPolicyRunner
-MicroduckOnPolicyRunner -> *runner.learn
+duck_handmade.xml -> m9f_robot
+m9f_robot -> m9f_env_cfg
+m9f_env_cfg -> m9f_mdp
+m9f_env_cfg -> m9f_train
+m9f_mdp -> m9f_train
+m9f_train -> checkpoint
+checkpoint -> m9f_evaluate
+checkpoint -> m9f_replay
 ```
 
-| 层 | 谁提供 | 本课改什么 |
-|---|---|---|
-| 奖励 / 观测 / BAM / 课程 | 官方 Velocity 工厂 | 不改 |
-| 身体 XML | `HANDMADE_ROBOT_CFG` → `duck_handmade.xml` | **换身** |
-| 训练入口 | `impl/scripts/m9f_train.py` | **自写**；禁止主路径 `uv run train` / `train_cli` |
-| PPO 更新 | rsl_rl（经 `MicroduckOnPolicyRunner.learn`） | 黑盒：优化策略；不展开优势估计 |
+六个模块各有边界：
 
-冒烟规模与 M9d 对齐：`64` envs × `5` iter。长训与视频回放是同一入口的加参用法，不挡本课 accept 门禁。
+| 模块 | 自己负责什么 |
+|---|---|
+| `m9f_robot.py` | HOME、BAM、四个脚底 geom 的碰撞与摩擦 |
+| `m9f_env_cfg.py` | 场景、61D/14D、命令、奖励、终止、随机化、课程、PPO 超参 |
+| `m9f_mdp.py` | 通用库没有的双脚合并、站高门控和课程函数 |
+| `m9f_train.py` | 环境到通用 runner 的组装、保存与同任务续训 |
+| `m9f_evaluate.py` | 固定命令下的站高、位移、速度和接触指标 |
+| `m9f_replay.py` | 同一环境下的 HD 视频 |
+
+actor 观测保持运行时布局：gyro 3 + gravity 3 + pos 14 + vel 14 + last action 14 + twist 3 + head 4 + body 6 = **61**。动作是 **14D**，`scale=1.0`。本课只做平地前向行走；head/body 槽保留形状但不扩展新任务。
+
+先用 M9d 已知可行走 checkpoint 做**推理基线**。它若在新环境也走不了，应修环境，不能开始 PPO。基线通过后，新策略才从随机权重训练。
 
 ## 架构决定
 
-选了 **备选 1**：自写 `m9f_train.py`——工厂出 `env_cfg` 后把 `scene.entities["robot"]` 换成 handmade 的 `EntityCfg`，再起 runner。
+采用 [0012](../../decisions/0012-m9f-own-velocity-task.md)：在通用框架上手搓完整 handmade Velocity 任务。
 
-没选继续 `uv run train` 再 monkeypatch vendor：改动小，但学不到组装，vendor 补丁难维护。  
-没选从零手写 PPO + 自建 env：一个 Bite 不可验收，也偏离「复用可下载栈、学设计」。
-
-见 [0011](../../decisions/0011-m9f-handmade-own-train.md)。
+没选“官方工厂 + 替换 EntityCfg”，因为任务定义仍属于官方，学不到自己的模型怎样映射到训练。没选重写 PPO、物理引擎和 BAM，因为本课要学的是机器人任务设计，不是再造基础库。
 
 ## 代码领读
 
-自顶向下：身体配置 → 入口换身 → `learn`。sketch 对齐真码行号。
+### 1. 四个 geom，仍然是两只脚
 
-### 1. handmade 身体：`EntityCfg`
+`m9f_robot.py:12-18` 显式列出左右脚的薄层和 `_part2`。碰撞、接触传感和摩擦随机化共用这组名字，避免只控制薄层。
 
-`m9f_handmade_robot.py` 镜像官方 walk 的 HOME / BAM / 全碰撞，只把 `spec_fn` 指到 `impl/sim/assets/duck_handmade.xml`（`20-37`）：
+传感器因此输出四路。`m9f_mdp.py:13-17` 先把它们恢复为“左脚两层、右脚两层”，后续奖励只认两只脚：
 
-```python title="m9f_handmade_robot.py · sketch"
-HANDMADE_XML = Path(__file__).resolve().parents[1] / "sim" / "assets" / "duck_handmade.xml"
+```python title="m9f_mdp.py · 双脚合并 sketch"
+def _perfoot(values):
+    return values.reshape(values.shape[0], 2, 2)
 
-def get_handmade_spec() -> mujoco.MjSpec:
-    return mujoco.MjSpec.from_file(str(HANDMADE_XML))
-
-HANDMADE_ROBOT_CFG = EntityCfg(
-    spec_fn=get_handmade_spec,
-    init_state=HOME_FRAME,
-    collisions=(FULL_COLLISION,),
-    articulation=EntityArticulationInfoCfg(
-        actuators=(actuators,),
-        soft_joint_pos_limit_factor=0.9,
-    ),
-)
+contact = _perfoot(sensor.data.found).any(dim=2).float()
+air_time = _perfoot(sensor.data.current_air_time).max(dim=2).values
 ```
 
-**EntityCfg 换身约定：** 奖励 / obs / BAM 仍官方工厂；只有身体 XML 换成 handmade，与 `impl/sim` 同源。
+不能把四路 `found` 直接配两个脚部位点：滑动奖励形状会错，腾空也会重复计数。
 
-### 2. 入口：工厂后换 `entities`，再 `learn`
+BAM 还要求按环境展开 `dof_frictionloss` 和 `dof_damping`。`m9f_env_cfg.py:265-269` 注册自己的 startup 事件，声明这两个字段；不重写 BAM。
 
-`m9f_train.py` 不调官方 CLI。核心三步（`112-114`、`147-160`）：
+### 2. 前进要有梯度，低姿态不能拿行走分
 
-```python title="m9f_train.py · sketch"
-env_cfg = make_microduck_velocity_env_cfg()
-env_cfg.scene.entities = {"robot": HANDMADE_ROBOT_CFG}  # 换身
-env_cfg.scene.num_envs = args.num_envs
-# ... replace MicroduckRlCfg：max_iterations / save_interval / experiment_name ...
+`m9f_mdp.py:39-70` 把三种奖励接在同一个站高门控上：
 
-env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
-env = RslRlVecEnvWrapper(env, clip_actions=agent.clip_actions)
-runner = MicroduckOnPolicyRunner(env, agent_cfg, str(log_dir), device)
-runner.learn(
-    num_learning_iterations=agent.max_iterations,
-    init_at_random_ep_len=True,
-)
+```python title="m9f_mdp.py · 奖励设计 sketch"
+gate = ((root_z - 0.085) / (0.115 - 0.085)).clamp(0, 1)
+
+tracking = exp(-((command_vx - actual_vx) / std) ** 2) * gate
+progress = (actual_vx / command_vx).clamp(0, 1) * gate
+air_reward = feet_in_valid_air_range * gate
 ```
 
-**自写入口约定：** 用官方 `microduck_rl` 的 `uv run` 跑**我们的** `.py`，命令形态是 `uv run python …/m9f_train.py …`，不是 `uv run train …`。`runner.learn` 内部的 PPO 更新当黑盒；优势怎么估已在 M9b 先修，这里不重开。
+高斯跟踪在 `actual_vx=0` 处对速度没有前进梯度，所以增加线性、封顶的 `progress`。门控让 85 mm 以下的爬行或深蹲不得分，115 mm 以上才全额计分。策略先靠直立和姿态项获得可行走姿态，再从前进项学习迈步。
 
-冒烟结束打印 `smoke_ok=1`（`max_iterations≤5` 或 `--smoke`，`163-165`）。banner 会打出 `handmade` 与 `duck_handmade.xml` 路径（`69-78`）。
+`m9f_train.py:45-85` 只负责组装：创建同一个 env cfg、包成 rsl_rl 环境、交给通用 `VelocityOnPolicyRunner`。`--resume-from` 延续的是我们自己某一阶段的 checkpoint，不是官方权重。
 
 ## 验收
 
-本机无 GPU：`bash accept/m09f-b01.sh` 只做静态门（脚本存在、禁止官方 CLI 主路径、跑证含冒烟线索）。**亲手验收请在云上跑冒烟。**
-
-云机：`ssh -p 23 root@117.50.221.204`（本机 key `~/.ssh/id_rsa`）。  
-工作区：`/cloud/cloud-ssd1/microduck-m9f`（教程仓在其下 `skills/microduck-from-scratch`）。  
-RL venv：复用 M9d 的 `/cloud/cloud-ssd1/microduck-m9d/microduck_rl`（在该目录 `uv run`）。
-
-### 云冒烟（本课门禁对应的亲手步骤）
-
-**1. 登录**
+在教程仓根执行。云机为 RTX 4090；先登录：
 
 ```bash
 ssh -p 23 root@117.50.221.204
 ```
 
-**2. 冒烟 64×5**（一步一条；在已 `uv sync` 的 microduck_rl 树里）
+以下命令在云机执行。先设解释器与工作目录：
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+export PY=/cloud/cloud-ssd1/microduck-m9d/microduck_rl/.venv/bin/python
+cd /cloud/cloud-ssd1/microduck-m9f
 ```
+
+**1. 已知策略验环境。** 这是推理对照，不是新策略的初始权重：
 
 ```bash
-cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl
+$PY impl/scripts/m9f_evaluate.py \
+  --checkpoint /cloud/cloud-ssd1/microduck-m9d/microduck_rl/logs/rsl_rl/velocity/2026-10-29_08-00-43_velocity/model_999.pt \
+  --output artifacts/baseline.json --num-envs 16 --seconds 5 --vx 0.3
 ```
+
+预期：正常站高并明显前移。本课实测站高约 0.120 m、5 秒前移约 0.741 m。
+
+**2. 自有 PPO 冒烟：**
 
 ```bash
-uv run python /cloud/cloud-ssd1/microduck-m9f/skills/microduck-from-scratch/impl/scripts/m9f_train.py --num-envs 64 --max-iterations 5
+$PY impl/scripts/m9f_train.py --num-envs 64 --max-iterations 5 \
+  --save-interval 5 --log-dir logs/smoke_64x5 --smoke
 ```
 
-**3. 观察**
+预期：actor 61D、action 14D、BAM 14 关节，最后 `smoke_ok=1`，无 NaN。
 
-等待约 1–3 分钟。预期：
-
-- banner 出现 `handmade` / `duck_handmade.xml`
-- 出现 `Learning iteration …/5`
-- 结束打印 `smoke_ok=1`
-
-本机回归（静态门 + 已落盘跑证）：
+**3. 从随机权重短训：**
 
 ```bash
-bash accept/m09f-b01.sh
+$PY impl/scripts/m9f_train.py --num-envs 512 --max-iterations 300 \
+  --save-interval 50 --log-dir logs/gated_512x300
 ```
 
-预期：`cli_gate_ok` 与 `M9f Bite 1 验收 PASS`。
-
-### 附录：长训与 HD replay（已跑事实，非 accept 门禁）
-
-同一入口加大参数即可；下列为 2026-10-29 已完成记录，**不要把「长训完成」当成 Bite 1 门禁**。
-
-| 项 | 事实 |
-|---|---|
-| 长训 | `2048` envs × `4000` iter，`save-interval=100`；墙钟约 **1h14m**；结束 `train_finished=1` |
-| 云日志目录 | `/cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513/` |
-| 终局权重 | `model_3999.pt` |
-| 本机副本 | `tutor/artifacts/m09f/checkpoints/{model_0,1000,2000,3000,3500,3900,3999}.pt` 与 `.onnx` |
-
-HD 回放（可选重跑；云机无 DISPLAY，须 EGL）：
+短训后先评估，不要直接堆到 4000 轮：
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH" MUJOCO_GL=egl
+$PY impl/scripts/m9f_evaluate.py \
+  --checkpoint logs/gated_512x300/model_299.pt \
+  --output artifacts/gated_299.json --num-envs 16 --seconds 5 --vx 0.3
 ```
+
+**4. 短训站高和位移都正常后，扩到 2048 env 并续到总第 1000 轮：**
 
 ```bash
-cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl
+$PY impl/scripts/m9f_train.py --num-envs 2048 --max-iterations 1000 \
+  --save-interval 100 --resume-from logs/gated_512x300/model_299.pt \
+  --log-dir logs/main_2048x1000
 ```
+
+终局定量验收：
 
 ```bash
-uv run python /cloud/cloud-ssd1/microduck-m9f/skills/microduck-from-scratch/impl/scripts/m9f_replay.py \
-  --log-dir /cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513 \
-  --out-dir /cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513/videos/replay_hd \
-  --video-width 1280 --video-height 720
+$PY impl/scripts/m9f_evaluate.py \
+  --checkpoint logs/main_2048x1000/model_999.pt \
+  --output artifacts/main_999.json --num-envs 16 --seconds 5 --vx 0.3
 ```
 
-预期：全量约 41 个 checkpoint 各出一支 mp4，结束 `replay_ok=1`。`m9f_replay.py` 同样换 `HANDMADE_ROBOT_CFG`，不用官方 `play` CLI。
+通过条件：站高约 0.11–0.13 m、5 秒平均位移至少 0.5 m、速度方向正确、air-time 不异常。实测分别为 **0.1212 m、1.431 m、vx=0.294、air-time=0.162 s**。
+
+生成 HD 回放：
+
+```bash
+MUJOCO_GL=egl $PY impl/scripts/m9f_replay.py \
+  --checkpoint logs/main_2048x1000/model_999.pt \
+  --out-dir artifacts/videos --video-length 250 --vx 0.3 --no-terminations
+```
+
+回本机终端，把视频拉回并观看：
+
+```bash
+scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/videos/model_999.mp4 \
+  tutor/artifacts/m09f/videos/main_model_999.mp4
+xdg-open tutor/artifacts/m09f/videos/main_model_999.mp4
+```
+
+肉眼应看到持续直立前进，而不是深蹲碎步。此回放证明的是训练环境内步态，不冒充 daemon 部署验收。自动总门：`bash accept/m09f-b01.sh`；完整跑证在 `tutor/runs/m09f-b01.txt`。
+
+## 与原版差异
+
+D71：训练身体与任务实现都由本仓拥有，官方 M9d 仅作已知可行走对照。见 [spec/deviations.md](../../spec/deviations.md)。
 
 ## 坑
 
-- **云机录视频缺 DISPLAY：** 须 `MUJOCO_GL=egl`。该机上 glfw / xvfb 会失败。
-- **脚 site / IMU：** Velocity 要读 `left_foot` / `right_foot` 与 `imu_*` 传感器。本轮 `duck_handmade.xml` 已补齐同名 site 与 sensor（见 XML 内 `imu` / `left_foot` / `right_foot` 与 `<sensor>` 段）；缺这些时工厂会报警或训不动。
-- **别把 M9e 当本课捷径：** M9e 是 daemon 接 M9d 官方分布权重；本课要的是 handmade 上自训。官方 CLI 训官方身体再「接入我们」——入口与身体一起换成我们的。
+- **训练结束不等于会走。** 第一次短训站高正常，5 秒只走 0.0086 m；第二次也只有 0.0217 m。
+- **只加前进分会出现低姿态投机。** 第三次达到 1.824 m，但站高只有 0.0714 m，所以仍失败。
+- **从低姿态策略续训不一定最好。** 对照续训位移 0.346 m；从零使用站高门控的短训达到 0.960 m，因此主线选后者。
+- **最后一个 checkpoint 也要重新测。** 评价固定使用同一命令、同一 play 配置和实际位移，不用 mean reward 替代。
 
 ## 自测
 
-**1. 本课训练入口应是？**
+**1. 为什么四个脚底 geom 不能直接送进原来的双脚滑动奖励？**
 
-- A. `uv run train Mjlab-Velocity-Flat-MicroDuck …`
-- B. `uv run python …/m9f_train.py --num-envs 64 --max-iterations 5`
-- C. 只调用 `mjlab_microduck.train_cli`
-- D. 本机 `pip install` 后直接 `python -m rsl_rl`
+- A. MuJoCo 不支持四个 geom
+- B. 四路接触与两个脚部位点形状不同，腾空也会重复计数
+- C. `_part2` 不能参与物理碰撞
+- D. 只要 PPO 迭代够多就会自动对齐
 
 <details><summary>答案</summary>
 
-B。官方 uv 环境跑我们的脚本；主路径禁止 `uv run train` / `train_cli`。
+B。先按左右脚各自的两层合并，再计算接触、滑动和腾空。
 
 </details>
 
-**2. `env_cfg.scene.entities = {"robot": HANDMADE_ROBOT_CFG}` 换的是什么？**
+**2. 已有高斯速度跟踪，为什么还要线性前进项？**
 
-- A. 奖励权重表与课程阶梯
-- B. 只有身体 XML（handmade），奖励 / obs / BAM 仍官方工厂
-- C. 整份 PPO 实现换成自研
-- D. 把观测维数从 61 改成自定义
+- A. 高斯项不能计算角速度
+- B. 线性项可以减少显存
+- C. 高斯跟踪在实际速度为零处没有前进梯度，线性项能从站立状态直接奖励向前速度
+- D. 线性项允许低姿态获得全部分数
 
 <details><summary>答案</summary>
 
-B。换身约定：配方工厂不动，只换 `EntityCfg` 指向的 XML。
+C。前进项提供梯度；是否得分还要经过站高门控。
 
 </details>
 
-**3. Bite 1 accept 门禁要证明什么？**
+**3. 什么结果才允许进入 1000 轮主训练？**
 
-- A. 必须跑完 2048×4000 并产出全部 mp4
-- B. 自写入口 + handmade 引用 + 云冒烟 64×5 证据（`smoke_ok=1`）
-- C. 官方权重已接入 miniduckd
-- D. 本机无 GPU 也必须现场 `learn()` 5 步
-
-<details><summary>答案</summary>
-
-B。长训 / replay 是附录事实；本机 accept 是静态门 + 跑证。
-
-</details>
-
-**4. 云上用 `m9f_replay.py` 出视频，缺 DISPLAY 时应？**
-
-- A. 强开 glfw viewer
-- B. 只设 `MUJOCO_GL=egl`
-- C. 改回官方 `play` CLI（绑定 `robot_walk`）
-- D. 在本机无 GPU 上硬跑 Warp 训练代替回放
+- A. mean reward 上升即可
+- B. 训练进程正常退出即可
+- C. 先保存 ONNX 即可
+- D. 短训在固定命令下同时保持正常站高、产生有效位移，并通过视频检查
 
 <details><summary>答案</summary>
 
-B。该云机 glfw/xvfb 失败；replay 脚本本身已挂 handmade。
-
-</details>
-
-**5. 为什么本课不以「官方 CLI 训官方身体 → 再接入我们」为主路径？**
-
-- A. 官方仓库删了 train 命令
-- B. 那条路径对「训推同身体、自己组装入口」没有学习意义（M9e 另证集成栈）
-- C. handmade XML 不能编译
-- D. 4090 跑不动 64×5
-
-<details><summary>答案</summary>
-
-B。M9e 已证 daemon 集成；本课入口与身体一起换成我们的。
+D。训练成功和步态成功是两道门；站高与位移必须一起满足。
 
 </details>

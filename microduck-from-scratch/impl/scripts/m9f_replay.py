@@ -1,222 +1,99 @@
 #!/usr/bin/env python3
-"""M9f: headless video replay of handmade Velocity checkpoints.
-
-Loads duck_handmade + a list of model_*.pt, steps each for --video-length,
-writes mp4 under <log-dir>/videos/replay/. Does not use official `play` CLI
-(that path binds robot_walk).
-
-Usage (inside microduck_rl uv env):
-  uv run python /path/to/m9f_replay.py --log-dir /path/to/train_run
-  uv run python /path/to/m9f_replay.py --checkpoint a.pt --checkpoint b.pt
-"""
-
 from __future__ import annotations
 
 import argparse
 import os
-import re
-import sys
-from dataclasses import asdict, replace
+import shutil
+from dataclasses import asdict
 from pathlib import Path
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="m9f_replay: handmade checkpoint videos")
-    p.add_argument(
-        "--log-dir",
-        type=str,
-        default=None,
-        help="Train log dir containing model_*.pt (replays all, sorted by step)",
-    )
-    p.add_argument(
-        "--checkpoint",
-        action="append",
-        default=[],
-        help="Explicit .pt path (repeatable). Overrides --log-dir glob if set.",
-    )
-    p.add_argument(
-        "--num-envs",
-        type=int,
-        default=1,  # 多环境会拼屏，单只鸭子更清晰
-        help="Parallel envs for replay (default: 1)",
-    )
-    p.add_argument(
-        "--video-length",
-        type=int,
-        default=300,  # 300 steps × 0.02s = 6s wall sim time
-        help="Env steps to record per checkpoint",
-    )
-    p.add_argument("--video-width", type=int, default=1280, help="Render width")
-    p.add_argument("--video-height", type=int, default=720, help="Render height")
-    p.add_argument(
-        "--camera-distance",
-        type=float,
-        default=1.2,  # 官方 ViewerCfg 默认 5.0，对 ~25cm 鸭子太远
-        help="Viewer camera distance (meters)",
-    )
-    p.add_argument(
-        "--every",
-        type=int,
-        default=1,
-        help="Keep every Nth checkpoint when using --log-dir (default: 1 = all)",
-    )
-    p.add_argument(
-        "--out-dir",
-        type=str,
-        default=None,
-        help="Video folder (default: <log-dir>/videos/replay or ./videos/replay)",
-    )
-    p.add_argument(
-        "--no-terminations",
-        action="store_true",
-        help="Disable terminations so fallen robots keep rolling for the clip",
-    )
-    return p.parse_args(argv)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Replay a checkpoint in the own handmade environment")
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--video-length", type=int, default=250)
+    parser.add_argument("--video-width", type=int, default=1280)
+    parser.add_argument("--video-height", type=int, default=720)
+    parser.add_argument("--vx", type=float, default=0.3)
+    parser.add_argument("--no-terminations", action="store_true")
+    return parser.parse_args()
 
 
-def _ckpt_step(path: Path) -> int:
-    m = re.search(r"model_(\d+)\.pt$", path.name)
-    return int(m.group(1)) if m else -1
+def _set_forward_command(env, vx: float) -> None:
+    term = env.command_manager.get_term("twist")
+    for name in ("is_standing_env", "is_heading_env", "is_world_env", "is_forward_env"):
+        getattr(term, name)[:] = False
+    command = env.command_manager.get_command("twist")
+    command[:, 0] = vx
+    command[:, 1:] = 0.0
 
 
-def _collect_checkpoints(args: argparse.Namespace) -> list[Path]:
-    if args.checkpoint:
-        paths = [Path(c).expanduser().resolve() for c in args.checkpoint]
-    elif args.log_dir:
-        log_dir = Path(args.log_dir).expanduser().resolve()
-        paths = sorted(log_dir.glob("model_*.pt"), key=_ckpt_step)
-        if args.every > 1:
-            paths = paths[:: args.every]
-    else:
-        raise SystemExit("need --log-dir or --checkpoint")
-    missing = [p for p in paths if not p.is_file()]
-    if missing:
-        raise SystemExit(f"missing checkpoints: {missing}")
-    if not paths:
-        raise SystemExit("no checkpoints found")
-    return paths
-
-
-def _replay_one(
-    *,
-    ckpt: Path,
-    out_dir: Path,
-    num_envs: int,
-    video_length: int,
-    video_width: int,
-    video_height: int,
-    camera_distance: float,
-    no_terminations: bool,
-    device: str,
-) -> Path:
+def main() -> None:
+    args = parse_args()
+    import torch
     from mjlab.envs import ManagerBasedRlEnv
     from mjlab.rl import RslRlVecEnvWrapper
+    from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
     from mjlab.utils.torch import configure_torch_backends
     from mjlab.utils.wrappers import VideoRecorder
-    from mjlab_microduck.tasks import MicroduckOnPolicyRunner
-    from mjlab_microduck.tasks.microduck_velocity_env_cfg import (
-        MicroduckRlCfg,
-        make_microduck_velocity_env_cfg,
-    )
 
-    from m9f_handmade_robot import HANDMADE_ROBOT_CFG, HANDMADE_XML
+    from m9f_env_cfg import make_handmade_rl_cfg, make_handmade_velocity_env_cfg
+    from m9f_robot import HANDMADE_XML
 
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    if device == "cpu":
+        os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
     configure_torch_backends()
 
-    env_cfg = make_microduck_velocity_env_cfg(play=True)
-    env_cfg.scene.entities = {"robot": HANDMADE_ROBOT_CFG}
-    env_cfg.scene.num_envs = num_envs
-    env_cfg.viewer.width = video_width
-    env_cfg.viewer.height = video_height
-    env_cfg.viewer.distance = camera_distance
-    env_cfg.viewer.max_extra_envs = 0
-    if no_terminations:
-        env_cfg.terminations = {}
+    cfg = make_handmade_velocity_env_cfg(play=True)
+    cfg.scene.num_envs = 1
+    cfg.viewer.width = args.video_width
+    cfg.viewer.height = args.video_height
+    cfg.viewer.max_extra_envs = 0
+    if args.no_terminations:
+        cfg.terminations = {}
 
-    agent = replace(MicroduckRlCfg, experiment_name="m9f_handmade_replay", run_name="replay")
-
-    out_dir.mkdir(parents=True, exist_ok=True)
-    # One folder per ckpt so VideoRecorder's default naming stays unique.
-    ckpt_video_dir = out_dir / ckpt.stem
-    ckpt_video_dir.mkdir(parents=True, exist_ok=True)
-
-    print("=" * 60)
-    print(f"m9f_replay | handmade | {ckpt.name}")
-    print(f"  xml     : {HANDMADE_XML}")
-    print(f"  device  : {device}")
-    print(f"  size    : {video_width}x{video_height}  dist={camera_distance}")
-    print(f"  steps   : {video_length}")
-    print(f"  out     : {ckpt_video_dir}")
-    print("=" * 60, flush=True)
-
-    env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode="rgb_array")
-    env = VideoRecorder(
+    checkpoint = args.checkpoint.expanduser().resolve()
+    out_dir = args.out_dir.expanduser().resolve()
+    work_dir = out_dir / checkpoint.stem
+    work_dir.mkdir(parents=True, exist_ok=True)
+    env = ManagerBasedRlEnv(cfg=cfg, device=device, render_mode="rgb_array")
+    recorded = VideoRecorder(
         env,
-        video_folder=ckpt_video_dir,
+        video_folder=work_dir,
         step_trigger=lambda step: step == 0,
-        video_length=video_length,
+        video_length=args.video_length,
         disable_logger=True,
     )
-    env = RslRlVecEnvWrapper(env, clip_actions=agent.clip_actions)
+    wrapped = RslRlVecEnvWrapper(recorded, clip_actions=None)
 
-    # Runner needs a log dir string; use ckpt parent (unused for learn).
-    runner = MicroduckOnPolicyRunner(env, asdict(agent), str(ckpt.parent), device)
-    runner.load(str(ckpt), load_cfg={"actor": True}, strict=True, map_location=device)
-    policy = runner.get_inference_policy(device=device)
-
-    obs = env.get_observations()
-    for _ in range(video_length):
-        actions = policy(obs)
-        obs, _, _, _ = env.step(actions)
-
-    env.close()
-
-    import shutil
-
-    videos = sorted(ckpt_video_dir.rglob("*.mp4"))
-    if not videos:
-        raise RuntimeError(f"no mp4 written under {ckpt_video_dir}")
-    final = out_dir / f"{ckpt.stem}.mp4"
-    shutil.copy2(videos[0], final)
-    print(f"wrote {final}", flush=True)
-    return final
-
-
-def main(argv: list[str] | None = None) -> None:
-    args = parse_args(argv)
-    script_dir = Path(__file__).resolve().parent
-    if str(script_dir) not in sys.path:
-        sys.path.insert(0, str(script_dir))
-
-    import torch
-
-    if torch.cuda.is_available():
-        device = "cuda:0"
-    else:
-        os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
-        device = "cpu"
-
-    ckpts = _collect_checkpoints(args)
-    if args.out_dir:
-        out_dir = Path(args.out_dir).expanduser().resolve()
-    elif args.log_dir:
-        out_dir = Path(args.log_dir).expanduser().resolve() / "videos" / "replay"
-    else:
-        out_dir = Path("videos/replay").resolve()
-
-    print(f"m9f_replay: {len(ckpts)} checkpoint(s) → {out_dir}", flush=True)
-    for ckpt in ckpts:
-        _replay_one(
-            ckpt=ckpt,
-            out_dir=out_dir,
-            num_envs=args.num_envs,
-            video_length=args.video_length,
-            video_width=args.video_width,
-            video_height=args.video_height,
-            camera_distance=args.camera_distance,
-            no_terminations=args.no_terminations,
-            device=device,
+    try:
+        runner = VelocityOnPolicyRunner(
+            wrapped,
+            asdict(make_handmade_rl_cfg()),
+            str(out_dir),
+            device,
         )
+        runner.load(str(checkpoint), load_cfg={"actor": True}, strict=True, map_location=device)
+        policy = runner.get_inference_policy(device=device)
+        _set_forward_command(env, args.vx)
+        obs = wrapped.get_observations()
+        for _ in range(args.video_length):
+            _set_forward_command(env, args.vx)
+            with torch.no_grad():
+                actions = policy(obs)
+            obs, _, _, _ = wrapped.step(actions)
+    finally:
+        wrapped.close()
+
+    videos = sorted(work_dir.rglob("*.mp4"))
+    if not videos:
+        raise RuntimeError(f"no MP4 written under {work_dir}")
+    final = out_dir / f"{checkpoint.stem}.mp4"
+    shutil.copy2(videos[0], final)
+    print(f"robot_xml={HANDMADE_XML}", flush=True)
+    print(f"video={final}", flush=True)
     print("replay_ok=1", flush=True)
 
 

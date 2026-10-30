@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Answer me with HTML 0.5.0">
-<title>M9f Bite 1：自写训练入口 + handmade（第 30 章）</title>
+<title>M9f Bite 1：手搓 handmade 训练环境（第 30 章）</title>
 <style>
 html[data-theme="blueprint"], html[data-theme="blueprint"][data-mode="light"] {
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -761,190 +761,158 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
 <main class="am-sheet">
-<header class="am-head"><h1>M9f Bite 1：自写训练入口 + handmade（第 30 章）</h1><p class="am-sub">训推同身体；入口是我们的脚本，不是 uv run train</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 30 章</span></div></header>
+<header class="am-head"><h1>M9f Bite 1：手搓 handmade 训练环境（第 30 章）</h1><p class="am-sub">从自己的 MJCF 写任务；基线验环境，PPO 从随机权重学会直立前进</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 30 章</span></div></header>
 <div class="am-frame">
 <div class="am-ruler am-ruler--top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div><div class="am-ruler am-ruler--right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
 <div class="am-grid" style="--cols: 3">
 <section class="am-panel" id="panel-A">
 <header class="am-panel-head"><span class="am-panel-id">A</span><h2>问题</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>M9d 在云上把官方 <code>uv run train</code> + 官方 <code>robot_walk</code> 跑通了；M9e 把那份官方分布 ONNX 接到了我们的 daemon。那条路证的是<strong>集成栈</strong>，不是<strong>训推同身体</strong>——权重仍在官方身体上长大。</p>
-<p>现在要消掉的故障是：还在用官方 train CLI 训官方身体，或以为包一层 <code>uv run train</code> 就算「自己的训练入口」。</p>
-<p>本课钉死两件事：身体是 <code>duck_handmade.xml</code>；入口是我们写的 <code>m9f_train.py</code>，在官方 uv 环境里跑这份 <code>.py</code>。</p>
+<div class="am-panel-body"><div class="am-md"><p>已有的 M9d 权重能走，只证明官方身体和官方任务配方有效。把 <code>duck_handmade.xml</code> 塞进官方 Velocity class，仍然是在猜官方假设：每脚只有一块鞋底、奖励和课程适合自己的身体。</p>
+<p>训练脚本能跑完，策略却可能站稳不动或低姿态快走。只换官方 class，也学不到训练环境怎么写。本课去掉这些故障。新的主路径不使用 <code>mjlab_microduck</code>；MuJoCo、mjlab 通用管理器、rsl_rl 和 BAM 只作为依赖轮子。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-B">
-<header class="am-panel-head"><span class="am-panel-id">B</span><h2>背景</h2></header>
-<div class="am-panel-body"><div class="am-md"><p><strong>handmade 身体。</strong> M9a 手写的 <code>duck_handmade.xml</code>：碰撞盒 + 官方惯量对账，与 <code>impl/sim</code> 部署同源。详见 <a href="../m09a-handmade-mjcf/b01-handmade-mjcf.html">M9a Bite 1</a>。</p>
-<p><strong>Velocity 奖励与课程。</strong> 本课仍走官方 <code>make_microduck_velocity_env_cfg</code> 工厂：奖励权重、课程阶梯、BAM 执行器都不重写。配方直觉见 <a href="../m09b-train-pipeline/b02-reward-curriculum.html">M9b Bite 2</a>。PPO 三步、优势估计细节本课当黑盒，不重讲。</p>
-</div></div>
-</section>
-<section class="am-panel" id="panel-C">
-<header class="am-panel-head"><span class="am-panel-id">C</span><h2>设计</h2></header>
-<div class="am-panel-body"><figure class="am-diagram am-flow"><svg viewBox="0 0 271 468" width="271" height="468" role="img" aria-label="流程图：m9f_train.py、make_microduck_velocity_env_cfg、换 entities robot、ManagerBasedRlEnv、MicroduckOnPolicyRunner、runner.learn" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M135.4,49 L135.4,60.5 Q135.4,72 135.4,83.5 L135.4,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M135.4,130 L135.4,141.5 Q135.4,153 135.4,164.5 L135.4,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M135.4,211 L135.4,222.5 Q135.4,234 135.4,245.5 L135.4,257" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M135.4,292 L135.4,303.5 Q135.4,315 135.4,326.5 L135.4,338" marker-end="url(#am1-arrow)"/></g><g data-step="4"><path class="am-edge" d="M135.4,373 L135.4,384.5 Q135.4,396 135.4,407.5 L135.4,419" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--round" data-key="m9f_train.py" data-step="0"><rect class="am-node-shape" x="77.6" y="14" width="115.7" height="35" rx="17.5"/><text x="135.4" y="31.5" text-anchor="middle" dominant-baseline="central">m9f_train.py</text></g><g class="am-node am-node--rect" data-key="make_microduck_velocity_env_cfg" data-step="0"><rect class="am-node-shape" x="14" y="95" width="242.8" height="35" rx="3"/><text x="135.4" y="112.5" text-anchor="middle" dominant-baseline="central">make_microduck_velocity_env_cfg</text></g><g class="am-node am-node--rect am-node--hi" data-key="换 entities robot" data-step="1"><rect class="am-node-shape" x="73" y="176" width="124.7" height="35" rx="3"/><text x="135.4" y="193.5" text-anchor="middle" dominant-baseline="central">换 entities robot</text></g><g class="am-node am-node--rect" data-key="ManagerBasedRlEnv" data-step="2"><rect class="am-node-shape" x="58.3" y="257" width="154.1" height="35" rx="3"/><text x="135.4" y="274.5" text-anchor="middle" dominant-baseline="central">ManagerBasedRlEnv</text></g><g class="am-node am-node--rect" data-key="MicroduckOnPolicyRunner" data-step="3"><rect class="am-node-shape" x="40" y="338" width="190.8" height="35" rx="3"/><text x="135.4" y="355.5" text-anchor="middle" dominant-baseline="central">MicroduckOnPolicyRunner</text></g><g class="am-node am-node--rect am-node--hi" data-key="runner.learn" data-step="4"><rect class="am-node-shape" x="85.5" y="419" width="99.8" height="35" rx="3"/><text x="135.4" y="436.5" text-anchor="middle" dominant-baseline="central">runner.learn</text></g></g></svg></figure>
-<div class="am-md"><div class="am-table-wrap"><table>
-<thead>
-<tr>
-<th>层</th>
-<th>谁提供</th>
-<th>本课改什么</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>奖励 / 观测 / BAM / 课程</td>
-<td>官方 Velocity 工厂</td>
-<td>不改</td>
-</tr>
-<tr>
-<td>身体 XML</td>
-<td><code>HANDMADE_ROBOT_CFG</code> → <code>duck_handmade.xml</code></td>
-<td><strong>换身</strong></td>
-</tr>
-<tr>
-<td>训练入口</td>
-<td><code>impl/scripts/m9f_train.py</code></td>
-<td><strong>自写</strong>；禁止主路径 <code>uv run train</code> / <code>train_cli</code></td>
-</tr>
-<tr>
-<td>PPO 更新</td>
-<td>rsl_rl（经 <code>MicroduckOnPolicyRunner.learn</code>）</td>
-<td>黑盒：优化策略；不展开优势估计</td>
-</tr>
-</tbody></table></div>
-<p>冒烟规模与 M9d 对齐：<code>64</code> envs × <code>5</code> iter。长训与视频回放是同一入口的加参用法，不挡本课 accept 门禁。</p>
-</div></div>
-</section>
-<section class="am-panel" id="panel-D">
-<header class="am-panel-head"><span class="am-panel-id">D</span><h2>架构决定</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>选了 <strong>备选 1</strong>：自写 <code>m9f_train.py</code>——工厂出 <code>env_cfg</code> 后把 <code>scene.entities[&quot;robot&quot;]</code> 换成 handmade 的 <code>EntityCfg</code>，再起 runner。</p>
-<p>没选继续 <code>uv run train</code> 再 monkeypatch vendor：改动小，但学不到组装，vendor 补丁难维护。<br>没选从零手写 PPO + 自建 env：一个 Bite 不可验收，也偏离「复用可下载栈、学设计」。</p>
-<p>见 <a href="../../decisions/0011-m9f-handmade-own-train.md">0011</a>。</p>
-</div></div>
-</section>
-<section class="am-panel" id="panel-E">
-<header class="am-panel-head"><span class="am-panel-id">E</span><h2>代码领读</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>自顶向下：身体配置 → 入口换身 → <code>learn</code>。sketch 对齐真码行号。</p>
-<h3>1. handmade 身体：<code>EntityCfg</code></h3>
-<p><code>m9f_handmade_robot.py</code> 镜像官方 walk 的 HOME / BAM / 全碰撞，只把 <code>spec_fn</code> 指到 <code>impl/sim/assets/duck_handmade.xml</code>（<code>20-37</code>）：</p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title">m9f_handmade_robot.py · sketch</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="python"><span class="am-ln">HANDMADE_XML = Path(__file__).resolve().parents[1] / &quot;sim&quot; / &quot;assets&quot; / &quot;duck_handmade.xml&quot;</span><span class="am-ln"></span><span class="am-ln">def get_handmade_spec() -&gt; mujoco.MjSpec:</span><span class="am-ln">    return mujoco.MjSpec.from_file(str(HANDMADE_XML))</span><span class="am-ln"></span><span class="am-ln">HANDMADE_ROBOT_CFG = EntityCfg(</span><span class="am-ln">    spec_fn=get_handmade_spec,</span><span class="am-ln">    init_state=HOME_FRAME,</span><span class="am-ln">    collisions=(FULL_COLLISION,),</span><span class="am-ln">    articulation=EntityArticulationInfoCfg(</span><span class="am-ln">        actuators=(actuators,),</span><span class="am-ln">        soft_joint_pos_limit_factor=0.9,</span><span class="am-ln">    ),</span><span class="am-ln">)</span></code></pre></figure>
-<div class="am-md"><p><strong>EntityCfg 换身约定：</strong> 奖励 / obs / BAM 仍官方工厂；只有身体 XML 换成 handmade，与 <code>impl/sim</code> 同源。</p>
-<h3>2. 入口：工厂后换 <code>entities</code>，再 <code>learn</code></h3>
-<p><code>m9f_train.py</code> 不调官方 CLI。核心三步（<code>112-114</code>、<code>147-160</code>）：</p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title">m9f_train.py · sketch</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="python"><span class="am-ln">env_cfg = make_microduck_velocity_env_cfg()</span><span class="am-ln">env_cfg.scene.entities = {&quot;robot&quot;: HANDMADE_ROBOT_CFG}  # 换身</span><span class="am-ln">env_cfg.scene.num_envs = args.num_envs</span><span class="am-ln"># ... replace MicroduckRlCfg：max_iterations / save_interval / experiment_name ...</span><span class="am-ln"></span><span class="am-ln">env = ManagerBasedRlEnv(cfg=env_cfg, device=device)</span><span class="am-ln">env = RslRlVecEnvWrapper(env, clip_actions=agent.clip_actions)</span><span class="am-ln">runner = MicroduckOnPolicyRunner(env, agent_cfg, str(log_dir), device)</span><span class="am-ln">runner.learn(</span><span class="am-ln">    num_learning_iterations=agent.max_iterations,</span><span class="am-ln">    init_at_random_ep_len=True,</span><span class="am-ln">)</span></code></pre></figure>
-<div class="am-md"><p><strong>自写入口约定：</strong> 用官方 <code>microduck_rl</code> 的 <code>uv run</code> 跑<strong>我们的</strong> <code>.py</code>，命令形态是 <code>uv run python …/m9f_train.py …</code>，不是 <code>uv run train …</code>。<code>runner.learn</code> 内部的 PPO 更新当黑盒；优势怎么估已在 M9b 先修，这里不重开。</p>
-<p>冒烟结束打印 <code>smoke_ok=1</code>（<code>max_iterations≤5</code> 或 <code>--smoke</code>，<code>163-165</code>）。banner 会打出 <code>handmade</code> 与 <code>duck_handmade.xml</code> 路径（<code>69-78</code>）。</p>
-</div></div>
-</section>
-<section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>验收</h2></header>
-<div class="am-panel-body"><div class="am-md"><p>本机无 GPU：<code>bash accept/m09f-b01.sh</code> 只做静态门（脚本存在、禁止官方 CLI 主路径、跑证含冒烟线索）。<strong>亲手验收请在云上跑冒烟。</strong></p>
-<p>云机：<code>ssh -p 23 root@117.50.221.204</code>（本机 key <code>~/.ssh/id_rsa</code>）。<br>工作区：<code>/cloud/cloud-ssd1/microduck-m9f</code>（教程仓在其下 <code>skills/microduck-from-scratch</code>）。<br>RL venv：复用 M9d 的 <code>/cloud/cloud-ssd1/microduck-m9d/microduck_rl</code>（在该目录 <code>uv run</code>）。</p>
-<h3>云冒烟（本课门禁对应的亲手步骤）</h3>
-<p><strong>1. 登录</strong></p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">ssh -p 23 root@117.50.221.204</span></code></pre></figure>
-<div class="am-md"><p><strong>2. 冒烟 64×5</strong>（一步一条；在已 <code>uv sync</code> 的 microduck_rl 树里）</p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">export PATH=&quot;$HOME/.local/bin:$PATH&quot;</span></code></pre></figure>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl</span></code></pre></figure>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">uv run python /cloud/cloud-ssd1/microduck-m9f/skills/microduck-from-scratch/impl/scripts/m9f_train.py --num-envs 64 --max-iterations 5</span></code></pre></figure>
-<div class="am-md"><p><strong>3. 观察</strong></p>
-<p>等待约 1–3 分钟。预期：</p>
-<ul>
-<li>banner 出现 <code>handmade</code> / <code>duck_handmade.xml</code></li>
-<li>出现 <code>Learning iteration …/5</code></li>
-<li>结束打印 <code>smoke_ok=1</code></li>
-</ul>
-<p>本机回归（静态门 + 已落盘跑证）：</p>
-</div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">bash accept/m09f-b01.sh</span></code></pre></figure>
-<div class="am-md"><p>预期：<code>cli_gate_ok</code> 与 <code>M9f Bite 1 验收 PASS</code>。</p>
-<h3>附录：长训与 HD replay（已跑事实，非 accept 门禁）</h3>
-<p>同一入口加大参数即可；下列为 2026-10-29 已完成记录，<strong>不要把「长训完成」当成 Bite 1 门禁</strong>。</p>
+<header class="am-panel-head"><span class="am-panel-id">B</span><h2>设计</h2></header>
+<div class="am-panel-body"><figure class="am-diagram am-flow"><svg viewBox="0 0 270 549" width="270" height="549" role="img" aria-label="流程图：duck_handmade.xml、m9f_robot、m9f_env_cfg、m9f_mdp、m9f_train、checkpoint、m9f_evaluate、m9f_replay" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M131,49 L131,60.5 Q131,72 131,83.5 L131,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M131,130 L131,141.5 Q131,153 131,164.5 L131,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M146.1,211 L156,222.5 Q165.9,234 165.9,245.5 L165.9,257" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M115.9,211 L106,222.5 Q96.1,234 96.1,254.3 Q96.1,274.5 96.1,294.8 Q96.1,315 106,326.5 L115.9,338" marker-end="url(#am1-arrow)"/></g><g data-step="4"><path class="am-edge" d="M165.9,292 L165.9,303.5 Q165.9,315 156,326.5 L146.1,338" marker-end="url(#am1-arrow)"/></g><g data-step="5"><path class="am-edge" d="M131,373 L131,384.5 Q131,396 131,407.5 L131,419" marker-end="url(#am1-arrow)"/></g><g data-step="6"><path class="am-edge" d="M160.9,454 L180.6,465.5 Q200.3,477 200.3,488.5 L200.3,500" marker-end="url(#am1-arrow)"/></g><g data-step="7"><path class="am-edge" d="M101,454 L81.4,465.5 Q61.7,477 61.7,488.5 L61.7,500" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="duck_handmade.xml" data-step="0"><rect class="am-node-shape" x="54.3" y="14" width="153.3" height="35" rx="3"/><text x="131" y="31.5" text-anchor="middle" dominant-baseline="central">duck_handmade.xml</text></g><g class="am-node am-node--rect" data-key="m9f_robot" data-step="0"><rect class="am-node-shape" x="87" y="95" width="88.1" height="35" rx="3"/><text x="131" y="112.5" text-anchor="middle" dominant-baseline="central">m9f_robot</text></g><g class="am-node am-node--rect" data-key="m9f_env_cfg" data-step="1"><rect class="am-node-shape" x="78.1" y="176" width="105.7" height="35" rx="3"/><text x="131" y="193.5" text-anchor="middle" dominant-baseline="central">m9f_env_cfg</text></g><g class="am-node am-node--rect" data-key="m9f_mdp" data-step="2"><rect class="am-node-shape" x="124.1" y="257" width="83.6" height="35" rx="3"/><text x="165.9" y="274.5" text-anchor="middle" dominant-baseline="central">m9f_mdp</text></g><g class="am-node am-node--rect" data-key="m9f_train" data-step="3"><rect class="am-node-shape" x="88.5" y="338" width="84.9" height="35" rx="3"/><text x="131" y="355.5" text-anchor="middle" dominant-baseline="central">m9f_train</text></g><g class="am-node am-node--rect" data-key="checkpoint" data-step="5"><rect class="am-node-shape" x="83.7" y="419" width="94.6" height="35" rx="3"/><text x="131" y="436.5" text-anchor="middle" dominant-baseline="central">checkpoint</text></g><g class="am-node am-node--rect" data-key="m9f_evaluate" data-step="6"><rect class="am-node-shape" x="145.3" y="500" width="109.9" height="35" rx="3"/><text x="200.3" y="517.5" text-anchor="middle" dominant-baseline="central">m9f_evaluate</text></g><g class="am-node am-node--rect" data-key="m9f_replay" data-step="7"><rect class="am-node-shape" x="14" y="500" width="95.3" height="35" rx="3"/><text x="61.7" y="517.5" text-anchor="middle" dominant-baseline="central">m9f_replay</text></g></g></svg></figure>
+<div class="am-md"><p>六个模块各有边界：</p>
 <div class="am-table-wrap"><table>
 <thead>
 <tr>
-<th>项</th>
-<th>事实</th>
+<th>模块</th>
+<th>自己负责什么</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>长训</td>
-<td><code>2048</code> envs × <code>4000</code> iter，<code>save-interval=100</code>；墙钟约 <strong>1h14m</strong>；结束 <code>train_finished=1</code></td>
+<td><code>m9f_robot.py</code></td>
+<td>HOME、BAM、四个脚底 geom 的碰撞与摩擦</td>
 </tr>
 <tr>
-<td>云日志目录</td>
-<td><code>/cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513/</code></td>
+<td><code>m9f_env_cfg.py</code></td>
+<td>场景、61D/14D、命令、奖励、终止、随机化、课程、PPO 超参</td>
 </tr>
 <tr>
-<td>终局权重</td>
-<td><code>model_3999.pt</code></td>
+<td><code>m9f_mdp.py</code></td>
+<td>通用库没有的双脚合并、站高门控和课程函数</td>
 </tr>
 <tr>
-<td>本机副本</td>
-<td><code>tutor/artifacts/m09f/checkpoints/{model_0,1000,2000,3000,3500,3900,3999}.pt</code> 与 <code>.onnx</code></td>
+<td><code>m9f_train.py</code></td>
+<td>环境到通用 runner 的组装、保存与同任务续训</td>
+</tr>
+<tr>
+<td><code>m9f_evaluate.py</code></td>
+<td>固定命令下的站高、位移、速度和接触指标</td>
+</tr>
+<tr>
+<td><code>m9f_replay.py</code></td>
+<td>同一环境下的 HD 视频</td>
 </tr>
 </tbody></table></div>
-<p>HD 回放（可选重跑；云机无 DISPLAY，须 EGL）：</p>
+<p>actor 观测保持运行时布局：gyro 3 + gravity 3 + pos 14 + vel 14 + last action 14 + twist 3 + head 4 + body 6 = <strong>61</strong>。动作是 <strong>14D</strong>，<code>scale=1.0</code>。本课只做平地前向行走；head/body 槽保留形状但不扩展新任务。</p>
+<p>先用 M9d 已知可行走 checkpoint 做<strong>推理基线</strong>。它若在新环境也走不了，应修环境，不能开始 PPO。基线通过后，新策略才从随机权重训练。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-C">
+<header class="am-panel-head"><span class="am-panel-id">C</span><h2>架构决定</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>采用 <a href="../../decisions/0012-m9f-own-velocity-task.md">0012</a>：在通用框架上手搓完整 handmade Velocity 任务。</p>
+<p>没选“官方工厂 + 替换 EntityCfg”，因为任务定义仍属于官方，学不到自己的模型怎样映射到训练。没选重写 PPO、物理引擎和 BAM，因为本课要学的是机器人任务设计，不是再造基础库。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-D">
+<header class="am-panel-head"><span class="am-panel-id">D</span><h2>代码领读</h2></header>
+<div class="am-panel-body"><div class="am-md"><h3>1. 四个 geom，仍然是两只脚</h3>
+<p><code>m9f_robot.py:12-18</code> 显式列出左右脚的薄层和 <code>_part2</code>。碰撞、接触传感和摩擦随机化共用这组名字，避免只控制薄层。</p>
+<p>传感器因此输出四路。<code>m9f_mdp.py:13-17</code> 先把它们恢复为“左脚两层、右脚两层”，后续奖励只认两只脚：</p>
 </div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">export PATH=&quot;$HOME/.local/bin:$PATH&quot; MUJOCO_GL=egl</span></code></pre></figure>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl</span></code></pre></figure>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">uv run python /cloud/cloud-ssd1/microduck-m9f/skills/microduck-from-scratch/impl/scripts/m9f_replay.py \</span><span class="am-ln">  --log-dir /cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513 \</span><span class="am-ln">  --out-dir /cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513/videos/replay_hd \</span><span class="am-ln">  --video-width 1280 --video-height 720</span></code></pre></figure>
-<div class="am-md"><p>预期：全量约 41 个 checkpoint 各出一支 mp4，结束 <code>replay_ok=1</code>。<code>m9f_replay.py</code> 同样换 <code>HANDMADE_ROBOT_CFG</code>，不用官方 <code>play</code> CLI。</p>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title">m9f_mdp.py · 双脚合并 sketch</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="python"><span class="am-ln">def _perfoot(values):</span><span class="am-ln">    return values.reshape(values.shape[0], 2, 2)</span><span class="am-ln"></span><span class="am-ln">contact = _perfoot(sensor.data.found).any(dim=2).float()</span><span class="am-ln">air_time = _perfoot(sensor.data.current_air_time).max(dim=2).values</span></code></pre></figure>
+<div class="am-md"><p>不能把四路 <code>found</code> 直接配两个脚部位点：滑动奖励形状会错，腾空也会重复计数。</p>
+<p>BAM 还要求按环境展开 <code>dof_frictionloss</code> 和 <code>dof_damping</code>。<code>m9f_env_cfg.py:265-269</code> 注册自己的 startup 事件，声明这两个字段；不重写 BAM。</p>
+<h3>2. 前进要有梯度，低姿态不能拿行走分</h3>
+<p><code>m9f_mdp.py:39-70</code> 把三种奖励接在同一个站高门控上：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title">m9f_mdp.py · 奖励设计 sketch</span><span class="am-code-lang">python</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="python"><span class="am-ln">gate = ((root_z - 0.085) / (0.115 - 0.085)).clamp(0, 1)</span><span class="am-ln"></span><span class="am-ln">tracking = exp(-((command_vx - actual_vx) / std) ** 2) * gate</span><span class="am-ln">progress = (actual_vx / command_vx).clamp(0, 1) * gate</span><span class="am-ln">air_reward = feet_in_valid_air_range * gate</span></code></pre></figure>
+<div class="am-md"><p>高斯跟踪在 <code>actual_vx=0</code> 处对速度没有前进梯度，所以增加线性、封顶的 <code>progress</code>。门控让 85 mm 以下的爬行或深蹲不得分，115 mm 以上才全额计分。策略先靠直立和姿态项获得可行走姿态，再从前进项学习迈步。</p>
+<p><code>m9f_train.py:45-85</code> 只负责组装：创建同一个 env cfg、包成 rsl_rl 环境、交给通用 <code>VelocityOnPolicyRunner</code>。<code>--resume-from</code> 延续的是我们自己某一阶段的 checkpoint，不是官方权重。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-E">
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>验收</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>在教程仓根执行。云机为 RTX 4090；先登录：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">ssh -p 23 root@117.50.221.204</span></code></pre></figure>
+<div class="am-md"><p>以下命令在云机执行。先设解释器与工作目录：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">export PY=/cloud/cloud-ssd1/microduck-m9d/microduck_rl/.venv/bin/python</span><span class="am-ln">cd /cloud/cloud-ssd1/microduck-m9f</span></code></pre></figure>
+<div class="am-md"><p><strong>1. 已知策略验环境。</strong> 这是推理对照，不是新策略的初始权重：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">$PY impl/scripts/m9f_evaluate.py \</span><span class="am-ln">  --checkpoint /cloud/cloud-ssd1/microduck-m9d/microduck_rl/logs/rsl_rl/velocity/2026-10-29_08-00-43_velocity/model_999.pt \</span><span class="am-ln">  --output artifacts/baseline.json --num-envs 16 --seconds 5 --vx 0.3</span></code></pre></figure>
+<div class="am-md"><p>预期：正常站高并明显前移。本课实测站高约 0.120 m、5 秒前移约 0.741 m。</p>
+<p><strong>2. 自有 PPO 冒烟：</strong></p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">$PY impl/scripts/m9f_train.py --num-envs 64 --max-iterations 5 \</span><span class="am-ln">  --save-interval 5 --log-dir logs/smoke_64x5 --smoke</span></code></pre></figure>
+<div class="am-md"><p>预期：actor 61D、action 14D、BAM 14 关节，最后 <code>smoke_ok=1</code>，无 NaN。</p>
+<p><strong>3. 从随机权重短训：</strong></p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">$PY impl/scripts/m9f_train.py --num-envs 512 --max-iterations 300 \</span><span class="am-ln">  --save-interval 50 --log-dir logs/gated_512x300</span></code></pre></figure>
+<div class="am-md"><p>短训后先评估，不要直接堆到 4000 轮：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">$PY impl/scripts/m9f_evaluate.py \</span><span class="am-ln">  --checkpoint logs/gated_512x300/model_299.pt \</span><span class="am-ln">  --output artifacts/gated_299.json --num-envs 16 --seconds 5 --vx 0.3</span></code></pre></figure>
+<div class="am-md"><p><strong>4. 短训站高和位移都正常后，扩到 2048 env 并续到总第 1000 轮：</strong></p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">$PY impl/scripts/m9f_train.py --num-envs 2048 --max-iterations 1000 \</span><span class="am-ln">  --save-interval 100 --resume-from logs/gated_512x300/model_299.pt \</span><span class="am-ln">  --log-dir logs/main_2048x1000</span></code></pre></figure>
+<div class="am-md"><p>终局定量验收：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">$PY impl/scripts/m9f_evaluate.py \</span><span class="am-ln">  --checkpoint logs/main_2048x1000/model_999.pt \</span><span class="am-ln">  --output artifacts/main_999.json --num-envs 16 --seconds 5 --vx 0.3</span></code></pre></figure>
+<div class="am-md"><p>通过条件：站高约 0.11–0.13 m、5 秒平均位移至少 0.5 m、速度方向正确、air-time 不异常。实测分别为 <strong>0.1212 m、1.431 m、vx=0.294、air-time=0.162 s</strong>。</p>
+<p>生成 HD 回放：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">MUJOCO_GL=egl $PY impl/scripts/m9f_replay.py \</span><span class="am-ln">  --checkpoint logs/main_2048x1000/model_999.pt \</span><span class="am-ln">  --out-dir artifacts/videos --video-length 250 --vx 0.3 --no-terminations</span></code></pre></figure>
+<div class="am-md"><p>回本机终端，把视频拉回并观看：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/videos/model_999.mp4 \</span><span class="am-ln">  tutor/artifacts/m09f/videos/main_model_999.mp4</span><span class="am-ln">xdg-open tutor/artifacts/m09f/videos/main_model_999.mp4</span></code></pre></figure>
+<div class="am-md"><p>肉眼应看到持续直立前进，而不是深蹲碎步。此回放证明的是训练环境内步态，不冒充 daemon 部署验收。自动总门：<code>bash accept/m09f-b01.sh</code>；完整跑证在 <code>tutor/runs/m09f-b01.txt</code>。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>与原版差异</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>D71：训练身体与任务实现都由本仓拥有，官方 M9d 仅作已知可行走对照。见 <a href="../../spec/deviations.md">spec/deviations.md</a>。</p>
 </div></div>
 </section>
 <section class="am-panel" id="panel-G">
 <header class="am-panel-head"><span class="am-panel-id">G</span><h2>坑</h2></header>
 <div class="am-panel-body"><div class="am-md"><ul>
-<li><strong>云机录视频缺 DISPLAY：</strong> 须 <code>MUJOCO_GL=egl</code>。该机上 glfw / xvfb 会失败。</li>
-<li><strong>脚 site / IMU：</strong> Velocity 要读 <code>left_foot</code> / <code>right_foot</code> 与 <code>imu_*</code> 传感器。本轮 <code>duck_handmade.xml</code> 已补齐同名 site 与 sensor（见 XML 内 <code>imu</code> / <code>left_foot</code> / <code>right_foot</code> 与 <code>&lt;sensor&gt;</code> 段）；缺这些时工厂会报警或训不动。</li>
-<li><strong>别把 M9e 当本课捷径：</strong> M9e 是 daemon 接 M9d 官方分布权重；本课要的是 handmade 上自训。官方 CLI 训官方身体再「接入我们」——入口与身体一起换成我们的。</li>
+<li><strong>训练结束不等于会走。</strong> 第一次短训站高正常，5 秒只走 0.0086 m；第二次也只有 0.0217 m。</li>
+<li><strong>只加前进分会出现低姿态投机。</strong> 第三次达到 1.824 m，但站高只有 0.0714 m，所以仍失败。</li>
+<li><strong>从低姿态策略续训不一定最好。</strong> 对照续训位移 0.346 m；从零使用站高门控的短训达到 0.960 m，因此主线选后者。</li>
+<li><strong>最后一个 checkpoint 也要重新测。</strong> 评价固定使用同一命令、同一 play 配置和实际位移，不用 mean reward 替代。</li>
 </ul>
 </div></div>
 </section>
 <section class="am-panel am-span-wide" id="panel-H" style="grid-column: span 2">
 <header class="am-panel-head"><span class="am-panel-id">H</span><h2>自测</h2></header>
-<div class="am-panel-body"><div class="am-md"><p><strong>1. 本课训练入口应是？</strong></p>
+<div class="am-panel-body"><div class="am-md"><p><strong>1. 为什么四个脚底 geom 不能直接送进原来的双脚滑动奖励？</strong></p>
 <ul>
-<li>A. <code>uv run train Mjlab-Velocity-Flat-MicroDuck …</code></li>
-<li>B. <code>uv run python …/m9f_train.py --num-envs 64 --max-iterations 5</code></li>
-<li>C. 只调用 <code>mjlab_microduck.train_cli</code></li>
-<li>D. 本机 <code>pip install</code> 后直接 <code>python -m rsl_rl</code></li>
+<li>A. MuJoCo 不支持四个 geom</li>
+<li>B. 四路接触与两个脚部位点形状不同，腾空也会重复计数</li>
+<li>C. <code>_part2</code> 不能参与物理碰撞</li>
+<li>D. 只要 PPO 迭代够多就会自动对齐</li>
 </ul>
-<details><summary>答案</summary><p>B。官方 uv 环境跑我们的脚本；主路径禁止 <code>uv run train</code> / <code>train_cli</code>。</p>
-</details><p><strong>2. <code>env_cfg.scene.entities = {&quot;robot&quot;: HANDMADE_ROBOT_CFG}</code> 换的是什么？</strong></p>
+<details><summary>答案</summary><p>B。先按左右脚各自的两层合并，再计算接触、滑动和腾空。</p>
+</details><p><strong>2. 已有高斯速度跟踪，为什么还要线性前进项？</strong></p>
 <ul>
-<li>A. 奖励权重表与课程阶梯</li>
-<li>B. 只有身体 XML（handmade），奖励 / obs / BAM 仍官方工厂</li>
-<li>C. 整份 PPO 实现换成自研</li>
-<li>D. 把观测维数从 61 改成自定义</li>
+<li>A. 高斯项不能计算角速度</li>
+<li>B. 线性项可以减少显存</li>
+<li>C. 高斯跟踪在实际速度为零处没有前进梯度，线性项能从站立状态直接奖励向前速度</li>
+<li>D. 线性项允许低姿态获得全部分数</li>
 </ul>
-<details><summary>答案</summary><p>B。换身约定：配方工厂不动，只换 <code>EntityCfg</code> 指向的 XML。</p>
-</details><p><strong>3. Bite 1 accept 门禁要证明什么？</strong></p>
+<details><summary>答案</summary><p>C。前进项提供梯度；是否得分还要经过站高门控。</p>
+</details><p><strong>3. 什么结果才允许进入 1000 轮主训练？</strong></p>
 <ul>
-<li>A. 必须跑完 2048×4000 并产出全部 mp4</li>
-<li>B. 自写入口 + handmade 引用 + 云冒烟 64×5 证据（<code>smoke_ok=1</code>）</li>
-<li>C. 官方权重已接入 miniduckd</li>
-<li>D. 本机无 GPU 也必须现场 <code>learn()</code> 5 步</li>
+<li>A. mean reward 上升即可</li>
+<li>B. 训练进程正常退出即可</li>
+<li>C. 先保存 ONNX 即可</li>
+<li>D. 短训在固定命令下同时保持正常站高、产生有效位移，并通过视频检查</li>
 </ul>
-<details><summary>答案</summary><p>B。长训 / replay 是附录事实；本机 accept 是静态门 + 跑证。</p>
-</details><p><strong>4. 云上用 <code>m9f_replay.py</code> 出视频，缺 DISPLAY 时应？</strong></p>
-<ul>
-<li>A. 强开 glfw viewer</li>
-<li>B. 只设 <code>MUJOCO_GL=egl</code></li>
-<li>C. 改回官方 <code>play</code> CLI（绑定 <code>robot_walk</code>）</li>
-<li>D. 在本机无 GPU 上硬跑 Warp 训练代替回放</li>
-</ul>
-<details><summary>答案</summary><p>B。该云机 glfw/xvfb 失败；replay 脚本本身已挂 handmade。</p>
-</details><p><strong>5. 为什么本课不以「官方 CLI 训官方身体 → 再接入我们」为主路径？</strong></p>
-<ul>
-<li>A. 官方仓库删了 train 命令</li>
-<li>B. 那条路径对「训推同身体、自己组装入口」没有学习意义（M9e 另证集成栈）</li>
-<li>C. handmade XML 不能编译</li>
-<li>D. 4090 跑不动 64×5</li>
-</ul>
-<details><summary>答案</summary><p>B。M9e 已证 daemon 集成；本课入口与身体一起换成我们的。</p>
+<details><summary>答案</summary><p>D。训练成功和步态成功是两道门；站高与位移必须一起满足。</p>
 </details>
 </div></div>
 </section>
@@ -966,252 +934,224 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-29 21:34 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-30 12:48 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: sheet
-title: M9f Bite 1：自写训练入口 + handmade（第 30 章）
-subtitle: 训推同身体；入口是我们的脚本，不是 uv run train
+title: M9f Bite 1：手搓 handmade 训练环境（第 30 章）
+subtitle: 从自己的 MJCF 写任务；基线验环境，PPO 从随机权重学会直立前进
 source: clone-from-scratch-tutor · 第 30 章
 ---
 
 ## 问题
 
-M9d 在云上把官方 `uv run train` + 官方 `robot_walk` 跑通了；M9e 把那份官方分布 ONNX 接到了我们的 daemon。那条路证的是**集成栈**，不是**训推同身体**——权重仍在官方身体上长大。
+已有的 M9d 权重能走，只证明官方身体和官方任务配方有效。把 `duck_handmade.xml` 塞进官方 Velocity class，仍然是在猜官方假设：每脚只有一块鞋底、奖励和课程适合自己的身体。
 
-现在要消掉的故障是：还在用官方 train CLI 训官方身体，或以为包一层 `uv run train` 就算「自己的训练入口」。
-
-本课钉死两件事：身体是 `duck_handmade.xml`；入口是我们写的 `m9f_train.py`，在官方 uv 环境里跑这份 `.py`。
-
-## 背景
-
-**handmade 身体。** M9a 手写的 `duck_handmade.xml`：碰撞盒 + 官方惯量对账，与 `impl/sim` 部署同源。详见 [M9a Bite 1](../m09a-handmade-mjcf/b01-handmade-mjcf.html)。
-
-**Velocity 奖励与课程。** 本课仍走官方 `make_microduck_velocity_env_cfg` 工厂：奖励权重、课程阶梯、BAM 执行器都不重写。配方直觉见 [M9b Bite 2](../m09b-train-pipeline/b02-reward-curriculum.html)。PPO 三步、优势估计细节本课当黑盒，不重讲。
+训练脚本能跑完，策略却可能站稳不动或低姿态快走。只换官方 class，也学不到训练环境怎么写。本课去掉这些故障。新的主路径不使用 `mjlab_microduck`；MuJoCo、mjlab 通用管理器、rsl_rl 和 BAM 只作为依赖轮子。
 
 ## 设计
 
 ```flow TB
-(m9f_train.py) -&gt; make_microduck_velocity_env_cfg
-make_microduck_velocity_env_cfg -&gt; *换 entities robot
-换 entities robot -&gt; ManagerBasedRlEnv
-ManagerBasedRlEnv -&gt; MicroduckOnPolicyRunner
-MicroduckOnPolicyRunner -&gt; *runner.learn
+duck_handmade.xml -&gt; m9f_robot
+m9f_robot -&gt; m9f_env_cfg
+m9f_env_cfg -&gt; m9f_mdp
+m9f_env_cfg -&gt; m9f_train
+m9f_mdp -&gt; m9f_train
+m9f_train -&gt; checkpoint
+checkpoint -&gt; m9f_evaluate
+checkpoint -&gt; m9f_replay
 ```
 
-| 层 | 谁提供 | 本课改什么 |
-|---|---|---|
-| 奖励 / 观测 / BAM / 课程 | 官方 Velocity 工厂 | 不改 |
-| 身体 XML | `HANDMADE_ROBOT_CFG` → `duck_handmade.xml` | **换身** |
-| 训练入口 | `impl/scripts/m9f_train.py` | **自写**；禁止主路径 `uv run train` / `train_cli` |
-| PPO 更新 | rsl_rl（经 `MicroduckOnPolicyRunner.learn`） | 黑盒：优化策略；不展开优势估计 |
+六个模块各有边界：
 
-冒烟规模与 M9d 对齐：`64` envs × `5` iter。长训与视频回放是同一入口的加参用法，不挡本课 accept 门禁。
+| 模块 | 自己负责什么 |
+|---|---|
+| `m9f_robot.py` | HOME、BAM、四个脚底 geom 的碰撞与摩擦 |
+| `m9f_env_cfg.py` | 场景、61D/14D、命令、奖励、终止、随机化、课程、PPO 超参 |
+| `m9f_mdp.py` | 通用库没有的双脚合并、站高门控和课程函数 |
+| `m9f_train.py` | 环境到通用 runner 的组装、保存与同任务续训 |
+| `m9f_evaluate.py` | 固定命令下的站高、位移、速度和接触指标 |
+| `m9f_replay.py` | 同一环境下的 HD 视频 |
+
+actor 观测保持运行时布局：gyro 3 + gravity 3 + pos 14 + vel 14 + last action 14 + twist 3 + head 4 + body 6 = **61**。动作是 **14D**，`scale=1.0`。本课只做平地前向行走；head/body 槽保留形状但不扩展新任务。
+
+先用 M9d 已知可行走 checkpoint 做**推理基线**。它若在新环境也走不了，应修环境，不能开始 PPO。基线通过后，新策略才从随机权重训练。
 
 ## 架构决定
 
-选了 **备选 1**：自写 `m9f_train.py`——工厂出 `env_cfg` 后把 `scene.entities[&quot;robot&quot;]` 换成 handmade 的 `EntityCfg`，再起 runner。
+采用 [0012](../../decisions/0012-m9f-own-velocity-task.md)：在通用框架上手搓完整 handmade Velocity 任务。
 
-没选继续 `uv run train` 再 monkeypatch vendor：改动小，但学不到组装，vendor 补丁难维护。  
-没选从零手写 PPO + 自建 env：一个 Bite 不可验收，也偏离「复用可下载栈、学设计」。
-
-见 [0011](../../decisions/0011-m9f-handmade-own-train.md)。
+没选“官方工厂 + 替换 EntityCfg”，因为任务定义仍属于官方，学不到自己的模型怎样映射到训练。没选重写 PPO、物理引擎和 BAM，因为本课要学的是机器人任务设计，不是再造基础库。
 
 ## 代码领读
 
-自顶向下：身体配置 → 入口换身 → `learn`。sketch 对齐真码行号。
+### 1. 四个 geom，仍然是两只脚
 
-### 1. handmade 身体：`EntityCfg`
+`m9f_robot.py:12-18` 显式列出左右脚的薄层和 `_part2`。碰撞、接触传感和摩擦随机化共用这组名字，避免只控制薄层。
 
-`m9f_handmade_robot.py` 镜像官方 walk 的 HOME / BAM / 全碰撞，只把 `spec_fn` 指到 `impl/sim/assets/duck_handmade.xml`（`20-37`）：
+传感器因此输出四路。`m9f_mdp.py:13-17` 先把它们恢复为“左脚两层、右脚两层”，后续奖励只认两只脚：
 
-```python title=&quot;m9f_handmade_robot.py · sketch&quot;
-HANDMADE_XML = Path(__file__).resolve().parents[1] / &quot;sim&quot; / &quot;assets&quot; / &quot;duck_handmade.xml&quot;
+```python title=&quot;m9f_mdp.py · 双脚合并 sketch&quot;
+def _perfoot(values):
+    return values.reshape(values.shape[0], 2, 2)
 
-def get_handmade_spec() -&gt; mujoco.MjSpec:
-    return mujoco.MjSpec.from_file(str(HANDMADE_XML))
-
-HANDMADE_ROBOT_CFG = EntityCfg(
-    spec_fn=get_handmade_spec,
-    init_state=HOME_FRAME,
-    collisions=(FULL_COLLISION,),
-    articulation=EntityArticulationInfoCfg(
-        actuators=(actuators,),
-        soft_joint_pos_limit_factor=0.9,
-    ),
-)
+contact = _perfoot(sensor.data.found).any(dim=2).float()
+air_time = _perfoot(sensor.data.current_air_time).max(dim=2).values
 ```
 
-**EntityCfg 换身约定：** 奖励 / obs / BAM 仍官方工厂；只有身体 XML 换成 handmade，与 `impl/sim` 同源。
+不能把四路 `found` 直接配两个脚部位点：滑动奖励形状会错，腾空也会重复计数。
 
-### 2. 入口：工厂后换 `entities`，再 `learn`
+BAM 还要求按环境展开 `dof_frictionloss` 和 `dof_damping`。`m9f_env_cfg.py:265-269` 注册自己的 startup 事件，声明这两个字段；不重写 BAM。
 
-`m9f_train.py` 不调官方 CLI。核心三步（`112-114`、`147-160`）：
+### 2. 前进要有梯度，低姿态不能拿行走分
 
-```python title=&quot;m9f_train.py · sketch&quot;
-env_cfg = make_microduck_velocity_env_cfg()
-env_cfg.scene.entities = {&quot;robot&quot;: HANDMADE_ROBOT_CFG}  # 换身
-env_cfg.scene.num_envs = args.num_envs
-# ... replace MicroduckRlCfg：max_iterations / save_interval / experiment_name ...
+`m9f_mdp.py:39-70` 把三种奖励接在同一个站高门控上：
 
-env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
-env = RslRlVecEnvWrapper(env, clip_actions=agent.clip_actions)
-runner = MicroduckOnPolicyRunner(env, agent_cfg, str(log_dir), device)
-runner.learn(
-    num_learning_iterations=agent.max_iterations,
-    init_at_random_ep_len=True,
-)
+```python title=&quot;m9f_mdp.py · 奖励设计 sketch&quot;
+gate = ((root_z - 0.085) / (0.115 - 0.085)).clamp(0, 1)
+
+tracking = exp(-((command_vx - actual_vx) / std) ** 2) * gate
+progress = (actual_vx / command_vx).clamp(0, 1) * gate
+air_reward = feet_in_valid_air_range * gate
 ```
 
-**自写入口约定：** 用官方 `microduck_rl` 的 `uv run` 跑**我们的** `.py`，命令形态是 `uv run python …/m9f_train.py …`，不是 `uv run train …`。`runner.learn` 内部的 PPO 更新当黑盒；优势怎么估已在 M9b 先修，这里不重开。
+高斯跟踪在 `actual_vx=0` 处对速度没有前进梯度，所以增加线性、封顶的 `progress`。门控让 85 mm 以下的爬行或深蹲不得分，115 mm 以上才全额计分。策略先靠直立和姿态项获得可行走姿态，再从前进项学习迈步。
 
-冒烟结束打印 `smoke_ok=1`（`max_iterations≤5` 或 `--smoke`，`163-165`）。banner 会打出 `handmade` 与 `duck_handmade.xml` 路径（`69-78`）。
+`m9f_train.py:45-85` 只负责组装：创建同一个 env cfg、包成 rsl_rl 环境、交给通用 `VelocityOnPolicyRunner`。`--resume-from` 延续的是我们自己某一阶段的 checkpoint，不是官方权重。
 
 ## 验收
 
-本机无 GPU：`bash accept/m09f-b01.sh` 只做静态门（脚本存在、禁止官方 CLI 主路径、跑证含冒烟线索）。**亲手验收请在云上跑冒烟。**
-
-云机：`ssh -p 23 root@117.50.221.204`（本机 key `~/.ssh/id_rsa`）。  
-工作区：`/cloud/cloud-ssd1/microduck-m9f`（教程仓在其下 `skills/microduck-from-scratch`）。  
-RL venv：复用 M9d 的 `/cloud/cloud-ssd1/microduck-m9d/microduck_rl`（在该目录 `uv run`）。
-
-### 云冒烟（本课门禁对应的亲手步骤）
-
-**1. 登录**
+在教程仓根执行。云机为 RTX 4090；先登录：
 
 ```bash
 ssh -p 23 root@117.50.221.204
 ```
 
-**2. 冒烟 64×5**（一步一条；在已 `uv sync` 的 microduck_rl 树里）
+以下命令在云机执行。先设解释器与工作目录：
 
 ```bash
-export PATH=&quot;$HOME/.local/bin:$PATH&quot;
+export PY=/cloud/cloud-ssd1/microduck-m9d/microduck_rl/.venv/bin/python
+cd /cloud/cloud-ssd1/microduck-m9f
 ```
+
+**1. 已知策略验环境。** 这是推理对照，不是新策略的初始权重：
 
 ```bash
-cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl
+$PY impl/scripts/m9f_evaluate.py \
+  --checkpoint /cloud/cloud-ssd1/microduck-m9d/microduck_rl/logs/rsl_rl/velocity/2026-10-29_08-00-43_velocity/model_999.pt \
+  --output artifacts/baseline.json --num-envs 16 --seconds 5 --vx 0.3
 ```
+
+预期：正常站高并明显前移。本课实测站高约 0.120 m、5 秒前移约 0.741 m。
+
+**2. 自有 PPO 冒烟：**
 
 ```bash
-uv run python /cloud/cloud-ssd1/microduck-m9f/skills/microduck-from-scratch/impl/scripts/m9f_train.py --num-envs 64 --max-iterations 5
+$PY impl/scripts/m9f_train.py --num-envs 64 --max-iterations 5 \
+  --save-interval 5 --log-dir logs/smoke_64x5 --smoke
 ```
 
-**3. 观察**
+预期：actor 61D、action 14D、BAM 14 关节，最后 `smoke_ok=1`，无 NaN。
 
-等待约 1–3 分钟。预期：
-
-- banner 出现 `handmade` / `duck_handmade.xml`
-- 出现 `Learning iteration …/5`
-- 结束打印 `smoke_ok=1`
-
-本机回归（静态门 + 已落盘跑证）：
+**3. 从随机权重短训：**
 
 ```bash
-bash accept/m09f-b01.sh
+$PY impl/scripts/m9f_train.py --num-envs 512 --max-iterations 300 \
+  --save-interval 50 --log-dir logs/gated_512x300
 ```
 
-预期：`cli_gate_ok` 与 `M9f Bite 1 验收 PASS`。
-
-### 附录：长训与 HD replay（已跑事实，非 accept 门禁）
-
-同一入口加大参数即可；下列为 2026-10-29 已完成记录，**不要把「长训完成」当成 Bite 1 门禁**。
-
-| 项 | 事实 |
-|---|---|
-| 长训 | `2048` envs × `4000` iter，`save-interval=100`；墙钟约 **1h14m**；结束 `train_finished=1` |
-| 云日志目录 | `/cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513/` |
-| 终局权重 | `model_3999.pt` |
-| 本机副本 | `tutor/artifacts/m09f/checkpoints/{model_0,1000,2000,3000,3500,3900,3999}.pt` 与 `.onnx` |
-
-HD 回放（可选重跑；云机无 DISPLAY，须 EGL）：
+短训后先评估，不要直接堆到 4000 轮：
 
 ```bash
-export PATH=&quot;$HOME/.local/bin:$PATH&quot; MUJOCO_GL=egl
+$PY impl/scripts/m9f_evaluate.py \
+  --checkpoint logs/gated_512x300/model_299.pt \
+  --output artifacts/gated_299.json --num-envs 16 --seconds 5 --vx 0.3
 ```
+
+**4. 短训站高和位移都正常后，扩到 2048 env 并续到总第 1000 轮：**
 
 ```bash
-cd /cloud/cloud-ssd1/microduck-m9d/microduck_rl
+$PY impl/scripts/m9f_train.py --num-envs 2048 --max-iterations 1000 \
+  --save-interval 100 --resume-from logs/gated_512x300/model_299.pt \
+  --log-dir logs/main_2048x1000
 ```
+
+终局定量验收：
 
 ```bash
-uv run python /cloud/cloud-ssd1/microduck-m9f/skills/microduck-from-scratch/impl/scripts/m9f_replay.py \
-  --log-dir /cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513 \
-  --out-dir /cloud/cloud-ssd1/microduck-m9f/logs/train_2048x4000_si100_20261029_102513/videos/replay_hd \
-  --video-width 1280 --video-height 720
+$PY impl/scripts/m9f_evaluate.py \
+  --checkpoint logs/main_2048x1000/model_999.pt \
+  --output artifacts/main_999.json --num-envs 16 --seconds 5 --vx 0.3
 ```
 
-预期：全量约 41 个 checkpoint 各出一支 mp4，结束 `replay_ok=1`。`m9f_replay.py` 同样换 `HANDMADE_ROBOT_CFG`，不用官方 `play` CLI。
+通过条件：站高约 0.11–0.13 m、5 秒平均位移至少 0.5 m、速度方向正确、air-time 不异常。实测分别为 **0.1212 m、1.431 m、vx=0.294、air-time=0.162 s**。
+
+生成 HD 回放：
+
+```bash
+MUJOCO_GL=egl $PY impl/scripts/m9f_replay.py \
+  --checkpoint logs/main_2048x1000/model_999.pt \
+  --out-dir artifacts/videos --video-length 250 --vx 0.3 --no-terminations
+```
+
+回本机终端，把视频拉回并观看：
+
+```bash
+scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/videos/model_999.mp4 \
+  tutor/artifacts/m09f/videos/main_model_999.mp4
+xdg-open tutor/artifacts/m09f/videos/main_model_999.mp4
+```
+
+肉眼应看到持续直立前进，而不是深蹲碎步。此回放证明的是训练环境内步态，不冒充 daemon 部署验收。自动总门：`bash accept/m09f-b01.sh`；完整跑证在 `tutor/runs/m09f-b01.txt`。
+
+## 与原版差异
+
+D71：训练身体与任务实现都由本仓拥有，官方 M9d 仅作已知可行走对照。见 [spec/deviations.md](../../spec/deviations.md)。
 
 ## 坑
 
-- **云机录视频缺 DISPLAY：** 须 `MUJOCO_GL=egl`。该机上 glfw / xvfb 会失败。
-- **脚 site / IMU：** Velocity 要读 `left_foot` / `right_foot` 与 `imu_*` 传感器。本轮 `duck_handmade.xml` 已补齐同名 site 与 sensor（见 XML 内 `imu` / `left_foot` / `right_foot` 与 `&lt;sensor&gt;` 段）；缺这些时工厂会报警或训不动。
-- **别把 M9e 当本课捷径：** M9e 是 daemon 接 M9d 官方分布权重；本课要的是 handmade 上自训。官方 CLI 训官方身体再「接入我们」——入口与身体一起换成我们的。
+- **训练结束不等于会走。** 第一次短训站高正常，5 秒只走 0.0086 m；第二次也只有 0.0217 m。
+- **只加前进分会出现低姿态投机。** 第三次达到 1.824 m，但站高只有 0.0714 m，所以仍失败。
+- **从低姿态策略续训不一定最好。** 对照续训位移 0.346 m；从零使用站高门控的短训达到 0.960 m，因此主线选后者。
+- **最后一个 checkpoint 也要重新测。** 评价固定使用同一命令、同一 play 配置和实际位移，不用 mean reward 替代。
 
 ## 自测
 
-**1. 本课训练入口应是？**
+**1. 为什么四个脚底 geom 不能直接送进原来的双脚滑动奖励？**
 
-- A. `uv run train Mjlab-Velocity-Flat-MicroDuck …`
-- B. `uv run python …/m9f_train.py --num-envs 64 --max-iterations 5`
-- C. 只调用 `mjlab_microduck.train_cli`
-- D. 本机 `pip install` 后直接 `python -m rsl_rl`
+- A. MuJoCo 不支持四个 geom
+- B. 四路接触与两个脚部位点形状不同，腾空也会重复计数
+- C. `_part2` 不能参与物理碰撞
+- D. 只要 PPO 迭代够多就会自动对齐
 
 &lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
 
-B。官方 uv 环境跑我们的脚本；主路径禁止 `uv run train` / `train_cli`。
+B。先按左右脚各自的两层合并，再计算接触、滑动和腾空。
 
 &lt;/details&gt;
 
-**2. `env_cfg.scene.entities = {&quot;robot&quot;: HANDMADE_ROBOT_CFG}` 换的是什么？**
+**2. 已有高斯速度跟踪，为什么还要线性前进项？**
 
-- A. 奖励权重表与课程阶梯
-- B. 只有身体 XML（handmade），奖励 / obs / BAM 仍官方工厂
-- C. 整份 PPO 实现换成自研
-- D. 把观测维数从 61 改成自定义
+- A. 高斯项不能计算角速度
+- B. 线性项可以减少显存
+- C. 高斯跟踪在实际速度为零处没有前进梯度，线性项能从站立状态直接奖励向前速度
+- D. 线性项允许低姿态获得全部分数
 
 &lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
 
-B。换身约定：配方工厂不动，只换 `EntityCfg` 指向的 XML。
+C。前进项提供梯度；是否得分还要经过站高门控。
 
 &lt;/details&gt;
 
-**3. Bite 1 accept 门禁要证明什么？**
+**3. 什么结果才允许进入 1000 轮主训练？**
 
-- A. 必须跑完 2048×4000 并产出全部 mp4
-- B. 自写入口 + handmade 引用 + 云冒烟 64×5 证据（`smoke_ok=1`）
-- C. 官方权重已接入 miniduckd
-- D. 本机无 GPU 也必须现场 `learn()` 5 步
-
-&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
-
-B。长训 / replay 是附录事实；本机 accept 是静态门 + 跑证。
-
-&lt;/details&gt;
-
-**4. 云上用 `m9f_replay.py` 出视频，缺 DISPLAY 时应？**
-
-- A. 强开 glfw viewer
-- B. 只设 `MUJOCO_GL=egl`
-- C. 改回官方 `play` CLI（绑定 `robot_walk`）
-- D. 在本机无 GPU 上硬跑 Warp 训练代替回放
+- A. mean reward 上升即可
+- B. 训练进程正常退出即可
+- C. 先保存 ONNX 即可
+- D. 短训在固定命令下同时保持正常站高、产生有效位移，并通过视频检查
 
 &lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
 
-B。该云机 glfw/xvfb 失败；replay 脚本本身已挂 handmade。
-
-&lt;/details&gt;
-
-**5. 为什么本课不以「官方 CLI 训官方身体 → 再接入我们」为主路径？**
-
-- A. 官方仓库删了 train 命令
-- B. 那条路径对「训推同身体、自己组装入口」没有学习意义（M9e 另证集成栈）
-- C. handmade XML 不能编译
-- D. 4090 跑不动 64×5
-
-&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
-
-B。M9e 已证 daemon 集成；本课入口与身体一起换成我们的。
+D。训练成功和步态成功是两道门；站高与位移必须一起满足。
 
 &lt;/details&gt;
 </textarea>

@@ -2,7 +2,7 @@
 
 把 pollen-robotics/microduck 做成可断点续作的从零实现教程：架构、权衡、可运行的最小复刻。
 
-- 现在读到：**第 30 章** — [自写训练入口 + handmade](book/m09f-handmade-train/b01-own-train-handmade.html)（M9f Bite 1）
+- 现在读到：**第 30 章** — [手搓 handmade 训练环境](book/m09f-handmade-train/b01-own-train-handmade.html)（M9f Bite 1）
 - 目录：[book/index.md](book/index.md)
 - 实现在 `impl/`。在仓库根执行 `bash accept/mNN-bKK.sh`（容器内）
 - 上游参考：`upstream/` / `reference/`（只读）

@@ -1,0 +1,18 @@
+{
+  "checkpoint": "/cloud/cloud-ssd1/microduck-m9f/logs/gated_512x300/model_299.pt",
+  "robot_xml": "/cloud/cloud-ssd1/microduck-m9f/impl/sim/assets/duck_handmade.xml",
+  "num_envs": 16,
+  "seconds": 5.0,
+  "steps": 250,
+  "command_vx": 0.3,
+  "root_z_mean": 0.120796337723732,
+  "root_z_min": 0.11315970122814178,
+  "root_z_max": 0.1363009661436081,
+  "low_height_fraction": 0.0,
+  "displacement_mean": 0.959842324256897,
+  "displacement_min": 0.028385713696479797,
+  "displacement_max": 1.6792473793029785,
+  "actual_vx_mean": 0.2685694694519043,
+  "air_time_mean": 0.48535990715026855,
+  "contact_fraction": 0.690250039100647
+}
