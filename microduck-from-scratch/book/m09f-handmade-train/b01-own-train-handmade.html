@@ -761,7 +761,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
 <main class="am-sheet">
-<header class="am-head"><h1>M9f Bite 1：手搓 handmade 训练环境（第 30 章）</h1><p class="am-sub">从自己的 MJCF 写任务；基线验环境，PPO 从随机权重学会直立前进</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 30 章</span></div></header>
+<header class="am-head"><h1>M9f Bite 1：手搓 handmade 训练环境（第 30 章）</h1><p class="am-sub">从自己的 MJCF 写任务；PPO 从随机权重学会直立前进，并导出可部署 ONNX</p><div class="am-head-meta"><span><b>source</b>clone-from-scratch-tutor · 第 30 章</span></div></header>
 <div class="am-frame">
 <div class="am-ruler am-ruler--top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="am-ruler am-ruler--left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div><div class="am-ruler am-ruler--right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
 <div class="am-grid" style="--cols: 3">
@@ -773,8 +773,8 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </section>
 <section class="am-panel" id="panel-B">
 <header class="am-panel-head"><span class="am-panel-id">B</span><h2>设计</h2></header>
-<div class="am-panel-body"><figure class="am-diagram am-flow"><svg viewBox="0 0 270 549" width="270" height="549" role="img" aria-label="流程图：duck_handmade.xml、m9f_robot、m9f_env_cfg、m9f_mdp、m9f_train、checkpoint、m9f_evaluate、m9f_replay" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M131,49 L131,60.5 Q131,72 131,83.5 L131,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M131,130 L131,141.5 Q131,153 131,164.5 L131,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M146.1,211 L156,222.5 Q165.9,234 165.9,245.5 L165.9,257" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M115.9,211 L106,222.5 Q96.1,234 96.1,254.3 Q96.1,274.5 96.1,294.8 Q96.1,315 106,326.5 L115.9,338" marker-end="url(#am1-arrow)"/></g><g data-step="4"><path class="am-edge" d="M165.9,292 L165.9,303.5 Q165.9,315 156,326.5 L146.1,338" marker-end="url(#am1-arrow)"/></g><g data-step="5"><path class="am-edge" d="M131,373 L131,384.5 Q131,396 131,407.5 L131,419" marker-end="url(#am1-arrow)"/></g><g data-step="6"><path class="am-edge" d="M160.9,454 L180.6,465.5 Q200.3,477 200.3,488.5 L200.3,500" marker-end="url(#am1-arrow)"/></g><g data-step="7"><path class="am-edge" d="M101,454 L81.4,465.5 Q61.7,477 61.7,488.5 L61.7,500" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="duck_handmade.xml" data-step="0"><rect class="am-node-shape" x="54.3" y="14" width="153.3" height="35" rx="3"/><text x="131" y="31.5" text-anchor="middle" dominant-baseline="central">duck_handmade.xml</text></g><g class="am-node am-node--rect" data-key="m9f_robot" data-step="0"><rect class="am-node-shape" x="87" y="95" width="88.1" height="35" rx="3"/><text x="131" y="112.5" text-anchor="middle" dominant-baseline="central">m9f_robot</text></g><g class="am-node am-node--rect" data-key="m9f_env_cfg" data-step="1"><rect class="am-node-shape" x="78.1" y="176" width="105.7" height="35" rx="3"/><text x="131" y="193.5" text-anchor="middle" dominant-baseline="central">m9f_env_cfg</text></g><g class="am-node am-node--rect" data-key="m9f_mdp" data-step="2"><rect class="am-node-shape" x="124.1" y="257" width="83.6" height="35" rx="3"/><text x="165.9" y="274.5" text-anchor="middle" dominant-baseline="central">m9f_mdp</text></g><g class="am-node am-node--rect" data-key="m9f_train" data-step="3"><rect class="am-node-shape" x="88.5" y="338" width="84.9" height="35" rx="3"/><text x="131" y="355.5" text-anchor="middle" dominant-baseline="central">m9f_train</text></g><g class="am-node am-node--rect" data-key="checkpoint" data-step="5"><rect class="am-node-shape" x="83.7" y="419" width="94.6" height="35" rx="3"/><text x="131" y="436.5" text-anchor="middle" dominant-baseline="central">checkpoint</text></g><g class="am-node am-node--rect" data-key="m9f_evaluate" data-step="6"><rect class="am-node-shape" x="145.3" y="500" width="109.9" height="35" rx="3"/><text x="200.3" y="517.5" text-anchor="middle" dominant-baseline="central">m9f_evaluate</text></g><g class="am-node am-node--rect" data-key="m9f_replay" data-step="7"><rect class="am-node-shape" x="14" y="500" width="95.3" height="35" rx="3"/><text x="61.7" y="517.5" text-anchor="middle" dominant-baseline="central">m9f_replay</text></g></g></svg></figure>
-<div class="am-md"><p>六个模块各有边界：</p>
+<div class="am-panel-body"><figure class="am-diagram am-flow"><svg viewBox="0 0 425 630" width="425" height="630" role="img" aria-label="流程图：duck_handmade.xml、m9f_robot、m9f_env_cfg、m9f_mdp、m9f_train、checkpoint、m9f_evaluate、m9f_replay" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M217.1,49 L217.1,60.5 Q217.1,72 217.1,83.5 L217.1,95" marker-end="url(#am1-arrow)"/></g><g data-step="1"><path class="am-edge" d="M217.1,130 L217.1,141.5 Q217.1,153 217.1,164.5 L217.1,176" marker-end="url(#am1-arrow)"/></g><g data-step="2"><path class="am-edge" d="M232.1,211 L242.1,222.5 Q252,234 252,245.5 L252,257" marker-end="url(#am1-arrow)"/></g><g data-step="3"><path class="am-edge" d="M202,211 L192.1,222.5 Q182.2,234 182.2,254.3 Q182.2,274.5 182.2,294.8 Q182.2,315 192.1,326.5 L202,338" marker-end="url(#am1-arrow)"/></g><g data-step="4"><path class="am-edge" d="M252,292 L252,303.5 Q252,315 242.1,326.5 L232.1,338" marker-end="url(#am1-arrow)"/></g><g data-step="5"><path class="am-edge" d="M217.1,373 L217.1,384.5 Q217.1,396 217.1,407.5 L217.1,419" marker-end="url(#am1-arrow)"/></g><g data-step="6"><path class="am-edge" d="M264.3,450.3 L310,463.7 Q355.7,477 355.7,488.5 L355.7,500" marker-end="url(#am1-arrow)"/></g><g data-step="7"><path class="am-edge" d="M217.1,454 L217.1,465.5 Q217.1,477 217.1,488.5 L217.1,500" marker-end="url(#am1-arrow)"/></g><g data-step="8"><path class="am-edge" d="M169.8,451.1 L127.8,464 Q85.7,477 85.7,488.5 L85.7,500" marker-end="url(#am1-arrow)"/></g><g data-step="9"><path class="am-edge" d="M85.7,535 L85.7,546.5 Q85.7,558 85.7,569.5 L85.7,581" marker-end="url(#am1-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="duck_handmade.xml" data-step="0"><rect class="am-node-shape" x="140.4" y="14" width="153.3" height="35" rx="3"/><text x="217.1" y="31.5" text-anchor="middle" dominant-baseline="central">duck_handmade.xml</text></g><g class="am-node am-node--rect" data-key="m9f_robot" data-step="0"><rect class="am-node-shape" x="173" y="95" width="88.1" height="35" rx="3"/><text x="217.1" y="112.5" text-anchor="middle" dominant-baseline="central">m9f_robot</text></g><g class="am-node am-node--rect" data-key="m9f_env_cfg" data-step="1"><rect class="am-node-shape" x="164.2" y="176" width="105.7" height="35" rx="3"/><text x="217.1" y="193.5" text-anchor="middle" dominant-baseline="central">m9f_env_cfg</text></g><g class="am-node am-node--rect" data-key="m9f_mdp" data-step="2"><rect class="am-node-shape" x="210.2" y="257" width="83.6" height="35" rx="3"/><text x="252" y="274.5" text-anchor="middle" dominant-baseline="central">m9f_mdp</text></g><g class="am-node am-node--rect" data-key="m9f_train" data-step="3"><rect class="am-node-shape" x="174.6" y="338" width="84.9" height="35" rx="3"/><text x="217.1" y="355.5" text-anchor="middle" dominant-baseline="central">m9f_train</text></g><g class="am-node am-node--rect" data-key="checkpoint" data-step="5"><rect class="am-node-shape" x="169.8" y="419" width="94.6" height="35" rx="3"/><text x="217.1" y="436.5" text-anchor="middle" dominant-baseline="central">checkpoint</text></g><g class="am-node am-node--rect" data-key="m9f_evaluate" data-step="6"><rect class="am-node-shape" x="300.7" y="500" width="109.9" height="35" rx="3"/><text x="355.7" y="517.5" text-anchor="middle" dominant-baseline="central">m9f_evaluate</text></g><g class="am-node am-node--rect" data-key="m9f_replay" data-step="7"><rect class="am-node-shape" x="169.4" y="500" width="95.3" height="35" rx="3"/><text x="217.1" y="517.5" text-anchor="middle" dominant-baseline="central">m9f_replay</text></g><g class="am-node am-node--rect" data-key="m9f_export" data-step="8"><rect class="am-node-shape" x="38.1" y="500" width="95.3" height="35" rx="3"/><text x="85.7" y="517.5" text-anchor="middle" dominant-baseline="central">m9f_export</text></g><g class="am-node am-node--rect" data-key="policy_export.onnx" data-step="9"><rect class="am-node-shape" x="14" y="581" width="143.4" height="35" rx="3"/><text x="85.7" y="598.5" text-anchor="middle" dominant-baseline="central">policy_export.onnx</text></g></g></svg></figure>
+<div class="am-md"><p>七个模块各有边界：</p>
 <div class="am-table-wrap"><table>
 <thead>
 <tr>
@@ -806,6 +806,10 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <td><code>m9f_replay.py</code></td>
 <td>同一环境下的 HD 视频</td>
 </tr>
+<tr>
+<td><code>m9f_export.py</code></td>
+<td>checkpoint → ONNX（normalizer 烘进图，61→14）</td>
+</tr>
 </tbody></table></div>
 <p>actor 观测保持运行时布局：gyro 3 + gravity 3 + pos 14 + vel 14 + last action 14 + twist 3 + head 4 + body 6 = <strong>61</strong>。动作是 <strong>14D</strong>，<code>scale=1.0</code>。本课只做平地前向行走；head/body 槽保留形状但不扩展新任务。</p>
 <p>先用 M9d 已知可行走 checkpoint 做<strong>推理基线</strong>。它若在新环境也走不了，应修环境，不能开始 PPO。基线通过后，新策略才从随机权重训练。</p>
@@ -835,7 +839,256 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </div></div>
 </section>
 <section class="am-panel" id="panel-E">
-<header class="am-panel-head"><span class="am-panel-id">E</span><h2>验收</h2></header>
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>训练阶段与参数</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>参数集中在 <code>m9f_robot.py</code>、<code>m9f_env_cfg.py</code>（含 <code>make_handmade_rl_cfg</code>）和 CLI。不要按文件从头背；按一次 iteration 的时间线查：这一步改的是动力学、是逐步奖励 r，还是梯度夹紧。</p>
+</div>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 534 86" width="534" height="86" role="img" aria-label="流程图：启动、采样A、算账B、更新C、课程D" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge am-edge--dashed" d="M78,31.5 L89.5,31.5 Q101,31.5 112.5,31.5 L124,31.5" marker-end="url(#am2-arrow)"/></g><g data-step="1"><path class="am-edge am-edge--dashed" d="M188,44.7 L199.5,49.5 Q211,54.3 222.5,54.3 L234,54.3" marker-end="url(#am2-arrow)"/></g><g data-step="2"><path class="am-edge am-edge--dashed" d="M298,54.3 L309.5,54.3 Q321,54.3 332.5,54.3 L344,54.3" marker-end="url(#am2-arrow)"/></g><g data-step="3"><path class="am-edge am-edge--dashed" d="M408,54.3 L419.5,54.3 Q431,54.3 442.5,49.5 L454,44.8" marker-end="url(#am2-arrow)"/></g><g data-step="4"><path class="am-edge am-edge--dashed" d="M454,18.2 L442.5,13.5 Q431,8.8 403.5,8.8 Q376,8.8 348.5,8.8 Q321,8.8 293.5,8.8 Q266,8.8 238.5,8.8 Q211,8.8 199.5,13.5 L188,18.3" marker-end="url(#am2-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="启动" data-step="0"><rect class="am-node-shape" x="14" y="14" width="64" height="35" rx="3"/><text x="46" y="31.5" text-anchor="middle" dominant-baseline="central">启动</text></g><g class="am-node am-node--rect" data-key="采样A" data-step="0"><rect class="am-node-shape" x="124" y="14" width="64" height="35" rx="3"/><text x="156" y="31.5" text-anchor="middle" dominant-baseline="central">采样A</text></g><g class="am-node am-node--rect" data-key="算账B" data-step="1"><rect class="am-node-shape" x="234" y="36.8" width="64" height="35" rx="3"/><text x="266" y="54.3" text-anchor="middle" dominant-baseline="central">算账B</text></g><g class="am-node am-node--rect" data-key="更新C" data-step="2"><rect class="am-node-shape" x="344" y="36.8" width="64" height="35" rx="3"/><text x="376" y="54.3" text-anchor="middle" dominant-baseline="central">更新C</text></g><g class="am-node am-node--rect" data-key="课程D" data-step="3"><rect class="am-node-shape" x="454" y="14" width="65.2" height="35" rx="3"/><text x="486.6" y="31.5" text-anchor="middle" dominant-baseline="central">课程D</text></g></g></svg></figure>
+<div class="am-md"><p>一次 iteration ≈：用当前策略采 <code>num_steps_per_env</code> 步 → 算回报与优势 → PPO 更新 → 课程/存盘。选动作时还没有 G−V；N 个 env 共用一份策略权重。</p>
+<h3>0 · 启动（只做一次）</h3>
+<p>建 N 个平行环境，初始化 actor / critic。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>旋钮</th>
+<th>位置</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HANDMADE_ROBOT_CFG</code>、BAM（<code>kp_fw</code> / <code>vin_*</code> / <code>delay_*</code>）、脚底 <code>condim</code>/摩擦</td>
+<td><code>m9f_robot</code></td>
+<td>定物理与执行器；错了后面奖励全歪</td>
+</tr>
+<tr>
+<td>脚接触 / 自碰 / 脚高传感器</td>
+<td><code>env_cfg</code> 传感器段</td>
+<td>给奖励和 critic 特权观测供数</td>
+</tr>
+<tr>
+<td><code>--num-envs</code></td>
+<td>CLI / <code>scene.num_envs</code></td>
+<td>平行世界数；仍是一份 θ</td>
+</tr>
+<tr>
+<td><code>hidden_dims</code>、<code>obs_normalization</code>、<code>init_std</code></td>
+<td><code>make_handmade_rl_cfg</code></td>
+<td>网络壳与初始探索</td>
+</tr>
+</tbody></table></div>
+<h3>A · 采样（每轮前半；尚无优势）</h3>
+<p>每步：观测 → 抽样动作 → 仿真 → 奖励 r 写入缓冲。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>旋钮</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>actor 观测：噪声、延迟、<code>biased</code>；删线速度 / height_scan；head/body 槽补零</td>
+<td>决定策略看见的 61D；脏观测只给 actor</td>
+</tr>
+<tr>
+<td>critic 脚接触 / 腾空走 <code>m9f_mdp</code> 双脚合并</td>
+<td>估分器用的特权信息</td>
+</tr>
+<tr>
+<td>动作 <code>scale=1.0</code>、舵机正则</td>
+<td><code>目标角 = HOME + action</code></td>
+</tr>
+<tr>
+<td>命令 <code>vx∈(0.2,0.4)</code>、站立比例、重采样周期</td>
+<td>本课只练前走；命令进观测并进入奖励</td>
+</tr>
+<tr>
+<td>奖励权重与站高门控 <code>0.085→0.115</code></td>
+<td>每步 r 的评分标准；太矮不得前进/腾空分</td>
+</tr>
+<tr>
+<td>重置时摩擦 / 质心 / armature；<code>nan_state</code> 终止</td>
+<td>换局身体略不同；数值炸则结束该局</td>
+</tr>
+<tr>
+<td><code>num_steps_per_env=24</code></td>
+<td>每个 env 连采多少步再进入算账</td>
+</tr>
+</tbody></table></div>
+<p>改奖励或门控 = 改缓冲里的 r，从而改后面的优势，不直接改梯度公式。</p>
+<h3>B · 算账</h3>
+<p>用缓冲里的 <code>(观测, 动作, r)</code> 算回报 G 与优势 A；不倒带重跑。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>旋钮</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>critic 网络 + 其观测</td>
+<td>输出 V(s)</td>
+</tr>
+<tr>
+<td><code>gamma=0.99</code>、<code>lam=0.95</code></td>
+<td>折扣与 GAE；把逐步 r 折成优势</td>
+</tr>
+</tbody></table></div>
+<h3>C · PPO 更新</h3>
+<p>按优势正负拧策略；估分器让 V 贴近回报目标。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>旋钮</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>clip_param</code>、<code>learning_rate</code>、<code>schedule</code>、<code>desired_kl</code></td>
+<td>一次别改太猛；按 KL 调步长</td>
+</tr>
+<tr>
+<td><code>num_learning_epochs</code>、<code>num_mini_batches</code></td>
+<td>同批数据多学几遍、拆小批</td>
+</tr>
+<tr>
+<td><code>entropy_coef</code>、<code>max_grad_norm</code>、value loss 相关</td>
+<td>探索、梯度裁剪、估分器损失</td>
+</tr>
+</tbody></table></div>
+<p>此时奖励表已经变成缓冲中的数，不再单独出现。</p>
+<h3>D · 课程与存盘</h3>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>旋钮</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>action_rate</code> 权重阶梯、<code>standing_envs</code> 比例阶梯</td>
+<td>改变<strong>下一轮</strong>采样的评分与命令分布（步数按 <code>iteration×24</code>）</td>
+</tr>
+<tr>
+<td><code>save_interval</code>、<code>max_iterations</code></td>
+<td>存盘与停训</td>
+</tr>
+</tbody></table></div>
+<h3>评估时（<code>play=True</code>）</h3>
+<p>关掉摩擦/质心等随机与课程，actor 无噪声；加载 checkpoint 只推理，不再走算账与更新。<code>m9f_evaluate</code> / <code>m9f_replay</code> 用这一模式。</p>
+<h3>想改什么 → 动哪</h3>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>意图</th>
+<th>优先动</th>
+<th>主要落在</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>多采平行样本</td>
+<td><code>--num-envs</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>跟速度更紧 / 防蹲着蹭</td>
+<td>跟踪与前进权重、站高门控</td>
+<td>A → B</td>
+</tr>
+<tr>
+<td>更像真机电池与延迟</td>
+<td>BAM <code>vin_*</code>、<code>delay_*</code></td>
+<td>启动与 A 的动力学</td>
+</tr>
+<tr>
+<td>更新别太猛 / 多探索</td>
+<td><code>clip_param</code>、<code>lr</code>、<code>entropy_coef</code></td>
+<td>C</td>
+</tr>
+<tr>
+<td>先学会走再逼平滑、多练站</td>
+<td>curriculum 两段</td>
+<td>D → 之后的 A</td>
+</tr>
+</tbody></table></div>
+</div></div>
+</section>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>配置答疑（env_cfg 细读）</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>下面补的是领读「训练阶段与参数」之后、对着 <code>m9f_env_cfg.py</code> 追问的一批点。读配置时按「谁生成数 → 谁读数 → 谁加权求和」查，比按行号背快。</p>
+<h3>命令 <code>twist</code>：是不是观测里的 command？</h3>
+<p>是。命令管理器里的 <code>twist</code> 被观测项 <code>generated_commands(command_name=&quot;twist&quot;)</code> 读走，进 actor 的 3 维（vx, vy, wz）。head/body 那 4+6 维是另两项，本课填零，不是这段。</p>
+<p><code>UniformVelocityCommandCfg</code> 写的是<strong>采样规则</strong>，不是某一帧的固定向量。运行时按 <code>ranges</code> 均匀抽；约 <code>rel_standing_envs</code> 比例的 env 整段清零；每个 env 在 <code>resampling_time_range</code> 到期后重抽。本课 <code>vy</code>/<code>wz</code> 范围为 0，只练前走。评估脚本会改成固定 vx，不再按训练范围乱抽。</p>
+<h3>动作为什么是 14 维？谁定义的？</h3>
+<p>没有在网络配置里手写 <code>action_dim=14</code>。链路是：</p>
+</div>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 455 306" width="455" height="306" role="img" aria-label="流程图：duck_handmade_xml、HANDMADE_ROBOT_CFG、joint_pos_action、SERVO_JOINT_PATTERN、action_dim" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am3-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge am-edge--dashed" d="M113,49 L113,60.5 Q113,72 113,83.5 L113,95" marker-end="url(#am3-arrow)"/></g><g data-step="1"><path class="am-edge am-edge--dashed" d="M113,130 L113,141.5 Q113,153 145.9,164.5 L178.7,176" marker-end="url(#am3-arrow)"/></g><g data-step="2"><path class="am-edge am-edge--dashed" d="M344.5,130 L344.5,141.5 Q344.5,153 311.6,164.5 L278.7,176" marker-end="url(#am3-arrow)"/></g><g data-step="3"><path class="am-edge am-edge--dashed" d="M228.7,211 L228.7,222.5 Q228.7,234 228.7,245.5 L228.7,257" marker-end="url(#am3-arrow)"/></g></g><g><g class="am-node am-node--rect" data-key="duck_handmade_xml" data-step="0"><rect class="am-node-shape" x="34.8" y="14" width="156.4" height="35" rx="3"/><text x="113" y="31.5" text-anchor="middle" dominant-baseline="central">duck_handmade_xml</text></g><g class="am-node am-node--rect" data-key="HANDMADE_ROBOT_CFG" data-step="0"><rect class="am-node-shape" x="14" y="95" width="198" height="35" rx="3"/><text x="113" y="112.5" text-anchor="middle" dominant-baseline="central">HANDMADE_ROBOT_CFG</text></g><g class="am-node am-node--rect" data-key="joint_pos_action" data-step="1"><rect class="am-node-shape" x="164.3" y="176" width="128.9" height="35" rx="3"/><text x="228.7" y="193.5" text-anchor="middle" dominant-baseline="central">joint_pos_action</text></g><g class="am-node am-node--rect" data-key="SERVO_JOINT_PATTERN" data-step="2"><rect class="am-node-shape" x="248" y="95" width="192.8" height="35" rx="3"/><text x="344.5" y="112.5" text-anchor="middle" dominant-baseline="central">SERVO_JOINT_PATTERN</text></g><g class="am-node am-node--rect" data-key="action_dim" data-step="3"><rect class="am-node-shape" x="181.1" y="257" width="95.3" height="35" rx="3"/><text x="228.7" y="274.5" text-anchor="middle" dominant-baseline="central">action_dim</text></g></g></svg></figure>
+<div class="am-md"><p><code>actions[&quot;joint_pos&quot;].actuator_names</code> 设为舵机正则（排除 <code>passive_</code> 前缀），按名匹配可控铰链；<code>action_dim</code> 等于匹配个数。XML 里左右腿各 5 + 头颈 4 = 14。文件顶上的 <code>ACTION_DIM = 14</code> 只做导出校验，不建空间。<code>joint_pos</code> / <code>joint_vel</code> 观测也用同一正则，与动作对齐。</p>
+<h3>观测 61 维从哪来？字典顺序靠谱吗？</h3>
+<p>脚手架 <code>make_velocity_env_cfg</code> 先铺好观测表；本课删掉 actor 的线速度与 height_scan，并加上 head/body 零槽。最终拼接顺序跟 <strong>Python 3.7+ dict 插入顺序</strong>走，当前布局是约定而非语言级硬契约。改 <code>terms</code> 插入顺序会改 61 的分段含义；导出与 daemon 契约依赖这份顺序稳定。</p>
+<p><code>deepcopy</code> 改 <code>joint_pos</code>/<code>joint_vel</code> 的 <code>asset_cfg</code>，是避免和脚手架共享同一份 params 对象；<strong>不会</strong>把 61 维改成随机噪声。噪声是观测项上另配的 corruption。</p>
+<h3><code>track_forward_velocity</code> 的 <code>std</code> 是什么？</h3>
+<p>奖励形如 <code>exp(-((cmd_vx - actual_vx) / std)^2)</code>。<code>std</code> 是误差带宽：越小越严。写成 <code>math.sqrt(0.1)</code> 是让方差一眼等于 0.1（误差平方到 0.1 时奖励约 0.37）。这是塑形超参，不是从物理推导出来的；官方线速度跟踪常用 <code>sqrt(0.25)</code>，本课只盯前向一维，收紧到 <code>sqrt(0.1)</code>。</p>
+<h3>为什么把 <code>track_angular_velocity</code> 的 weight 写成 0？</h3>
+<p>脚手架里这项默认 weight=2.0。本课是在脚手架上改，不是空表新建。<strong>不写成 0，它会继续进总奖励。</strong> 本课命令 <code>ang_vel_z</code> 恒为 0，留着会逼「别转」，和专心前进抢梯度。<code>weight==0</code> 时奖励管理器跳过该项。</p>
+<h3><code>upright</code> 是人形专用吗？蜘蛛还要吗？</h3>
+<p>脚手架就有 <code>upright</code>。<code>make_velocity_env_cfg</code> 是通用速度任务底座：官方既挂 G1 人形，也挂 Go1 四足。它量的是指定 body 相对重力（或地形法向）歪了多少。地面多足若仍要「肚子朝下别翻」，通常仍有用，只换 <code>body_names</code> 与松紧；若故意侧爬或「上」不是世界竖直，应关掉或改语义。</p>
+<h3><code>air_time</code> 是自定义的吗？还能自己加奖励吗？</h3>
+<p>脚手架已有 <code>air_time</code> 名；本课用 <code>m9f_mdp.feet_air_time</code> <strong>整项覆盖</strong>，并加了命令门控与站高门控。自定义做法：写返回形状 <code>(num_envs,)</code> 的函数，再 <code>RewardTermCfg(func=..., weight=..., params=...)</code> 挂上。观测与终止同一套路。</p>
+<h3>多项奖励怎么合成？能改成累乘吗？</h3>
+<p>框架写死为加权求和：<code>Σ (raw × weight × dt)</code>。没有 <code>aggregation=&quot;product&quot;</code> 开关。若要相乘，做成<strong>一个</strong>自定义 term，在函数内部算乘积再返回。</p>
+<h3>脚手架里还有哪些奖励？本课动了啥？</h3>
+<p>脚手架默认 13 项：<code>track_linear_velocity</code>、<code>track_angular_velocity</code>、<code>upright</code>、<code>pose</code>、<code>body_ang_vel</code>(0)、<code>angular_momentum</code>(0)、<code>dof_pos_limits</code>、<code>action_rate_l2</code>、<code>air_time</code>(0)、<code>foot_clearance</code>、<code>foot_swing_height</code>、<code>foot_slip</code>、<code>soft_landing</code>。</p>
+<p>本课：替换线速度跟踪 / air_time / foot_slip；新增 <code>forward_velocity</code>、<code>self_collisions</code>；角速度跟踪 weight=0；删掉 <code>foot_swing_height</code>、<code>soft_landing</code>；其余多半只改参数。</p>
+<h3>events 和 curriculum 干什么？</h3>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>时机</th>
+<th>本课例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>events</strong></td>
+<td>startup / reset / interval，改仿真世界</td>
+<td>脚摩擦、质心、armature、BAM 字段、reset 位姿；评估时关掉随机</td>
+</tr>
+<tr>
+<td><strong>curriculum</strong></td>
+<td>按全局步数改规则</td>
+<td><code>action_rate</code> 权重加重、站立 env 比例升高；评估时 <code>clear</code></td>
+</tr>
+</tbody></table></div>
+<p>events 管「世界何时被动手脚」；curriculum 管「训练日程何时变难」。</p>
+<h3>没有脚手架会怎样？还有哪些脚手架？</h3>
+<p>没有 <code>make_velocity_env_cfg</code>，就要从 <code>ManagerBasedRlEnvCfg</code> 自填观测/动作/命令/奖励/事件/课程（脚手架约 450 行 + <code>tasks/velocity/mdp/</code>）。本课 340 行大多是差异化。同级还有：<code>make_tracking_env_cfg</code>、<code>make_lift_cube_env_cfg</code>；Cartpole 无 <code>make_*</code>，直接组 cfg。</p>
+<h3><code>microduck_rl</code> 有多少训练任务？</h3>
+<p>注册表共 <strong>33</strong> 个可训 task id = <strong>18</strong> 个主任务 + <strong>15</strong> 个 <code>-Backlash-</code> 孪生。技能族 13 种（Velocity、VelStand、StandUp、SitStand、GroundPick、BallKick、Roulade、Rollers、Swizzle、RollerCrouch、RollerSlope、RollerStandUp、Spin）；左右脚踢球是同一 BallKick 改脚训两次。</p>
+<h3>网络维度在哪定义？怎么拿捏？</h3>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>端</th>
+<th>谁定</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>输入 / 输出</td>
+<td>环境：观测表总维、动作匹配关节数（本课 61→14）</td>
+</tr>
+<tr>
+<td>隐层</td>
+<td><code>make_handmade_rl_cfg</code> 的 <code>hidden_dims=(512,256,128)</code></td>
+</tr>
+</tbody></table></div>
+<p>进出维跟任务接口走；隐层是容量旋钮，本课照抄官方腿式速度惯例。改隐层不改 ONNX 契约；改观测项或关节才会。</p>
+<h3><code>nan_state</code> 终止干什么？</h3>
+<p><code>robot_state_is_nan</code>：根状态、关节、脚传感器出现非有限数时结束该局（<code>time_out=False</code>，算失败不是时间到）。防止物理偶发发散把整批更新弄脏。</p>
+<h3>工期直觉（写 cfg ≠ 上机）</h3>
+<p>熟练、有 MJCF、用速度脚手架：冒烟级 cfg 常见 <strong>0.5～2 天</strong>；走到「能前走不太倒」常要 <strong>1～2 周</strong> 调奖励与物理。工业上演示级 sim-to-real 多按月计；可交付系统常按半年到一年以上——瓶颈在真机、安全与场景覆盖，不在抄满 <code>RewardTermCfg</code>。</p>
+</div></div>
+</section>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>验收</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>在教程仓根执行。云机为 RTX 4090；先登录：</p>
 </div>
 <figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">ssh -p 23 root@117.50.221.204</span></code></pre></figure>
@@ -866,29 +1119,60 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <p>生成 HD 回放：</p>
 </div>
 <figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">MUJOCO_GL=egl $PY impl/scripts/m9f_replay.py \</span><span class="am-ln">  --checkpoint logs/main_2048x1000/model_999.pt \</span><span class="am-ln">  --out-dir artifacts/videos --video-length 250 --vx 0.3 --no-terminations</span></code></pre></figure>
-<div class="am-md"><p>回本机终端，把视频拉回并观看：</p>
+<div class="am-md"><p><strong>5. 导出 ONNX（仍在云机）。</strong> 走自有 <code>m9f_export.py</code>，不调用官方 <code>scripts/export.py</code> / <code>mjlab_microduck</code>：</p>
 </div>
-<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/videos/model_999.mp4 \</span><span class="am-ln">  tutor/artifacts/m09f/videos/main_model_999.mp4</span><span class="am-ln">xdg-open tutor/artifacts/m09f/videos/main_model_999.mp4</span></code></pre></figure>
-<div class="am-md"><p>肉眼应看到持续直立前进，而不是深蹲碎步。此回放证明的是训练环境内步态，不冒充 daemon 部署验收。自动总门：<code>bash accept/m09f-b01.sh</code>；完整跑证在 <code>tutor/runs/m09f-b01.txt</code>。</p>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">$PY impl/scripts/m9f_export.py \</span><span class="am-ln">  --checkpoint logs/main_2048x1000/model_999.pt \</span><span class="am-ln">  --output artifacts/policy_export.onnx</span></code></pre></figure>
+<div class="am-md"><p>预期打印 <code>export_ok=1</code>，且 <code>obs_dim=61</code>、<code>action_dim=14</code>。normalizer 经 runner <code>as_onnx</code> 烘进图。</p>
+<p><strong>6. 回本机：拷 checkpoint、ONNX、视频与评估 JSON。</strong> 在教程仓根新开终端（本机）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">mkdir -p tutor/artifacts/m09f/checkpoints tutor/artifacts/m09f/videos</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/logs/main_2048x1000/model_999.pt \</span><span class="am-ln">  tutor/artifacts/m09f/checkpoints/model_999.pt</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/policy_export.onnx \</span><span class="am-ln">  tutor/artifacts/m09f/policy_export.onnx</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/videos/model_999.mp4 \</span><span class="am-ln">  tutor/artifacts/m09f/videos/main_model_999.mp4</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/main_999.json \</span><span class="am-ln">  tutor/artifacts/m09f/evaluation.json</span></code></pre></figure>
+<div class="am-md"><p><strong>7. 本机宿主机仿真（用本课 ONNX）。</strong> 先可打开训练回放作对照：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">xdg-open tutor/artifacts/m09f/videos/main_model_999.mp4</span></code></pre></figure>
+<div class="am-md"><p>肉眼应看到持续直立前进，而不是深蹲碎步。</p>
+<p>再开三个终端，用自训 ONNX 驱动我们的栈（动作尺度 1.0，与训练契约一致）。二进制若未编出，先：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">docker compose -f impl/docker-compose.yml exec rust cargo build --bins</span></code></pre></figure>
+<div class="am-md"><p>终端 A（仓库根）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">.venv/bin/python impl/sim/duck_body.py --viewer --port 7811</span></code></pre></figure>
+<div class="am-md"><p>应弹出 MuJoCo；默认 handmade BAM。</p>
+<p>终端 B（<code>impl/</code>）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">cd impl</span></code></pre></figure>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">env MINIDUCK_POLICY=../tutor/artifacts/m09f/policy_export.onnx \</span><span class="am-ln">  MINIDUCK_WALK_ACTION_SCALE=1.0 \</span><span class="am-ln">  ORT_DYLIB_PATH=third_party/onnxruntime/lib/libonnxruntime.so \</span><span class="am-ln">  ./target/debug/miniduckd --sim 127.0.0.1:7811</span></code></pre></figure>
+<div class="am-md"><p>终端 C（仍在 <code>impl/</code>）：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">./target/debug/mini-duckctl enable</span></code></pre></figure>
+<div class="am-md"><p>等约 2 秒站稳后：</p>
+</div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title"></span><span class="am-code-lang">bash</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="bash"><span class="am-ln">./target/debug/mini-duckctl move 0.3 0 0 --secs 10</span></code></pre></figure>
+<div class="am-md"><p>观察：约 10 秒内明显前移、保持 upright。看够后 Ctrl+C 停 B/A。</p>
+<p>自动总门：<code>bash accept/m09f-b01.sh</code>；完整跑证在 <code>tutor/runs/m09f-b01.txt</code>。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-F">
-<header class="am-panel-head"><span class="am-panel-id">F</span><h2>与原版差异</h2></header>
+<section class="am-panel" id="panel-H">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>与原版差异</h2></header>
 <div class="am-panel-body"><div class="am-md"><p>D71：训练身体与任务实现都由本仓拥有，官方 M9d 仅作已知可行走对照。见 <a href="../../spec/deviations.md">spec/deviations.md</a>。</p>
 </div></div>
 </section>
-<section class="am-panel" id="panel-G">
-<header class="am-panel-head"><span class="am-panel-id">G</span><h2>坑</h2></header>
+<section class="am-panel" id="panel-I">
+<header class="am-panel-head"><span class="am-panel-id">I</span><h2>坑</h2></header>
 <div class="am-panel-body"><div class="am-md"><ul>
 <li><strong>训练结束不等于会走。</strong> 第一次短训站高正常，5 秒只走 0.0086 m；第二次也只有 0.0217 m。</li>
 <li><strong>只加前进分会出现低姿态投机。</strong> 第三次达到 1.824 m，但站高只有 0.0714 m，所以仍失败。</li>
 <li><strong>从低姿态策略续训不一定最好。</strong> 对照续训位移 0.346 m；从零使用站高门控的短训达到 0.960 m，因此主线选后者。</li>
 <li><strong>最后一个 checkpoint 也要重新测。</strong> 评价固定使用同一命令、同一 play 配置和实际位移，不用 mean reward 替代。</li>
+<li><strong><code>.pt</code> 不能直接喂给 <code>miniduckd</code>。</strong> 必须走自有 <code>m9f_export.py</code>；官方 <code>scripts/export.py</code> 绑的是官方任务，本课不用。</li>
 </ul>
 </div></div>
 </section>
-<section class="am-panel am-span-wide" id="panel-H" style="grid-column: span 2">
-<header class="am-panel-head"><span class="am-panel-id">H</span><h2>自测</h2></header>
+<section class="am-panel am-span-wide" id="panel-J" style="grid-column: span 3">
+<header class="am-panel-head"><span class="am-panel-id">J</span><h2>自测</h2></header>
 <div class="am-panel-body"><div class="am-md"><p><strong>1. 为什么四个脚底 geom 不能直接送进原来的双脚滑动奖励？</strong></p>
 <ul>
 <li>A. MuJoCo 不支持四个 geom</li>
@@ -913,6 +1197,46 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <li>D. 短训在固定命令下同时保持正常站高、产生有效位移，并通过视频检查</li>
 </ul>
 <details><summary>答案</summary><p>D。训练成功和步态成功是两道门；站高与位移必须一起满足。</p>
+</details><p><strong>4. 本课导出 ONNX 为什么必须走 <code>m9f_export.py</code>，而不是官方 <code>scripts/export.py</code>？</strong></p>
+<ul>
+<li>A. 官方脚本不能写出 <code>.onnx</code> 文件</li>
+<li>B. 官方导出绑官方任务与机器人；本课主路径不 import <code>mjlab_microduck</code>，要用自有 env/robot 把 normalizer 烘进图</li>
+<li>C. 只有云机才能跑官方导出</li>
+<li>D. daemon 只认文件名 <code>policy_export.onnx</code></li>
+</ul>
+<details><summary>答案</summary><p>B。自有导出与训练共用同一套 env/robot；探针应为 61→14，且 <code>MINIDUCK_WALK_ACTION_SCALE=1.0</code>。</p>
+</details><p><strong>5. 加大站高门控或前进奖励权重，主要改变 PPO 循环里的哪一段？</strong></p>
+<ul>
+<li>A. 只改 C 段的 <code>clip_param</code></li>
+<li>B. 改 A 段每步的 r，从而改变 B 段算出来的优势</li>
+<li>C. 只改 D 段存盘间隔</li>
+<li>D. 只改 actor 的 <code>hidden_dims</code></li>
+</ul>
+<details><summary>答案</summary><p>B。奖励与门控在采样时写入缓冲；算账与更新吃的是这些 r，不是在 C 段再读一遍奖励表。</p>
+</details><p><strong>6. 本课动作 14 维主要来自哪里？</strong></p>
+<ul>
+<li>A. <code>hidden_dims</code> 最后一维写成 14</li>
+<li>B. <code>ACTION_DIM = 14</code> 常量强制建网</li>
+<li>C. <code>joint_pos</code> 动作按舵机正则匹配到 14 个铰链，<code>action_dim</code> 等于匹配个数</li>
+<li>D. PPO 会自动把任意机器人压成 14 维</li>
+</ul>
+<details><summary>答案</summary><p>C。<code>ACTION_DIM</code> 只做导出校验；网络输出维由环境动作空间推断。</p>
+</details><p><strong>7. 脚手架里已有 <code>track_angular_velocity</code>（默认 weight=2）。本课若不改 weight，会怎样？</strong></p>
+<ul>
+<li>A. 该项自动删除</li>
+<li>B. 继续按默认权重进入总奖励</li>
+<li>C. 只影响 critic，不影响 actor</li>
+<li>D. 只在 <code>play=True</code> 时生效</li>
+</ul>
+<details><summary>答案</summary><p>B。本课是改脚手架，不是空表；要关掉须 <code>weight=0</code> 或删除该项。</p>
+</details><p><strong>8. events 与 curriculum 的分工更接近哪一句？</strong></p>
+<ul>
+<li>A. 都是每步拼进 61D 观测的项</li>
+<li>B. events 在特定时机改世界；curriculum 按训练进度改难度或权重</li>
+<li>C. 两者都只在导出 ONNX 时运行</li>
+<li>D. curriculum 负责采样动作，events 负责算优势</li>
+</ul>
+<details><summary>答案</summary><p>B。评估时常清 curriculum、并关掉摩擦/质心等随机 event。</p>
 </details>
 </div></div>
 </section>
@@ -934,11 +1258,11 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <div class="am-lightbox-canvas am-diagram"></div>
 </div>
 </div>
-<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-10-30 12:48 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.5.0 · 2026-11-02 17:18 · <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">★ Star on GitHub</a></footer>
 <textarea id="am-source" hidden readonly aria-hidden="true">---
 template: sheet
 title: M9f Bite 1：手搓 handmade 训练环境（第 30 章）
-subtitle: 从自己的 MJCF 写任务；基线验环境，PPO 从随机权重学会直立前进
+subtitle: 从自己的 MJCF 写任务；PPO 从随机权重学会直立前进，并导出可部署 ONNX
 source: clone-from-scratch-tutor · 第 30 章
 ---
 
@@ -959,9 +1283,11 @@ m9f_mdp -&gt; m9f_train
 m9f_train -&gt; checkpoint
 checkpoint -&gt; m9f_evaluate
 checkpoint -&gt; m9f_replay
+checkpoint -&gt; m9f_export
+m9f_export -&gt; policy_export.onnx
 ```
 
-六个模块各有边界：
+七个模块各有边界：
 
 | 模块 | 自己负责什么 |
 |---|---|
@@ -971,6 +1297,7 @@ checkpoint -&gt; m9f_replay
 | `m9f_train.py` | 环境到通用 runner 的组装、保存与同任务续训 |
 | `m9f_evaluate.py` | 固定命令下的站高、位移、速度和接触指标 |
 | `m9f_replay.py` | 同一环境下的 HD 视频 |
+| `m9f_export.py` | checkpoint → ONNX（normalizer 烘进图，61→14） |
 
 actor 观测保持运行时布局：gyro 3 + gravity 3 + pos 14 + vel 14 + last action 14 + twist 3 + head 4 + body 6 = **61**。动作是 **14D**，`scale=1.0`。本课只做平地前向行走；head/body 槽保留形状但不扩展新任务。
 
@@ -1017,6 +1344,178 @@ air_reward = feet_in_valid_air_range * gate
 高斯跟踪在 `actual_vx=0` 处对速度没有前进梯度，所以增加线性、封顶的 `progress`。门控让 85 mm 以下的爬行或深蹲不得分，115 mm 以上才全额计分。策略先靠直立和姿态项获得可行走姿态，再从前进项学习迈步。
 
 `m9f_train.py:45-85` 只负责组装：创建同一个 env cfg、包成 rsl_rl 环境、交给通用 `VelocityOnPolicyRunner`。`--resume-from` 延续的是我们自己某一阶段的 checkpoint，不是官方权重。
+
+## 训练阶段与参数
+
+参数集中在 `m9f_robot.py`、`m9f_env_cfg.py`（含 `make_handmade_rl_cfg`）和 CLI。不要按文件从头背；按一次 iteration 的时间线查：这一步改的是动力学、是逐步奖励 r，还是梯度夹紧。
+
+```flow LR
+启动 --&gt; 采样A
+采样A --&gt; 算账B
+算账B --&gt; 更新C
+更新C --&gt; 课程D
+课程D --&gt; 采样A
+```
+
+一次 iteration ≈：用当前策略采 `num_steps_per_env` 步 → 算回报与优势 → PPO 更新 → 课程/存盘。选动作时还没有 G−V；N 个 env 共用一份策略权重。
+
+### 0 · 启动（只做一次）
+
+建 N 个平行环境，初始化 actor / critic。
+
+| 旋钮 | 位置 | 作用 |
+|---|---|---|
+| `HANDMADE_ROBOT_CFG`、BAM（`kp_fw` / `vin_*` / `delay_*`）、脚底 `condim`/摩擦 | `m9f_robot` | 定物理与执行器；错了后面奖励全歪 |
+| 脚接触 / 自碰 / 脚高传感器 | `env_cfg` 传感器段 | 给奖励和 critic 特权观测供数 |
+| `--num-envs` | CLI / `scene.num_envs` | 平行世界数；仍是一份 θ |
+| `hidden_dims`、`obs_normalization`、`init_std` | `make_handmade_rl_cfg` | 网络壳与初始探索 |
+
+### A · 采样（每轮前半；尚无优势）
+
+每步：观测 → 抽样动作 → 仿真 → 奖励 r 写入缓冲。
+
+| 旋钮 | 作用 |
+|---|---|
+| actor 观测：噪声、延迟、`biased`；删线速度 / height_scan；head/body 槽补零 | 决定策略看见的 61D；脏观测只给 actor |
+| critic 脚接触 / 腾空走 `m9f_mdp` 双脚合并 | 估分器用的特权信息 |
+| 动作 `scale=1.0`、舵机正则 | `目标角 = HOME + action` |
+| 命令 `vx∈(0.2,0.4)`、站立比例、重采样周期 | 本课只练前走；命令进观测并进入奖励 |
+| 奖励权重与站高门控 `0.085→0.115` | 每步 r 的评分标准；太矮不得前进/腾空分 |
+| 重置时摩擦 / 质心 / armature；`nan_state` 终止 | 换局身体略不同；数值炸则结束该局 |
+| `num_steps_per_env=24` | 每个 env 连采多少步再进入算账 |
+
+改奖励或门控 = 改缓冲里的 r，从而改后面的优势，不直接改梯度公式。
+
+### B · 算账
+
+用缓冲里的 `(观测, 动作, r)` 算回报 G 与优势 A；不倒带重跑。
+
+| 旋钮 | 作用 |
+|---|---|
+| critic 网络 + 其观测 | 输出 V(s) |
+| `gamma=0.99`、`lam=0.95` | 折扣与 GAE；把逐步 r 折成优势 |
+
+### C · PPO 更新
+
+按优势正负拧策略；估分器让 V 贴近回报目标。
+
+| 旋钮 | 作用 |
+|---|---|
+| `clip_param`、`learning_rate`、`schedule`、`desired_kl` | 一次别改太猛；按 KL 调步长 |
+| `num_learning_epochs`、`num_mini_batches` | 同批数据多学几遍、拆小批 |
+| `entropy_coef`、`max_grad_norm`、value loss 相关 | 探索、梯度裁剪、估分器损失 |
+
+此时奖励表已经变成缓冲中的数，不再单独出现。
+
+### D · 课程与存盘
+
+| 旋钮 | 作用 |
+|---|---|
+| `action_rate` 权重阶梯、`standing_envs` 比例阶梯 | 改变**下一轮**采样的评分与命令分布（步数按 `iteration×24`） |
+| `save_interval`、`max_iterations` | 存盘与停训 |
+
+### 评估时（`play=True`）
+
+关掉摩擦/质心等随机与课程，actor 无噪声；加载 checkpoint 只推理，不再走算账与更新。`m9f_evaluate` / `m9f_replay` 用这一模式。
+
+### 想改什么 → 动哪
+
+| 意图 | 优先动 | 主要落在 |
+|---|---|---|
+| 多采平行样本 | `--num-envs` | A |
+| 跟速度更紧 / 防蹲着蹭 | 跟踪与前进权重、站高门控 | A → B |
+| 更像真机电池与延迟 | BAM `vin_*`、`delay_*` | 启动与 A 的动力学 |
+| 更新别太猛 / 多探索 | `clip_param`、`lr`、`entropy_coef` | C |
+| 先学会走再逼平滑、多练站 | curriculum 两段 | D → 之后的 A |
+
+## 配置答疑（env_cfg 细读）
+
+下面补的是领读「训练阶段与参数」之后、对着 `m9f_env_cfg.py` 追问的一批点。读配置时按「谁生成数 → 谁读数 → 谁加权求和」查，比按行号背快。
+
+### 命令 `twist`：是不是观测里的 command？
+
+是。命令管理器里的 `twist` 被观测项 `generated_commands(command_name=&quot;twist&quot;)` 读走，进 actor 的 3 维（vx, vy, wz）。head/body 那 4+6 维是另两项，本课填零，不是这段。
+
+`UniformVelocityCommandCfg` 写的是**采样规则**，不是某一帧的固定向量。运行时按 `ranges` 均匀抽；约 `rel_standing_envs` 比例的 env 整段清零；每个 env 在 `resampling_time_range` 到期后重抽。本课 `vy`/`wz` 范围为 0，只练前走。评估脚本会改成固定 vx，不再按训练范围乱抽。
+
+### 动作为什么是 14 维？谁定义的？
+
+没有在网络配置里手写 `action_dim=14`。链路是：
+
+```flow TB
+duck_handmade_xml --&gt; HANDMADE_ROBOT_CFG
+HANDMADE_ROBOT_CFG --&gt; joint_pos_action
+SERVO_JOINT_PATTERN --&gt; joint_pos_action
+joint_pos_action --&gt; action_dim
+```
+
+`actions[&quot;joint_pos&quot;].actuator_names` 设为舵机正则（排除 `passive_` 前缀），按名匹配可控铰链；`action_dim` 等于匹配个数。XML 里左右腿各 5 + 头颈 4 = 14。文件顶上的 `ACTION_DIM = 14` 只做导出校验，不建空间。`joint_pos` / `joint_vel` 观测也用同一正则，与动作对齐。
+
+### 观测 61 维从哪来？字典顺序靠谱吗？
+
+脚手架 `make_velocity_env_cfg` 先铺好观测表；本课删掉 actor 的线速度与 height_scan，并加上 head/body 零槽。最终拼接顺序跟 **Python 3.7+ dict 插入顺序**走，当前布局是约定而非语言级硬契约。改 `terms` 插入顺序会改 61 的分段含义；导出与 daemon 契约依赖这份顺序稳定。
+
+`deepcopy` 改 `joint_pos`/`joint_vel` 的 `asset_cfg`，是避免和脚手架共享同一份 params 对象；**不会**把 61 维改成随机噪声。噪声是观测项上另配的 corruption。
+
+### `track_forward_velocity` 的 `std` 是什么？
+
+奖励形如 `exp(-((cmd_vx - actual_vx) / std)^2)`。`std` 是误差带宽：越小越严。写成 `math.sqrt(0.1)` 是让方差一眼等于 0.1（误差平方到 0.1 时奖励约 0.37）。这是塑形超参，不是从物理推导出来的；官方线速度跟踪常用 `sqrt(0.25)`，本课只盯前向一维，收紧到 `sqrt(0.1)`。
+
+### 为什么把 `track_angular_velocity` 的 weight 写成 0？
+
+脚手架里这项默认 weight=2.0。本课是在脚手架上改，不是空表新建。**不写成 0，它会继续进总奖励。** 本课命令 `ang_vel_z` 恒为 0，留着会逼「别转」，和专心前进抢梯度。`weight==0` 时奖励管理器跳过该项。
+
+### `upright` 是人形专用吗？蜘蛛还要吗？
+
+脚手架就有 `upright`。`make_velocity_env_cfg` 是通用速度任务底座：官方既挂 G1 人形，也挂 Go1 四足。它量的是指定 body 相对重力（或地形法向）歪了多少。地面多足若仍要「肚子朝下别翻」，通常仍有用，只换 `body_names` 与松紧；若故意侧爬或「上」不是世界竖直，应关掉或改语义。
+
+### `air_time` 是自定义的吗？还能自己加奖励吗？
+
+脚手架已有 `air_time` 名；本课用 `m9f_mdp.feet_air_time` **整项覆盖**，并加了命令门控与站高门控。自定义做法：写返回形状 `(num_envs,)` 的函数，再 `RewardTermCfg(func=..., weight=..., params=...)` 挂上。观测与终止同一套路。
+
+### 多项奖励怎么合成？能改成累乘吗？
+
+框架写死为加权求和：`Σ (raw × weight × dt)`。没有 `aggregation=&quot;product&quot;` 开关。若要相乘，做成**一个**自定义 term，在函数内部算乘积再返回。
+
+### 脚手架里还有哪些奖励？本课动了啥？
+
+脚手架默认 13 项：`track_linear_velocity`、`track_angular_velocity`、`upright`、`pose`、`body_ang_vel`(0)、`angular_momentum`(0)、`dof_pos_limits`、`action_rate_l2`、`air_time`(0)、`foot_clearance`、`foot_swing_height`、`foot_slip`、`soft_landing`。
+
+本课：替换线速度跟踪 / air_time / foot_slip；新增 `forward_velocity`、`self_collisions`；角速度跟踪 weight=0；删掉 `foot_swing_height`、`soft_landing`；其余多半只改参数。
+
+### events 和 curriculum 干什么？
+
+| | 时机 | 本课例子 |
+|---|---|---|
+| **events** | startup / reset / interval，改仿真世界 | 脚摩擦、质心、armature、BAM 字段、reset 位姿；评估时关掉随机 |
+| **curriculum** | 按全局步数改规则 | `action_rate` 权重加重、站立 env 比例升高；评估时 `clear` |
+
+events 管「世界何时被动手脚」；curriculum 管「训练日程何时变难」。
+
+### 没有脚手架会怎样？还有哪些脚手架？
+
+没有 `make_velocity_env_cfg`，就要从 `ManagerBasedRlEnvCfg` 自填观测/动作/命令/奖励/事件/课程（脚手架约 450 行 + `tasks/velocity/mdp/`）。本课 340 行大多是差异化。同级还有：`make_tracking_env_cfg`、`make_lift_cube_env_cfg`；Cartpole 无 `make_*`，直接组 cfg。
+
+### `microduck_rl` 有多少训练任务？
+
+注册表共 **33** 个可训 task id = **18** 个主任务 + **15** 个 `-Backlash-` 孪生。技能族 13 种（Velocity、VelStand、StandUp、SitStand、GroundPick、BallKick、Roulade、Rollers、Swizzle、RollerCrouch、RollerSlope、RollerStandUp、Spin）；左右脚踢球是同一 BallKick 改脚训两次。
+
+### 网络维度在哪定义？怎么拿捏？
+
+| 端 | 谁定 |
+|---|---|
+| 输入 / 输出 | 环境：观测表总维、动作匹配关节数（本课 61→14） |
+| 隐层 | `make_handmade_rl_cfg` 的 `hidden_dims=(512,256,128)` |
+
+进出维跟任务接口走；隐层是容量旋钮，本课照抄官方腿式速度惯例。改隐层不改 ONNX 契约；改观测项或关节才会。
+
+### `nan_state` 终止干什么？
+
+`robot_state_is_nan`：根状态、关节、脚传感器出现非有限数时结束该局（`time_out=False`，算失败不是时间到）。防止物理偶发发散把整批更新弄脏。
+
+### 工期直觉（写 cfg ≠ 上机）
+
+熟练、有 MJCF、用速度脚手架：冒烟级 cfg 常见 **0.5～2 天**；走到「能前走不太倒」常要 **1～2 周** 调奖励与物理。工业上演示级 sim-to-real 多按月计；可交付系统常按半年到一年以上——瓶颈在真机、安全与场景覆盖，不在抄满 `RewardTermCfg`。
 
 ## 验收
 
@@ -1093,15 +1592,92 @@ MUJOCO_GL=egl $PY impl/scripts/m9f_replay.py \
   --out-dir artifacts/videos --video-length 250 --vx 0.3 --no-terminations
 ```
 
-回本机终端，把视频拉回并观看：
+**5. 导出 ONNX（仍在云机）。** 走自有 `m9f_export.py`，不调用官方 `scripts/export.py` / `mjlab_microduck`：
+
+```bash
+$PY impl/scripts/m9f_export.py \
+  --checkpoint logs/main_2048x1000/model_999.pt \
+  --output artifacts/policy_export.onnx
+```
+
+预期打印 `export_ok=1`，且 `obs_dim=61`、`action_dim=14`。normalizer 经 runner `as_onnx` 烘进图。
+
+**6. 回本机：拷 checkpoint、ONNX、视频与评估 JSON。** 在教程仓根新开终端（本机）：
+
+```bash
+mkdir -p tutor/artifacts/m09f/checkpoints tutor/artifacts/m09f/videos
+```
+
+```bash
+scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/logs/main_2048x1000/model_999.pt \
+  tutor/artifacts/m09f/checkpoints/model_999.pt
+```
+
+```bash
+scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/policy_export.onnx \
+  tutor/artifacts/m09f/policy_export.onnx
+```
 
 ```bash
 scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/videos/model_999.mp4 \
   tutor/artifacts/m09f/videos/main_model_999.mp4
+```
+
+```bash
+scp -P 23 root@117.50.221.204:/cloud/cloud-ssd1/microduck-m9f/artifacts/main_999.json \
+  tutor/artifacts/m09f/evaluation.json
+```
+
+**7. 本机宿主机仿真（用本课 ONNX）。** 先可打开训练回放作对照：
+
+```bash
 xdg-open tutor/artifacts/m09f/videos/main_model_999.mp4
 ```
 
-肉眼应看到持续直立前进，而不是深蹲碎步。此回放证明的是训练环境内步态，不冒充 daemon 部署验收。自动总门：`bash accept/m09f-b01.sh`；完整跑证在 `tutor/runs/m09f-b01.txt`。
+肉眼应看到持续直立前进，而不是深蹲碎步。
+
+再开三个终端，用自训 ONNX 驱动我们的栈（动作尺度 1.0，与训练契约一致）。二进制若未编出，先：
+
+```bash
+docker compose -f impl/docker-compose.yml exec rust cargo build --bins
+```
+
+终端 A（仓库根）：
+
+```bash
+.venv/bin/python impl/sim/duck_body.py --viewer --port 7811
+```
+
+应弹出 MuJoCo；默认 handmade BAM。
+
+终端 B（`impl/`）：
+
+```bash
+cd impl
+```
+
+```bash
+env MINIDUCK_POLICY=../tutor/artifacts/m09f/policy_export.onnx \
+  MINIDUCK_WALK_ACTION_SCALE=1.0 \
+  ORT_DYLIB_PATH=third_party/onnxruntime/lib/libonnxruntime.so \
+  ./target/debug/miniduckd --sim 127.0.0.1:7811
+```
+
+终端 C（仍在 `impl/`）：
+
+```bash
+./target/debug/mini-duckctl enable
+```
+
+等约 2 秒站稳后：
+
+```bash
+./target/debug/mini-duckctl move 0.3 0 0 --secs 10
+```
+
+观察：约 10 秒内明显前移、保持 upright。看够后 Ctrl+C 停 B/A。
+
+自动总门：`bash accept/m09f-b01.sh`；完整跑证在 `tutor/runs/m09f-b01.txt`。
 
 ## 与原版差异
 
@@ -1113,6 +1689,7 @@ D71：训练身体与任务实现都由本仓拥有，官方 M9d 仅作已知可
 - **只加前进分会出现低姿态投机。** 第三次达到 1.824 m，但站高只有 0.0714 m，所以仍失败。
 - **从低姿态策略续训不一定最好。** 对照续训位移 0.346 m；从零使用站高门控的短训达到 0.960 m，因此主线选后者。
 - **最后一个 checkpoint 也要重新测。** 评价固定使用同一命令、同一 play 配置和实际位移，不用 mean reward 替代。
+- **`.pt` 不能直接喂给 `miniduckd`。** 必须走自有 `m9f_export.py`；官方 `scripts/export.py` 绑的是官方任务，本课不用。
 
 ## 自测
 
@@ -1152,6 +1729,71 @@ C。前进项提供梯度；是否得分还要经过站高门控。
 &lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
 
 D。训练成功和步态成功是两道门；站高与位移必须一起满足。
+
+&lt;/details&gt;
+
+**4. 本课导出 ONNX 为什么必须走 `m9f_export.py`，而不是官方 `scripts/export.py`？**
+
+- A. 官方脚本不能写出 `.onnx` 文件
+- B. 官方导出绑官方任务与机器人；本课主路径不 import `mjlab_microduck`，要用自有 env/robot 把 normalizer 烘进图
+- C. 只有云机才能跑官方导出
+- D. daemon 只认文件名 `policy_export.onnx`
+
+&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
+
+B。自有导出与训练共用同一套 env/robot；探针应为 61→14，且 `MINIDUCK_WALK_ACTION_SCALE=1.0`。
+
+&lt;/details&gt;
+
+**5. 加大站高门控或前进奖励权重，主要改变 PPO 循环里的哪一段？**
+
+- A. 只改 C 段的 `clip_param`
+- B. 改 A 段每步的 r，从而改变 B 段算出来的优势
+- C. 只改 D 段存盘间隔
+- D. 只改 actor 的 `hidden_dims`
+
+&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
+
+B。奖励与门控在采样时写入缓冲；算账与更新吃的是这些 r，不是在 C 段再读一遍奖励表。
+
+&lt;/details&gt;
+
+**6. 本课动作 14 维主要来自哪里？**
+
+- A. `hidden_dims` 最后一维写成 14
+- B. `ACTION_DIM = 14` 常量强制建网
+- C. `joint_pos` 动作按舵机正则匹配到 14 个铰链，`action_dim` 等于匹配个数
+- D. PPO 会自动把任意机器人压成 14 维
+
+&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
+
+C。`ACTION_DIM` 只做导出校验；网络输出维由环境动作空间推断。
+
+&lt;/details&gt;
+
+**7. 脚手架里已有 `track_angular_velocity`（默认 weight=2）。本课若不改 weight，会怎样？**
+
+- A. 该项自动删除
+- B. 继续按默认权重进入总奖励
+- C. 只影响 critic，不影响 actor
+- D. 只在 `play=True` 时生效
+
+&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
+
+B。本课是改脚手架，不是空表；要关掉须 `weight=0` 或删除该项。
+
+&lt;/details&gt;
+
+**8. events 与 curriculum 的分工更接近哪一句？**
+
+- A. 都是每步拼进 61D 观测的项
+- B. events 在特定时机改世界；curriculum 按训练进度改难度或权重
+- C. 两者都只在导出 ONNX 时运行
+- D. curriculum 负责采样动作，events 负责算优势
+
+&lt;details&gt;&lt;summary&gt;答案&lt;/summary&gt;
+
+B。评估时常清 curriculum、并关掉摩擦/质心等随机 event。
 
 &lt;/details&gt;
 </textarea>
