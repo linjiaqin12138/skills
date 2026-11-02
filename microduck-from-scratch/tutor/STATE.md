@@ -6,11 +6,12 @@
 - **当前模式**：项目实现
 - **返回位置**：无（当前在项目实现）
 - **当前先修记录**：`tutor/prerequisites/ppo-reward-dr.md` — **出口已达**；返回摘要：PPO 三步、奖励权重=评分标准、DR 为健壮；误区：非选优淘汰、优势非开跑前算、投机形态不唯一
-- **当前位置**：**M9f Bite 1 已交付，待用户确认（2026-10-30）**——新六模块主路径零 `mjlab_microduck`；`accept/m09f-b01.sh` PASS；课文第 30 章 strict 0 警告；决定 `0012` 起草。
-- **终局实测**：2048 env 续到总第 1000 轮，`model_999.pt` 在 16 env×5s、vx=0.3 下 z=0.12117m、平均/最小位移=1.43062/1.37171m、actual vx=0.29396、air-time=0.16150s、low-height=0；HD 为持续直立前进。权重 `tutor/artifacts/m09f/checkpoints/model_999.pt`。
+- **当前位置**：**M9f Bite 1 已交付，待用户确认（2026-11-02）**——七模块主路径零 `mjlab_microduck`（含 `m9f_export.py`）；`accept/m09f-b01.sh` PASS（含 `export_ok=1` + `policy_export.onnx`）；课文第 30 章；决定 `0012` 起草。
+- **终局实测**：2048 env 续到总第 1000 轮，`model_999.pt` 在 16 env×5s、vx=0.3 下 z=0.12117m、平均/最小位移=1.43062/1.37171m、actual vx=0.29396、air-time=0.16150s、low-height=0；HD 为持续直立前进。权重 `tutor/artifacts/m09f/checkpoints/model_999.pt`；ONNX `tutor/artifacts/m09f/policy_export.onnx`（61→14）。
 - **云机**：`ssh -p 23 root@117.50.221.204`（key `~/.ssh/id_rsa`）；工作区 `/cloud/cloud-ssd1/microduck-m9f`；共用 venv 与 M9d 保留在 `/cloud/cloud-ssd1/microduck-m9d`。
 - **M9e Bite 1 待用户确认（2026-10-29）**：`MINIDUCK_WALK_ACTION_SCALE` 已实现；`accept/m09e-b01.sh` PASS（站 z≈0.12；vx=0.3 forward≈1.33m）；跑证 `tutor/runs/m09e-b01.txt`；决定 `0010` 起草；课文第 29 章已发布。
-- **下一步**：用户确认第 29/30 章 → `0010`/`0012` 改已采纳；M9f 下一 Bite 才做自有 export 与 daemon 部署验收，本 Bite 不宣称部署通过。跑证 `tutor/runs/m09f-b01.txt`，档案 `book/m09f-handmade-train/acceptance.md`。
+- **下一步**：用户确认第 29/30 章 → `0010`/`0012` 改已采纳。跑证 `tutor/runs/m09f-b01.txt`，档案 `book/m09f-handmade-train/acceptance.md`。
+
 - **本机复验官方 M9d 权重（2026-10-29）**：`policy_export.onnx` headless 站/走均过；官方 viewer 可开。跑证 `tutor/runs/m09d-local-{stand,walk}.json`。
 - **用户裁决（2026-10-30）**：M9f 不套官方 MicroDuck 任务实现；除通用依赖轮子外尽量手搓，旧失败方案删除重来。
 - **安全**：会话中曾暴露 wandb API key——请轮换。

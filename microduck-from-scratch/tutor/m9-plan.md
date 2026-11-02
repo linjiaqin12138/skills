@@ -52,15 +52,14 @@
 - 验收：`accept/m09e-b01.sh` PASS（forward≈1.33m）；课文第 29 章
 - 注：与 M9f（handmade 上自训）并存——M9e 证集成栈，M9f 证训推同分布
 
-### M9f · handmade + 自有训练环境（GPU）— **Bite 1 待用户确认（2026-10-30）**
+### M9f · handmade + 自有训练环境（GPU）— **Bite 1 待用户确认（2026-11-02）**
 
 - 目标：策略在 **我们的** `duck_handmade` 上、用 **我们拥有的任务定义与训练脚本** 从头学习；训推同分布
 - **2026-10-30 用户裁决**：旧方案只自写入口、仍复用官方 MicroDuck 任务配方，不满足学习要求；旧实现与失败产物删除重来
 - **硬约束**：主路径不 import `mjlab_microduck`；显式拥有机器人配置、观测、动作、命令、奖励、终止、随机化、课程与 PPO 超参。MuJoCo / mjlab 通用组件 / rsl_rl / BAM 作为依赖轮子，不从零重写
-- **Bite 1 已验收**：M9d 基线验环境、64×5 冒烟、站高门控短训、2048 env 至 1000 轮；终局 z=0.1212m、5s 位移 1.4306m、vx=0.294，HD 为直立前进；`accept/m09f-b01.sh` PASS
+- **Bite 1 已验收**：M9d 基线验环境、64×5 冒烟、站高门控短训、2048 env 至 1000 轮；终局 z=0.1212m、5s 位移 1.4306m、vx=0.294，HD 为直立前进；自有 `m9f_export.py` 导出 61→14 ONNX；本机 `miniduckd` + handmade viewer 可加载；`accept/m09f-b01.sh` PASS（含 `export_ok=1`）
 - 决定：`0012`（起草）；课文第 30 章；档案 `book/m09f-handmade-train/acceptance.md`
-- 后续 Bite：自有 export → handmade 分布站/走验收；daemon 对接另排
-- 注：训练身体 = 部署仿真身体；双层鞋底的四个 collision geom 都显式进入接触与摩擦配置
+- 注：训练身体 = 部署仿真身体；双层鞋底的四个 collision geom 都显式进入接触与摩擦配置；导出不走官方 `scripts/export.py`
 - 前置：M9a；M9d 提供云环境与已知可行走对照；**要 GPU**
 
 ## 覆盖核对（Phase 2 硬性映射表）

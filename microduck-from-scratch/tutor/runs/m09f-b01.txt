@@ -109,13 +109,22 @@ contact_fraction=0.5216250420
 video=tutor/artifacts/m09f/videos/main_model_999.mp4, 1280x720, replay_ok=1
 visual=effective upright forward walking, no crouched in-place gait
 
+[export onnx]
+command: impl/scripts/m9f_export.py --checkpoint logs/main_2048x1000/model_999.pt --output artifacts/policy_export.onnx
+export_ok=1
+obs_dim=61
+action_dim=14
+local_onnx=tutor/artifacts/m09f/policy_export.onnx
+note: normalizer baked via VelocityOnPolicyRunner.as_onnx; no mjlab_microduck / official scripts/export.py
+
 [verification]
 bash accept/m09f-b01.sh
 own_source_gate_ok
 handmade_contact_gate_ok
 python_syntax_gate_ok
+onnx_shape_probe_skipped_or_ok=1
 gait_check_ok=1
-M9f Bite 1 验收 PASS：自有环境 + GPU 训练 + 定量步态
+M9f Bite 1 验收 PASS：自有环境 + GPU 训练 + ONNX 导出 + 定量步态
 exit_code=0
-coding_review=PASS: no official MicroDuck imports, shared env/robot config, per-foot 4-to-2 contact aggregation, obs layout matches obs.rs
+coding_review=PASS: no official MicroDuck imports, shared env/robot/export, per-foot 4-to-2 contact aggregation, obs layout matches obs.rs, ONNX 61→14
 independent_subagent=unavailable (provider rate limit); main agent executed the accept script and static review instead

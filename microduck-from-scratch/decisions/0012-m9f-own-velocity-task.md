@@ -25,11 +25,11 @@
 
 - 主路径不 import `mjlab_microduck`，不调用官方 train/play CLI。
 - 使用 MuJoCo、mjlab 通用组件、rsl_rl、BAM 和 PyTorch；这些库是轮子，不重写。
-- `impl/scripts/` 自有 `m9f_robot.py`、`m9f_env_cfg.py`、`m9f_mdp.py`、`m9f_train.py`、`m9f_evaluate.py`、`m9f_replay.py`。
+- `impl/scripts/` 自有 `m9f_robot.py`、`m9f_env_cfg.py`、`m9f_mdp.py`、`m9f_train.py`、`m9f_evaluate.py`、`m9f_replay.py`、`m9f_export.py`。
 - 训练和部署保持 61D actor obs / 14D action，动作 scale=1.0，关节顺序对齐 `impl/src/obs.rs`。
 - 每脚的两个 collision geom 都显式进入接触、摩擦和 air-time 配置。
-- 首版只做平地 Velocity；先用 M9d checkpoint 验证环境，再从随机初始化短训。行为门通过前不堆长训、不接 daemon。
-- 本 Bite 不实现 ONNX 导出、粗糙地形、起身或技能调度。
+- 首版只做平地 Velocity；先用 M9d checkpoint 验证环境，再从随机初始化短训。行为门通过前不堆长训。
+- 本 Bite 交付自有 ONNX 导出（`m9f_export.py`，obs normalizer 经 `as_onnx` 烘进图，61→14），并支持本机 `miniduckd` + handmade viewer 肉眼验收。不实现粗糙地形、起身或技能调度。
 
 ## 放弃的成本
 

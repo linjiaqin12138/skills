@@ -6,13 +6,14 @@
 #   bash accept/m09f-b01.sh                 # 完整门（需 GPU 跑证与最终评估）
 #
 # 预期：
-#   A. 新决定 0012 存在且挂 m09f-b01；六个 m9f 模块齐全且语法有效。
-#   B. 主路径无 mjlab_microduck import、无 uv run train；训练/评估/回放共用自有 env。
+#   A. 新决定 0012 存在且挂 m09f-b01；七个 m9f 模块齐全且语法有效（含 m9f_export）。
+#   B. 主路径无 mjlab_microduck import、无 uv run train；训练/评估/回放/导出共用自有 env。
 #   C. handmade XML、61D obs、14D action、scale=1.0 与四脚底 geom 配置显式存在。
 #   D. 完整门要求 tutor/runs/m09f-b01.txt 含 baseline_ok=1、smoke_ok=1、
-#      short_train_ok=1、train_finished=1。
+#      short_train_ok=1、train_finished=1、export_ok=1。
 #   E. tutor/artifacts/m09f/evaluation.json：5 秒前进评估，root_z_mean 在
 #      [0.105, 0.135]，displacement_mean >= 0.5m，air_time_mean <= 1.5；HD 视频存在。
+#   F. tutor/artifacts/m09f/policy_export.onnx 存在且 61→14（若本机有 onnxruntime 则探针）。
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
@@ -36,6 +37,7 @@ names = (
     "m9f_train.py",
     "m9f_evaluate.py",
     "m9f_replay.py",
+    "m9f_export.py",
 )
 texts = {}
 for name in names:
@@ -67,9 +69,11 @@ for token in ("61", "14", "scale", "feet_ground_contact", "left_foot", "right_fo
     if token not in env:
         raise SystemExit(f"env config missing {token}")
 
-for name in ("m9f_train.py", "m9f_evaluate.py", "m9f_replay.py"):
+for name in ("m9f_train.py", "m9f_evaluate.py", "m9f_replay.py", "m9f_export.py"):
     if "m9f_env_cfg" not in texts[name] or "m9f_robot" not in texts[name]:
         raise SystemExit(f"{name} does not use the shared own env/robot modules")
+if "export_policy_to_onnx" not in texts["m9f_export.py"]:
+    raise SystemExit("m9f_export.py missing export_policy_to_onnx")
 
 print("own_source_gate_ok")
 print("handmade_contact_gate_ok")
@@ -85,9 +89,12 @@ fi
 
 RUN=tutor/runs/m09f-b01.txt
 [ -f "$RUN" ] || fail "缺 GPU 跑证 $RUN"
-for marker in baseline_ok=1 smoke_ok=1 short_train_ok=1 train_finished=1; do
+for marker in baseline_ok=1 smoke_ok=1 short_train_ok=1 train_finished=1 export_ok=1; do
   grep -q "$marker" "$RUN" || fail "跑证缺 $marker"
 done
+
+ONNX="$REPO/tutor/artifacts/m09f/policy_export.onnx"
+[ -f "$ONNX" ] || fail "缺 $ONNX（先云机 m9f_export 再 scp）"
 
 python3 - "$REPO" <<'PY'
 import json
@@ -110,10 +117,29 @@ if float(data["displacement_mean"]) < 0.5:
     raise SystemExit(f"displacement_mean below gate: {data['displacement_mean']}")
 if float(data["air_time_mean"]) > 1.5:
     raise SystemExit(f"air_time_mean above gate: {data['air_time_mean']}")
-videos = list((repo / "tutor" / "artifacts" / "m09f" / "videos").glob("*.mp4"))
+art = repo / "tutor" / "artifacts" / "m09f"
+videos = list(art.glob("videos/*.mp4")) + list(art.glob("replay_hd/*.mp4"))
 if not videos:
     raise SystemExit("missing HD replay mp4")
+onnx = art / "policy_export.onnx"
+if not onnx.is_file():
+    raise SystemExit(f"missing {onnx}")
+try:
+    import onnxruntime as ort
+except ImportError:
+    print("onnx_shape_probe_skipped=1")
+else:
+    session = ort.InferenceSession(str(onnx), providers=["CPUExecutionProvider"])
+    inputs = session.get_inputs()
+    outputs = session.get_outputs()
+    if len(inputs) != 1 or len(outputs) != 1:
+        raise SystemExit(f"bad io count in={len(inputs)} out={len(outputs)}")
+    in_dim = int(list(inputs[0].shape)[-1])
+    out_dim = int(list(outputs[0].shape)[-1])
+    if in_dim != 61 or out_dim != 14:
+        raise SystemExit(f"bad ONNX dims {in_dim}->{out_dim}")
+    print("onnx_shape_ok=1")
 print("gait_check_ok=1")
 PY
 
-echo "M9f Bite 1 验收 PASS：自有环境 + GPU 训练 + 定量步态"
+echo "M9f Bite 1 验收 PASS：自有环境 + GPU 训练 + ONNX 导出 + 定量步态"
