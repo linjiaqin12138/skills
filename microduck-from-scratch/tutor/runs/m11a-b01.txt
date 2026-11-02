@@ -1,0 +1,1 @@
+M11a Bite 1 PASS: 40×30×5mm; 3192 triangles; watertight; STL/3MF/bgcode present

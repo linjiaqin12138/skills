@@ -44,23 +44,30 @@
 - 前置：M9b（操作手册）、用户买好云实例
 - 进度：Bite 1/2 均已确认；`0008`/`0009` **已采纳**；档案 `acceptance.md` + `acceptance-b02.md`
 
-### M9e · 自训官方分布权重进我们 daemon — **Bite 1 待确认（2026-10-29）**
+### M9e · 自训官方分布权重进我们 daemon — **Bite 1 已确认（2026-11-02）**
 
 - 目标：M9d 的 `policy_export.onnx`（官方 Velocity 配方自训）接到 **我们的** `miniduckd` + handmade BAM；对照官方 `infer_policy` viewer
 - 内容：`MINIDUCK_POLICY` 指向自训 ONNX；`MINIDUCK_WALK_ACTION_SCALE=1.0`（训练契约；公开 velstand 缺省仍 0.9）；站 + `vx=0.3` 走雏形
-- 决定：`0010`（起草）
+- 决定：`0010`（已采纳）
 - 验收：`accept/m09e-b01.sh` PASS（forward≈1.33m）；课文第 29 章
 - 注：与 M9f（handmade 上自训）并存——M9e 证集成栈，M9f 证训推同分布
 
-### M9f · handmade + 自有训练环境（GPU）— **Bite 1 待用户确认（2026-11-02）**
+### M9f · handmade + 自有训练环境（GPU）— **Bite 1 已确认（2026-11-02）**
 
 - 目标：策略在 **我们的** `duck_handmade` 上、用 **我们拥有的任务定义与训练脚本** 从头学习；训推同分布
 - **2026-10-30 用户裁决**：旧方案只自写入口、仍复用官方 MicroDuck 任务配方，不满足学习要求；旧实现与失败产物删除重来
 - **硬约束**：主路径不 import `mjlab_microduck`；显式拥有机器人配置、观测、动作、命令、奖励、终止、随机化、课程与 PPO 超参。MuJoCo / mjlab 通用组件 / rsl_rl / BAM 作为依赖轮子，不从零重写
 - **Bite 1 已验收**：M9d 基线验环境、64×5 冒烟、站高门控短训、2048 env 至 1000 轮；终局 z=0.1212m、5s 位移 1.4306m、vx=0.294，HD 为直立前进；自有 `m9f_export.py` 导出 61→14 ONNX；本机 `miniduckd` + handmade viewer 可加载；`accept/m09f-b01.sh` PASS（含 `export_ok=1`）
-- 决定：`0012`（起草）；课文第 30 章；档案 `book/m09f-handmade-train/acceptance.md`
+- 决定：`0012`（已采纳）；课文第 30 章；档案 `book/m09f-handmade-train/acceptance.md`
 - 注：训练身体 = 部署仿真身体；双层鞋底的四个 collision geom 都显式进入接触与摩擦配置；导出不走官方 `scripts/export.py`
 - 前置：M9a；M9d 提供云环境与已知可行走对照；**要 GPU**
+
+### M9g–M9i · M9 收尾（2026-11-02 规划）
+
+- M9g：D33 可选 stand 槽 → D30 热换/carry_over
+- M9h：D28 Walk/Roller 模式与 roller/roller_crouch
+- M9i：D29 chain/unwind → D35 roulade 复验与必要时的训练调查
+- 每项目标、前置、验收与推断见 `tutor/phases/phase-2.md`「M9 收尾规划」
 
 ## 覆盖核对（Phase 2 硬性映射表）
 

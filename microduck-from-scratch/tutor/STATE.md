@@ -6,11 +6,16 @@
 - **当前模式**：项目实现
 - **返回位置**：无（当前在项目实现）
 - **当前先修记录**：`tutor/prerequisites/ppo-reward-dr.md` — **出口已达**；返回摘要：PPO 三步、奖励权重=评分标准、DR 为健壮；误区：非选优淘汰、优势非开跑前算、投机形态不唯一
-- **当前位置**：**M9f Bite 1 已交付，待用户确认（2026-11-02）**——七模块主路径零 `mjlab_microduck`（含 `m9f_export.py`）；`accept/m09f-b01.sh` PASS（含 `export_ok=1` + `policy_export.onnx`）；课文第 30 章；决定 `0012` 起草。
-- **终局实测**：2048 env 续到总第 1000 轮，`model_999.pt` 在 16 env×5s、vx=0.3 下 z=0.12117m、平均/最小位移=1.43062/1.37171m、actual vx=0.29396、air-time=0.16150s、low-height=0；HD 为持续直立前进。权重 `tutor/artifacts/m09f/checkpoints/model_999.pt`；ONNX `tutor/artifacts/m09f/policy_export.onnx`（61→14）。
-- **云机**：`ssh -p 23 root@117.50.221.204`（key `~/.ssh/id_rsa`）；工作区 `/cloud/cloud-ssd1/microduck-m9f`；共用 venv 与 M9d 保留在 `/cloud/cloud-ssd1/microduck-m9d`。
-- **M9e Bite 1 待用户确认（2026-10-29）**：`MINIDUCK_WALK_ACTION_SCALE` 已实现；`accept/m09e-b01.sh` PASS（站 z≈0.12；vx=0.3 forward≈1.33m）；跑证 `tutor/runs/m09e-b01.txt`；决定 `0010` 起草；课文第 29 章已发布。
-- **下一步**：用户确认第 29/30 章 → `0010`/`0012` 改已采纳。跑证 `tutor/runs/m09f-b01.txt`，档案 `book/m09f-handmade-train/acceptance.md`。
+- **当前位置**：**M11a Bite 1 已交付，待用户确认（2026-11-02）**——第31章 `book/m11a-onshape-calibration/b01-onshape-calibration.html` 已发布，含12张用户截图、完整复刻步骤与实测；strict 0 warnings，浏览器整页目检通过。`accept/m11a-b01.sh` PASS，跑证 `tutor/runs/m11a-b01.txt`。实物打印测量待条件。
+- **路线裁决（2026-11-02）**：用户从 M11 开始，跳过 M9 剩余项和 M10；相关偏差**不视为完成或豁免**。M9a–M9f 成果保留，M9g/M9h/M9i 不执行。**M11 目标修订为整鸭 1:1 参数化 CAD 复刻与整机 Assembly 装配**，不是只做舵机支架/局部结构；M11b 四 Bite 覆盖全部零件，M11c 三 Bite 覆盖整机数字装配、制造文件与实物装配。
+- **M11 工具裁决（2026-11-02）**：采用 **Onshape Free**，与原项目一致。用户接受文档公开、仅非商业用途、联网依赖；Linux 浏览器使用，无需安装 CAD。用户无打印机和卡尺；先做数字模型与切片，实物门待打印服务与测量条件。
+- **M11 资源边界**：reference 中的 STL 是仿真视觉资产，不视为可打印 CAD 源文件；实际硬件清单未决。原项目 Onshape 文档链接与 onshape-to-robot 配置已存在于 reference/microduck_rl。
+- **终局实测**：M9f `model_999.pt` 在 16 env×5s、vx=0.3 下 z=0.12117m、平均/最小位移=1.43062/1.37171m、actual vx=0.29396；ONNX `tutor/artifacts/m09f/policy_export.onnx`（61→14）。
+- **M11a Bite 1 数字阶段已交付**：用户亲手完成 40×30×5mm 校准板、Ø4/Ø6/Ø5mm 三通孔、R2 圆角、0.5mm 孔口倒角；掌握基础草图、尺寸/约束、Extrude 加减料、Fillet/Chamfer 与工具分类。
+- **STL 已验证**：`exercises/m11a-calibration/calibration-plate.stl`；3192 triangles；包围盒 40×30×5mm；boundary=0、nonmanifold=0；体积约 5674.248mm³。
+- **数字切片已完成**：PrusaSlicer 2.7.2，MK4 0.4mm + Generic PLA；0.20mm、20% infill、无 support/brim；25 层，约 10min、4.18g。产物为同目录 `.3mf` + `.bgcode`。
+- **参数化实验通过**：Sketch 1 宽 40→45→40mm，无错误，孔保持原位，验证后续特征随源草图更新。
+- **下一步**：Bite 1 停在数字验收完成；实物打印、测量与配合检查不标通过。用户继续后进入 M11a Bite 2 的数字准备或选择打印服务，不擅自跳过实物门。
 
 - **本机复验官方 M9d 权重（2026-10-29）**：`policy_export.onnx` headless 站/走均过；官方 viewer 可开。跑证 `tutor/runs/m09d-local-{stand,walk}.json`。
 - **用户裁决（2026-10-30）**：M9f 不套官方 MicroDuck 任务实现；除通用依赖轮子外尽量手搓，旧失败方案删除重来。
@@ -40,9 +45,9 @@
 | M6 技能调度器（多策略优先级链） | ✅ 验收通过（book/m06-scheduler/，教程+验收档案；49 单测+accept-m6+accept-m5 回归全绿）。新：scheduler.rs（Cascade 纯状态机+Scheduler 持策略槽）、robot.do/skills/mouth/head、state 载荷 skill 字段、busy 抑制 Limp。权重：fetch-m6.sh 下 4 个（全 feedforward，D20 备注）。物理现实：ground_pick/kick 物理通过；sit/roulade 调度正确但物理摔倒（D34/D35，M8 随 D21 裁决） |
 | M7 支线：迷你 updaterd | ✅ 验收通过（book/m07-updaterd/，教程+验收档案；60 单测（49 旧+11 新）+accept-m7 五场景 39 断言全绿）。新：impl/src/updater/ 十模块、bin/mini-updaterd、duckctl update 子命令组、accept/m07-b01.sh；miniduckd 零改动。新开 D37–D41，D6 移交 D37/D38 |
 | M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 tutor/phases/phase-4.md |
-| M9 仿真与训练（批次 2） | **进行中**：M9a–M9d 已收官；**M9e Bite 1 待确认**（第 29 章）；**M9f Bite 1 已交付待确认**（第 30 章） |
-| M10 驱动与硬件（批次 3） | 未开始（规划：真机驱动编程，硬件自购、可能非官方件；对齐 duck-control 硬件面。**此批完成后代码完全对齐原项目**） |
-| M11 结构与外壳（批次 4） | 未开始（规划：自学 3D 建模与打印，与代码无关） |
+| M9 仿真与训练（批次 2） | **用户跳过剩余项（2026-11-02）**：M9a–M9f 已确认；M9g/M9h/M9i 不执行，残余偏差不核销 |
+| M10 驱动与硬件（批次 3） | **用户跳过（2026-11-02）**：未开始；相关缺口不视为完成或豁免 |
+| M11 结构与外壳（批次 4） | **当前阶段（2026-11-02）**：待 Phase 2 规划；自学 3D 建模、打印、外壳模块与装配 |
 
 ## 关键路径与命令
 
