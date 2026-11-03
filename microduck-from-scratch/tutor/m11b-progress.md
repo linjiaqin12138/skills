@@ -18,3 +18,13 @@
 ## 已知边界
 - 官方外形腰部有外凸弧、两端不是正 R11，本轮用哑铃近似代替，差值已记录，不作 1:1 声明
 - 小安装孔与中间镂空待补
+
+## 2026-11-03 收工点（commit 02b961a）
+
+明天从这里开始：
+1. 用户删掉 Onshape 里 `microduck-m11b-legs` 的 Sketch 1 + Extrude 1（哑铃近似，作废）
+2. 用户按 `parts/01-upper_leg_rigidity_plate.recipe.md` 重画加固板
+3. 我出 `hip_l` + `yaw2roll` 的配方（轮廓锚点与孔位已算好，见 parts/*.section.json）
+4. 复核：孔径/孔心距/厚度一致 + 外轮廓偏差 ≤1mm，截图存档
+
+遗留决策点：右踝主用 `ankle_right脚踝右1-FT`，变体（`1013…`、`改外面轴承`）待与 3MF 网格量尺寸对照后定案；`unnamed-07/08` 切片失败（退化件）待查。
