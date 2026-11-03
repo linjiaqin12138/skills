@@ -1,0 +1,178 @@
+{
+  "release": "v2.2",
+  "servo": "HD-1910-C001",
+  "servo_count": 15,
+  "part_meshes": 43,
+  "solidworks_feature_import": "deferred",
+  "coordinate_system": {
+    "x": "front",
+    "y": "left",
+    "z": "up"
+  },
+  "coordinate_system_source": "upstream microduck_rl robot_groundcontact.xml（官方 MJCF 躯干系：x 前 y 左 z 上）",
+  "onshape_document_url": "https://cad.onshape.com/documents/efe276602ab166d9064373a0/w/161575abf3f0e01561975cba/e/0534f5d68d1e62fddc0f9823",
+  "onshape_document_note": "作者原始 3MF 导入：43 个 PartStudio，零件按 5 个打印盘摆放，名字未保留；本仓 mesh-inventory.json 保存名字与包围盒对照",
+  "named_parts_document_url": "https://cad.onshape.com/documents/895aa7f658c14e471639daa8/w/761856ff7d782ff909c2100a/e/94ebacff84badeb5d307cd0c",
+  "named_parts_document_note": "本仓重排的 3MF：单个 PartStudio + 43 个具名零件；Import 1 因 1 个开放网格零件被标记未正确重算",
+  "source_package": "fanhao375/microduck-replica-cad SolidWorks-FT2026-10-20.zip",
+  "source_package_sha256": "71e5b6a711ec9b4dd7154627e036a5180207088536aa230e42949212a550eaa1",
+  "license": "CC BY-NC-SA 4.0（署名：机械行者Robo）",
+  "joints": [
+    {
+      "name": "left_hip_yaw",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.4363323129985824,
+        0.5235987755982988
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿髋偏航"
+    },
+    {
+      "name": "left_hip_roll",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.3839724354386992,
+        0.38397243543880577
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿髋横滚"
+    },
+    {
+      "name": "left_hip_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.570796326794949,
+        1.5707963267948442
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿髋俯仰"
+    },
+    {
+      "name": "left_knee",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267948983,
+        1.5707963267948948
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿膝"
+    },
+    {
+      "name": "left_ankle",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267949063,
+        1.5707963267948868
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿踝"
+    },
+    {
+      "name": "neck_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267948974,
+        1.0471975511965967
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "颈俯仰"
+    },
+    {
+      "name": "head_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267948966,
+        1.5707963267948966
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "头俯仰"
+    },
+    {
+      "name": "head_yaw",
+      "axis": "0 0 1",
+      "range_rad": [
+        -2.9670597283903613,
+        2.9670597283903595
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "头偏航"
+    },
+    {
+      "name": "head_roll",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.43633231299858327,
+        0.4363323129985815
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "头横滚"
+    },
+    {
+      "name": "right_hip_yaw",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.523598775598297,
+        0.43633231299858416
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿髋偏航"
+    },
+    {
+      "name": "right_hip_roll",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.3839724354387507,
+        0.38397243543875426
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿髋横滚"
+    },
+    {
+      "name": "right_hip_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.57079632679494,
+        1.570796326794853
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿髋俯仰"
+    },
+    {
+      "name": "right_knee",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267949339,
+        1.5707963267948593
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿膝"
+    },
+    {
+      "name": "right_ankle",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267949028,
+        1.5707963267948903
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿踝"
+    },
+    {
+      "name": "mouth",
+      "axis": "n/a",
+      "range_rad": null,
+      "role_zh": "嘴舵机（独立控制，不进策略）",
+      "source": "upstream duck-control/src/model.rs 嘴映射（官方代码即规格书）"
+    }
+  ],
+  "mesh_topology": {
+    "watertight": 42,
+    "open_surface": 1,
+    "open_surface_part": "unnamed-09（包围盒 91.76×122.69×46.34mm，头部上壳一类的开口壳体）"
+  },
+  "not_verified": [
+    "SolidWorks 特征树未导入（逐件按需导入）",
+    "任何实物打印/测量/装配"
+  ]
+}

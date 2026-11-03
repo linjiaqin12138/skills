@@ -1,0 +1,76 @@
+{
+  "imported_count": 17,
+  "expected_count": 17,
+  "missing": [],
+  "note": "sole_right 有两次重复导入（15ce8… 与 116d66…），保留 15ce8… 版本",
+  "parts": [
+    {
+      "file": "01-upper_leg_rigidity_plate_上腿加固板-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/121f26cf7d320c49e6e67f8b/w/ec6a0d13fe7bc244cfa672b8/e/bb65185d2828ebe718e55d96"
+    },
+    {
+      "file": "HD-1910-c001-dan.SLDPRT",
+      "url": "https://cad.onshape.com/documents/febe13793e5b6332b81904c2/w/d8196ecde3681245bd85ea45"
+    },
+    {
+      "file": "HD-1910-c001-shuang.SLDPRT",
+      "url": "https://cad.onshape.com/documents/7d066769f8a023ee4b89f3e1/w/c22f75df8a03e3775e2e65e0"
+    },
+    {
+      "file": "M2铜柱-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/1c4d6125191e465c28e5a9a7/w/19ddb1a7dfdaad30e42db7b8"
+    },
+    {
+      "file": "ankle_left_脚踝左-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/94f131f285ad2328c2d5a5b9/w/b57bc717dfc24bcaaa0f66ce/e/640c04c171d781e632a5aaaa"
+    },
+    {
+      "file": "ankle_right脚踝右1-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/688fd519849dea976f8f6059/w/596afbd21687b9c3248a0998"
+    },
+    {
+      "file": "bearing_roll_轴承滚轮-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/5c31531accde1b1199023287/w/0f6e1825bb43110ea818c903"
+    },
+    {
+      "file": "foot_left_左脚-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/4fdcd21097b8158675459d99/w/21b46215beac1042d3853ad6"
+    },
+    {
+      "file": "foot_right_右脚-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/1f6226597a626defd043d789/w/768731b5494800f29c47e133"
+    },
+    {
+      "file": "hip_l_髋部左-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/439783c27bb4bcc97f9bcd47/w/dd4b3849605857df8711e6bd/e/6349f9627d62cf7e8b9257f7"
+    },
+    {
+      "file": "left_upper_leg_左上腿-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/b24e9500ba77414c201fdf0b/w/d2de28c09fb5b6bc971233be/e/87f084213858a2fc2b051aa6"
+    },
+    {
+      "file": "leg_腿部-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/d7b68510ef89f4fca4683fdd/w/30644404f8678e7def1b2d83"
+    },
+    {
+      "file": "right_upper_leg_右上腿-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/b52657835b8af9fabff19bab/w/ef3dd1807a3c355b861d00ba"
+    },
+    {
+      "file": "sole_left_左脚底-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/e036f2553b582206ad9b7ce7/w/84e8f98f9f1a4d509eddd5d8/e/f76073b4a07ae5b571844d0a"
+    },
+    {
+      "file": "sole_right_右脚底-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/15ce8faadbd0938b3e337253/w/d6a1068b86d4bcaf3c538db0/e/cb278ed1fe9a19c6f4383b93"
+    },
+    {
+      "file": "yaw2roll_偏航转横滚-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/95eafb66e9ccbdce64cdd182/w/e801035814f43edca4384769/e/740c5ba481a7cf561ac01a1a"
+    },
+    {
+      "file": "轴承16×22×4-FT.SLDPRT",
+      "url": "https://cad.onshape.com/documents/8e8365bcf535f8f016a89728/w/98c1c58d7b71acfd5027f17d/e/222d026ff47be278349db1fe"
+    }
+  ]
+}

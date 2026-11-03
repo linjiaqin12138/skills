@@ -318,3 +318,10 @@ updater.toml（upstream/deploy/updater.toml，179 行）：
 |---|---|---|
 | FallPredictor + Limp/Posing（D23/D32） | 已交付 Bite 1（已确认）；默认 OFF，`MINIDUCK_LIMP_FALL=1` 显式开启 | `accept/m09c-b01.sh` |
 | 相对 odometry（接触里程计） | 已交付 Bite 2（已确认）；局部 FK + ALPHA16；RPC 不加 odom（D50→M10） | `accept/m09c-b02.sh` |
+
+## M11 交付记录（批次 4 · 结构与外壳）
+
+| 功能项 | 手搓状态 | 验收 |
+|---|---|---|
+| M11a 参数化建模与数字切片 | 已交付 Bite 1（待确认）；40×30×5mm 校准板 + 三通孔 + R2/F0.5，STL 水密、切片 25 层；实物门待打印条件 | `accept/m11a-b01.sh` |
+| M11b 整鸭 1:1 结构复刻 | **Bite 1 已交付（待确认）**：结构基准=第三方飞特 HD-1910 v2.2 逆向模型（D72）；43 件零件网格 + 15 颗舵机关节表 + Onshape 参考文档；SolidWorks 特征树逐件导入待 Bite 2 起 | 数字记录见 `exercises/m11b-ft-source/`（本课不做自动验收脚本） |

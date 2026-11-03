@@ -1,5 +1,6 @@
 /impl/target
 /.venv
+/.edge-onshape/
 /upstream
 /.tmp-official
 /impl/policies/*.onnx

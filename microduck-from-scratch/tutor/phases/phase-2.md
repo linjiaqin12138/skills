@@ -81,10 +81,14 @@
 
 ### M11b · 整鸭 1:1 结构复刻（4 Bite）
 
-- **目标（2026-11-02 用户修订）**：不是只画舵机支架，而是以原项目 Onshape 装配和精确几何为依据，完成整只 MicroDuck 的 **1:1 参数化 CAD 复刻**。包含双腿、躯干、头颈、嘴、外壳、舵机/轴承/标准件参照以及全部机械接口。
-- 前置：M11a；打开并读懂原项目 Onshape 文档。以 XL330 原版为首个复刻对象；使用原始 CAD 尺寸与装配关系，不从低精度 STL 目测反推。
-- Bite 1：建立整机坐标系、关节布局、共享参数与零件清单；完成舵机、轴承和紧固件参照模型及关键接口试片。验收是全套尺寸来源可追溯，关节中心与原始 CAD 对齐。
+- **目标（2026-11-03 用户修订）**：完成整只 MicroDuck 的 **飞特 HD-1910 v2.2 参数化 CAD 复刻与 Assembly**。包含双腿、躯干、头颈、嘴、外壳、舵机/轴承/标准件参照以及全部机械接口；不再以 XL330 结构为目标。
+- 前置：M11a 数字阶段；原官方 Onshape 当前账号无访问权限，改用 `fanhao375/microduck-replica-cad` 的 `SolidWorks-FT2026-10-20.zip`（77 个 SolidWorks 文件 + 13 个 STEP，发布 ID 418136980，sha256 `71e5b6a711ec9b4dd7154627e036a5180207088536aa230e42949212a550eaa1`）。该模型由机械行者Robo依据官方 STL 逆向重建，许可 CC BY-NC-SA 4.0；尺寸基准是这套第三方模型，不声称与官方原始 CAD 完全一致。
+- Bite 1：导入并盘点飞特 v2.2 源装配，建立整机坐标系、关节布局、共享参数与零件清单；使用现成舵机、轴承和紧固件参照模型，不打印接口试片。验收是全套尺寸来源可追溯，改动件均为 `-FT` 版本，关节中心与第三方源装配对齐。
 - Bite 2：复刻左右腿全部结构件，包括髋、大腿、小腿、踝、脚与连接件；完成局部装配，检查同轴度、运动范围和干涉。
+  - 路线（2026-11-03 已验证）：逐件从源包单独导入 SLDPRT 到 Onshape，得到 `Part 1` 实体（特征历史不保留），再围绕实体重建参数化。首件 `01-upper_leg_rigidity_plate_上腿加固板-FT.SLDPRT` 已导入成功：`https://cad.onshape.com/documents/121f26cf7d320c49e6e67f8b/w/ec6a0d13fe7bc244cfa672b8/e/bb65185d2828ebe718e55d96`。
+  - 腿部零件集：`vendor/microduck-ft-v2_2-legs/`，17 个文件共 94.9MB——结构件 13 个（hip_l、yaw2roll、rigidity_plate、left/right_upper_leg、leg、ankle_left、ankle_right、foot_left/right、sole_left/right）+ 轴承/紧固件参照（bearing_roll、轴承16×22×4、M2铜柱）+ 舵机参照（HD-1910-c001-dan / -shuang）。逐个导入的脚本 `tutor/import-legs.sh`，日志 `exercises/m11b-legs/import-log.jsonl`。
+  - 待澄清：右踝有多个变体（`ankle_right脚踝右1-FT` / `1013ankle_right脚踝右1-FT` / `-改外面轴承` / `-改外面轴承1`），另左踝有 `ankle_l_v1_脚踝左V1` 备选。主用 `ankle_right脚踝右1-FT`（与 3MF 的 `ankle_right脚踝右.STEP` 名字对应），变体留 `variants/` 待与 3MF 网格量尺寸对照后定案。
+  - 头颈的 `yaw_roll_motion` 不在本 Bite（归 Bite 3）。
 - Bite 3：复刻躯干、骨架、电子件支撑、头颈、嘴及全部连接结构；保留轴承、舵盘、线缆出口和维修空间。
 - Bite 4：复刻头/躯干等外壳与分件连接，处理壁厚、卡扣或螺钉、散热、开口和打印方向；所有结构件均有参数化源模型与可打印导出。
 - 数字验收：整鸭零件覆盖完整；关键尺寸与原始 CAD 一致；各局部 Assembly 的关节和自由度正确；无未解释的几何干涉。接口试片可后送打印服务，实物测量仍单独记账。

@@ -16,5 +16,6 @@
 | 第 29 章 | M9e Bite 1：自训策略进我们的 daemon | [m09e-daemon-policy/b01-daemon-selftrain.html](m09e-daemon-policy/b01-daemon-selftrain.html) |
 | 第 30 章 | M9f Bite 1：手搓 handmade 训练环境 | [m09f-handmade-train/b01-own-train-handmade.html](m09f-handmade-train/b01-own-train-handmade.html) |
 | 第 31 章 | M11a Bite 1：Onshape 校准件与数字切片 | [m11a-onshape-calibration/b01-onshape-calibration.html](m11a-onshape-calibration/b01-onshape-calibration.html) |
+| 第 32 章 | M11b Bite 1：定基准——飞特 v2.2 零件清单与关节表 | [m11b-ft-source/b01-source-import.html](m11b-ft-source/b01-source-import.html) |
 
-更早章节见各 `book/mNN-*/` 目录。现在读到：**第 31 章**。
+更早章节见各 `book/mNN-*/` 目录。现在读到：**第 32 章**。

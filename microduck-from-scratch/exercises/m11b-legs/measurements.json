@@ -1,0 +1,89 @@
+{
+  "part": "01-upper_leg_rigidity_plate_上腿加固板-FT",
+  "measured_by": "user in Onshape (imported SLDPRT, Part 1 solid)",
+  "measurements": {
+    "big_hole_diameter_mm": [
+      19.0,
+      19.0
+    ],
+    "thickness_mm": 2.0,
+    "hole_center_distance_mm": 41.886,
+    "overall_width_mm": 58.466,
+    "outer_fillet_radius_mm": 11.0
+  },
+  "cross_check": {
+    "mesh_bbox_mm": [
+      58.472,
+      45.195,
+      2.0
+    ],
+    "source": "vendor/microduck-ft-v2_2-mesh/mesh-inventory.json",
+    "note": "宽度 58.466 vs 58.472、厚度 2.0 一致，量法可信"
+  },
+  "cautions": [],
+  "next": "量 HD-1910-c001-dan 舵盘凸台外径，确认 Ø19 孔的让位对象",
+  "servo_reference": {
+    "model": "HD-1910-c001-dan（单盘舵机）",
+    "horn_boss_diameter_mm": 15.8,
+    "boss_center_mm": [
+      -7.5,
+      0.0,
+      25.5
+    ],
+    "clearance_interpretation": "加固板 Ø19 孔相对 Ø15.8 舵盘凸台，单边间隙 (19-15.8)/2 = 1.6mm → 让位通孔，非轴承座、非精密配合"
+  },
+  "measurement_tips": "同时选两条边得到的是 Center/Max/Min distance；要读圆角半径只选一条圆弧边",
+  "outer_fillet_radius_confirmed": "R11 mm（用户 2026-11-03 确认，先前 11cm 为笔误）",
+  "outer_profile_recipe": {
+    "method": "双 R11 圆 + 两条外公切线，再 Trim 掉两圆相向的弧 → 哑铃外轮廓",
+    "circle_A_center_mm": [
+      0.0,
+      0.0
+    ],
+    "circle_B_center_mm": [
+      35.643,
+      -22.0
+    ],
+    "tangent_offset_unit": [
+      0.52524,
+      0.85096
+    ],
+    "tangent_points_mm": {
+      "A_plus": [
+        5.778,
+        9.361
+      ],
+      "A_minus": [
+        -5.778,
+        -9.361
+      ],
+      "B_plus": [
+        41.421,
+        -12.639
+      ],
+      "B_minus": [
+        29.865,
+        -31.361
+      ]
+    },
+    "line_1": "A_plus → B_plus",
+    "line_2": "A_minus → B_minus",
+    "trim_arc_A": "指向 B 的那段弧（方位角 -31.7°）",
+    "trim_arc_B": "指向 A 的那段弧（方位角 148.3°）",
+    "stadium_bbox_mm": [
+      57.643,
+      44.0
+    ],
+    "official_bbox_mm": [
+      58.472,
+      45.195
+    ],
+    "delta_mm": [
+      -0.829,
+      -1.195
+    ],
+    "note": "作废：哑铃近似与官方外形差得多。官方件是\"两端环形 + 收腰内凹 + 3 个减重镂空 + 4 个小安装孔\"的不规则支架，R11 只是外圈某段的半径，不是整个外轮廓。之前只用包围盒比对，得出\"只差 0.83/1.20mm\"的结论是错的，外轮廓差异远大于此。此条保留作踩坑记录。",
+    "bbox_note": "X 向：左圆左缘 -11 → 右圆右缘 35.643+11=46.643，宽 57.643；Y 向：左圆上缘 +11 → 右圆下缘 -33，高 44.0。沿 AB 方向的长度是 63.886（不是宽度）。",
+    "status": "作废（形状不对）"
+  }
+}

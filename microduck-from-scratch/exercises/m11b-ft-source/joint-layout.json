@@ -1,0 +1,155 @@
+{
+  "note": "官方 MJCF 导出的 14 个策略关节 + 1 个嘴舵机 = 15 颗；FT v2.2 沿用同样的关节分工，只换舵机型号",
+  "servo": "HD-1910-C001",
+  "policy_joint_count": 14,
+  "servo_total": 15,
+  "joints": [
+    {
+      "name": "left_hip_yaw",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.4363323129985824,
+        0.5235987755982988
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿髋偏航"
+    },
+    {
+      "name": "left_hip_roll",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.3839724354386992,
+        0.38397243543880577
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿髋横滚"
+    },
+    {
+      "name": "left_hip_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.570796326794949,
+        1.5707963267948442
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿髋俯仰"
+    },
+    {
+      "name": "left_knee",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267948983,
+        1.5707963267948948
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿膝"
+    },
+    {
+      "name": "left_ankle",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267949063,
+        1.5707963267948868
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "左腿踝"
+    },
+    {
+      "name": "neck_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267948974,
+        1.0471975511965967
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "颈俯仰"
+    },
+    {
+      "name": "head_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267948966,
+        1.5707963267948966
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "头俯仰"
+    },
+    {
+      "name": "head_yaw",
+      "axis": "0 0 1",
+      "range_rad": [
+        -2.9670597283903613,
+        2.9670597283903595
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "头偏航"
+    },
+    {
+      "name": "head_roll",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.43633231299858327,
+        0.4363323129985815
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "头横滚"
+    },
+    {
+      "name": "right_hip_yaw",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.523598775598297,
+        0.43633231299858416
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿髋偏航"
+    },
+    {
+      "name": "right_hip_roll",
+      "axis": "0 0 1",
+      "range_rad": [
+        -0.3839724354387507,
+        0.38397243543875426
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿髋横滚"
+    },
+    {
+      "name": "right_hip_pitch",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.57079632679494,
+        1.570796326794853
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿髋俯仰"
+    },
+    {
+      "name": "right_knee",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267949339,
+        1.5707963267948593
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿膝"
+    },
+    {
+      "name": "right_ankle",
+      "axis": "0 0 1",
+      "range_rad": [
+        -1.5707963267949028,
+        1.5707963267948903
+      ],
+      "source": "upstream microduck_rl robot_groundcontact.xml (official MJCF export)",
+      "role_zh": "右腿踝"
+    },
+    {
+      "name": "mouth",
+      "axis": "n/a",
+      "range_rad": null,
+      "role_zh": "嘴舵机（独立控制，不进策略）",
+      "source": "upstream duck-control/src/model.rs 嘴映射（官方代码即规格书）"
+    }
+  ]
+}
