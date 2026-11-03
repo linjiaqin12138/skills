@@ -6,8 +6,8 @@
 - **当前模式**：项目实现
 - **返回位置**：无（当前在项目实现）
 - **当前先修记录**：`tutor/prerequisites/ppo-reward-dr.md` — **出口已达**；返回摘要：PPO 三步、奖励权重=评分标准、DR 为健壮；误区：非选优淘汰、优势非开跑前算、投机形态不唯一
-- **当前位置**：**M11b Bite 1 已交付，待用户确认（2026-11-03）**——第32章 `book/m11b-ft-source/b01-source-import.html`（strict 0 warnings，浏览器整页目检通过，5 面板）。结构基准改为第三方飞特 HD-1910 v2.2 逆向模型：源包 sha256 实测匹配，解包有效文件 17 装配体 + 56 零件（发布页 18/59 含 `~$` 锁文件），43 个零件网格共 571,652 三角形、42 水密 + 1 开放壳体，官方 MJCF 给出 14 策略关节 + 1 嘴舵机。数字记录在 `exercises/m11b-ft-source/`。D72 已登记。SolidWorks 特征树逐件按需导入（417MB 整包上传在用户网络下太慢，且二进制装配引用提不出来）。
-- **本课无自动验收脚本**（用户裁决 2026-11-03）：M11b Bite 1 是"定基准"课，交付物是数字记录与参考文档，没有可自动断言的行为；`accept/m11b-b01.sh` 与跑证已删除。
+- **当前位置**：**M11b Bite 2 进行中（2026-11-03）**——加固板 `01-upper_leg_rigidity_plate` 用户确认硬指标全过。本轮停顿：开始 `hip_l`（配方 `exercises/m11b-legs/parts/hip_l.recipe.md`）。`yaw2roll.recipe.md` 已备好。结构基准=飞特 v2.2（D72）。
+- **本课无自动验收脚本**（用户裁决 2026-11-03）：M11 CAD 课靠 Measure + 截图。
 - **路线裁决（2026-11-02）**：用户从 M11 开始，跳过 M9 剩余项和 M10；相关偏差**不视为完成或豁免**。M9a–M9f 成果保留，M9g/M9h/M9i 不执行。**M11 目标修订为整鸭 1:1 参数化 CAD 复刻与整机 Assembly 装配**，不是只做舵机支架/局部结构；M11b 四 Bite 覆盖全部零件，M11c 三 Bite 覆盖整机数字装配、制造文件与实物装配。
 - **M11 工具裁决（2026-11-02）**：采用 **Onshape Free**，与原项目一致。用户接受文档公开、仅非商业用途、联网依赖；Linux 浏览器使用，无需安装 CAD。用户无打印机和卡尺；先做数字模型与切片，实物门待打印服务与测量条件。
 - **M11 资源边界**：reference 中的 STL 是仿真视觉资产，不视为可打印 CAD 源文件；实际硬件清单未决。原项目 Onshape 文档链接与 onshape-to-robot 配置已存在于 reference/microduck_rl。
@@ -16,7 +16,7 @@
 - **STL 已验证**：`exercises/m11a-calibration/calibration-plate.stl`；3192 triangles；包围盒 40×30×5mm；boundary=0、nonmanifold=0；体积约 5674.248mm³。
 - **数字切片已完成**：PrusaSlicer 2.7.2，MK4 0.4mm + Generic PLA；0.20mm、20% infill、无 support/brim；25 层，约 10min、4.18g。产物为同目录 `.3mf` + `.bgcode`。
 - **参数化实验通过**：Sketch 1 宽 40→45→40mm，无错误，孔保持原位，验证后续特征随源草图更新。
-- **下一步**：**M11b Bite 2 进行中（2026-11-03）**：复刻左右腿全部结构件。**17/17 件已全部导入 Onshape**，清单与文档链接在 `exercises/m11b-legs/import-log.json`（sole_right 有两次重复导入，保留 15ce8…）。工具：`tutor/import-one.sh`（先关残留对话框 → 单件上传 → 等文档出现）+ `tutor/import-legs.sh`。**导入后类型不一**：加固板是 `Part 1` 实体，左脚底是 `Composite parts(1)`（网格/曲面体，Parts(0)）——重建前先逐件确认实体/网格类型，网格件要转实体或照着重画。接下来由用户逐件重建参数化（量尺寸、画草图、拉伸/切除/阵列），再用 MJCF 关节表对齐关节中心，做左右腿局部装配与干涉检查。Bite 1 遗留待办：① 12 个 `unnamed-*` 零件逐件定名；② 开放壳体 `unnamed-09` 处理；③ 右踝变体与左踝 `ankle_l_v1` 备选需量尺寸对照定案。M11a/M11c 实物门保留待打印条件。浏览器调试端口 9222，本地 profile `.edge-onshape/`（已 gitignore）；联网不再走 7890 代理。
+- **下一步**：**画 `hip_l`**——先打开导入参考 `hip_l_髋部左-FT` 用 Measure 记舵机孔/包围盒，再按 `exercises/m11b-legs/parts/hip_l.recipe.md` 新建 PartStudio 重画。17/17 参考已导入。重建前确认实体 vs 网格。遗留：unnamed-* 定名、unnamed-09、右踝变体定案。
 
 - **本机复验官方 M9d 权重（2026-10-29）**：`policy_export.onnx` headless 站/走均过；官方 viewer 可开。跑证 `tutor/runs/m09d-local-{stand,walk}.json`。
 - **用户裁决（2026-10-30）**：M9f 不套官方 MicroDuck 任务实现；除通用依赖轮子外尽量手搓，旧失败方案删除重来。
@@ -48,7 +48,7 @@
 | M8 收敛验收 | ✅ 全部交付（2026-10-15）：Bite 1–6 + 8（C 线 + BAM + 行走裁决）+ Bite 9（D13/D20/D24/D65）+ Bite 10（D36）；教程第 9–17 章；Phase 4 复盘在 tutor/phases/phase-4.md |
 | M9 仿真与训练（批次 2） | **用户跳过剩余项（2026-11-02）**：M9a–M9f 已确认；M9g/M9h/M9i 不执行，残余偏差不核销 |
 | M10 驱动与硬件（批次 3） | **用户跳过（2026-11-02）**：未开始；相关缺口不视为完成或豁免 |
-| M11 结构与外壳（批次 4） | **当前阶段（2026-11-03）**：M11a Bite 1（数字校准件）已交付；M11b Bite 1（定基准：零件清单 + 关节表 + Onshape 参考文档）已交付待确认；结构基准=飞特 v2.2 逆向模型（D72）；实物打印/装配门待条件 |
+| M11 结构与外壳（批次 4） | **当前阶段（2026-11-03）**：M11a Bite 1 已交付；M11b Bite 1 已确认；**M11b Bite 2**（腿结构件参数化）进行中——加固板按配方重画；结构基准=飞特 v2.2（D72）；实物门待条件 |
 
 ## 关键路径与命令
 
