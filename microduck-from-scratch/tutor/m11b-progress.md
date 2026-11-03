@@ -39,3 +39,12 @@
 
 - 用户按配方重画完成；自报硬指标全过（Ø19×2、孔心距 35.643/22、厚 2、小孔直径与位置、外轮廓可接受）。
 - **下一件：`hip_l`**——打开导入参考件 Measure，再按 `parts/hip_l.recipe.md` 新建 PartStudio 参数化重画。
+## 浏览器说明（2026-11-03 收工时）
+
+Onshape 的 Edge 窗口已关闭；独立 profile 保留在 `microduck-from-scratch/.edge-onshape/`（258MB，已 gitignore），登录状态在里面。
+明天重开（带调试端口，可被 agent 接管）：
+
+```sh
+microsoft-edge --user-data-dir=/home/jqlin/Project/skills/microduck-from-scratch/.edge-onshape \
+  --remote-debugging-port=9222 'https://cad.onshape.com/documents'
+```
