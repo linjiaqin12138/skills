@@ -199,9 +199,9 @@ setsid bash produce_all.sh </dev/null >/root/produce_all.log 2>&1 &
 
 ## 11. 相关文档
 
-- `~/Project/skills/research/comfyui-5090-openmontage-环境搭建指南.md` — ComfyUI 5090 环境 + 10 踩坑
-- `~/Project/skills/research/openmontage-特洛伊战争与奥德赛视频生成记录*.md` — 前作（Wan2.2 方案）
-- `~/Project/skills/research/odyssey-firstperson-交接文档.md`、`odyssey-firstperson-制作复盘.md` — 第一支第一人称版
+- `~/Project/skills/research/video-generation/comfyui-5090-openmontage-环境搭建指南.md` — ComfyUI 5090 环境 + 10 踩坑
+- `~/Project/skills/research/video-generation/openmontage-特洛伊战争与奥德赛视频生成记录*.md` — 前作（Wan2.2 方案）
+- `~/Project/skills/research/video-generation/odyssey-firstperson-交接文档.md`、`odyssey-firstperson-制作复盘.md` — 第一支第一人称版
 - Hermes 技能 `openmontage-comfyui-video`（含 `references/minimax-h3-comfyui.md` 节点接线细节、`templates/h3_pipeline.py` 管线模板）
 
 ## 12. 用户验收反馈（2026-09-12，总评 68/100）
