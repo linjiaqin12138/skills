@@ -27,3 +27,5 @@
 源自《The Minimalist Entrepreneur》一书的 10 个 Skill：`find-community`、`validate-idea`、`mvp`、`processize`、`first-customers`、`pricing`、`marketing-plan`、`grow-sustainably`、`company-values`、`minimalist-review`。
 
 另有体验中的第三方 Skill：`agent-browser`（浏览器自动化）、`redditlens`（Reddit 调研）、`claude-replay`（把 agent 会话历史做成可播放的 HTML 网页）。
+
+自研 Skill：`layered-codebase`——语言无关的分层架构规范（Protocol → Service → UseCase → Provider/Repository），含复杂度阶梯、测试归属、agent 写码红线与 review 清单，用于让 agent 写出来的代码结构一致、易 review、可增量演进。
