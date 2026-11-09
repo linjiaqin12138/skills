@@ -13,3 +13,5 @@ replays/
 skills/fireworks-tech-graph/
 .venv-manim/
 .claude/
+skills/image-generation/config.json
+skills/video-generation/config.json
