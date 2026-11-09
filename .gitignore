@@ -15,3 +15,5 @@ skills/fireworks-tech-graph/
 .claude/
 skills/image-generation/config.json
 skills/video-generation/config.json
+skills/short-drama/config.json
+skills/openmontage/config.json

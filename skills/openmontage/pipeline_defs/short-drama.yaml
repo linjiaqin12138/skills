@@ -1,0 +1,40 @@
+name: short-drama
+version: "1.0"
+description: 多镜头 AI 短剧生产：资产包、分镜生成、逐镜审核、单镜重跑与合成。
+category: cinematic
+stability: beta
+default_checkpoint_policy: guided
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: true
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/short-drama/executive-producer
+  budget_default_usd: 10.00
+  max_revisions_per_stage: 3
+
+stages:
+  - name: asset_pack
+    skill: pipelines/short-drama/asset-director
+    produces: [character_refs, scene_refs, prop_refs]
+    human_approval_default: true
+  - name: scene_plan
+    skill: pipelines/short-drama/scene-director
+    produces: [prompts, tasks]
+    human_approval_default: true
+  - name: assets
+    skill: pipelines/short-drama/asset-director
+    produces: [shots, cost_log]
+    human_approval_default: true
+  - name: edit
+    skill: pipelines/short-drama/edit-director
+    produces: [joined_video]
+    human_approval_default: false
+  - name: compose
+    skill: pipelines/short-drama/compose-director
+    produces: [final_video, cost_report]
+    human_approval_default: true

@@ -1,0 +1,27 @@
+name: short-drama
+version: "1.0"
+description: 多镜头 AI 短剧生产：资产包、分镜生成、逐镜审核、单镜重跑与合成。
+default_checkpoint_policy: guided
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: true
+
+stages:
+  - name: asset_pack
+    produces: [character_refs, scene_refs, prop_refs]
+    human_approval_default: true
+  - name: scene_plan
+    produces: [prompts, tasks]
+    human_approval_default: true
+  - name: assets
+    produces: [shots]
+    human_approval_default: true
+  - name: edit
+    produces: [joined_video]
+    human_approval_default: false
+  - name: compose
+    produces: [final_video, cost_report]
+    human_approval_default: true
