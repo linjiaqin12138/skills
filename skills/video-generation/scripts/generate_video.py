@@ -15,11 +15,12 @@ def parse_args():
     parser.add_argument("--provider", default="minimax-plan", choices=("minimax-plan", "ofoxai"))
     parser.add_argument("--first-frame", help="图生视频首帧；与 --reference-image 互斥")
     parser.add_argument("--reference-image", action="append", default=[], help="多模态参考图，可重复，最多 9 张")
+    parser.add_argument("--reference-video", action="append", default=[], help="多模态参考视频，MiniMax 最多 3 段，Ofox 最多 1 段")
     parser.add_argument("--ratio", default="adaptive", choices=("adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"))
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--out", required=True)
-    parser.add_argument("--model", default="MiniMax-H3-Lite", choices=("MiniMax-H3", "MiniMax-H3-Highspeed", "MiniMax-H3-Lite", "MiniMax-H3-Max", "bytedance/seedance-2.0", "bytedance/seedance-2.0-fast", "bytedance/seedance-2.0-mini", "bytedance/seedance-2.5", "alibaba/wan-3.0"))
-    parser.add_argument("--resolution", default="480P", choices=("480P", "768P", "2K", "480p", "720p", "1080p", "4k"))
+    parser.add_argument("--model", default="MiniMax-H3-Lite", choices=("MiniMax-H3", "MiniMax-H3-Highspeed", "MiniMax-H3-Lite", "MiniMax-H3-Max", "minimax/hailuo-3", "bytedance/seedance-2.0", "bytedance/seedance-2.0-fast", "bytedance/seedance-2.0-mini", "bytedance/seedance-2.5", "alibaba/wan-3.0"))
+    parser.add_argument("--resolution", default="480P", choices=("480P", "768P", "2K", "480p", "768p", "720p", "1080p", "2k", "4k"))
     parser.add_argument("--duration", type=int, default=4)
     parser.add_argument("--no-audio", action="store_true", help="仅 Ofox：关闭同步音轨")
     parser.add_argument("--real-person", action="store_true", help="Ofox Seedance：参考图含真人时启用预处理")
@@ -57,14 +58,22 @@ def api_request(url, token, method="GET", payload=None):
         raise RuntimeError(f"MiniMax HTTP {error.code}: {message}") from error
 
 
-def image_data_url(path_value):
+def media_data_url(path_value, allowed_mimes):
     path = Path(path_value)
     if not path.is_file():
-        raise ValueError(f"首帧不存在：{path_value}")
+        raise ValueError(f"素材不存在：{path_value}")
     mime = mimetypes.guess_type(path.name)[0]
-    if mime not in ("image/jpeg", "image/png", "image/webp"):
-        raise ValueError("首帧仅支持 JPG、PNG、WEBP")
+    if mime not in allowed_mimes:
+        raise ValueError(f"不支持的素材格式：{path_value}")
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
+
+
+def image_data_url(path_value):
+    return media_data_url(path_value, ("image/jpeg", "image/png", "image/webp"))
+
+
+def video_data_url(path_value):
+    return media_data_url(path_value, ("video/mp4", "video/quicktime"))
 
 
 def main():
@@ -77,21 +86,25 @@ def main():
     task_file = output.with_suffix(output.suffix + ".task.json")
     try:
         token = load_token(args.provider)
-        if args.first_frame and args.reference_image:
-            raise ValueError("--first-frame 与 --reference-image 互斥")
+        if args.first_frame and (args.reference_image or args.reference_video):
+            raise ValueError("--first-frame 与多模态参考素材互斥")
         if len(args.reference_image) > 9:
             raise ValueError("参考图最多 9 张")
-        if args.provider == "ofoxai" and not args.model.startswith(("bytedance/", "alibaba/")):
-            raise ValueError("Ofox 后端当前支持 Seedance 和 Wan 系列")
-        if args.provider == "minimax-plan" and args.model.startswith(("bytedance/", "alibaba/")):
-            raise ValueError("Seedance 和 Wan 请使用 --provider ofoxai")
+        if len(args.reference_video) > 3:
+            raise ValueError("参考视频最多 3 段")
+        if args.provider == "ofoxai" and len(args.reference_video) > 1:
+            raise ValueError("Ofox 参考视频最多 1 段")
+        if args.provider == "ofoxai" and not args.model.startswith(("bytedance/", "alibaba/", "minimax/")):
+            raise ValueError("该模型不支持 Ofox 后端")
+        if args.provider == "minimax-plan" and "/" in args.model:
+            raise ValueError("Seedance、Wan 和 Ofox H3 请使用 --provider ofoxai")
         if args.provider == "ofoxai" and args.first_frame:
-            raise ValueError("Ofox Seedance 当前请使用 --reference-image")
+            raise ValueError("Ofox 当前脚本请使用多模态参考素材")
         if args.dry_run:
-            for path in ([args.first_frame] if args.first_frame else args.reference_image):
+            for path in ([args.first_frame] if args.first_frame else args.reference_image + args.reference_video):
                 if not Path(path).is_file():
-                    raise ValueError(f"图片不存在：{path}")
-            print(json.dumps({"provider": args.provider, "model": args.model, "resolution": args.resolution, "duration": args.duration, "reference_count": len(args.reference_image)}, ensure_ascii=False))
+                    raise ValueError(f"素材不存在：{path}")
+            print(json.dumps({"provider": args.provider, "model": args.model, "resolution": args.resolution, "duration": args.duration, "reference_image_count": len(args.reference_image), "reference_video_count": len(args.reference_video)}, ensure_ascii=False))
             return 0
         if task_file.is_file():
             task_id = json.loads(task_file.read_text(encoding="utf-8"))["task_id"]
@@ -102,6 +115,8 @@ def main():
                 content.append({"type": "image_url", "image_url": {"url": image_data_url(args.first_frame)}, "role": "first_frame"})
             for path in args.reference_image:
                 content.append({"type": "image_url", "image_url": {"url": image_data_url(path)}, "role": "reference_image"})
+            for path in args.reference_video:
+                content.append({"type": "video_url", "video_url": {"url": video_data_url(path)}, "role": "reference_video"})
             payload = {
                 "model": args.model,
                 "content": content,
@@ -125,8 +140,14 @@ def main():
                 "aspect_ratio": args.ratio,
                 "generate_audio": not args.no_audio,
                 "input_references": [
-                    {"type": "image_url", "image_url": {"url": image_data_url(path)}}
-                    for path in args.reference_image
+                    *[
+                        {"type": "image_url", "image_url": {"url": image_data_url(path)}}
+                        for path in args.reference_image
+                    ],
+                    *[
+                        {"type": "video_url", "video_url": {"url": video_data_url(path)}}
+                        for path in args.reference_video
+                    ],
                 ],
             }
             if args.real_person and args.model.startswith("bytedance/"):

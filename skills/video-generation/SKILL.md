@@ -5,7 +5,7 @@ description: 使用 MiniMax H3 等视频模型从首帧或文本生成视频，�
 
 # Video Generation
 
-当前支持 MiniMax H3 首帧/多模态参考生视频，以及 Ofox Seedance 多参考图生视频。脚本只依赖 Python 标准库。
+当前支持 MiniMax H3 首帧及图片/视频多模态参考生视频，以及 Ofox H3、Seedance、Wan 的图片/视频多模态参考生视频。脚本只依赖 Python 标准库。
 
 ## 配置
 
@@ -49,6 +49,19 @@ python3 skills/video-generation/scripts/generate_video.py \
   --out output/two-shots.mp4
 ```
 
+MiniMax H3 参考视频与角色图片（首帧与多模态参考素材互斥）：
+
+```bash
+python3 skills/video-generation/scripts/generate_video.py \
+  --model MiniMax-H3 \
+  --resolution 768P \
+  --duration 8 \
+  --reference-video path/to/source.mp4 \
+  --reference-image path/to/character.png \
+  --prompt "将视频1的主角替换为图片1的角色，保留动作、镜头和背景" \
+  --out output/recast.mp4
+```
+
 Ofox Seedance 多参考图：
 
 ```bash
@@ -70,6 +83,7 @@ python3 skills/video-generation/scripts/generate_video.py \
 - `MiniMax-H3-Highspeed`：速度优先，支持 480P/768P，4–15 秒。
 - `MiniMax-H3`：质量优先，支持 768P/2K，4–15 秒。
 - `MiniMax-H3-Max`：极速版本，支持 480P/768P，5–15 秒。
+- `minimax/hailuo-3`：Ofox H3，支持图片/视频参考，768P/2K，4–15 秒。
 - `bytedance/seedance-2.0` 及 Fast/Mini：Ofox，多镜头、多参考图，4–15 秒。
 - `bytedance/seedance-2.5`：Ofox，长时序与多镜头，4–30 秒。
 
