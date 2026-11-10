@@ -6,7 +6,10 @@
 
 ```text
 Protocol → Service → UseCase → Provider / Repository
+                                   ↘ Engine → Provider / Repository
 ```
+
+引擎（Engine）是 Provider / Repository 同级的可选组件：应用驱动它，它内部可以使用 provider 与 repository。它既不是 utils，也不是 UseCase，详见第 3 节。
 
 - 只能向内依赖。
 - 同层之间尽量不横向依赖；确需横向时，通过上层（Service）传递，而不是互相 import。
@@ -127,7 +130,73 @@ run(input):
 - 不放：每个 UseCase 自己的 Input/Output（那些属于 UseCase 旁边）、纯 I/O 形状的请求响应类、所有 Pydantic 类的收集站
 - 判据是**语义**而非技术：继承自 BaseModel、有校验，只说明结构，不说明它是领域概念
 
-## 3. 配置归属
+## 3. 引擎（Engine）
+
+引擎是**由应用驱动的自洽子系统**：agent loop、回测引擎、仿真台、调度运行时。它**既不是 utils，也不是 UseCase**。
+
+### 识别标准
+
+一个组件同时满足以下条件，才是引擎：
+
+- **可以作为独立 SDK 发布**。它有自己的公开 API、自己的版本、自己的测试，脱离本仓库也成立。
+- **不含本项目的 domain knowledge**。它不知道 symbol、order、position、notification 是什么；领域词汇留在 UseCase / Service / models。
+- **不依赖核心领域模型**。它定义自己的输入输出类型，由调用方负责与应用的类型互转。
+- **可以依赖 `providers/`、`utils/` 等通用设施**。这些依赖是它公开契约的一部分，不违反分层。
+
+判定规则：
+
+```text
+懂本项目的领域？                 → UseCase（或 Service）
+无状态、无副作用？               → utils/
+无领域知识、但有状态、
+且大到能自己管理生命周期？        → Engine
+```
+
+所以：**引擎永远不放 `utils/`**。utils 是小而通用、无状态的小工具；引擎是一个带自己模型、配置、生命周期和失败模式的子系统。把引擎塞进 `utils/`，等于把一整个系统伪装成工具函数目录，后面一定会出现「状态存哪」「谁来关闭连接」「错误怎么归类」这类烂问题。
+
+### 放置
+
+```text
+src/
+└── engines/
+    ├── agent_loop/
+    │   ├── __init__.py       # 只导出门面
+    │   ├── engine.py         # AgentLoopEngine：run(request) -> EngineResult
+    │   ├── models.py         # 引擎自己的输入/输出与运行期模型
+    │   ├── policy.py         # 循环控制：何时停止、何时重试、工具选择
+    │   └── providers/        # 该引擎专用的第三方调用
+    └── backtest/
+        ├── engine.py         # BacktestEngine：run(config) -> BacktestReport
+        ├── models.py
+        ├── matching.py       # 撮合规则
+        ├── metrics.py        # 绩效指标
+        └── providers/        # 行情、资金费率等数据源
+```
+
+规则：
+
+- `engines/` 是**可选目录**。只有满足上面的识别标准才建；否则该组件属于 `use_cases/`、`providers/` 或 `utils/`。
+- 引擎在依赖深度上与 Provider / Repository 同级：可以依赖 `providers/`、`repositories/`、`utils/` 和自己的模型；**不得依赖 `protocols/`、`services/`、`use_cases/`**。应用通过 Service 或 UseCase 调用引擎，引擎不反向调用应用。
+- 每个引擎只导出一个门面。调用方只 import 门面，不 import 内部模块，内部结构因此可替换。
+- 只被一个引擎使用的 Provider 调用放在该引擎自己的 `providers/` 下；被多个组件共用的才上提到顶层 `providers/`。
+
+### 副作用与生命周期
+
+- 副作用只发生在 Provider 边界。引擎的核心逻辑——循环控制、工具分发、撮合、指标——保持纯粹或把依赖作为参数传入，这样不需要网络和数据库就能测。
+- 引擎拥有自己使用的 client / session，通过配置注入，并由引擎负责关闭。**不允许模块级全局 client**。
+- 运行模式是显式配置：agent loop 区分 dry-run / sandbox / live；回测引擎区分 live data / synthetic data / replay。
+- 影响结果的随机性必须是显式入参。引擎不许调用全局随机数生成器的 seed 设置，那会污染同进程的其他代码。
+- 引擎内部循环的重试归引擎；跨多个引擎的编排重试与 fallback 归调用它的 UseCase。
+- 引擎返回结果；要不要落库由调用方通过 Repository 决定。
+- 引擎要报告自己的成本与耗时：agent loop 的 token 用量与花费，回测引擎的成交与换手。
+
+### 引擎的测试
+
+`tests/engines/` 负责引擎自身的行为：循环控制、工具分发、撮合规则、指标、引擎级错误到 provider 级错误的映射；patch 引擎自己的 Provider，方式与 Service 测试 patch 应用 Provider 相同。
+
+引擎不需要一套重复 `tests/services/` 应用场景的测试。用到引擎的 UseCase 在 UseCase 层测试，把引擎在**公开门面**处 fake 掉。
+
+## 4. 配置归属
 
 ```text
 全局配置文件（外部配置格式 + 加载逻辑）
@@ -143,7 +212,7 @@ UseCase Config（属于该 UseCase）
 - 不要写只做转发的 `from_config()` 类方法；组合根直接 `new Service(config)`。只有真有装配逻辑时才加 `build_*()` 工厂。
 - 密钥、账号、端点走环境变量或配置注入，不进代码（12-factor 的 Config 原则）。
 
-## 4. 错误模型
+## 5. 错误模型
 
 ### 容器
 
@@ -190,7 +259,7 @@ Provider: provider_quota_exhausted
 - 不许 catch `BaseException`、不许吞掉取消信号。
 - 未捕获异常由 Protocol 兜底：CLI 一般打印原始堆栈，网络型 Protocol 记录堆栈但不对外暴露。
 
-## 5. 事务与会话
+## 6. 事务与会话
 
 - **UseCase 决定**事务何时开始、提交、回滚。
 - Repository 通过传入的 session 参与当前事务，**永不**独立 commit。
@@ -200,7 +269,7 @@ Provider: provider_quota_exhausted
 - 本地事务无法让远程系统与数据库原子化——用幂等键、唯一约束、本地状态、补偿流程来协调。
 - 数据库约束（唯一键、外键）作为最后一道一致性防线。
 
-## 6. Port（可选层）
+## 7. Port（可选层）
 
 **不要因为"接了第三方"就引入 Port。** 直接调用具体 Provider，直到出现下面任一情况：
 
@@ -214,25 +283,25 @@ Provider: provider_quota_exhausted
 - Port 定义能力，不选实现；选实现属于 Router / Service 装配
 - 保留现有的无状态 Provider 函数，在它们与 Port 之间加 Adapter
 
-## 7. 组合根与资源生命周期
+## 8. 组合根与资源生命周期
 
 - 长驻服务（HTTP 服务、MQ 消费者、调度器）需要组合根：加载配置、构造共享资源与 Service、注册关闭流程。
 - 一次性 CLI 可以直接构造 Service，不必强行加组合根。
 - 组合根只做装配，不含业务逻辑。
 
-## 8. 可观测性
+## 9. 可观测性
 
 - 静态配置与每请求上下文（用户、租户、trace、幂等键）要分开。
 - 计时、结构化日志、指标、追踪放在 `run()` 边界。
 - 不要把宽泛的 context 对象塞给 Provider，只传这次调用真正需要的值。
 - 日志保留诊断异常，但不记录凭据与敏感载荷。
 
-## 9. 异步与可靠性
+## 10. 异步与可靠性
 
 - 显式写出策略：超时、取消、有界并发、同步 SDK 卸载、限流、分页。
 - 重试必须有界，且符合操作的幂等性。
 - 可靠投递类流程（下单、支付、发消息）可能需要幂等键、唯一约束、本地状态、补偿、消费端去重或事务性 outbox——这些**都不是默认必需**，按需引入。
 
-## 10. 汇总
+## 11. 汇总
 
-Service 用语义化方法聚合相关操作并持有依赖；UseCase 各自拥有一个完整动作、自己的 Config/Input/Output，并拥有工作流、重试/fallback 与事务；Provider 是无状态可 patch 的具体调用，只做 provider 本地归一化；Repository 接收 session、不提交、可直接返回领域模型；utils 只放通用无副作用工具；跨层分类契约是**错误码**而不是异常类层次；Port 及其他可选扩展只在出现具体需求时引入。
+Service 用语义化方法聚合相关操作并持有依赖；UseCase 各自拥有一个完整动作、自己的 Config/Input/Output，并拥有工作流、重试/fallback 与事务；Provider 是无状态可 patch 的具体调用，只做 provider 本地归一化；Repository 接收 session、不提交、可直接返回领域模型；utils 只放通用无副作用工具；引擎（Engine）放无领域知识、可独立发布的子系统，拥有自己的模型、配置与生命周期，可依赖 provider/repository/utils，但不得依赖 protocols/services/use_cases，应用通过 Service 或 UseCase 使用它；跨层分类契约是**错误码**而不是异常类层次；Port 及其他可选扩展只在出现具体需求时引入。

@@ -40,6 +40,8 @@
 - Service 不许写工作流、不许有通用 `run()`、不许做 UseCase 模型的校验。
 - UseCase 不许把多个独立动作塞进一个（不许 `action` 分派）。
 - `utils` 不许 import 任何应用层；不许建 `common.py` 式垃圾桶。
+- **引擎（Engine）不许放进 `utils/`**，也不许写成 UseCase：引擎 = 无领域知识、可独立发布的子系统。引擎不许依赖 protocols/services/use_cases；只暴露一个门面。
+- 引擎不许使用模块级全局 client；运行模式（dry-run/sandbox/live、live/synthetic/replay）必须是显式配置；影响结果的随机性必须是显式入参，不许改全局随机数种子。
 - `models` 不许变成"所有数据类的回收站"。
 - 任何层的代码都不许反向 import 上层。
 

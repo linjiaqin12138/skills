@@ -74,6 +74,7 @@ scope：对应模块目录名（如 `services`、`providers`、`protocols/cli`�
 - 新逻辑不要放在 `scripts/` 里当业务代码。
 - 一次性脚本放 `scripts/`，不要漂在仓库根目录。
 - `utils/` 里不许 import 应用层。
+- 引擎类组件（agent loop、回测框架等）放 `src/engines/<name>/`，不许放 `utils/`，也不许写成 UseCase。
 
 ## 禁区
 

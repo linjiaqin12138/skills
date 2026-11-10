@@ -12,6 +12,7 @@ project_root/
 │   ├── use_cases/          # 一个应用动作一个文件
 │   ├── providers/          # 无状态第三方调用
 │   ├── repositories/       # 数据库读写
+│   ├── engines/            # 可选：可独立发布的子系统（agent loop、回测引擎）
 │   ├── ports/              # 可选：Port（需触发条件才建）
 │   ├── adapters/           # 可选：Port 的实现
 │   ├── models/             # 跨层共享结构 + Result/Error
@@ -44,6 +45,8 @@ project_root/
 | 7 | 加 `src/composition.(ext)` 或 `src/bootstrap.(ext)` |
 | 8 | 不新建目录，请求上下文放在 `src/models/` 或各层旁边 |
 
+> `engines/` 不在阶梯里——它不是"更深的一层"，而是**另一种组件类型**。是否建 `engines/` 取决于组件是否满足"可独立发布的 SDK、无 domain knowledge、不依赖核心模型"这三条判据（见 `references/complexity-ladder.md` 的组件归属判定）。
+
 ## 每个目录放什么 / 不放什么
 
 | 目录 | 放 | 不放 |
@@ -53,6 +56,7 @@ project_root/
 | `use_cases/` | 一个动作一个文件：Input/Output/Config + 业务规则 + 编排 + 错误映射 + 事务 | 多动作分派、读全局配置、依赖协议框架 |
 | `providers/` | 一个外部源一个文件：无状态调用函数、provider 本地归一化 | 配置读取、账号选择、调用其他 Provider、全局 client、应用模型 |
 | `repositories/` | 按领域能力命名的读写函数 | 自己开事务、返回 Result、SQL 式命名 |
+| `engines/` | 自洽子系统：门面 + 自己的模型 + 策略 + 生命周期；内部可带 `providers/` | 领域知识、依赖 protocols/services/use_cases、把内部模块直接暴露给调用方 |
 | `ports/` | 能力接口（需第二种实现时） | 镜像第三方 SDK、选实现 |
 | `adapters/` | Port 的具体实现 | 业务逻辑 |
 | `models/` | 跨层共享的领域结构、`Result`/`Error` | 各 UseCase 的 Input/Output、所有数据类 |

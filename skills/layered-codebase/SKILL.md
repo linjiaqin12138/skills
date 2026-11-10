@@ -50,7 +50,8 @@ argument-hint: [目标：新建项目 | 接入分层 | 写功能 | review 代码
 | UseCase | 一个完整应用动作：业务规则、编排、错误映射、重试策略、事务边界 | 一个 UseCase 塞多个动作（`action` 分派）、读全局配置 |
 | Provider | 无状态第三方 API/HTTP/SDK 调用，藏传输细节 | 读配置、选账号、管连接生命周期、依赖应用模型 |
 | Repository | 数据库读写，接收 session，**不 commit** | 自己开事务、返回 Result、SQL 式命名 |
-| utils | 通用无副作用小函数 | import 任何应用层、读配置/网络/DB |
+| utils | 通用无副作用小函数 | import 任何应用层、读配置/网络/DB、放子系统/引擎 |
+| Engine | 无领域知识、可独立发布的子系统（agent loop、回测引擎） | 装进 utils、写成 UseCase、依赖 protocols/services/use_cases |
 | models | 跨层共享的稳定领域结构 + Result/Error | 变成"所有 Pydantic 类"的回收站 |
 
 细则（模型归属、配置归属、事务、错误映射、Port 触发条件）见 `references/architecture.md`。
@@ -70,6 +71,8 @@ argument-hint: [目标：新建项目 | 接入分层 | 写功能 | review 代码
 | 6 | + UnitOfWork | 重复的事务生命周期代码已经出现，且 UnitOfWork 能真的消除它 |
 
 降级也是允许的：如果某个 UseCase 只有一个调用方、没有独立策略，把它收回 Service 里；不要为了"符合分层图"留着空壳层。
+
+另外还有一个**组件归属**问题（不是层级深度）：一个组件该是 `utils/`、UseCase 还是 **Engine**？判据是"可独立发布的 SDK、无 domain knowledge、不依赖核心模型"——详见 `references/complexity-ladder.md` 的组件归属判定，以及 `references/architecture.md` 第 3 节。
 
 细则见 `references/complexity-ladder.md`。
 

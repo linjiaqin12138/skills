@@ -25,6 +25,7 @@
 | `tests/services/` | 完整应用动作：输入/输出校验、工作流、重试/fallback、Provider→Service 错误映射、配置传递 | Provider 传输解析、Protocol 渲染 |
 | `tests/providers/` | 请求构造、SDK/HTTP 交互、响应解析、provider 本地归一化、异常→Provider 错误映射 | UseCase 工作流、Service 错误映射 |
 | `tests/protocols/` | 入参解析、响应渲染、Service→协议错误码映射、退出码/状态行为、未捕获异常兜底 | 应用工作流、Provider 行为 |
+| `tests/engines/` | 可选：引擎自身的行为——循环控制、工具分发、撮合规则、指标、引擎级→provider 级错误映射 | `tests/services/` 里已覆盖的应用场景 |
 | `tests/utils/` | 通用工具与装饰器的直接行为 | 应用工作流、穷举实现矩阵 |
 | Repository 集成测试 | 真实查询、约束、commit、rollback、fixture | Provider / Protocol 行为 |
 
@@ -45,6 +46,8 @@
 这三者不是重复。但"同一套工作流/校验规则在 Service 和 UseCase 各测一遍"就是重复。
 
 保留**一个**代表性的端到端 Service 场景来证明接线正确即可，不要把完整场景矩阵复制到 Service、组合根、Protocol 三处。
+
+用到引擎的 UseCase 在 UseCase 层测试，把引擎在**公开门面**处 fake 掉；引擎自身的行为在 `tests/engines/` 里测。不要为引擎建一套重复 `tests/services/` 应用场景的测试。
 
 ## 组合根构建
 
