@@ -15,10 +15,11 @@ argument-hint: [目标：新建项目 | 接入分层 | 写功能 | review 代码
 ## 核心信条
 
 1. **依赖只向内**：`Protocol → Service → UseCase → Provider / Repository`。反向依赖、跨层 import、同层横向 import 都是违规。
-2. **错误码是契约，不是异常类型**。每层拥有自己的错误码命名空间，逐层显式映射；`unknown` 只能做兜底，不能做分支条件。
-3. **每个行为只有一个测试归属**：Provider 证传输、Service 证业务、Protocol 证协议映射。同一个规则不许测两遍。
-4. **复杂度按需引入**。每种抽象（UseCase / Port / UnitOfWork / Provider / Repository）都有明确的"触发条件"和"不满足就不许加"的红线。
-5. **能工具化的约束就不写在文档里**。能进 linter / type checker / test / CI 的规则，做成确定性检查；只有需要判断力的才写进文档。
+2. **错误码是契约，不是异常类型**。载体可一、码分属各层，逐层显式映射；`unknown` 只能做兜底；可重试性由 code 推导，不是 Error 字段。
+3. **throw / Result 看现场是否要分支**：失败即结束 → 可 throw；同一控制流要 fallback/重试分流 → Result。禁止在 catch 里做业务策略菜单。
+4. **每个行为只有一个测试归属**：Provider 证传输、Service 证业务、Protocol 证协议映射。同一个规则不许测两遍。
+5. **复杂度按需引入**。每种抽象（UseCase / Port / UnitOfWork / Provider / Repository）都有明确的"触发条件"和"不满足就不许加"的红线。
+6. **能工具化的约束就不写在文档里**。能进 linter / type checker / test / CI 的规则，做成确定性检查；只有需要判断力的才写进文档。
 
 ## 三种使用方式
 
@@ -45,14 +46,14 @@ argument-hint: [目标：新建项目 | 接入分层 | 写功能 | review 代码
 
 | 层 | 一句话职责 | 明确禁止 |
 |---|---|---|
-| Protocol | 解析入参、调用 Service、渲染出参、映射错误码到外部协议 | 写业务逻辑、直连 UseCase/Provider/Repository |
-| Service | 对外门面，按语义命名方法，组装 UseCase 与依赖 | 通用 `run()`、工作流、事务、校验 UseCase 模型 |
-| UseCase | 一个完整应用动作：业务规则、编排、错误映射、重试策略、事务边界 | 一个 UseCase 塞多个动作（`action` 分派）、读全局配置 |
-| Provider | 无状态第三方 API/HTTP/SDK 调用，藏传输细节 | 读配置、选账号、管连接生命周期、依赖应用模型 |
+| Protocol | 解析入参、调用 Service、渲染出参、映射错误码与协议外形 | 写业务逻辑、直连 UseCase/Provider/Repository、把协议细节塞进 Service |
+| Service | 对外门面，按语义命名方法，组装 UseCase 与依赖 | 通用 `run()`、协议 statusCode、（有 UseCase 后）工作流/事务 |
+| UseCase | 一个完整应用动作：业务规则、编排、错误映射、重试/长等待、事务 | 一个 UseCase 塞多个动作（`action` 分派）、读全局配置 |
+| Provider | 无状态第三方单次传输函数，藏 SDK 细节 | 读配置、选账号、长轮询编排、专用异常类、无谓门面类 |
 | Repository | 数据库读写，接收 session，**不 commit** | 自己开事务、返回 Result、SQL 式命名 |
-| utils | 通用无副作用小函数 | import 任何应用层、读配置/网络/DB、放子系统/引擎 |
+| utils | 纯工具 + 机制型效应工具（按能力，可单调用方独立） | import 应用层、`common`/`framework`、领域码、藏在 Service 私有里 |
 | Engine | 无领域知识、可独立发布的子系统（agent loop、回测引擎） | 装进 utils、写成 UseCase、依赖 protocols/services/use_cases |
-| models | 跨层共享的稳定领域结构 + Result/Error | 变成"所有 Pydantic 类"的回收站 |
+| models | 跨层共享的稳定领域结构 + Result/Error | 变成数据类回收站、在 Error 上挂协议序列化 |
 
 细则（模型归属、配置归属、事务、错误映射、Port 触发条件）见 `references/architecture.md`。
 
@@ -72,7 +73,7 @@ argument-hint: [目标：新建项目 | 接入分层 | 写功能 | review 代码
 
 降级也是允许的：如果某个 UseCase 只有一个调用方、没有独立策略，把它收回 Service 里；不要为了"符合分层图"留着空壳层。
 
-另外还有一个**组件归属**问题（不是层级深度）：一个组件该是 `utils/`、UseCase 还是 **Engine**？判据是"可独立发布的 SDK、无 domain knowledge、不依赖核心模型"——详见 `references/complexity-ladder.md` 的组件归属判定，以及 `references/architecture.md` 第 3 节。
+另外还有一个**组件归属**问题（不是层级深度）：一个组件该是纯 `utils/`、机制型 `utils/<capability>`、UseCase 还是 **Engine**？机制工具以「可发现」优先（单调用方也可独立成模块）；引擎判据是"可独立发布的 SDK、无 domain knowledge、不依赖核心模型"——详见 `references/complexity-ladder.md` 与 `references/architecture.md`。
 
 细则见 `references/complexity-ladder.md`。
 
@@ -96,7 +97,8 @@ argument-hint: [目标：新建项目 | 接入分层 | 写功能 | review 代码
 
 - 新增顶层目录、引入新依赖、改变公开接口、动 `AGENTS.md` 里的命令——**先问再做**。
 - 一次改动只做一件事；不顺手重构、不顺手格式化、不顺手升级依赖。
-- 不许把业务逻辑写进 Protocol，不许在 Provider 里读配置，不许在 Repository 里 commit。
+- 不许把业务逻辑写进 Protocol，不许在 Provider 里读配置或做长轮询，不许在 Repository 里 commit。
+- 写机制工具前先搜 `utils/`；机制函数进能力目录，不要藏在 Service 私有实现里。
 - 不许用模块级可变全局（全局 client、全局缓存）来"省事"。
 - 改完必须给出**可运行的验证证据**（命令 + 输出），不能只说"应该没问题"。
 

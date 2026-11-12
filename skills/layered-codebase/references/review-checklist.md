@@ -13,21 +13,27 @@ Review 的目标是**验证结构契约**，不是重写代码。按顺序过；
 - [ ] 依赖方向正确：没有反向 import、没有跨层 import、没有同层横向 import
 - [ ] Protocol 里没有业务逻辑；Protocol 不直接调 UseCase/Provider/Repository
 - [ ] Service 暴露的是语义化方法，没有通用 `run()` / `action` 分派
+- [ ] Service 返回值没有协议细节（HTTP statusCode / header / Range 等）
 - [ ] UseCase 一个动作一个，没有把多个独立操作合并
 - [ ] Provider 无状态：不读配置、不选账号、不持全局 client、不依赖应用模型
+- [ ] Provider 只有单次传输/本地归一化，没有长轮询或「等任务完成」编排
+- [ ] Provider 是具体函数（或必要的薄封装），没有无第二种实现的抽象基类/门面类硬撑
 - [ ] Repository 接收 session、不 commit、不返回 Result
-- [ ] `utils` 没有 import 应用层；没有 `common.py` 式垃圾桶
-- [ ] `models` 里只有真正跨层共享的结构，没有变成数据类回收站
+- [ ] `utils` 没有 import 应用层；没有 `common` / `framework` / `infra` 垃圾桶
+- [ ] 机制型效应工具在 `utils/<capability>` 可发现，没有藏在 Service 私有实现里重复造轮子
+- [ ] `models` 里只有真正跨层共享的结构；Error 载体没有协议序列化方法
 - [ ] 没有空壳层（空的 UseCase / Port / Adapter / 没人调的通用入口）
 - [ ] 复杂度等级与实际需求匹配（见 `complexity-ladder.md`）
 
 ## B. 错误与契约（阻塞）
 
-- [ ] 每个错误码归属唯一的一层，没有跨层混用
-- [ ] Provider 错误码被显式映射成 Service 错误码（不是默认透传）
-- [ ] Service 错误码在每个 Protocol 里都有映射 + 兜底
+- [ ] 每个错误码归属唯一的一层，没有跨层混用；模块旁能看到本模块码表
+- [ ] Provider / 机制码被显式映射成 Service 错误码（不是默认透传）
+- [ ] Service 错误码在每个 Protocol 里都有映射 + 兜底；没有把已分类失败一律当 `unknown`
 - [ ] 没有拿 `unknown` 做分支条件
-- [ ] 没有用异常类名 / HTTP 状态码做跨层分支契约
+- [ ] 没有用异常类型名 / HTTP 状态码做跨层分支契约；没有 Provider 专用异常类树
+- [ ] 没有把 `retryable` 当成 Error 一等契约字段（hint 若存在仅由 Protocol 映射生成）
+- [ ] throw/Result 选择合理：现场业务分流用 Result；catch 里没有业务策略菜单
 - [ ] 原始异常没有泄露进外部响应
 - [ ] 没有 catch `BaseException`、没有吞掉取消信号
 - [ ] 公开接口变更已在 PR 里标注（含破坏性变更）
@@ -58,12 +64,14 @@ Review 的目标是**验证结构契约**，不是重写代码。按顺序过；
 
 ## F. 可选升级（建议）
 
-- [ ] 命名是否与相邻代码一致、是否见名知意
+- [ ] 命名是否与相邻代码一致、是否见名知意；Service 文件是否按能力命名（避免 `*_service` 后缀重复）
+- [ ] 跨文件协议字面量（消息 type、版本常量）是否有唯一来源，避免到处抄字符串
 - [ ] 函数是否过长、是否藏了第二件事
 - [ ] 注释是否解释了"为什么"而不是复述"做了什么"
 - [ ] 文档是否与代码一致
 - [ ] 是否该写一条 ADR（新增依赖/抽象层/接口或 schema 变更/策略调整）
 - [ ] 错误码命名是否与既有风格一致、分类是否按"调用方能做什么"划分
+- [ ] 日志是否走级别与协议通道分离（结果走协议，诊断走 logger）
 - [ ] 是否有更小的实现能满足需求
 
 ## G. Review 输出格式

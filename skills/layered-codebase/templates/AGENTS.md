@@ -17,9 +17,9 @@
 
 最容易被违反的三条：
 
-1. 业务逻辑不许写在 Protocol 里。
-2. Provider 不许读配置、不许调别的 Provider。
-3. Repository 接收 session，不许自己 commit。
+1. 业务逻辑不许写在 Protocol 里；HTTP status 等协议细节不许进 Service。
+2. Provider 不许读配置、不许调别的 Provider、不许做长轮询编排。
+3. 错误用 code 契约；catch 里不做业务分流；机制工具放 `utils/<capability>` 以便发现。
 
 当前架构复杂度等级：<!-- 例如 2（Service + UseCase） -->
 升级到下一级的触发条件：<!-- 例如 "出现第二个外部 API 时引入 Provider" -->
@@ -73,8 +73,10 @@ scope：对应模块目录名（如 `services`、`providers`、`protocols/cli`�
 
 - 新逻辑不要放在 `scripts/` 里当业务代码。
 - 一次性脚本放 `scripts/`，不要漂在仓库根目录。
-- `utils/` 里不许 import 应用层。
+- `utils/` 里不许 import 应用层；不许建 `common` / `framework` 垃圾桶。
+- 机制型效应工具（无领域 + 本地 IO）放 `utils/<capability>`，写之前先搜是否已有。
 - 引擎类组件（agent loop、回测框架等）放 `src/engines/<name>/`，不许放 `utils/`，也不许写成 UseCase。
+- Service 文件按能力命名（`services/agent`），不要 `*_service` 后缀。
 
 ## 禁区
 

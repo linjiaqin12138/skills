@@ -26,15 +26,16 @@ CLI、HTTP API、MCP、消息队列消费者、Webhook、定时任务触发器�
 - 反序列化入参，做**协议层**的语法/信封校验
 - 调用 Service 的语义化方法
 - 把 Service 结果序列化成协议响应
-- 处理认证与协议级错误
-- 把 Service 错误码映射成该协议的外部错误规格
-- 作为最后一道边界兜住未捕获异常
+- 处理认证与**协议自身**的失败（非法 Host、multipart 不合法、协议版本不支持等）——这些用 Protocol 码，不冒充 Service 码
+- 把 Service 错误码映射成该协议的外部错误规格（HTTP status、CLI 退出码、WS close code、响应 body）
+- 作为最后一道边界兜住未捕获异常（统一 handler：按 code 映射，或记日志后兜底）
 
 禁止：
 - 写业务逻辑、编排工作流
 - 直接调用 UseCase / Provider / Repository
 - 绕过 Service 去拿 UseCase 的 Input/Output 模型
 - 直接暴露 Service 错误码或 Provider 错误码给外部（除非协议规格就是它）
+- 把 HTTP status / header / Range / multipart 形状泄漏进 Service 的返回类型
 
 ### Service（对外门面）
 
@@ -44,13 +45,15 @@ CLI、HTTP API、MCP、消息队列消费者、Webhook、定时任务触发器�
 - 暴露**语义化命名**的方法：`execute()`、`status()`、`create_order()`、`cancel_order()`
 - 组装并持有 UseCase，传入各自 Config 与共享依赖（session factory、client factory）
 - 拥有本层需要的配置契约（Config）与共享连接工厂
+- 在尚无 UseCase 的级别（Level 1）下，暂时拥有工作流、Provider 调用与错误映射；升级到 UseCase 后这些职责下沉
 
 禁止：
 - 提供通用 `run()` / `execute(input)` 这种"万能入口"
 - 用 `action` 字段或大条件分支把多个独立操作塞进一个方法
 - 校验 UseCase 的 Input/Output 模型（那是 `run()` 边界的事）
-- 实现工作流、调用 Provider、划定数据库事务
+- 在已有 UseCase 的级别里实现工作流、调用 Provider、划定数据库事务（那些属于 UseCase）
 - 实现通用的 `_execute()` 辅助方法吞掉所有调用
+- 返回或持有协议细节（HTTP `statusCode`、header 名、Content-Range 等）；领域含义用 `partial` / `range` 这类词表达，由 Protocol 决定 200/206
 
 ### UseCase（应用动作）
 
@@ -88,16 +91,22 @@ run(input):
 - 把调用所需的一切（key、token、超时）都作为**显式参数**接收
 - 固定端点写在 Provider 内部，不要求调用方传 URL
 - 可做**轻量、provider 本地**的归一化：字段改名、时间戳统一、响应过滤——前提是每个调用方都需要、不含业务策略、不丢失信息
+- 一次函数调用对应一次（或一组紧密的）传输往返：提交、查询状态、下载内容应是**分开的** Provider 函数
 
 禁止：
 - 读配置、选账号/用户、选择别的 Provider、管理连接生命周期
 - 依赖 UseCase/Service 的 Input/Output 模型或领域模型
 - 变成长期存活的服务对象
+- **长等待编排**：分钟级 job 轮询、跨多次调用的等待循环、业务超时策略——这些属于 UseCase（Level 1 则在 Service）
+- 为「门面好看」包一层无第二种实现的 Provider 类 / 抽象基类
 
 形态：
-- 默认**抛异常**版本 + 用装饰器派生的**返回 Result** 版本（需要按错误码重试/fallback/映射时才用 Result 版）
+- **优先具体函数** + 显式 `client`/凭据/超时参数；不要默认写成持有策略的类
+- 默认**抛异常**版本 + 需要按错误码重试/fallback/映射时再用 **Result** 版（见第 5 节）
+- 分类失败用通用 `AppError(provider_code, message)`，不要为每个 Provider 建专用异常类
 - 客户端默认在单次调用内创建并关闭；不要模块级全局 client
 - 确需长连接复用时，由 Service 持有 client 并显式传给 Provider
+- Provider 仅可做**小的、固定的、有界**瞬时自重试（幂等安全）；不把「等任务完成」当成自重试
 
 ### Repository（持久化）
 
@@ -116,19 +125,35 @@ run(input):
 
 ### utils（通用工具）
 
-小而可复用、与领域无关的函数和装饰器：重试/退避、时间解析、文本归一化、排序分组。
+按能力命名的小模块，分两类。**不许建 `common` / `framework` / `infra` 垃圾桶。**
+
+#### 纯工具
+
+无副作用：重试/退避算法、时间解析、文本归一化、路径字符串前缀判断、排序分组。
 
 约束：
 - 不依赖配置、环境、网络、数据库、全局状态
 - 可以包装副作用（如重试装饰器），但由调用方传入被包装的 effect 和策略
-- 按能力命名模块（`utils/retry`、`utils/time`），**不许建 `common.py` 垃圾桶**
-- 只被一个调用方使用且是 provider/领域专有的帮助函数，留在原地；真的通用且被复用了才提升到 `utils`
+
+#### 机制型效应工具（本地 IO，仍无领域）
+
+例如「在给定 root 下 resolve 真实路径」「读文件字节」。特征：
+
+- **无本项目领域词**（不认识 artifact / order / workspace schema）
+- 所有边界（`root`、路径、超时）**显式参数**，不读 env / 全局配置
+- 失败返回**机制码** Result（`not_found` / `outside_root` / `io_failed`），不抛 Service/领域码
+- 由 Service / UseCase 把机制码映射成领域码
+
+**何时独立成模块（关键）：** 语义已是稳定机制 → **立刻**放进 `utils/<capability>`（如 `utils/fs`），**即使只有一个调用方**。不要藏在某个 Service 的私有函数里——agent 发现不了就会再写一份。
+
+**仍留在调用方旁边的：** 还夹着领域含义、或名字/边界还在飘的帮助函数。领域旁路函数等边界清楚、或第二次要写同类逻辑时再抽。
 
 ### models（共享结构）
 
 - 放：`Result` / `Error` 这类跨层通用结构，以及**真正跨层共享**的稳定领域概念
 - 不放：每个 UseCase 自己的 Input/Output（那些属于 UseCase 旁边）、纯 I/O 形状的请求响应类、所有 Pydantic 类的收集站
 - 判据是**语义**而非技术：继承自 BaseModel、有校验，只说明结构，不说明它是领域概念
+- `Error` 载体**不含**协议序列化方法（不要 `toResponse()` / 协议 DTO 转换）；序列化只在 Protocol
 
 ## 3. 引擎（Engine）
 
@@ -147,12 +172,13 @@ run(input):
 
 ```text
 懂本项目的领域？                 → UseCase（或 Service）
-无状态、无副作用？               → utils/
+无领域、无副作用（或只包装调用方传入的 effect）？ → utils/ 纯工具
+无领域、本地 IO、机制码？         → utils/<capability> 机制型效应工具
 无领域知识、但有状态、
 且大到能自己管理生命周期？        → Engine
 ```
 
-所以：**引擎永远不放 `utils/`**。utils 是小而通用、无状态的小工具；引擎是一个带自己模型、配置、生命周期和失败模式的子系统。把引擎塞进 `utils/`，等于把一整个系统伪装成工具函数目录，后面一定会出现「状态存哪」「谁来关闭连接」「错误怎么归类」这类烂问题。
+所以：**引擎永远不放 `utils/`**。utils 是按能力组织的小工具（纯或机制型）；引擎是一个带自己模型、配置、生命周期和失败模式的子系统。把引擎塞进 `utils/`，等于把一整个系统伪装成工具函数目录，后面一定会出现「状态存哪」「谁来关闭连接」「错误怎么归类」这类烂问题。
 
 ### 放置
 
@@ -222,22 +248,47 @@ Result { success, data?, error? }
 ServiceResult extends Result { duration_seconds? }
 ```
 
-- 只有**一个**通用 `Result` 容器，不要为 Provider/DB/MQ 各造一个同构的 Result 类型。
-- `ServiceResult` 的错误码是**应用对外的稳定契约**。
+- 只有**一个**通用 Error 载体与**一个**通用 `Result` 容器；不要为 Provider/DB/MQ 各造同构类型或异常类继承树。
+- 需要抛已分类错误时用 `AppError(code, message, cause?)`。
+- `ServiceResult` / Service 错误码是**应用对外的稳定契约**（再由各 Protocol 映射外形）。
+- **可重试性不是 Error 字段。** 是否可重试由调用方按 `code` 语义决定。若某协议想给客户端 `retryable` hint，在 Protocol 的 `code → hint` 映射表生成，不写进抛错点。
 
 ### 码的归属与映射
 
 ```text
-Provider: provider_quota_exhausted
-    → Service: notification_quota_exhausted
-        → REST A: UPSTREAM_QUOTA_EXHAUSTED
-        → CLI:  NOTIFY_QUOTA
+机制工具: not_found
+    → Provider: provider_timeout   （若适用）
+        → Service: notification_quota_exhausted
+            → REST A: UPSTREAM_QUOTA_EXHAUSTED
+            → CLI:  NOTIFY_QUOTA
 ```
 
 - 每层拥有自己的错误码命名空间，**逐层显式映射**，不默认透传。
 - `code` 是分支契约，**不要**用异常类名、HTTP 状态码做分支契约。
-- 不要为不同 Provider 建异常类继承树；需要抛已分类错误时用一个通用 `AppError(code, message)`。
+- Protocol 有自己的码（入参/信封/认证失败）；Service 有自己的码；二者不要糊成一张「全局枚举」却假装只有一层。
+- **码表贴模块**：每个 Service / Provider / 机制工具模块旁（或文件顶部）列出本模块会产出的 code；打开文件即可看见契约。`message` 可含上下文（id、path）；固定文案才提成常量。
 - `message` 是安全可读的说明；`cause`/原始异常只作内部诊断，**不进外部响应**。
+- 序列化成协议 DTO（JSON body、退出码文案）只在 Protocol；Error 载体上不要挂 `toResponse()`。
+
+### throw 还是 Result
+
+不看「是否可预期」，看**调用方要不要在同一控制流里对失败分支**：
+
+| 选 | 何时 |
+|---|---|
+| **throw** | 失败即结束当前动作；交给上层统一边界处理（Protocol handler / UseCase `run` 边界）。可预期的业务失败也可以 throw。 |
+| **Result** | 同一函数内要对失败做不同事：fallback、按码重试、半成功继续、多路径恢复。 |
+
+Level 1（尚无 UseCase）允许 Service 以 throw `AppError` 为主；当同一方法开始需要按码重试/fallback 时，再对该路径改用 Result（或升级 UseCase）。
+
+### catch 规则
+
+- **允许**：入口统一 catch——按 code 映射协议响应 / 打日志 / 再抛；或把未分类异常收成 `unknown`/`internal`。
+- **禁止**：在 catch 里做业务策略菜单（`if missing → 领域码 A; else if …`）。那是 Result 的信号；应让下层返回机制码 Result，调用方线性映射。
+- 若统一边界要「按 code 调 handler」，handler **必须显式接收上下文**；缺上下文时不要用全局 handler 表硬凑——抛错时带齐字段，或改在现场用 Result。
+- 不许 catch `BaseException`、不许吞掉取消信号。
+- 未捕获异常由 Protocol 兜底：CLI 一般打印原始堆栈，网络型 Protocol 记录堆栈但不对外暴露。
+- **禁止**把 Service 失败一律当成 `unknown`；未映射才走兜底。
 
 ### 分类原则
 
@@ -249,15 +300,9 @@ Provider: provider_quota_exhausted
 ### 重试与 fallback 归属
 
 - Provider 可以内置**小的、固定的、有界**的自重试（只针对明确的瞬时故障，幂等安全）。
-- UseCase 拥有请求相关的重试、跨 Provider fallback、Provider 顺序。
+- UseCase 拥有请求相关的重试、跨 Provider fallback、Provider 顺序、**长轮询/等任务完成**。
 - Service / Router 拥有基于配置的 Provider 选择与构造；具体 Provider 不许调用别的 Provider。
 - 通用重试/fallback 算法放 `utils`，由调用方传入"哪些码可重试"的谓词。
-
-### 异常
-
-- 业务可预期的失败走 Result；编程缺陷（bug）继续向上抛。
-- 不许 catch `BaseException`、不许吞掉取消信号。
-- 未捕获异常由 Protocol 兜底：CLI 一般打印原始堆栈，网络型 Protocol 记录堆栈但不对外暴露。
 
 ## 6. 事务与会话
 
@@ -292,9 +337,11 @@ Provider: provider_quota_exhausted
 ## 9. 可观测性
 
 - 静态配置与每请求上下文（用户、租户、trace、幂等键）要分开。
-- 计时、结构化日志、指标、追踪放在 `run()` 边界。
+- 计时、结构化日志、指标、追踪放在 `run()` / Protocol 入口边界。
 - 不要把宽泛的 context 对象塞给 Provider，只传这次调用真正需要的值。
-- 日志保留诊断异常，但不记录凭据与敏感载荷。
+- 日志级别：`error` / `warn` / `info` / `debug`（需要更细时再加 `trace`）。
+- **协议通道 ≠ 日志**：CLI/HTTP 的业务结果走协议输出（如 CLI stdout 的结果 JSON）；诊断走 logger/stderr。不要把给机器解析的协议结果改成「打一行 log」就完事。
+- 日志保留诊断异常，但不记录凭据、token、完整敏感载荷（提示词全文、密钥、个人信息等）。
 
 ## 10. 异步与可靠性
 
@@ -304,4 +351,4 @@ Provider: provider_quota_exhausted
 
 ## 11. 汇总
 
-Service 用语义化方法聚合相关操作并持有依赖；UseCase 各自拥有一个完整动作、自己的 Config/Input/Output，并拥有工作流、重试/fallback 与事务；Provider 是无状态可 patch 的具体调用，只做 provider 本地归一化；Repository 接收 session、不提交、可直接返回领域模型；utils 只放通用无副作用工具；引擎（Engine）放无领域知识、可独立发布的子系统，拥有自己的模型、配置与生命周期，可依赖 provider/repository/utils，但不得依赖 protocols/services/use_cases，应用通过 Service 或 UseCase 使用它；跨层分类契约是**错误码**而不是异常类层次；Port 及其他可选扩展只在出现具体需求时引入。
+Service 用语义化方法聚合相关操作并持有依赖；UseCase 各自拥有一个完整动作、自己的 Config/Input/Output，并拥有工作流、重试/fallback、长等待与事务；Provider 是无状态可 patch 的**具体函数**，只做单次传输与本地归一化，不做长轮询编排；Repository 接收 session、不提交、可直接返回领域模型；utils 含纯工具与机制型效应工具（按能力命名、机制码、可单调用方独立模块）；引擎（Engine）放无领域知识、可独立发布的子系统；跨层分类契约是**错误码**（载体可一、码分属、序列化在 Protocol）；throw 与 Result 按「现场是否要分支」选择；Port 及其他可选扩展只在出现具体需求时引入。
