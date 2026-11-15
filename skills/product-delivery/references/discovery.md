@@ -70,4 +70,4 @@
 ## 与其它 skill
 
 - 价值路径仍是糊的：可读并遵循 **`processize`**，把「手搓步骤」变成操作清单输入。
-- 画流程图/时序：用 **`draw-diagram`**，产出路径见主 SKILL「图放哪里」。
+- 画流程图/时序：用 **`draw-diagram`**，产出路径见 [`doc-model.md`](doc-model.md) §6。

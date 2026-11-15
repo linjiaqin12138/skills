@@ -30,5 +30,4 @@ docs/
 CHANGELOG.md                    # 仓库根或 docs/CHANGELOG.md
 ```
 
-字段与章节：[`../references/doc-model.md`](../references/doc-model.md)。  
-图归属：主 SKILL「图放哪里」。
+字段、章节与图归属：[`../references/doc-model.md`](../references/doc-model.md)。

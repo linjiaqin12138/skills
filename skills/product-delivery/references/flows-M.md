@@ -2,6 +2,8 @@
 
 适用于：对外行为或协议局部变化，或改动面中等，仍是既有能力修补。
 
+典型请求：对外 API 字段改名、新增多个可选字段并展示、把单步「自动跳过」改为「必须确认」。若牵动主路径或多份契约，则升 L。
+
 ## 步骤
 
 1. **判档确认**：复述语义影响与改动面；用户点头。
@@ -28,4 +30,8 @@
 
 ## 完成标准
 
-见主 SKILL Definition of Done（M）。
+- brief 已确认，实现未超出 In/Out。
+- 现行契约及必要 `architecture/` 已更新。
+- 已按 brief 做轻量验收并留下依据。
+- CHANGELOG 已写；若开了变更包，状态已标 Frozen。
+- 若改代码，满足 [`layered-codebase`](../../layered-codebase/SKILL.md) 的 DoD。

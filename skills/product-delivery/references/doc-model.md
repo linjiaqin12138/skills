@@ -156,7 +156,18 @@
 
 ## 6. 图与寿命
 
-见主 SKILL「图放哪里」。变更包内的图在 Frozen 前若成为长期行为，复制或改写进 `architecture/`，变更包内保留快照即可。
+图跟真相寿命走，优先用 Mermaid 嵌入 Markdown。画图时可使用 **`draw-diagram`** skill 选型与产出。
+
+| 图在说什么 | 放哪 | 寿命 |
+|---|---|---|
+| 产品价值/阶段主流程 | `product/MVP.md` 或 `CAPABILITIES.md` 内嵌 | 随产品宪法 |
+| 模块框、依赖方向、部署/进程关系 | `architecture/overview.md` | 现行 |
+| 跨模块关键时序 | `architecture/flows/*.md` | 现行 |
+| 本次变更讨论中的时序/状态 | 变更包 `interaction.md` / `design.md` | 验收后若成长期行为 → **提升**到 `architecture/flows/` |
+| API/事件字段说明 | `contracts/current/` | 现行 |
+| ADR 背景示意 | `architecture/adr/*` | 随 ADR |
+
+禁止把 Frozen 变更包当现行架构唯一出处，或在 `product/` 里画实现级类图。变更包内的图在 Frozen 前若成为长期行为，复制或改写进 `architecture/`，变更包内保留快照即可。
 
 ## 7. 命名
 

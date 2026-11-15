@@ -1,6 +1,8 @@
 # S：快车道
 
-适用于：语义基本不动、改动面小。详见主 SKILL 分档示例。
+适用于：语义基本不动、改动面小。
+
+典型请求：加「复制 JSON」按钮、内部 rename、内部 DTO 改名但对外字段不变、explore 后确认只需一行修改加再生 OpenAPI。活文档同步本身不导致升档。
 
 ## 步骤
 
@@ -28,4 +30,7 @@
 
 ## 完成标准
 
-见主 SKILL Definition of Done（S）。
+- 范围一致且不越界。
+- CHANGELOG、现行契约与必要活文档该写已写。
+- 若改代码，满足 [`layered-codebase`](../../layered-codebase/SKILL.md) 的 DoD。
+- 回复说明改了什么、如何验证。
