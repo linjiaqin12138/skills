@@ -26,7 +26,7 @@
 
 ### `CAPABILITIES.md`
 
-- CAP-xx 列表：名称、用户能做什么、分期（Launch / Later）、依赖
+- CAP-xx 列表：名称、用户能做什么、分期（Launch / Next / Later）、依赖；**对应变更包验收 Approve 后，将该 CAP 从 Next 改为 Launch**（Later 调研包除外）
 - 下游变更包链接表（可选）
 
 ### `GLOSSARY.md`（可选）

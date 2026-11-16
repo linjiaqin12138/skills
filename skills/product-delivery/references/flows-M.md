@@ -13,8 +13,12 @@
 5. **契约闸**（动协议时）：请用户确认表/草案。
 6. **确认可写码** → 编码阶段：读并遵循 [`layered-codebase`](../../layered-codebase/SKILL.md)。
 7. **轻量验收**：按 brief 验收句过一遍（真机或脚本）。
-8. **CHANGELOG** 一行；变更包标 Frozen（若开了包）。
-9. **禁止**回写其它 Frozen 包正文；**禁止**无故改 `product/MVP`。
+8. **用户 Approve（= 验收闸通过）后冻结**：
+   - CHANGELOG 一行；
+   - 变更包 `brief` 状态 → **Frozen**（闸门进度写验收通过）；
+   - 本包推进的 CAP：`CAPABILITIES` **Next → Launch**（若开包时写的是 Next）；MVP 仍写「未实现」则改掉；
+   - 若仓库有「Approve 后收尾」清单（如 `AGENTS.md`），按其执行。
+9. **禁止**回写其它 Frozen 包正文；**禁止**无故改 `product/MVP`（纠正「未实现」标注除外）。
 
 ## brief 最小模板
 
@@ -33,5 +37,5 @@
 - brief 已确认，实现未超出 In/Out。
 - 现行契约及必要 `architecture/` 已更新。
 - 已按 brief 做轻量验收并留下依据。
-- CHANGELOG 已写；若开了变更包，状态已标 Frozen。
+- CHANGELOG 已写；若开了变更包，brief 已 Frozen，关联 CAP 已 Launch（若适用）。
 - 若改代码，满足 [`layered-codebase`](../../layered-codebase/SKILL.md) 的 DoD。

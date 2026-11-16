@@ -114,19 +114,23 @@
 
 ## H — 冻结
 
-1. 变更包状态 → Frozen。
-2. 同步 `contracts/current`（若草案有增量）。
-3. 长期有效的模块图/时序 **提升**到 `architecture/`。
-4. `product/*` 宏观若变了已在 B 处理；此处复核。
-5. CHANGELOG。
-6. 若承诺交付 Agent SKILL：核对权威路径已在仓库；回复里点出路径。
-7. 回复：如何验收、产物路径、未做项。
+触发：**验收闸通过**（用户明确 Approve / 验收通过）。未 Approve 不得 Frozen、不得宣称完成。
+
+1. 变更包 `brief` 状态 → **Frozen**；闸门进度写明验收通过（勿停在 Implementing）。
+2. 本包推进的 CAP：`docs/product/CAPABILITIES.md` **Next → Launch**（或 brief 目标分期）；MVP 若仍写该能力「未实现」须改掉。
+3. 同步 `contracts/current`（若草案有增量）。
+4. 长期有效的模块图/时序 **提升**到 `architecture/`。
+5. `product/*` 宏观若变了已在 B 处理；此处复核分期与说明是否与 Frozen 一致。
+6. CHANGELOG。
+7. 若承诺交付 Agent SKILL：核对权威路径已在仓库；回复里点出路径。
+8. 若仓库有「Approve 后收尾」清单（如 `AGENTS.md`），按其执行（格式化 / 生成物 / 全量检查等）。
+9. 回复：如何验收、产物路径（含 Frozen brief、CAP Launch）、未做项。
 
 ## 完成标准
 
 - A–E 均已确认，design 定稿前 review 已消化。
 - 交互 Demo 的操作在真系统通过；视觉未从 Demo 照抄，演示专用控件未进产品。
 - 现行契约一致，长期图已入 `architecture/`，`product/*` 宏观变化已更新。
-- 变更包已 Frozen，CHANGELOG 已写。
+- 变更包已 Frozen；关联 CAP 已 Launch（若适用）；CHANGELOG 已写。
 - 若承诺交付 Agent SKILL，权威路径已按仓库约定落地。
 - 满足 [`layered-codebase`](../../layered-codebase/SKILL.md) 的 DoD。

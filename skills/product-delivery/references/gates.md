@@ -73,10 +73,11 @@ Demo 只做这些：
 |---|---|
 | 何时 | L/M 必过；S 以 diff/真机抽查 |
 | 产物 | `verification.md` 勾选或 CHANGELOG 对应项 |
-| 通过 | 演示脚本在真系统成立；「仅演示」控件没有变成产品控件 |
-| 未过禁止 | 标 Frozen、宣称完成 |
+| 通过 | 用户明确 Approve / 验收通过；演示脚本在真系统成立；「仅演示」控件没有变成产品控件 |
+| 通过后必须 | brief → Frozen；关联 CAP Next → Launch（若适用）；CHANGELOG（见 flows-L H / flows-M §8） |
+| 未过禁止 | 标 Frozen、宣称完成、把 CAP 标成 Launch |
 
-反例：测试绿了但演示脚本没走过；用「应该没问题」代替证据。
+反例：测试绿了但演示脚本没走过；用「应该没问题」代替证据；只写 CHANGELOG 却不 Frozen / 不改 CAP。
 
 ## 闸门与档位
 
