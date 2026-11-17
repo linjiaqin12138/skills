@@ -8,14 +8,14 @@
 
 1. **判档确认**：复述语义影响与改动面；用户点头。
 2. **写 `brief.md`**（半页内）：目标、In/Out、验收句、关联契约/模块。放到 `changes/NNNN-slug/`（或仓库约定的变更包根）。
-3. **可选交互补丁**：仅当主路径操作变了——改一处 Demo 或补几行 `interaction.md`；否则跳过体验闸。
+3. **可选交互补丁**：仅当主路径操作变了——改一处 Demo 或补几行 `interaction.md`；否则跳过experience gate 。
 4. **现行契约/架构补丁**：改到的事件、API、配置写入 `contracts/current`；模块关系变了才改 `architecture/`。
-5. **契约闸**（动协议时）：请用户确认表/草案。
-6. **确认可写码** → 编码阶段：读并遵循 [`layered-codebase`](../../layered-codebase/SKILL.md)。
-7. **轻量验收**：按 brief 验收句过一遍（真机或脚本）。
-8. **用户 Approve（= 验收闸通过）后冻结**：
+5. **contract gate **（动协议时）：有未决拍板点才问一个字母。不请人读表。
+6. **确认可写码** → 离开本 skill，改读 layered-codebase。
+7. **验收**：有界面则一条效果视频；无界面则脚本输出。付费边界走 trace，真调用规则见 [`gates.md`](gates.md)。人看效果说「过」。
+8. **人说「过」之后冻结**：
    - CHANGELOG 一行；
-   - 变更包 `brief` 状态 → **Frozen**（闸门进度写验收通过）；
+   - 变更包 `brief` 状态 → **Frozen**（gate进度写验收通过）；
    - 本包推进的 CAP：`CAPABILITIES` **Next → Launch**（若开包时写的是 Next）；MVP 仍写「未实现」则改掉；
    - 若仓库有「Approve 后收尾」清单（如 `AGENTS.md`），按其执行。
 9. **禁止**回写其它 Frozen 包正文；**禁止**无故改 `product/MVP`（纠正「未实现」标注除外）。
@@ -34,8 +34,8 @@
 
 ## 完成标准
 
-- brief 已确认，实现未超出 In/Out。
+- brief 已写给实现 agent，实现未超出 In/Out。人只确认过拍板字母（若有）。
 - 现行契约及必要 `architecture/` 已更新。
-- 已按 brief 做轻量验收并留下依据。
+- 已有效果视频或脚本输出，人说「过」。付费调用未超过 3 次。
 - CHANGELOG 已写；若开了变更包，brief 已 Frozen，关联 CAP 已 Launch（若适用）。
-- 若改代码，满足 [`layered-codebase`](../../layered-codebase/SKILL.md) 的 DoD。
+- 写码是否做完不在本清单。

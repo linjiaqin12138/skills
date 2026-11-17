@@ -1,22 +1,43 @@
 ---
 name: product-delivery
 description: >-
-  需求澄清、实现闸门与文档维护的端到端规范：产品层与变更层分责、S/M/L 分档流程、
-  对齐闸门、落地后冻结历史需求、产品架构与图示归属。当用户要定产品/MVP、开新需求、
+  需求澄清、确认 gate 与文档维护：产品层与变更层分责、S/M/L 分档、
+  落地后冻结历史需求、产品架构与图示归属。当用户要定产品/MVP、开新需求、
   做小调整、讨论需求文档怎么组织、担心 agent 与用户意图不对齐、或维护 CHANGELOG/现行契约时使用。
-  本 skill 管「做什么、何时停、文档活/冷」；进入写业务代码后读取并遵循 layered-codebase。
+  本 skill 管「做什么、何时停、文档活/冷」。确认可写码之后才改读 layered-codebase。
 argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结/维护 | 定仓库文档结构]
 ---
 
 # 产品交付（Product Delivery）
 
-管意图对齐、分档、文档寿命、确认闸门与验收；不替代目标仓库 `AGENTS.md`。本文件只保留使用时机、判档、真相分层、硬停点、最高优先级红线和路由，执行时必须读取对应 reference。
+管意图对齐、分档、文档寿命、确认 gate 与验收。不替代目标仓库 `AGENTS.md`，也不写编码规范。本文件只保留使用时机、判档、真相分层、硬停点和路由。
 
 目标：
 
-1. **交付用户想要的**：用可验收产物和硬停点对齐。
+1. **人只否决，不审散文**：一句意图、一次一条决策字母、一条效果视频。
 2. **现状与历史分开**：现行契约随代码维护，变更包落地后冻结。
-3. **流程随改动伸缩**：小改走快车道，大改才做完整澄清。
+3. **流程随改动伸缩**：小改走快车道，大改才走指挥者分工。
+
+## 团队
+
+主会话是**指挥者**。干活的是子代理，各读各的 skill，不直接把散文交给人。
+
+| 角色 | 何时派 | 先读 |
+|---|---|---|
+| 指挥 | 始终是主会话 | 本 skill |
+| 实现 | 确认可写码之后 | [`layered-codebase`](../layered-codebase/SKILL.md)。本 skill 到此为止 |
+| 摄影 | 有界面要验收时 | [`vendor/record-demo`](../../vendor/record-demo/SKILL.md) 负责导演与机位；拍摄用 [`vendor/agent-browser`](../../vendor/agent-browser/SKILL.md)。先探路，再录，一条流程一条视频 |
+| 核对 | L 写码前 | 只扫契约与代码是否矛盾，交回短列表 |
+
+编排参照 [Cursor subagents](https://cursor.com/docs/subagents) 的 planner → implementer → verifier。纠正只升格成 lint、schema、API 或 skill，不另写一份教训清单。
+
+人看视频说**过**或**不过**。不过则指挥者开会：跨项目的机制改本 skill，项目禁令改该仓库的 lint / schema / API。不写会议纪要。同一类纠正第二次、或人说「开会」，同样开。
+
+## 验收不烧钱
+
+付费模型调用默认不发出。跑真项目时在 Provider 边界做 **trace**：拦截出站请求，留下 request body，视频拍到「人触发 → 请求组好」。
+
+真调用的模型、档位、次数只写目标仓库的 `docs/conventions/project-rules.md`。本 skill 不规定「最便宜」或次数。没有这条项目规则时，不准为了验收发出付费请求。
 
 ## 何时使用
 
@@ -24,17 +45,17 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 - 开启新需求、调整对外行为、协议、配置或主交互。
 - 做小修改，并判断该走快车道还是补对齐产物。
 - 维护产品/架构/现行契约、CHANGELOG、历史变更包或文档目录。
-- 检查 agent 是否越过确认闸门、把推测当结论或把历史文档当现状。
+- 检查 agent 是否越过确认 gate 、把推测当结论或把历史文档当现状。
 
-只讨论代码分层、模块内实现与测试归属时，直接使用 [`layered-codebase`](../layered-codebase/SKILL.md)。
+只讨论代码分层、模块内实现与测试归属时，不要用本 skill，改读 layered-codebase。
 
 ## 接到任务时
 
 1. **先判档**：按语义影响 × 改动面确定 S / M / L；吃不准先估改动面，仍不准就问用户一句。
 2. **读取对应流程**：S/M/L 的步骤与完成标准分别只由 `flows-S` / `flows-M` / `flows-L` 拥有。
-3. **到闸门就停**：等用户明确确认；未通过不得写业务实现或扩大范围。
-4. **确认可写码后**：读取并遵循 `layered-codebase`；发现产品语义歧义就停回本 skill 的闸门。
-5. **按档收尾**：对照对应 `flows-*` 的完成标准验收、同步活文档并交付证据。
+3. **到 gate 就停**：等用户明确确认；未通过不得写业务实现或扩大范围。
+4. **确认可写码后**：本 skill 停在产品决定。写码改读 layered-codebase。产品语义仍有歧义就停回 gate。
+5. **按档收尾**：对照对应 `flows-*`。有界面则交视频；付费边界交 trace。人只看效果。
 
 ## S / M / L 判档
 
@@ -48,7 +69,7 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 
 探索后发现多调用点、多契约或主路径受影响就升档；实际只是一行改动加契约再生可降档。估错先停下改档，不沿用原流程硬做。
 
-复述：「定为 S/M/L …，语义上 …，改动面上 …。对吗？」
+吃不准档位时只问一句。S 已无歧义不必复述。
 
 ## 文档真相分层
 
@@ -73,17 +94,17 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 
 各层模板、变更包骨架、契约写法与图归属见 [`doc-model.md`](references/doc-model.md)；目标仓库目录树见 [`docs-layout.md`](templates/docs-layout.md)。
 
-## 五道闸门
+## 五个 gate
 
-闸门是硬停点。「嗯 / 看看 / 差不多 / 先做着」不算明确确认；适用档位、产物、通过标准与反例只由 [`gates.md`](references/gates.md) 拥有。
+gate 是硬停点。「嗯 / 看看 / 差不多 / 先做着」不算明确确认。适用档位、产物、通过标准与反例只由 [`gates.md`](references/gates.md) 拥有。
 
-| 闸门 | 未通过时的停点 |
+| gate | 未通过时的停点 |
 |---|---|
-| **意图闸** | 不扩写产品细稿，不进入详设或写码 |
-| **体验闸** | 不把契约定稿，不进入业务实现 |
-| **契约闸** | 不进入分领域详设，不用实现替用户决定字段与行为 |
-| **设计定稿闸** | 不进入编码；定稿前 review 未消化，不得请用户定稿 |
-| **验收闸** | 不冻结变更包，不宣称完成 |
+| **intent** | 不扩写产品细稿，不进入详设或写码 |
+| **experience** | 不把契约定稿，不进入业务实现 |
+| **contract** | 不进入分领域详设，不用实现替用户决定字段与行为 |
+| **design** | 不进入编码；定稿前 review 未消化，不得请用户定稿 |
+| **acceptance** | 不冻结变更包，不宣称完成。有界面则没有视频不得请人看 |
 
 L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简化适用规则见 `gates.md`，不在主文件另建流程。
 
@@ -96,9 +117,12 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 - 对外契约变了必须同步现行契约；长期行为图必须提升到 `architecture/`。
 - 交互 Demo 只确认操作与文案心智，不是视觉规格或成品控件清单。
 - 角色边界与目标 Agent 宿主能力未钉，不写长协议或预发明未经验证的通信开关。
-- L/M 交付必须有真实验收依据，不能用「测试绿了」或「应该没问题」代替。
-- L 的长产出默认派子代理，主会话只留决策、闸门状态与产物指针；细则见 `flows-L` 与 `agent-rules`。
-- 写业务代码前必读 `layered-codebase`；其编码红线与 DoD 不在本 skill 复制。
+- 对人只呈现一句意图、一次一条 A/B/C、一条效果视频。`brief` / design 的读者是干活的 agent。
+- 无视频（无界面时无脚本输出）不得说「待验收」。测试绿不能单独过 acceptance gate 。
+- 付费验收默认 trace。能否真调用、用什么档，只看该仓库 `docs/conventions/project-rules.md`。
+- 人说不过、打断、或同一纠正第二次：开会升格。禁止原样重试，禁止只写「记住了」。
+- 项目专有规则写 `docs/conventions/project-rules.md`。待修事项写 `docs/issues/`，由用户写，或用户叫 agent 写。
+- L 的长产出默认派子代理，主会话只留决策、gate 状态与产物指针。
 
 完整行为约束见 [`agent-rules.md`](references/agent-rules.md)。
 
@@ -111,10 +135,10 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 | 执行 S / M / L 流程、检查对应 DoD | [`flows-S.md`](references/flows-S.md) / [`flows-M.md`](references/flows-M.md) / [`flows-L.md`](references/flows-L.md) |
 | L 的 A–H 阶段、子代理默认派与例外 | [`flows-L.md`](references/flows-L.md) |
 | Grill 提问、方案对比、差异化回检 | [`discovery.md`](references/discovery.md) |
-| 判断闸门能否通过、确认话术 | [`gates.md`](references/gates.md) |
+| 判断 gate 能否通过、确认话术 | [`gates.md`](references/gates.md) |
 | Agent 红线、子代理交接、交付回复 | [`agent-rules.md`](references/agent-rules.md) |
 | 文档分层、模板、图归属、变更包结构 | [`doc-model.md`](references/doc-model.md) |
 | 流程/文档 review、冻结前检查 | [`review-checklist.md`](references/review-checklist.md) |
-| 编码、测试与编码 DoD | [`layered-codebase`](../layered-codebase/SKILL.md) |
+| 已经确认可写码 | 离开本 skill，改读 [`layered-codebase`](../layered-codebase/SKILL.md) |
 | 接入仓库目录或 AGENTS.md | [`docs-layout.md`](templates/docs-layout.md) / [`AGENTS-snippet.md`](templates/AGENTS-snippet.md) |
 | 查看规范出处（运行时不必读） | [`sources.md`](references/sources.md) |

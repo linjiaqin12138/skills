@@ -26,7 +26,7 @@
 
 ### `CAPABILITIES.md`
 
-- CAP-xx 列表：名称、用户能做什么、分期（Launch / Next / Later）、依赖；**对应变更包验收 Approve 后，将该 CAP 从 Next 改为 Launch**（Later 调研包除外）
+- CAP-xx 列表：名称、用户能做什么、**入口**（用户怎么碰到、改状态用哪条命令或路由）、分期（Launch / Next / Later）、依赖；**对应变更包验收通过后，将该 CAP 从 Next 改为 Launch**（Later 调研包除外）
 - 下游变更包链接表（可选）
 
 ### `GLOSSARY.md`（可选）
@@ -40,9 +40,7 @@
 - 模块/应用表：名称、职责一句话、代码位置（可选）
 - 模块关系 Mermaid（依赖方向）
 - 运行实体（进程/CLI/浏览器等）若与模块不完全重合，单独一小节
-- 代码包拆分不等于必须多进程。本地工具默认**一个进程同源托管 UI+API**；前端热更开发服务器只是可选。开发期跨端口不要写成产品终态
-
-不写：某层类名清单、与 layered-codebase 重复的分层教程。
+不写：编码分层教程，也不写只对某一个产品成立的进程模型或模型档位。那些放 `docs/conventions/project-rules.md`。
 
 ### `spine.md`
 
@@ -107,12 +105,12 @@
 
 | 文件 | 何时要 |
 |---|---|
-| `brief.md` | M/L 必有；范围、非目标、验收 |
+| `brief.md` | M/L 必有；给编码 agent。人不审 |
 | `ops-inventory.md` | L 交互澄清时 |
 | `interaction.md` | L；含讨论用 flowchart/state |
 | `design-decisions.md` | L 经 Grill 后 |
 | `design-*.md` / `design.md` | L 分领域与汇总 |
-| `prototypes/` | L 体验闸。交互 Demo + README：确认操作与文案，可以丑。不是视觉规格，不是成品控件清单。演示专用控件标「仅演示」。视觉方向另文 |
+| `prototypes/` | L experience gate 。交互 Demo + README：确认操作与文案，可以丑。不是视觉规格，不是成品控件清单。演示专用控件标「仅演示」。视觉方向另文 |
 | `contracts/`（草案） | 讨论期；Frozen 后以 `current`+代码为准 |
 | `plans/verification.md` | L/M 验收对照 |
 
@@ -132,10 +130,15 @@
 - 取代或相关变更包：（仅指针）
 ```
 
+`brief` 的读者是编码 agent，不是人。
+
 ### `design-decisions.md` 骨架
 
 ```markdown
 # 设计前置结论：NNNN
+
+## 决策清单
+| # | 拍板点 | 推荐 | 结论字母 |
 
 ## 待决问题与结论
 | # | 问题 | 结论 | 备注 |
@@ -173,3 +176,15 @@
 
 - 变更包：`NNNN` 四位递增 + kebab-case slug；不复用编号。
 - 目录名可用 `changes/` 或历史遗留的 `requirements/`；语义都是「变更包」，在 conventions 里声明一种即可。
+
+## 8. 项目规则 `conventions/project-rules.md`
+
+只写这个仓库成立、别的仓库不该继承的规则。例如付费模型档位和次数、进程怎么起、热更新端口是不是产品终态。
+
+本 skill 不抄这些句子。agent 遇到付费验收或运行形态时先读这份文件。没有写明的付费调用，验收时不发出。
+
+## 9. 待修 `issues/`
+
+`docs/issues/NNNN-slug.md`。用户自己写，或用户明确叫 agent 写。一条一个文件：现象、期望、相关路径。不写进产品宪法，也不当成已确认的需求。
+
+agent 只在用户点名某条 issue 时去修。修完把该文件标成 done，不删历史。

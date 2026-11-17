@@ -1,12 +1,15 @@
 vendor/*/node_modules/
 vendor/browsers/
 vendor/.reddit-cookie
-vendor/agent-browser/
 vendor/redditlens/
 vendor/fireworks-tech-graph/
 vendor/manim-video/
 vendor/codebase-to-course/
 vendor/*
+!vendor/agent-browser/
+!vendor/agent-browser/**
+!vendor/record-demo/
+!vendor/record-demo/**
 fridge-eink-display-course/
 jumper/
 replays/

@@ -26,7 +26,10 @@ docs/
       brief.md
       …
   conventions/
-    product-delivery.md         # 短指针：读本 skill；写码读 layered-codebase
+    product-delivery.md         # 短指针：产品流程读本 skill
+    project-rules.md            # 只对这个仓库成立的规则：付费档位、进程模型等
+  issues/                       # 待修事项。用户写，或用户叫 agent 写。不替代产品文档
+    NNNN-slug.md
 CHANGELOG.md                    # 仓库根或 docs/CHANGELOG.md
 ```
 

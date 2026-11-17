@@ -8,7 +8,7 @@
 
 1. **复述范围**（一句）：改什么、不改什么。请求已无歧义可省略。
 2. **必要时 5 分钟 explore**：确认真是小面；若发现多调用点/多契约 → **升档**，改走 M/L。
-3. **改代码**（若需要）：遵循编码阶段 → 读 [`layered-codebase`](../../layered-codebase/SKILL.md)。
+3. **改代码**（若需要）：确认范围后离开本 skill，改读 layered-codebase。
 4. **活文档**：
    - 对外行为变了 → `CHANGELOG` 一行
    - 协议/配置形状变了 → 同步 `contracts/current` 或再生生成物
@@ -32,5 +32,5 @@
 
 - 范围一致且不越界。
 - CHANGELOG、现行契约与必要活文档该写已写。
-- 若改代码，满足 [`layered-codebase`](../../layered-codebase/SKILL.md) 的 DoD。
+- 写码是否做完不在本清单。
 - 回复说明改了什么、如何验证。

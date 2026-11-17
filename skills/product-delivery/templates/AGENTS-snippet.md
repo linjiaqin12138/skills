@@ -5,7 +5,7 @@
 ```markdown
 ## 需求与变更
 
-产品意图、分档（S/M/L）、闸门、文档活/冷与冻结规则：遵循
+产品意图、分档（S/M/L）、gate 、文档活/冷与冻结规则：遵循
 [product-delivery](https://github.com/linjiaqin12138/skills/tree/main/skills/product-delivery)
 （或本组织内该 skill 的路径）。接到改行为的任务时先判档；L/M 未确认前不写业务实现。
 
