@@ -19,7 +19,7 @@
 - [ ] 还在产品阶段就按编码规范开写
 - [ ] L 合并 design 后未派核对子代理，或带着未消化阻塞项请人开始写码
 - [ ] 请人读 brief / 契约 / design / README，或一次抛出多条拍板
-- [ ] 无效果视频（无界面时无脚本输出）却请人验收，或声称测试绿即可过
+- [ ] 有界面未做 agent-browser 探路（无界面时无脚本输出）却请人验收；或声称测试绿 / agent 探路即可过
 - [ ] 付费验收没有 trace，或真调用不符合该仓库 `project-rules.md`
 - [ ] 人说不过或打断后原样重试；重复纠正没有改 API / 校验 / lint / schema / skill
 - [ ] 收尾未做 Frozen / CAP Launch，或没点明动了哪条验收点
@@ -41,7 +41,7 @@
 
 - [ ] 档位正确（语义 × 改动面）
 - [ ] 对应gate均有明确确认（含acceptance gate = Approve）
-- [ ] 人已说「过」；有界面则视频已交；付费边界有 trace，真调用符合 `project-rules.md`；「仅演示」控件未进产品
+- [ ] 人已说「过」；有界面则 agent-browser 探路证据已交；付费边界有 trace，真调用符合 `project-rules.md`；「仅演示」控件未进产品
 - [ ] `brief` 状态改为 **Frozen**；gate进度已写验收通过（非 Implementing）
 - [ ] 本包推进的 CAP：`CAPABILITIES` **Next → Launch**（若适用）；MVP「未实现」说明已改
 - [ ] CHANGELOG 已写；文首可加关联日期

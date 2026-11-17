@@ -14,7 +14,7 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 
 目标：
 
-1. **人只否决，不审散文**：一句意图、一次一条决策字母、一条效果视频。
+1. **人只否决，不审散文**：一句意图、一次一条决策字母；体验闸看 Demo（低保真默认可点）；验收闸由 agent-browser 探路举证，**最终过/不过仍由人**。
 2. **现状与历史分开**：现行契约随代码维护，变更包落地后冻结。
 3. **流程随改动伸缩**：小改走快车道，大改才走指挥者分工。
 
@@ -26,16 +26,16 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 |---|---|---|
 | 指挥 | 始终是主会话 | 本 skill |
 | 实现 | 确认可写码之后 | [`layered-codebase`](../layered-codebase/SKILL.md)。本 skill 到此为止 |
-| 摄影 | 有界面要验收时 | [`vendor/record-demo`](../../vendor/record-demo/SKILL.md) 负责导演与机位；拍摄用 [`vendor/agent-browser`](../../vendor/agent-browser/SKILL.md)。先探路，再录，一条流程一条视频 |
+| 验收探路 | **验收闸**有界面时（写码后真机） | 用 [`vendor/agent-browser`](../../vendor/agent-browser/SKILL.md) 点通主路径并留下证据（截图 / settle 文案 / 命令输出 / generation 状态）。最终「过/不过」仍是人 |
 | 核对 | L 写码前 | 只扫契约与代码是否矛盾，交回短列表 |
 
 编排参照 [Cursor subagents](https://cursor.com/docs/subagents) 的 planner → implementer → verifier。纠正只升格成 lint、schema、API 或 skill，不另写一份教训清单。
 
-人看视频说**过**或**不过**。不过则指挥者开会：跨项目的机制改本 skill，项目禁令改该仓库的 lint / schema / API。不写会议纪要。同一类纠正第二次、或人说「开会」，同样开。
+人根据探路证据与真机点验说**过**或**不过**。不过则指挥者开会：跨项目的机制改本 skill，项目禁令改该仓库的 lint / schema / API。不写会议纪要。同一类纠正第二次、或人说「开会」，同样开。
 
 ## 验收不烧钱
 
-付费模型调用默认不发出。跑真项目时在 Provider 边界做 **trace**：拦截出站请求，留下 request body，视频拍到「人触发 → 请求组好」。
+付费模型调用默认不发出。跑真项目时在 Provider 边界做 **trace**：拦截出站请求，留下 request body；探路证据须能说明「人触发 → 请求组好」。
 
 真调用的模型、档位、次数只写目标仓库的 `docs/conventions/project-rules.md`。本 skill 不规定「最便宜」或次数。没有这条项目规则时，不准为了验收发出付费请求。
 
@@ -55,7 +55,7 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 2. **读取对应流程**：S/M/L 的步骤与完成标准分别只由 `flows-S` / `flows-M` / `flows-L` 拥有。
 3. **到 gate 就停**：等用户明确确认；未通过不得写业务实现或扩大范围。
 4. **确认可写码后**：本 skill 停在产品决定。写码改读 layered-codebase。产品语义仍有歧义就停回 gate。
-5. **按档收尾**：对照对应 `flows-*`。有界面则交视频；付费边界交 trace。人只看效果。
+5. **按档收尾**：对照对应 `flows-*`。有界面则交 agent-browser 探路证据；付费边界交 trace。最终过/不过仍是人。
 
 ## S / M / L 判档
 
@@ -104,7 +104,7 @@ gate 是硬停点。「嗯 / 看看 / 差不多 / 先做着」不算明确确认
 | **experience** | 不把契约定稿，不进入业务实现 |
 | **contract** | 不进入分领域详设，不用实现替用户决定字段与行为 |
 | **design** | 不进入编码；定稿前 review 未消化，不得请用户定稿 |
-| **acceptance** | 不冻结变更包，不宣称完成。有界面则没有视频不得请人看 |
+| **acceptance** | 不冻结变更包，不宣称完成。有界面则未做 agent-browser 探路举证不得请人拍板 |
 
 L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简化适用规则见 `gates.md`，不在主文件另建流程。
 
@@ -117,9 +117,10 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 - 对外契约变了必须同步现行契约；长期行为图必须提升到 `architecture/`。
 - 交互 Demo 只确认操作与文案心智，不是视觉规格或成品控件清单。
 - 角色边界与目标 Agent 宿主能力未钉，不写长协议或预发明未经验证的通信开关。
-- 对人只呈现一句意图、一次一条 A/B/C、一条效果视频。`brief` / design 的读者是干活的 agent。
-- 无视频（无界面时无脚本输出）不得说「待验收」。测试绿不能单独过 acceptance gate 。
+- 对人只呈现一句意图、一次一条 A/B/C；验收给人短证据指针，不请人审散文。`brief` / design 的读者是干活的 agent。
+- 有界面未做 agent-browser 探路（无界面时无脚本输出）不得说「待验收」。测试绿不能单独过 acceptance gate 。**最终过/不过必须是人**。
 - 付费验收默认 trace。能否真调用、用什么档，只看该仓库 `docs/conventions/project-rules.md`。
+- 验收探路用 agent-browser（加命令/日志证据）。
 - 人说不过、打断、或同一纠正第二次：开会升格。禁止原样重试，禁止只写「记住了」。
 - 项目专有规则写 `docs/conventions/project-rules.md`。待修事项写 `docs/issues/`，由用户写，或用户叫 agent 写。
 - L 的长产出默认派子代理，主会话只留决策、gate 状态与产物指针。

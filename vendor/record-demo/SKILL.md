@@ -14,11 +14,11 @@ Done when each flow is a start screen, the steps a person performs, and the payo
 
 ## 2. Set the stage
 
-Refuse if `agent-browser` or `ffmpeg` isn't installed: stop and tell the user. Invoke the **run** skill and note the URL the app serves on; refuse likewise if it won't run.
+Refuse if `agent-browser` or `ffmpeg` isn't installed: stop and tell the user. Invoke the **agent-browser** skill first (vendored bin + Chrome env), then run [`scripts/preflight.sh`](scripts/preflight.sh); refuse if preflight fails (wrong CLI version, missing `--no-sandbox`, bad Chrome path). Need `agent-browser >= 0.43` so `record start` attaches in-place. Invoke the **run** skill and note the URL the app serves on; refuse likewise if it won't run.
 
 Every take shares one **frame**: a 1440×900 viewport at 2x DPR, recorded at 60 fps. When the user asks for mobile or another form factor, pick a viewport that fits it, such as 390×844 at 3x for a phone. `--compact` drops the frame to 1x DPR at 30 fps.
 
-Done when the app serves on a URL and the frame is fixed.
+Done when the app serves on a URL, preflight passed, and the frame is fixed.
 
 ## 3. Dispatch the camera operator
 

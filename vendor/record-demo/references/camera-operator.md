@@ -4,13 +4,26 @@ You record demo videos of a web app's flows. Each video is a **take**: one recor
 
 The brief gives you the app's URL; the **frame** every take shares, as a viewport, DPR, and fps; each flow, as a start screen, steps, and payoff screen; and whether to make GIFs.
 
+## 0. Preflight (hard gate)
+
+Before any `open` / `click` / `record`:
+
+1. Invoke the **agent-browser** skill and export the env it requires (`PATH` to the vendored bin, `AGENT_BROWSER_EXECUTABLE_PATH`, `AGENT_BROWSER_ARGS` with `--no-sandbox`, optional stealth init).
+2. Run [`scripts/preflight.sh`](../scripts/preflight.sh). It must exit 0. If it fails, **stop** and return the error — do not invent workarounds (no system Chrome, no `npx`, no skipping `--no-sandbox`).
+3. Need `agent-browser >= 0.43`: `record start` **attaches to the current page** (no new context, no silent re-navigation). Older CLIs recreate the context and break viewport / init-script / in-page state; that is a vendor pin problem, not something to paper over with reopen.
+
 ## 1. Rehearse
 
-Invoke the **agent-browser** skill. Make a run directory under the system temp dir and copy [`scripts/hide-devtools.js`](../scripts/hide-devtools.js) into it. Then drive each flow off the record, in a session launched with `--init-script <run-dir>/hide-devtools.js` and set to the frame.
+Make a run directory under the system temp dir and copy [`scripts/hide-devtools.js`](../scripts/hide-devtools.js) into it. Then drive each flow off the record, in a session launched with `--init-script <run-dir>/hide-devtools.js` and set to the frame.
 
 - **Start screen**: screenshot it and look for **devtools**: framework indicators, debug bars, preview toolbars, floating panel toggles. Add a selector for each to the copy's list, relaunch, and screenshot again until it's clean.
 - **Auth**: when the flow sits behind a login, log in and `agent-browser state save <run-dir>/auth.json`. Record login only when login is the flow.
 - **Steps**: find each step's target from the step table below; snapshot `@ref`s don't survive into the take. Note what the page shows once the step has **settled**: a URL, text, or element to `wait` for.
+- **Settle text (hard)**: `wait --text` is a **contiguous substring** match on page text. Before locking a settle string:
+  1. After the step succeeds in rehearsal, run `agent-browser get text body` (or a scoped selector) / `snapshot` and **copy** a short contiguous phrase that actually appears.
+  2. Re-run `wait --text '<that exact phrase>'` in rehearsal and confirm it returns in well under the default timeout.
+  3. Do **not** invent slogans (`已发出` when the page says `已模拟发出`), do not wait for toast-only copy that disappears in ~3s, and do not use a string that is not a contiguous substring.
+  4. Prefer a durable settle: CSS selector (`wait '#status .ok'`), `wait --fn '…'`, or `wait --url`, over ephemeral toast text.
 - **Side effects**: undo what the rehearsal created, so the take starts from the state the rehearsal did.
 - **Blocked**: when a flow needs what only the user can give, such as login credentials, or won't drive, set it aside with what it needs and what you tried.
 
@@ -34,9 +47,11 @@ Write `<run-dir>/<flow-slug>.sh` in this shape, filling in the frame and the sta
 set -euo pipefail
 
 export AGENT_BROWSER_SESSION=record-demo-$$
-trap 'agent-browser close >/dev/null' EXIT
+trap 'agent-browser record stop >/dev/null 2>&1 || true; agent-browser close >/dev/null 2>&1 || true' EXIT
 run_dir=/tmp/record-demo.x1y2z3
 out=$run_dir/new-project.mp4
+
+# Same env the preflight already validated; keep PATH / EXECUTABLE_PATH / ARGS exported.
 
 type_slowly() {
   local text=$1
@@ -57,6 +72,8 @@ agent-browser --init-script "$run_dir/hide-devtools.js" --state "$run_dir/auth.j
 agent-browser set viewport 1440 900 2
 agent-browser wait --load networkidle
 
+# Attach in place. Do NOT open/reopen the page after this line unless the
+# flow itself navigates. Reopen resets state and is never a record workaround.
 agent-browser record start "$out" --fps 60 --cursor --contact-sheet
 agent-browser mouse move 720 450
 agent-browser wait 1500
@@ -73,7 +90,12 @@ agent-browser wait 2000
 agent-browser record stop
 ```
 
-Each take runs in a session of its own, because `--init-script` and `--state` apply only at launch. The cursor overlay draws nothing until the recording's first pointer event, so `mouse move` to the viewport's centre parks it there for the opening hold.
+Hard rules for the take script:
+
+- Keep `set -euo pipefail`. `wait --text` timeouts exit non-zero — the script must **stop**, not fall through to screenshot/record stop after a 30s empty spin.
+- **Forbidden after `record start`**: another `open` / `--init-script … open` / “reopen to restore init-script”. If recording somehow lost the page, tear down, fix preflight/CLI, and reshoot from the top.
+- Each take runs in a session of its own, because `--init-script` and `--state` apply only at launch. Put init-script on the **first** `open`, then `record start` with no URL.
+- The cursor overlay draws nothing until the recording's first pointer event, so `mouse move` to the viewport's centre parks it there for the opening hold.
 
 Pacing:
 

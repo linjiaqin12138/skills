@@ -9,7 +9,7 @@ hidden: true
 
 Fast browser automation CLI for AI agents. Chrome/Chromium via CDP with accessibility-tree snapshots and compact `@eN` element refs.
 
-**不要安装。** 不要 `npm install`，不要 `npx`，不要 `agent-browser install`。CLI 用 skills 仓库里已经放好的 bin：
+**不要安装。** 不要 `npm install`，不要 `npx`，不要 `agent-browser install`。CLI 用 skills 仓库里已经放好的 bin（钉在 `vendor/agent-browser-cli`，当前 **0.43.x**；录屏依赖「`record start` 就地附着、不新建 context」——低于 0.43 会踩坑）：
 
 ```bash
 vendor/agent-browser-cli/node_modules/.bin/agent-browser
@@ -18,12 +18,13 @@ vendor/agent-browser-cli/node_modules/.bin/agent-browser
 Chrome 用同仓库的 `vendor/browsers/chrome-linux64/chrome`。从 skills 仓库根目录调用时先带上这些环境变量，避免 CLI 自己下载浏览器：
 
 ```bash
+export PATH="$PWD/vendor/agent-browser-cli/node_modules/.bin:$PATH"
 export AGENT_BROWSER_EXECUTABLE_PATH="$PWD/vendor/browsers/chrome-linux64/chrome"
 export AGENT_BROWSER_ARGS="--no-sandbox,--proxy-server=http://127.0.0.1:7890,--disable-blink-features=AutomationControlled"
 export AGENT_BROWSER_INIT_SCRIPTS="$PWD/vendor/stealth.js"
 ```
 
-下文每个 `agent-browser` 都是指上面这个 bin。
+升级 CLI 后先 `agent-browser close --all`，清掉旧版 daemon。下文每个 `agent-browser` 都是指上面这个 bin。
 
 **Human-in-the-loop:** when a site requires human interaction (login wall, captcha, 2FA), open the page in a visible (headed) browser session, hand control to the user to complete the step, then continue automation in the same session. Session/auth state persists so subsequent commands stay logged in.
 
