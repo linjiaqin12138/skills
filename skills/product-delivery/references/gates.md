@@ -45,7 +45,7 @@ Agent 拿不准时再问一句：「是否确认进入下一步：…？」
 
 - **默认不要**：带「仅演示」模拟控件的低保真可点 HTML，给人路径自己点即可。
 - **例外要视频**：仅当 Demo 的 UI **刻意对齐成品**（控件位置/文案与最终一致），交互用 HTML/CSS/JS **动画模拟**、不是真实后端；此时用动画页直接出视频，**不要**派 agent-browser 去点网页。
-- **验收闸**：写码后派 `roles/accept` 举证（已有 verify 脚本优先，否则有界面用 agent-browser），最终过/不过仍是人。
+- **验收闸**：写码后先派 `roles/codereview`（layered-codebase），无阻塞再派 `roles/accept` 举证（已有 verify 脚本优先，否则有界面用 agent-browser），最终过/不过仍是人。
 
 反例：CLI/API-only 的 L 仍拉起 `demo.html`；用 agent 点半天当体验通过；把 Demo 路径当验收通过。
 
@@ -81,10 +81,11 @@ Agent 拿不准时再问一句：「是否确认进入下一步：…？」
 | 项 | 内容 |
 |---|---|
 | 何时 | L/M 必过；S 以 diff/真机抽查 |
-| 产物 | 派 `roles/accept`。有界面：已有 verify/control 优先，否则 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态、必要时 trace）。无界面：可复现脚本输出。付费边界另附 trace 的 request body，不把 body 念给人 |
-| 通过 | 人根据证据与/或自己真机点验说「过」。效果不对就是不过。**agent 探路 ≠ 验收通过** |
+| 前置（写了业务码时） | **先派** [`roles/codereview`](../roles/codereview/SKILL.md)，对照 **layered-codebase** 审查本期 diff。有阻塞项 → 修 → **再派** codereview；**禁止**带着分层阻塞请人 Approve。无业务码变更可跳过 |
+| 产物 | 分层 review 报告（无阻塞）+ 派 `roles/accept`。有界面：已有 verify/control 优先，否则 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态、必要时 trace）。无界面：可复现脚本输出。付费边界另附 trace 的 request body，不把 body 念给人 |
+| 通过 | 人根据证据与/或自己真机点验说「过」。效果不对就是不过。**分层 review 无阻塞 ≠ 验收通过**；**agent 探路 ≠ 验收通过** |
 | 通过后必须 | 指挥者自己做完：brief → Frozen；关联 CAP Next → Launch（若适用）；CHANGELOG。对人只报一行 |
-| 未过禁止 | 标 Frozen、宣称完成、把 CAP 标成 Launch、说「待验收」；用探路代替人拍板 |
+| 未过禁止 | 标 Frozen、宣称完成、把 CAP 标成 Launch、说「待验收」；跳过 pd-codereview 或带着阻塞项请人拍板；用探路代替人拍板 |
 
 付费 API：
 
@@ -92,7 +93,7 @@ Agent 拿不准时再问一句：「是否确认进入下一步：…？」
 2. 真调用只在目标仓库 `docs/conventions/project-rules.md` 写了允许条件时才发生。档位和次数以该文件为准。
 3. 没有项目规则就禁止为验收发出付费请求。失败先改 trace 或决策。
 
-反例：257 个测试全绿却无人拍板；agent 自己说「探路过了」就 Frozen；本 skill 替项目规定模型档位。
+反例：257 个测试全绿却无人拍板；agent 自己说「探路过了」就 Frozen；实现没按 layered-codebase 落位却直接请人 Approve；本 skill 替项目规定模型档位。
 
 ## gate与档位
 
@@ -106,7 +107,8 @@ flowchart LR
   C -->|是| K[contract gate]
   C -->|否| Code2[确认后改码]
   K --> Code2
-  Code2 --> V[acceptance gate]
+  Code2 --> CR1[分层 codereview]
+  CR1 --> V[acceptance gate]
   L[L] --> G1[意图]
   G1 --> Surf{有 GUI 表面?}
   Surf -->|是| G2a[体验: 可点 Demo]
@@ -116,6 +118,7 @@ flowchart LR
   G3 --> R[定稿前 review]
   R --> D[设计定稿]
   D --> Code3[编码]
-  Code3 --> G4[验收]
+  Code3 --> CR2[分层 codereview]
+  CR2 --> G4[验收]
   G4 --> F[冻结]
 ```

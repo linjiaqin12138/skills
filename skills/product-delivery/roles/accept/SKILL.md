@@ -1,14 +1,14 @@
 ---
 name: pd-accept
 description: >-
-  product-delivery 的验收探路角色。写码后按真实用户路径留下证据包。
+  product-delivery 的验收探路角色。分层 pd-codereview 无阻塞后，按真实用户路径留下证据包。
   不宣布过或不过，不把测试绿当验收，不默认录屏。建 verify skill 仅当用户点名。
 disable-model-invocation: true
 ---
 
 # pd-accept
 
-写码之后、请人拍板之前，留下可复查的证据。**过/不过只由人说。** 禁止在报告里写 PASSED、建议 Approve、验收通过。
+分层 `pd-codereview` 已报「无阻塞项」之后、请人拍板之前，留下可复查的证据。**过/不过只由人说。** 禁止在报告里写 PASSED、建议 Approve、验收通过。指挥者若带着未清的分层阻塞派本角色，应拒绝探路并退回。
 
 ## 先读
 

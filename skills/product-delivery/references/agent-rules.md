@@ -1,6 +1,6 @@
 # Agent 行为红线（product-delivery）
 
-本文只约束需求澄清、文档寿命与 gate。编码分层不在这里。
+本文只约束需求澄清、文档寿命与 gate。编码分层细则不在这里（Approve 前派 `pd-codereview` 去读 layered-codebase）。
 
 ## 必须先问再做
 
@@ -33,6 +33,7 @@
 - 把某一项目的进程模型、热更新端口或模型档位写进本 skill。这类规则放目标仓库 `docs/conventions/project-rules.md`
 - 主代理犹豫后把 **有 GUI 的** L 整页 Demo 留在主会话（明文：有 GUI 才默认派）
 - 请人读 brief、契约、design 或 README
+- 本期写了业务码却未派 `pd-codereview`、或仍有 layered-codebase 阻塞项，却请人 Approve / 说「待验收」
 - 有界面未做 agent-browser 探路（或无界面无脚本输出）却说「待验收」；agent 探路后自行宣称通过；用贵模型或超过 3 次付费调用做验收
 - 人打断或说不过之后原样重试
 - 纠正只回答「记住了」，或只在 AGENTS.md / 注释里加一句
@@ -52,27 +53,29 @@
 - 派发 kickoff 第一行：`Read <product-delivery 根绝对路径>/roles/<role>/SKILL.md`。角色自己再 Read 其文件里点名的 `references/pstack/` 叶子。
 - 角色不得宣布 gate 通过，不得请人读散文，不得把测试绿当成验收。
 - 用户没点名时，不得 Read 并执行 `arena`、`interrogate`、`swarm`、`tdd`、`create-verification-skill`、`maintain-verification-skill`。
-- 体验角色不录屏、不用 agent-browser 点低保真 Demo。验收角色交证据包，报告里不写通过。
+- 体验角色不录屏、不用 agent-browser 点低保真 Demo。分层 review 角色只报阻塞/建议，不宣布可以 Approve。验收角色交证据包，报告里不写通过。
 
 ## 编排
 
-- 主会话只留决策与指针；长产出（**有 GUI 的**整页 Demo、explore 报告、契约起草、领域 design、**design 定稿前对照代码+文档 review**、实现切片）在 **L 默认派**子代理（例外见 [`flows-L.md`](flows-L.md)「编排细则」）
-- 「可派」不得读成爱派不派；有 GUI 时 L 整页 Demo 堆主会话算偏离；**无 GUI 仍派 HTML Demo 也算偏离**
-- 不为「显得规范」事事派（交接本身变 noise）；S/改动清晰时主代理独扛，M 仅在需要时派 explore 或单领域起草，小补丁不硬派；无 GUI 不硬派 experience 写网页
-- 子代理 prompt 必须含：目标、约束、路径、已确认结论、禁止事项、交回格式（短报告 + 路径）；派 experience 时写明有/无 GUI
+- 主会话只留决策与指针；长产出（**有 GUI 的**整页 Demo、explore 报告、契约起草、领域 design、**design 定稿前对照代码+文档 review**、实现切片、**写码后分层 codereview**）在 **L 默认派**子代理（例外见 [`flows-L.md`](flows-L.md)「编排细则」）
+- 「可派」不得读成爱派不派；有 GUI 时 L 整页 Demo 堆主会话算偏离；**无 GUI 仍派 HTML Demo 也算偏离**；写了业务码却跳过 `pd-codereview` 也算偏离
+- 不为「显得规范」事事派（交接本身变 noise）；S/改动清晰时主代理独扛，M 仅在需要时派 explore 或单领域起草，小补丁不硬派；无 GUI 不硬派 experience 写网页；**但 M/L 写码后的分层 review 不是「可跳过的规范秀」**
+- 子代理 prompt 必须含：目标、约束、路径、已确认结论、禁止事项、交回格式（短报告 + 路径）；派 experience 时写明有/无 GUI；派 codereview 时写明 layered-codebase 根与 diff 范围
 - 不依赖子代理再套娃派子代理；由主会话按回传再派
 - 对用户回复 Demo 结果时给路径与怎么点，不粘贴整页 HTML；无 GUI 给命令/操作句
 - 派 HTML Demo 的 prompt 写明：交互确认，非视觉源；「仅演示」控件单列；**无 GUI 根本不派 HTML**
 - L：合并 `design.md` 后、请用户开始写码前，**必须**派核对子代理；无半页例外
+- L/M：写码后、请人 Approve 前，**必须**派 `pd-codereview`；有阻塞先修再复审，再派 `pd-accept`
 - 人说不过、打断、或同一纠正第二次：指挥者开会。跨项目机制改本 skill；项目禁令改该仓库 lint / schema / API。不写纪要，不原样重试
-- 验收：派 `roles/accept`。有界面优先已有 verify/control 脚本，否则 agent-browser 点通并交证据。最终过/不过必须是人。付费边界默认 trace
+- 验收：先 `roles/codereview`（有码时），无阻塞再派 `roles/accept`。有界面优先已有 verify/control 脚本，否则 agent-browser 点通并交证据。最终过/不过必须是人。付费边界默认 trace
 - 低保真体验 Demo（含「仅演示」模拟按钮）给人路径即可；体验闸例外要视频时，Demo 须对齐成品 UI + HTML 动画，直接出动画页视频，不派 agent 点网页
 
 ## 交付回复最低要求
 
 - 有界面：探路证据指针（截图/settle/命令/generation）。无界面：脚本命令与输出。付费边界：trace 路径；若真调用，说明符合该仓库 `project-rules.md` 的哪一条
+- 有业务码：分层 review「无阻塞项」指针（或阻塞已清的复审结论）
 - 一行：`brief Frozen，CAP-x Launch`（若适用）和「本次动了哪条验收点」
 - 每个已回字母一行：`Dn=字母 仍成立，因为…`
-- 测试绿不能代替人拍板；agent 探路不能代替人拍板。写码证据不在本 skill 的交付格式里
+- 测试绿不能代替人拍板；分层 review 无阻塞不能代替人拍板；agent 探路不能代替人拍板。写码证据不在本 skill 的交付格式里
 - L 进入编码前：核对报告已消化，用户已说开始写码
 - 产品承诺交付 Agent SKILL：回复里给出权威路径（及可选镜像）

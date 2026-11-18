@@ -30,6 +30,7 @@
 | `pd-contract` | `architect`、`principle-boundary-discipline`、`principle-type-system-discipline` | — |
 | `pd-design` | `architect`、`principle-foundational-thinking`、`principle-redesign-from-first-principles`、`principle-subtract-before-you-add` | `arena`、`interrogate` |
 | `pd-implement` | `principle-laziness-protocol`、`principle-minimize-reader-load`、`principle-build-the-lever`、`principle-sequence-verifiable-units` | `tdd`、`swarm` |
+| `pd-codereview` | （不读 pstack；读仓库旁的 `layered-codebase` 及其 `review-checklist` / `architecture`） | — |
 | `pd-accept` | `principle-prove-it-works` | `create-verification-skill`、`maintain-verification-skill` |
 
 冻结（flows 的 H）仍由指挥者做，不另派角色，也不读 pstack。

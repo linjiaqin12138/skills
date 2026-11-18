@@ -17,6 +17,7 @@
 写业务代码时遵循
 [layered-codebase](https://github.com/linjiaqin12138/skills/tree/main/skills/layered-codebase)
 及本仓库 `docs/conventions/architecture.md`（若有）。确认可写码之后再实现。
+写码后、请人 Approve 前，须按 product-delivery 派分层 code review（`pd-codereview`）；有阻塞先修再复审，再进入验收探路。
 ```
 
 若 skill 以 monorepo 相对路径引用，把 URL 换成仓库内相对链接。
