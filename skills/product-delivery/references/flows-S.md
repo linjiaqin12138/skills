@@ -8,7 +8,7 @@
 
 1. **复述范围**（一句）：改什么、不改什么。请求已无歧义可省略。
 2. **必要时 5 分钟 explore**：确认真是小面；若发现多调用点/多契约 → **升档**，改走 M/L。
-3. **改代码**（若需要）：确认范围后离开本 skill，改读 layered-codebase。
+3. **改代码**（若需要）：确认范围后读 layered-codebase。单文件级补丁指挥者可自己改；若仍派切片，走 [`pd-implement`](../roles/implement/SKILL.md)。
 4. **活文档**：
    - 对外行为变了 → `CHANGELOG` 一行
    - 协议/配置形状变了 → 同步 `contracts/current` 或再生生成物

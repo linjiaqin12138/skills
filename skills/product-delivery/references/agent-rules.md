@@ -46,6 +46,13 @@
 - 配置 vs 运行快照、全局配置 vs 工程目录、可复用参数档与单次覆盖等概念分开写
 - 精简后担心丢信息：子代理只审「外部可感知缺口」，不靠把文档写长
 
+## 角色与 pstack
+
+- 派发 kickoff 第一行：`Read <product-delivery 根绝对路径>/roles/<role>/SKILL.md`。角色自己再 Read 其文件里点名的 `references/pstack/` 叶子。
+- 角色不得宣布 gate 通过，不得请人读散文，不得把测试绿当成验收。
+- 用户没点名时，不得 Read 并执行 `arena`、`interrogate`、`swarm`、`tdd`、`create-verification-skill`、`maintain-verification-skill`。
+- 体验角色不录屏、不用 agent-browser 点低保真 Demo。验收角色交证据包，报告里不写通过。
+
 ## 编排
 
 - 主会话只留决策与指针；长产出（整页 Demo、explore 报告、契约起草、领域 design、**design 定稿前对照代码+文档 review**、实现切片）在 **L 默认派**子代理（例外见 [`flows-L.md`](flows-L.md)「编排细则」）
@@ -57,7 +64,7 @@
 - 派 Demo 的 prompt 写明：交互确认，非视觉源；「仅演示」控件单列
 - L：合并 `design.md` 后、请用户开始写码前，**必须**派核对子代理；无半页例外
 - 人说不过、打断、或同一纠正第二次：指挥者开会。跨项目机制改本 skill；项目禁令改该仓库 lint / schema / API。不写纪要，不原样重试
-- 验收有界面：派探路子代理用 agent-browser 点通并交证据。最终过/不过必须是人。付费边界默认 trace
+- 验收：派 `roles/accept`。有界面优先已有 verify/control 脚本，否则 agent-browser 点通并交证据。最终过/不过必须是人。付费边界默认 trace
 - 低保真体验 Demo（含「仅演示」模拟按钮）给人路径即可；体验闸例外要视频时，Demo 须对齐成品 UI + HTML 动画，直接出动画页视频，不派 agent 点网页
 
 ## 交付回复最低要求

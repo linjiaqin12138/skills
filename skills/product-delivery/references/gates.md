@@ -42,7 +42,7 @@ Demo 只做这些：
 
 - **默认不要**：带「仅演示」模拟控件的低保真可点 HTML，给人路径自己点即可。
 - **例外要视频**：仅当 Demo 的 UI **刻意对齐成品**（控件位置/文案与最终一致），交互用 HTML/CSS/JS **动画模拟**、不是真实后端；此时用动画页直接出视频，**不要**派 agent-browser 去点网页。
-- **验收闸**：写码后用 agent-browser 探路举证，最终过/不过仍是人。
+- **验收闸**：写码后派 `roles/accept` 举证（已有 verify 脚本优先，否则 agent-browser），最终过/不过仍是人。
 
 反例：用 agent 点半天当体验通过；把 Demo 路径当验收通过。
 
@@ -78,7 +78,7 @@ Demo 只做这些：
 | 项 | 内容 |
 |---|---|
 | 何时 | L/M 必过；S 以 diff/真机抽查 |
-| 产物 | 有界面：验收探路子代理用 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态、必要时 trace）。无界面：可复现脚本输出。付费边界另附 trace 的 request body，不把 body 念给人 |
+| 产物 | 派 `roles/accept`。有界面：已有 verify/control 优先，否则 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态、必要时 trace）。无界面：可复现脚本输出。付费边界另附 trace 的 request body，不把 body 念给人 |
 | 通过 | 人根据证据与/或自己真机点验说「过」。效果不对就是不过。**agent 探路 ≠ 验收通过** |
 | 通过后必须 | 指挥者自己做完：brief → Frozen；关联 CAP Next → Launch（若适用）；CHANGELOG。对人只报一行 |
 | 未过禁止 | 标 Frozen、宣称完成、把 CAP 标成 Launch、说「待验收」；用探路代替人拍板 |

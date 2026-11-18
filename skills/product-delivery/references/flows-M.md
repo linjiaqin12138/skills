@@ -8,11 +8,11 @@
 
 1. **判档确认**：复述语义影响与改动面；用户点头。
 2. **写 `brief.md`**（半页内）：目标、In/Out、验收句、关联契约/模块。放到 `changes/NNNN-slug/`（或仓库约定的变更包根）。
-3. **可选交互补丁**：仅当主路径操作变了——改一处 Demo 或补几行 `interaction.md`；否则跳过experience gate 。
+3. **可选交互补丁**：仅当主路径操作变了——派 [`pd-experience`](../roles/experience/SKILL.md) 改一处 Demo 或补几行 `interaction.md`；否则跳过 experience gate。
 4. **现行契约/架构补丁**：改到的事件、API、配置写入 `contracts/current`；模块关系变了才改 `architecture/`。
 5. **contract gate **（动协议时）：有未决拍板点才问一个字母。不请人读表。
-6. **确认可写码** → 离开本 skill，改读 layered-codebase。
-7. **验收**：有界面则 agent-browser 探路举证；无界面则脚本输出。付费边界走 trace，真调用规则见 [`gates.md`](gates.md)。**人**说「过」。
+6. **确认可写码** → 派 [`pd-implement`](../roles/implement/SKILL.md)（其内读 layered-codebase）。
+7. **验收**：派 [`pd-accept`](../roles/accept/SKILL.md)。有界面则证据包（已有 verify 脚本优先，否则 agent-browser）；无界面则脚本输出。付费边界走 trace，真调用规则见 [`gates.md`](gates.md)。**人**说「过」。
 8. **人说「过」之后冻结**：
    - CHANGELOG 一行；
    - 变更包 `brief` 状态 → **Frozen**（gate进度写验收通过）；

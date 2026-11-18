@@ -4,7 +4,7 @@ description: >-
   需求澄清、确认 gate 与文档维护：产品层与变更层分责、S/M/L 分档、
   落地后冻结历史需求、产品架构与图示归属。当用户要定产品/MVP、开新需求、
   做小调整、讨论需求文档怎么组织、担心 agent 与用户意图不对齐、或维护 CHANGELOG/现行契约时使用。
-  本 skill 管「做什么、何时停、文档活/冷」。确认可写码之后才改读 layered-codebase。
+  本 skill 管「做什么、何时停、文档活/冷」，并派角色。确认可写码之后派 roles/implement（其内读 layered-codebase）。
 argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结/维护 | 定仓库文档结构]
 ---
 
@@ -14,22 +14,42 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 
 目标：
 
-1. **人只否决，不审散文**：一句意图、一次一条决策字母；体验闸看 Demo（低保真默认可点）；验收闸由 agent-browser 探路举证，**最终过/不过仍由人**。
+1. **人只否决，不审散文**：一句意图、一次一条决策字母；体验闸看 Demo（低保真默认可点）；验收闸由 pd-accept 交证据包，**最终过/不过仍由人**。
 2. **现状与历史分开**：现行契约随代码维护，变更包落地后冻结。
 3. **流程随改动伸缩**：小改走快车道，大改才走指挥者分工。
 
 ## 团队
 
-主会话是**指挥者**。干活的是子代理，各读各的 skill，不直接把散文交给人。
+主会话是**指挥者**。干活的是子代理，各读各的角色文件，不直接把散文交给人。硬停点、判档、对人拍板、冻结只留在本文件；角色不得宣布 gate 通过。
 
-| 角色 | 何时派 | 先读 |
+派发时 kickoff 第一行是 `Read <product-delivery 根绝对路径>/roles/<role>/SKILL.md`。角色文件再点名要 Read 的 pstack 叶子。不要把整个 `references/pstack/` 塞进 brief。
+
+| 角色 | 何时 | 先读 |
 |---|---|---|
-| 指挥 | 始终是主会话 | 本 skill |
-| 实现 | 确认可写码之后 | [`layered-codebase`](../layered-codebase/SKILL.md)。本 skill 到此为止 |
-| 验收探路 | **验收闸**有界面时（写码后真机） | 用 [`vendor/agent-browser`](../../vendor/agent-browser/SKILL.md) 点通主路径并留下证据（截图 / settle 文案 / 命令输出 / generation 状态）。最终「过/不过」仍是人 |
-| 核对 | L 写码前 | 只扫契约与代码是否矛盾，交回短列表 |
+| 指挥 | 始终是主会话；冻结也由指挥者做 | 本 skill，外加下面「指挥者要读的叶子」 |
+| 现状 | 需要翻库估改动面、续作对齐 | [`roles/discover`](roles/discover/SKILL.md) |
+| 体验 | 体验闸前的可点 Demo / 怎么点 | [`roles/experience`](roles/experience/SKILL.md) |
+| 契约 | 角色已钉、要起草可感知契约 | [`roles/contract`](roles/contract/SKILL.md) |
+| 设计 | 分领域 design，或定稿前对照 review | [`roles/design`](roles/design/SKILL.md) |
+| 实现 | 用户明确可写码之后 | [`roles/implement`](roles/implement/SKILL.md)，其内再读 [`layered-codebase`](../layered-codebase/SKILL.md) |
+| 验收探路 | 写码后、请人拍板前 | [`roles/accept`](roles/accept/SKILL.md) |
+
+S：指挥者独扛，必要时才派 discover。M：按需 discover / experience / contract / accept。L：上表默认派，例外仍由 [`flows-L.md`](references/flows-L.md) 拥有。
+
+**人启动，指挥者不得代跑**（可提示一句）：`arena`、`interrogate`、`swarm`、`tdd`、`create-verification-skill`、`maintain-verification-skill`。对照表在 [`references/pstack/README.md`](references/pstack/README.md)。
 
 编排参照 [Cursor subagents](https://cursor.com/docs/subagents) 的 planner → implementer → verifier。纠正只升格成 lint、schema、API 或 skill，不另写一份教训清单。
+
+### 指挥者要读的叶子
+
+进入本 skill 后 Read 全文（路径相对本文件）：
+
+- [`references/pstack/in-your-own-words/SKILL.md`](references/pstack/in-your-own-words/SKILL.md)
+- [`references/pstack/principle-experience-first/SKILL.md`](references/pstack/principle-experience-first/SKILL.md)
+- [`references/pstack/principle-never-block-on-the-human/SKILL.md`](references/pstack/principle-never-block-on-the-human/SKILL.md)
+- [`references/pstack/principle-encode-lessons-in-structure/SKILL.md`](references/pstack/principle-encode-lessons-in-structure/SKILL.md)
+
+可逆工作不拿来问人；不可逆（force-push、删数据、对客户发消息、未过 gate 的写码）仍停。同一类纠正第二次，升格成结构，不写「记住了」。
 
 人根据探路证据与真机点验说**过**或**不过**。不过则指挥者开会：跨项目的机制改本 skill，项目禁令改该仓库的 lint / schema / API。不写会议纪要。同一类纠正第二次、或人说「开会」，同样开。
 
@@ -54,8 +74,8 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 1. **先判档**：按语义影响 × 改动面确定 S / M / L；吃不准先估改动面，仍不准就问用户一句。
 2. **读取对应流程**：S/M/L 的步骤与完成标准分别只由 `flows-S` / `flows-M` / `flows-L` 拥有。
 3. **到 gate 就停**：等用户明确确认；未通过不得写业务实现或扩大范围。
-4. **确认可写码后**：本 skill 停在产品决定。写码改读 layered-codebase。产品语义仍有歧义就停回 gate。
-5. **按档收尾**：对照对应 `flows-*`。有界面则交 agent-browser 探路证据；付费边界交 trace。最终过/不过仍是人。
+4. **确认可写码后**：本 skill 停在产品决定。写码派 [`roles/implement`](roles/implement/SKILL.md)。产品语义仍有歧义就停回 gate。
+5. **按档收尾**：对照对应 `flows-*`。有界面则派 [`roles/accept`](roles/accept/SKILL.md) 交证据包；付费边界交 trace。最终过/不过仍是人。冻结由指挥者做，不另派角色。
 
 ## S / M / L 判档
 
@@ -104,7 +124,7 @@ gate 是硬停点。「嗯 / 看看 / 差不多 / 先做着」不算明确确认
 | **experience** | 不把契约定稿，不进入业务实现 |
 | **contract** | 不进入分领域详设，不用实现替用户决定字段与行为 |
 | **design** | 不进入编码；定稿前 review 未消化，不得请用户定稿 |
-| **acceptance** | 不冻结变更包，不宣称完成。有界面则未做 agent-browser 探路举证不得请人拍板 |
+| **acceptance** | 不冻结变更包，不宣称完成。有界面则未交 pd-accept 证据包不得请人拍板 |
 
 L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简化适用规则见 `gates.md`，不在主文件另建流程。
 
@@ -118,12 +138,12 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 - 交互 Demo 只确认操作与文案心智，不是视觉规格或成品控件清单。
 - 角色边界与目标 Agent 宿主能力未钉，不写长协议或预发明未经验证的通信开关。
 - 对人只呈现一句意图、一次一条 A/B/C；验收给人短证据指针，不请人审散文。`brief` / design 的读者是干活的 agent。
-- 有界面未做 agent-browser 探路（无界面时无脚本输出）不得说「待验收」。测试绿不能单独过 acceptance gate 。**最终过/不过必须是人**。
+- 有界面未交 pd-accept 证据包（无界面时无脚本输出）不得说「待验收」。测试绿不能单独过 acceptance gate。**最终过/不过必须是人**。
 - 付费验收默认 trace。能否真调用、用什么档，只看该仓库 `docs/conventions/project-rules.md`。
-- 验收探路用 agent-browser（加命令/日志证据）。
+- 验收探路优先已有 verify/control 脚本，否则 agent-browser（加命令/日志证据）。不默认录屏。
 - 人说不过、打断、或同一纠正第二次：开会升格。禁止原样重试，禁止只写「记住了」。
 - 项目专有规则写 `docs/conventions/project-rules.md`。待修事项写 `docs/issues/`，由用户写，或用户叫 agent 写。
-- L 的长产出默认派子代理，主会话只留决策、gate 状态与产物指针。
+- L 的长产出默认派对应角色，主会话只留决策、gate 状态与产物指针。角色不得自行开启 arena / interrogate / swarm / 新建 verify skill。
 
 完整行为约束见 [`agent-rules.md`](references/agent-rules.md)。
 
@@ -140,6 +160,7 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 | Agent 红线、子代理交接、交付回复 | [`agent-rules.md`](references/agent-rules.md) |
 | 文档分层、模板、图归属、变更包结构 | [`doc-model.md`](references/doc-model.md) |
 | 流程/文档 review、冻结前检查 | [`review-checklist.md`](references/review-checklist.md) |
-| 已经确认可写码 | 离开本 skill，改读 [`layered-codebase`](../layered-codebase/SKILL.md) |
+| 已经确认可写码 | 派 [`roles/implement`](roles/implement/SKILL.md)（其内读 layered-codebase） |
+| 派某个角色、查该读哪片 pstack | [`references/pstack/README.md`](references/pstack/README.md) 与 `roles/*/SKILL.md` |
 | 接入仓库目录或 AGENTS.md | [`docs-layout.md`](templates/docs-layout.md) / [`AGENTS-snippet.md`](templates/AGENTS-snippet.md) |
 | 查看规范出处（运行时不必读） | [`sources.md`](references/sources.md) |

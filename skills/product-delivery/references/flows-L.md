@@ -9,15 +9,15 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 ## 阶段总览
 
-| 阶段 | 主代理 | 默认派子代理 | 停等确认 |
+| 阶段 | 主代理 | 默认派角色 | 停等确认 |
 |---|---|---|---|
 | A Grill | 提问、复述、记决策 | — | intent gate |
-| B 范围落盘 | 写/改 product、brief；必要 architecture 意图 | explore 现状（需翻库时） | brief/产品范围 |
-| C 交互与 Demo | 定操作清单、验收路径、experience gate话术 | **整页/重做 Demo**；大流程图 | experience gate |
-| D 契约 | 先钉角色；对齐可感知契约 | 起草 events/api/config | contract gate |
-| E 设计 | Grill 待决、合并 design；消化 review | 按需领域 design-*；**定稿前对照代码+文档 review** | design 定稿 |
-| F 编码 | 集成与歧义升级 | 实现切片（大项目） | （已确认可写码） |
-| G 验收 | 主持「过/不过」 | **有界面：agent-browser 探路**；可派：跑 verification 勾选 | acceptance gate |
+| B 范围落盘 | 写/改 product、brief；必要 architecture 意图 | [`pd-discover`](../roles/discover/SKILL.md)（需翻库时） | brief/产品范围 |
+| C 交互与 Demo | 定操作清单、验收路径、experience gate话术 | [`pd-experience`](../roles/experience/SKILL.md)；大流程图 | experience gate |
+| D 契约 | 先钉角色；对齐可感知契约 | [`pd-contract`](../roles/contract/SKILL.md) | contract gate |
+| E 设计 | Grill 待决、合并 design；消化 review | [`pd-design`](../roles/design/SKILL.md) | design 定稿 |
+| F 编码 | 集成与歧义升级 | [`pd-implement`](../roles/implement/SKILL.md)（大项目） | （已确认可写码） |
+| G 验收 | 主持「过/不过」 | [`pd-accept`](../roles/accept/SKILL.md) | acceptance gate |
 | H 冻结 | 标 Frozen、提升图、CHANGELOG | — | — |
 
 列名是 **默认派**，不是「可有可无」。例外见下表。
@@ -28,16 +28,18 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 | 子流程 | L 默认 | 例外（可主代理做） |
 |---|---|---|
-| explore 估改动面 / 现状报告 | **派** | 改动面已一眼清晰、无需翻库 |
-| **整页 / 多分支可点 Demo**（新建或按新意图重做） | **派** | — |
-| 流程图/状态图大稿 | **派**（或 `draw-diagram` 子任务） | 改已有 Mermaid 两三行 |
-| 起草 events/api/config 契约表 | **派** | 改已有表一两行 |
-| 分领域 `design-*` | **派**（按需并行，禁止凑齐） | 用户确认只需一个极短领域且半页内 |
-| **design 定稿前：对照代码+文档的矛盾 / 未决可感知点 / 写码歧义 review** | **派** | 无例外 |
-| 实现切片 | **派**（大项目） | 单文件级补丁 |
-| 验收探路（agent-browser 点通 + 证据） | **有界面则派** | 无界面时主代理跑脚本即可 |
-| 验收勾选跑脚本 | 可派 | 主代理主持「过/不过」对话 |
-| 已有 Demo 上的**小补丁**（加一按钮、改文案、加一条已确认分支） | 主代理改即可 | 若补丁牵动整页结构 → 仍派 |
+| explore 估改动面 / 现状报告 | **派** [`pd-discover`](../roles/discover/SKILL.md) | 改动面已一眼清晰、无需翻库 |
+| **整页 / 多分支可点 Demo**（新建或按新意图重做） | **派** [`pd-experience`](../roles/experience/SKILL.md) | — |
+| 流程图/状态图大稿 | **派** experience，或 `draw-diagram` 子任务 | 改已有 Mermaid 两三行 |
+| 起草 events/api/config 契约表 | **派** [`pd-contract`](../roles/contract/SKILL.md) | 改已有表一两行 |
+| 分领域 `design-*` | **派** [`pd-design`](../roles/design/SKILL.md)（按需并行，禁止凑齐） | 用户确认只需一个极短领域且半页内 |
+| **design 定稿前：对照代码+文档的矛盾 / 未决可感知点 / 写码歧义 review** | **派** `pd-design` | 无例外 |
+| 实现切片 | **派** [`pd-implement`](../roles/implement/SKILL.md)（大项目） | 单文件级补丁 |
+| 验收探路（证据包；有界面才用 agent-browser） | **派** [`pd-accept`](../roles/accept/SKILL.md) | 无界面时主代理跑脚本即可 |
+| 验收勾选跑脚本 | 可派 accept | 主代理主持「过/不过」对话 |
+| 已有 Demo 上的**小补丁**（加一按钮、改文案、加一条已确认分支） | 主代理改即可 | 若补丁牵动整页结构 → 仍派 experience |
+
+`arena` / `interrogate` / `swarm` / `tdd` / `create-verification-skill` / `maintain-verification-skill` 只在用户本轮点名后，由对应角色 Read `references/pstack/` 里的原文。指挥者不代跑。
 
 「可派」不得读成「爱派不派」。L 整页/重做 Demo 必须派；prompt 写明 Demo 只做交互确认、标出「仅演示」控件，且不把整页 HTML 交回主会话。事事派与把长产出堆主会话都属于偏离编排。
 
@@ -61,14 +63,14 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 1. 主代理写/更新 `ops-inventory.md`（阶段 × 动作 × 所见 × 系统反应）——保持短，这是gate输入。
 2. `interaction.md`：流程/状态；大图可派，小改主代理。
 3. 价值路径仍糊：可用 **`processize`** 先捋手搓步骤。
-4. **可点 Demo（整页新建或按新意图重做）→ 默认派子代理**。主代理不要改成自己做。
+4. **可点 Demo（整页新建或按新意图重做）→ 默认派 [`pd-experience`](../roles/experience/SKILL.md)**。主代理不要改成自己做。
    - 主代理只给：已确认约束、差异化句子、ops 要点、输出路径、README 要求、禁止事项。
    - prompt 必须写明：只表达交互与文案心智；可以丑；效果可以模拟；演示专用控件在 README 标「仅演示」；**不要**交回整页 HTML。
    - 子代理交回：路径 + README + 主路径怎么点。低保真。多分支在 README 写清。
 5. **已有 Demo 的小补丁**（单按钮、文案、已确认的一条分支）：主代理改即可；若牵动整页结构 → 仍派。
 6. Demo **不是**视觉规格，也不是成品控件清单。交互只抽原则（如软跳、确认闸、反馈闭环）。成品视觉另开简规或设计向任务。主导航已够用仍加的演示捷径，不得默认进实现。
 7. 文案用用户差异化句子回检，不套竞品/旧品类默认（关卡式流程、缺中间产物就锁导航、照搬其按钮文案）。
-8. **experience gate **：给人 Demo 路径 + 怎么点；人说「过」或改哪几点。低保真可点 Demo（含「仅演示」模拟按钮）给人路径即可。仅当 Demo 刻意做成与成品 UI 一致、靠 HTML 动画模拟交互时，才另附体验视频（直接出动画页，不派 agent 点网页）。验收闸（G）用 agent-browser 探路。细则见 [`gates.md`](gates.md)。
+8. **experience gate**：给人 Demo 路径 + 怎么点；人说「过」或改哪几点。低保真可点 Demo（含「仅演示」模拟按钮）给人路径即可。仅当 Demo 刻意做成与成品 UI 一致、靠 HTML 动画模拟交互时，才另附体验视频（直接出动画页，不派 agent 点网页）。验收闸（G）派 [`pd-accept`](../roles/accept/SKILL.md)。细则见 [`gates.md`](gates.md)。
 
 ## D — 契约
 
@@ -76,7 +78,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
    - 谁改配置、谁执行对外/付费动作、GUI 做什么。
    - 有 Agent：先问目标宿主 **实际能力**（多数只有 stdio，无可靠双向长连接）。默认 one-shot 等待 + 标准输出；不可达时用粘贴指令兜底。
    - 禁止默认 Agent 经 HTTP 调本机服务、直连第三方、自己充当执行器报进度；禁止先发明未经验证的通信开关或推送通道。
-2. 从**操作清单与已确认交互原则**反推可感知契约——**起草默认派子代理**；主代理做对齐与contract gate 。演示专用控件不进契约。写法见 [`doc-model.md`](doc-model.md) §3。
+2. 从**操作清单与已确认交互原则**反推可感知契约——**起草默认派 [`pd-contract`](../roles/contract/SKILL.md)**；主代理做对齐与 contract gate。演示专用控件不进契约。写法见 [`doc-model.md`](doc-model.md) §3。
 3. 草案可放变更包 `contracts/`。配置 vs 运行快照、全局 vs 工程目录、可复用参数档与单次覆盖等概念分开写（名称随项目，原则通用）。
 4. **contract gate **通过后再进 E。写法与禁令见 [`gates.md`](gates.md)、[`doc-model.md`](doc-model.md) §3。
 
@@ -84,10 +86,10 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 1. 补全 Grill 待决（技术取舍）；更新 `design-decisions.md`。
 2. 用户确认**无遗留异议**、同意拟派领域清单之前，不派 designer。
-3. 按需并行派子代理写 `design-api.md` / `design-config.md` / `design-module.md` 等；禁止凑齐全派。
+3. 按需并行派 [`pd-design`](../roles/design/SKILL.md) 写 `design-api.md` / `design-config.md` / `design-module.md` 等；禁止凑齐全派。
 4. Mind-set：能简单则简单；扩展点写边界，不预埋空框架。
 5. 主代理合并短 `design.md`（仅含本期领域）。design 若已改对外行为，先改契约再进入下一步。
-6. **定稿前 review（默认派子代理，禁止跳过）**——对照：
+6. **定稿前 review（默认派 `pd-design`，禁止跳过）**——对照：
    - 本期变更包（brief / decisions / design* / 契约草案 / ops）
    - 活文档（`product/*`、`architecture/*`、现行契约）
    - **相关存量代码**（实现真相对齐；冲突以代码为准标出，并建议改哪份活文档）
@@ -102,7 +104,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 ## F — 编码
 
-确认可写码后，本流程结束，改读 layered-codebase。产品语义有歧义就停回 gate。
+确认可写码后，派 [`pd-implement`](../roles/implement/SKILL.md)（其内读 layered-codebase）。产品语义有歧义就停回 gate。
 
 实现中改了对外契约或模块边界，同步现行契约 / `architecture/`。
 
@@ -110,7 +112,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 ## G — 验收
 
-1. 有界面：派验收探路子代理，用 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态）。无界面：可复现脚本输出。付费边界按 [`gates.md`](gates.md) 走 trace。真调用只按该仓库 `docs/conventions/project-rules.md`。
+1. 派 [`pd-accept`](../roles/accept/SKILL.md)。有界面：已有 verify/control 脚本优先，否则用 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态）。无界面：可复现脚本输出。付费边界按 [`gates.md`](gates.md) 走 trace。真调用只按该仓库 `docs/conventions/project-rules.md`。
 2. 另核：「仅演示」控件没有变成产品控件。每条已回字母一行：`Dn=字母 仍成立，因为 <证据指针>`。对不上就停。
 3. 主会话把短证据交给人；**人说「过」之后再 H**。agent 探路 ≠ 通过。测试绿不能代替人拍板。未探路不得说「待验收」。
 
