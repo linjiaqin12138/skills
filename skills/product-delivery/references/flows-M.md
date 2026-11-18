@@ -8,7 +8,7 @@
 
 1. **判档确认**：复述语义影响与改动面；用户点头。
 2. **写 `brief.md`**（半页内）：目标、In/Out、验收句、关联契约/模块。放到 `changes/NNNN-slug/`（或仓库约定的变更包根）。
-3. **可选交互补丁**：仅当主路径操作变了——派 [`pd-experience`](../roles/experience/SKILL.md) 改一处 Demo 或补几行 `interaction.md`；否则跳过 experience gate。
+3. **可选交互补丁**：仅当主路径**人可感知操作**变了。有 GUI → 派 [`pd-experience`](../roles/experience/SKILL.md) 改一处 Demo 或补 `interaction.md`；无 GUI → 只补几行 `interaction.md` / ops，**不写 HTML Demo**。主路径操作没变 → 跳过 experience gate。
 4. **现行契约/架构补丁**：改到的事件、API、配置写入 `contracts/current`；模块关系变了才改 `architecture/`。
 5. **contract gate **（动协议时）：有未决拍板点才问一个字母。不请人读表。
 6. **确认可写码** → 派 [`pd-implement`](../roles/implement/SKILL.md)（其内读 layered-codebase）。
@@ -26,7 +26,7 @@
 
 ## 何时升 L
 
-- 需要完整交互 Demo 对齐主路径操作（Demo 只确认交互，不代替视觉规格）
+- 需要完整**有 GUI**交互 Demo 对齐主路径操作（Demo 只确认交互，不代替视觉规格；无 GUI 升 L 仍不写 HTML）
 - 要 Grill 多轮才能定价值机制或扩展点
 - 要分多领域 design 才能安全开写
 

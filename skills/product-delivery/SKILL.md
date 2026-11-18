@@ -14,7 +14,7 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 
 目标：
 
-1. **人只否决，不审散文**：一句意图、一次一条决策字母；体验闸看 Demo（低保真默认可点）；验收闸由 pd-accept 交证据包，**最终过/不过仍由人**。
+1. **人只否决，不审散文**：一句意图、一次一条决策字母；体验闸有 GUI 看可点 Demo，无 GUI 看操作/命令清单（**禁止无页面改动仍写 `demo.html`**）；验收闸由 pd-accept 交证据包，**最终过/不过仍由人**。
 2. **现状与历史分开**：现行契约随代码维护，变更包落地后冻结。
 3. **流程随改动伸缩**：小改走快车道，大改才走指挥者分工。
 
@@ -28,7 +28,7 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 |---|---|---|
 | 指挥 | 始终是主会话；冻结也由指挥者做 | 本 skill，外加下面「指挥者要读的叶子」 |
 | 现状 | 需要翻库估改动面、续作对齐 | [`roles/discover`](roles/discover/SKILL.md) |
-| 体验 | 体验闸前的可点 Demo / 怎么点 | [`roles/experience`](roles/experience/SKILL.md) |
+| 体验 | 体验闸前：有 GUI → 可点 Demo；无 GUI → 操作/命令清单（不写 HTML） | [`roles/experience`](roles/experience/SKILL.md) |
 | 契约 | 角色已钉、要起草可感知契约 | [`roles/contract`](roles/contract/SKILL.md) |
 | 设计 | 分领域 design，或定稿前对照 review | [`roles/design`](roles/design/SKILL.md) |
 | 实现 | 用户明确可写码之后 | [`roles/implement`](roles/implement/SKILL.md)，其内再读 [`layered-codebase`](../layered-codebase/SKILL.md) |
@@ -85,7 +85,7 @@ S：指挥者独扛，必要时才派 discover。M：按需 discover / experienc
 |---|---|---|
 | **S** | 语义基本不动，改动面小。可顺带改活文档；**有文档 diff 不等于升档** | [`flows-S.md`](references/flows-S.md) |
 | **M** | 对外行为或协议局部变化，或改动面中等，仍是既有能力修补 | [`flows-M.md`](references/flows-M.md) |
-| **L** | 新产品/MVP、新能力，改价值机制/产品级扩展点/主交互，或需要分领域设计与 Demo | [`flows-L.md`](references/flows-L.md) |
+| **L** | 新产品/MVP、新能力，改价值机制/产品级扩展点/主交互，或需要分领域设计（有 GUI 才要可点 Demo） | [`flows-L.md`](references/flows-L.md) |
 
 探索后发现多调用点、多契约或主路径受影响就升档；实际只是一行改动加契约再生可降档。估错先停下改档，不沿用原流程硬做。
 
@@ -121,7 +121,7 @@ gate 是硬停点。「嗯 / 看看 / 差不多 / 先做着」不算明确确认
 | gate | 未通过时的停点 |
 |---|---|
 | **intent** | 不扩写产品细稿，不进入详设或写码 |
-| **experience** | 不把契约定稿，不进入业务实现 |
+| **experience** | 不把契约定稿，不进入业务实现。无 GUI 不得以 HTML Demo 充数 |
 | **contract** | 不进入分领域详设，不用实现替用户决定字段与行为 |
 | **design** | 不进入编码；定稿前 review 未消化，不得请用户定稿 |
 | **acceptance** | 不冻结变更包，不宣称完成。有界面则未交 pd-accept 证据包不得请人拍板 |
@@ -135,7 +135,7 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 - Grill 一次一问；已确认、建议、待确认必须分开，不把推测写成事实。
 - 不回写 Frozen 变更包正文，不推荐历史包作为现行产品说明。
 - 对外契约变了必须同步现行契约；长期行为图必须提升到 `architecture/`。
-- 交互 Demo 只确认操作与文案心智，不是视觉规格或成品控件清单。
+- 交互 Demo 只确认操作与文案心智，不是视觉规格或成品控件清单。**无 GUI 表面禁止 `demo.html`**；用 ops-inventory + interaction 过体验闸。
 - 角色边界与目标 Agent 宿主能力未钉，不写长协议或预发明未经验证的通信开关。
 - 对人只呈现一句意图、一次一条 A/B/C；验收给人短证据指针，不请人审散文。`brief` / design 的读者是干活的 agent。
 - 有界面未交 pd-accept 证据包（无界面时无脚本输出）不得说「待验收」。测试绿不能单独过 acceptance gate。**最终过/不过必须是人**。

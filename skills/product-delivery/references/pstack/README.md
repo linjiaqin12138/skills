@@ -26,7 +26,7 @@
 |---|---|---|
 | 指挥者 `product-delivery` | `in-your-own-words`、`principle-experience-first`、`principle-never-block-on-the-human`、`principle-encode-lessons-in-structure` | — |
 | `pd-discover` | `how`、`why`；续作再加 `recall` | — |
-| `pd-experience` | `principle-exhaust-the-design-space` | — |
+| `pd-experience` | `principle-exhaust-the-design-space`（仅有 GUI / 新型可点交互） | 无 GUI 时不要为写 HTML 而 Read 此叶 |
 | `pd-contract` | `architect`、`principle-boundary-discipline`、`principle-type-system-discipline` | — |
 | `pd-design` | `architect`、`principle-foundational-thinking`、`principle-redesign-from-first-principles`、`principle-subtract-before-you-add` | `arena`、`interrogate` |
 | `pd-implement` | `principle-laziness-protocol`、`principle-minimize-reader-load`、`principle-build-the-lever`、`principle-sequence-verifiable-units` | `tdd`、`swarm` |

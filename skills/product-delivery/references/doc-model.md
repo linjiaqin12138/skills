@@ -110,7 +110,7 @@
 | `interaction.md` | L；含讨论用 flowchart/state |
 | `design-decisions.md` | L 经 Grill 后 |
 | `design-*.md` / `design.md` | L 分领域与汇总 |
-| `prototypes/` | L experience gate 。交互 Demo + README：确认操作与文案，可以丑。不是视觉规格，不是成品控件清单。演示专用控件标「仅演示」。视觉方向另文 |
+| `prototypes/` | **仅当本期有 GUI 表面**的 L experience gate。可点 Demo + README：确认操作与文案，可以丑。不是视觉规格，不是成品控件清单。演示专用控件标「仅演示」。视觉方向另文。**无 GUI（CLI/API/配置 only）不要建此目录、不要写 `demo.html`**；体验闸用 `ops-inventory` + `interaction` |
 | `contracts/`（草案） | 讨论期；Frozen 后以 `current`+代码为准 |
 | `plans/verification.md` | L/M 验收对照 |
 
