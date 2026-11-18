@@ -1,6 +1,6 @@
 # L：完整澄清车道
 
-适用于：新产品/MVP、新能力、改价值机制或产品级扩展点、主交互重做，或改动面大到需要 Demo + 分领域设计。
+适用于：新产品/MVP、新能力、改价值机制或产品级扩展点、主交互重做，或改动面大到需要分领域设计（有 GUI 才叠可点 Demo；无 GUI 的 L 仍走完 A–H，体验闸用 ops/interaction）。
 
 gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discovery.md)。文档模板见 [`doc-model.md`](doc-model.md)。  
 子代理行为红线与交接要求见 [`agent-rules.md`](agent-rules.md)；L 的编排细则由本文件拥有。
@@ -13,7 +13,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 |---|---|---|---|
 | A Grill | 提问、复述、记决策 | — | intent gate |
 | B 范围落盘 | 写/改 product、brief；必要 architecture 意图 | [`pd-discover`](../roles/discover/SKILL.md)（需翻库时） | brief/产品范围 |
-| C 交互与 Demo | 定操作清单、验收路径、experience gate话术 | [`pd-experience`](../roles/experience/SKILL.md)；大流程图 | experience gate |
+| C 交互与 Demo | 定操作清单、验收路径、experience gate话术 | **有 GUI**：[`pd-experience`](../roles/experience/SKILL.md)；**无 GUI**：主代理写 ops/interaction，不派 HTML Demo | experience gate |
 | D 契约 | 先钉角色；对齐可感知契约 | [`pd-contract`](../roles/contract/SKILL.md) | contract gate |
 | E 设计 | Grill 待决、合并 design；消化 review | [`pd-design`](../roles/design/SKILL.md) | design 定稿 |
 | F 编码 | 集成与歧义升级 | [`pd-implement`](../roles/implement/SKILL.md)（大项目） | （已确认可写码） |
@@ -29,8 +29,8 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 | 子流程 | L 默认 | 例外（可主代理做） |
 |---|---|---|
 | explore 估改动面 / 现状报告 | **派** [`pd-discover`](../roles/discover/SKILL.md) | 改动面已一眼清晰、无需翻库 |
-| **整页 / 多分支可点 Demo**（新建或按新意图重做） | **派** [`pd-experience`](../roles/experience/SKILL.md) | — |
-| 流程图/状态图大稿 | **派** experience，或 `draw-diagram` 子任务 | 改已有 Mermaid 两三行 |
+| **整页 / 多分支可点 Demo**（新建或按新意图重做） | **仅有 GUI 表面时派** [`pd-experience`](../roles/experience/SKILL.md) | **无 GUI（CLI/API/配置/Provider-only）→ 不派、不写 `demo.html`** |
+| 流程图/状态图大稿 | **派** experience（有 GUI）或 `draw-diagram`；无 GUI 主代理写 `interaction.md` | 改已有 Mermaid 两三行 |
 | 起草 events/api/config 契约表 | **派** [`pd-contract`](../roles/contract/SKILL.md) | 改已有表一两行 |
 | 分领域 `design-*` | **派** [`pd-design`](../roles/design/SKILL.md)（按需并行，禁止凑齐） | 用户确认只需一个极短领域且半页内 |
 | **design 定稿前：对照代码+文档的矛盾 / 未决可感知点 / 写码歧义 review** | **派** `pd-design` | 无例外 |
@@ -41,7 +41,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 `arena` / `interrogate` / `swarm` / `tdd` / `create-verification-skill` / `maintain-verification-skill` 只在用户本轮点名后，由对应角色 Read `references/pstack/` 里的原文。指挥者不代跑。
 
-「可派」不得读成「爱派不派」。L 整页/重做 Demo 必须派；prompt 写明 Demo 只做交互确认、标出「仅演示」控件，且不把整页 HTML 交回主会话。事事派与把长产出堆主会话都属于偏离编排。
+「可派」不得读成「爱派不派」。**有 GUI 表面**时 L 整页/重做 Demo 必须派；**无 GUI 表面时派 HTML Demo 算偏离**（应用 ops-inventory + interaction 过体验闸）。有 GUI 时 prompt 写明 Demo 只做交互确认、标出「仅演示」控件，且不把整页 HTML 交回主会话。事事派与把长产出堆主会话都属于偏离编排。
 
 ## A — Grill 拷问
 
@@ -60,17 +60,19 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 ## C — 交互与 Demo
 
-1. 主代理写/更新 `ops-inventory.md`（阶段 × 动作 × 所见 × 系统反应）——保持短，这是gate输入。
-2. `interaction.md`：流程/状态；大图可派，小改主代理。
-3. 价值路径仍糊：可用 **`processize`** 先捋手搓步骤。
-4. **可点 Demo（整页新建或按新意图重做）→ 默认派 [`pd-experience`](../roles/experience/SKILL.md)**。主代理不要改成自己做。
+1. **先判表面**：本期是否改/新增可点 GUI。只动 CLI、配置、Provider、纯 API、无新页面控件 → **无 GUI**。判错会白写 `demo.html`（反例：CLI 媒体原子仍派整页 HTML）。
+2. 主代理写/更新 `ops-inventory.md`（阶段 × 动作 × 所见 × 系统反应）——保持短，这是gate输入。无 GUI 时动作写命令/配置步骤即可。
+3. `interaction.md`：流程/状态；大图可派，小改主代理。
+4. 价值路径仍糊：可用 **`processize`** 先捋手搓步骤。
+5. **有 GUI → 可点 Demo（整页新建或按新意图重做）默认派 [`pd-experience`](../roles/experience/SKILL.md)**。主代理不要改成自己做。
    - 主代理只给：已确认约束、差异化句子、ops 要点、输出路径、README 要求、禁止事项。
    - prompt 必须写明：只表达交互与文案心智；可以丑；效果可以模拟；演示专用控件在 README 标「仅演示」；**不要**交回整页 HTML。
    - 子代理交回：路径 + README + 主路径怎么点。低保真。多分支在 README 写清。
-5. **已有 Demo 的小补丁**（单按钮、文案、已确认的一条分支）：主代理改即可；若牵动整页结构 → 仍派。
-6. Demo **不是**视觉规格，也不是成品控件清单。交互只抽原则（如软跳、确认闸、反馈闭环）。成品视觉另开简规或设计向任务。主导航已够用仍加的演示捷径，不得默认进实现。
-7. 文案用用户差异化句子回检，不套竞品/旧品类默认（关卡式流程、缺中间产物就锁导航、照搬其按钮文案）。
-8. **experience gate**：给人 Demo 路径 + 怎么点；人说「过」或改哪几点。低保真可点 Demo（含「仅演示」模拟按钮）给人路径即可。仅当 Demo 刻意做成与成品 UI 一致、靠 HTML 动画模拟交互时，才另附体验视频（直接出动画页，不派 agent 点网页）。验收闸（G）派 [`pd-accept`](../roles/accept/SKILL.md)。细则见 [`gates.md`](gates.md)。
+6. **无 GUI → 禁止**新建/重做 `prototypes/demo.html`，**禁止**为此派 `pd-experience`。体验闸用 ops + interaction（命令怎么跑、看见什么、系统反应）；给人路径/命令句，不给人网页。
+7. **已有 Demo 的小补丁**（单按钮、文案、已确认的一条分支）：仅当本期仍碰该 GUI；主代理改即可；若牵动整页结构 → 仍派。无 GUI 变更不要顺手改旧 Demo。
+8. Demo **不是**视觉规格，也不是成品控件清单。交互只抽原则（如软跳、确认闸、反馈闭环）。成品视觉另开简规或设计向任务。主导航已够用仍加的演示捷径，不得默认进实现。
+9. 文案用用户差异化句子回检，不套竞品/旧品类默认（关卡式流程、缺中间产物就锁导航、照搬其按钮文案）。
+10. **experience gate**：有 GUI → 给人 Demo 路径 + 怎么点；无 GUI → 给人操作/命令清单。人说「过」或改哪几点。低保真可点 Demo（含「仅演示」模拟按钮）给人路径即可。仅当有 GUI 且 Demo 刻意做成与成品 UI 一致、靠 HTML 动画模拟交互时，才另附体验视频（直接出动画页，不派 agent 点网页）。验收闸（G）派 [`pd-accept`](../roles/accept/SKILL.md)。细则见 [`gates.md`](gates.md)。
 
 ## D — 契约
 
@@ -133,7 +135,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 ## 完成标准
 
 - A–E 的拍板字母已回，核对报告已消化。
-- 有界面则 agent-browser 探路证据已交，且人已说「过」；视觉未从 Demo 照抄，演示专用控件未进产品。
+- 有界面则 agent-browser 探路证据已交，且人已说「过」；有 GUI Demo 时视觉未从 Demo 照抄，演示专用控件未进产品。无 GUI 则体验闸仅 ops/interaction，无 `demo.html`。
 - 付费边界有 trace。若发生真调用，符合该仓库 `project-rules.md`。
 - 现行契约一致，长期图已入 `architecture/`，`product/*` 宏观变化已更新。
 - 变更包已 Frozen；关联 CAP 已 Launch（若适用）；CHANGELOG 已写。

@@ -12,7 +12,8 @@ Agent 执行本 skill **不必读取**本文件。此处仅记录规范从何收
 | 可选 UI artboard 工具 | 多布局选型（非强制） |
 | `processize` | 价值路径不清时先捋手搓步骤 |
 | 本仓库 `layered-codebase` | 编码阶段分层与测试归属 |
-| 某 L 级本地工具交付复盘（匿名） | Demo 只确认交互；差异化心智回检；角色与 Agent 宿主能力先于长协议；契约只留可感知；指代先问；本地默认同源托管 UI+API；L Demo 默认派；承诺的 SKILL 路径列入收尾 |
+| 某 L 级本地工具交付复盘（匿名） | Demo 只确认交互；差异化心智回检；角色与 Agent 宿主能力先于长协议；契约只留可感知；指代先问；本地默认同源托管 UI+API；**有 GUI** 时 L Demo 默认派；承诺的 SKILL 路径列入收尾 |
+| ai-video-workspace 0020 CLI 媒体原子 | L 无 GUI 仍误派 HTML Demo；体验闸应先判表面：无 GUI → ops/interaction only，禁止 `demo.html` |
 | pstack 0.15.43（MIT，摘录在 `references/pstack/`） | 角色按需 Read 的判断叶子；贵的并行与 verify skill 只由人启动 |
 
 对话中定稿原则：变更包落地冻结；现状不读历史包；S/M/L 看语义×改动面；五个 gate对齐。

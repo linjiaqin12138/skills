@@ -10,7 +10,8 @@
 - [ ] 已确认 / 建议 / 待确认未区分，把推测写成确认
 - [ ] 对外契约变了，`contracts/current`（或生成物）未同步
 - [ ] 长期模块关系/关键时序只存在于变更包，未进 `architecture/`
-- [ ] L 无交互 Demo/操作对齐却宣称交互已定
+- [ ] L 无操作对齐（有 GUI 无 Demo，或无 GUI 无 ops/interaction）却宣称交互已定
+- [ ] **无 GUI 表面仍写了 / 派了 `prototypes/demo.html` 或整页可点 HTML**
 - [ ] 交互 Demo 被当成视觉规格，或演示专用控件进了实现且未经单独立项
 - [ ] 角色未钉（谁改配置 / 谁执行对外动作 / GUI / Agent）就写了长协议
 - [ ] 契约含 `null` 键、无用 API、运行时快照进了配置，或为扩展预埋字段
@@ -31,11 +32,11 @@
 - [ ] 变更包内空目录/空文件 → 删除
 - [ ] Grill 记录散落在聊天未写入 `design-decisions.md`
 - [ ] CHANGELOG 缺失但用户可见行为已变
-- [ ] L 整页/重做 Demo、explore、契约起草或领域 design 本应默认派却堆在主会话
-- [ ] 事事派子代理导致交接 noise（S/小补丁也派）
+- [ ] 有 GUI 的 L 整页/重做 Demo、explore、契约起草或领域 design 本应默认派却堆在主会话
+- [ ] 事事派子代理导致交接 noise（S/小补丁也派；无 GUI 硬派 experience 写网页）
 - [ ] 主会话被整页 HTML/大 diff 污染，挤掉gate结论与下一问
 - [ ] 契约偏长：重复、架构空谈或实现猜测还在；配置/快照、全局/工程目录、参数档混写
-- [ ] 主代理犹豫，没按明文把 L 整页 Demo 或定稿前 review 派出去
+- [ ] 主代理犹豫，没按明文把**有 GUI 的** L 整页 Demo 或定稿前 review 派出去
 
 ## 冻结前（L/M，用户 Approve / acceptance gate通过之后）
 
