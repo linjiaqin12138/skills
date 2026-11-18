@@ -4,7 +4,8 @@ description: >-
   需求澄清、确认 gate 与文档维护：产品层与变更层分责、S/M/L 分档、
   落地后冻结历史需求、产品架构与图示归属。当用户要定产品/MVP、开新需求、
   做小调整、讨论需求文档怎么组织、担心 agent 与用户意图不对齐、或维护 CHANGELOG/现行契约时使用。
-  本 skill 管「做什么、何时停、文档活/冷」，并派角色。确认可写码之后派 roles/implement（其内读 layered-codebase）。
+  本 skill 管「做什么、何时停、文档活/冷」，并派角色。确认可写码之后派 roles/implement（其内读 layered-codebase）；
+  请人 Approve 前须先派 roles/codereview 对照 layered-codebase，无阻塞再派 roles/accept。
 argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结/维护 | 定仓库文档结构]
 ---
 
@@ -14,7 +15,7 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 
 目标：
 
-1. **人只否决，不审散文**：一句意图、一次一条决策字母；体验闸有 GUI 看可点 Demo，无 GUI 看操作/命令清单（**禁止无页面改动仍写 `demo.html`**）；验收闸由 pd-accept 交证据包，**最终过/不过仍由人**。
+1. **人只否决，不审散文**：一句意图、一次一条决策字母；体验闸有 GUI 看可点 Demo，无 GUI 看操作/命令清单（**禁止无页面改动仍写 `demo.html`**）；验收闸先派 pd-codereview（layered-codebase），无阻塞后再派 pd-accept 交证据包，**最终过/不过仍由人**。
 2. **现状与历史分开**：现行契约随代码维护，变更包落地后冻结。
 3. **流程随改动伸缩**：小改走快车道，大改才走指挥者分工。
 
@@ -32,13 +33,14 @@ argument-hint: [目标：判档 | 新产品/MVP | 开变更 | 小调整 | 冻结
 | 契约 | 角色已钉、要起草可感知契约 | [`roles/contract`](roles/contract/SKILL.md) |
 | 设计 | 分领域 design，或定稿前对照 review | [`roles/design`](roles/design/SKILL.md) |
 | 实现 | 用户明确可写码之后 | [`roles/implement`](roles/implement/SKILL.md)，其内再读 [`layered-codebase`](../layered-codebase/SKILL.md) |
-| 验收探路 | 写码后、请人拍板前 | [`roles/accept`](roles/accept/SKILL.md) |
+| 分层 review | 写码后、请人 Approve 前（有阻塞须先修再复审） | [`roles/codereview`](roles/codereview/SKILL.md)，其内再读 [`layered-codebase`](../layered-codebase/SKILL.md) |
+| 验收探路 | 分层 review 无阻塞后、请人拍板前 | [`roles/accept`](roles/accept/SKILL.md) |
 
-S：指挥者独扛，必要时才派 discover。M：按需 discover / experience / contract / accept。L：上表默认派，例外仍由 [`flows-L.md`](references/flows-L.md) 拥有。
+S：指挥者独扛，必要时才派 discover；写了码则对照 layered-codebase checklist 自检或派 codereview。M：按需 discover / experience / contract；写码后必派 codereview，再 accept。L：上表默认派，例外仍由 [`flows-L.md`](references/flows-L.md) 拥有。
 
 **人启动，指挥者不得代跑**（可提示一句）：`arena`、`interrogate`、`swarm`、`tdd`、`create-verification-skill`、`maintain-verification-skill`。对照表在 [`references/pstack/README.md`](references/pstack/README.md)。
 
-编排参照 [Cursor subagents](https://cursor.com/docs/subagents) 的 planner → implementer → verifier。纠正只升格成 lint、schema、API 或 skill，不另写一份教训清单。
+编排参照 [Cursor subagents](https://cursor.com/docs/subagents) 的 planner → implementer → reviewer（分层）→ verifier。纠正只升格成 lint、schema、API 或 skill，不另写一份教训清单。
 
 ### 指挥者要读的叶子
 
@@ -75,7 +77,7 @@ S：指挥者独扛，必要时才派 discover。M：按需 discover / experienc
 2. **读取对应流程**：S/M/L 的步骤与完成标准分别只由 `flows-S` / `flows-M` / `flows-L` 拥有。
 3. **到 gate 就停**：等用户明确确认；未通过不得写业务实现或扩大范围。
 4. **确认可写码后**：本 skill 停在产品决定。写码派 [`roles/implement`](roles/implement/SKILL.md)。产品语义仍有歧义就停回 gate。
-5. **按档收尾**：对照对应 `flows-*`。有界面则派 [`roles/accept`](roles/accept/SKILL.md) 交证据包；付费边界交 trace。最终过/不过仍是人。冻结由指挥者做，不另派角色。
+5. **按档收尾**：对照对应 `flows-*`。本期写了业务码 → 先派 [`roles/codereview`](roles/codereview/SKILL.md)（对照 layered-codebase）；有阻塞先修再复审。无阻塞后再派 [`roles/accept`](roles/accept/SKILL.md) 交证据包；付费边界交 trace。最终过/不过仍是人。冻结由指挥者做，不另派角色。
 
 ## S / M / L 判档
 
@@ -124,9 +126,9 @@ gate 是硬停点。「嗯 / 看看 / 差不多 / 先做着」不算明确确认
 | **experience** | 不把契约定稿，不进入业务实现。无 GUI 不得以 HTML Demo 充数 |
 | **contract** | 不进入分领域详设，不用实现替用户决定字段与行为 |
 | **design** | 不进入编码；定稿前 review 未消化，不得请用户定稿 |
-| **acceptance** | 不冻结变更包，不宣称完成。有界面则未交 pd-accept 证据包不得请人拍板 |
+| **acceptance** | 不冻结变更包，不宣称完成。分层 review 仍有阻塞、或有界面未交 pd-accept 证据包，不得请人拍板 |
 
-L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简化适用规则见 `gates.md`，不在主文件另建流程。
+L 按意图 → 体验 → 契约 → 设计定稿 → 编码 → 分层 review → 验收推进；M/S 的简化适用规则见 `gates.md`，不在主文件另建流程。
 
 ## 最高优先级红线
 
@@ -138,7 +140,8 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 - 交互 Demo 只确认操作与文案心智，不是视觉规格或成品控件清单。**无 GUI 表面禁止 `demo.html`**；用 ops-inventory + interaction 过体验闸。
 - 角色边界与目标 Agent 宿主能力未钉，不写长协议或预发明未经验证的通信开关。
 - 对人只呈现一句意图、一次一条 A/B/C；验收给人短证据指针，不请人审散文。`brief` / design 的读者是干活的 agent。
-- 有界面未交 pd-accept 证据包（无界面时无脚本输出）不得说「待验收」。测试绿不能单独过 acceptance gate。**最终过/不过必须是人**。
+- 本期写了业务码却未派 pd-codereview、或仍有 layered-codebase 阻塞项，不得请人 Approve / 说「待验收」。
+- 有界面未交 pd-accept 证据包（无界面时无脚本输出）不得说「待验收」。测试绿、分层 review 无阻塞，都不能单独过 acceptance gate。**最终过/不过必须是人**。
 - 付费验收默认 trace。能否真调用、用什么档，只看该仓库 `docs/conventions/project-rules.md`。
 - 验收探路优先已有 verify/control 脚本，否则 agent-browser（加命令/日志证据）。不默认录屏。
 - 人说不过、打断、或同一纠正第二次：开会升格。禁止原样重试，禁止只写「记住了」。
@@ -161,6 +164,7 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 验收推进；M/S 的简
 | 文档分层、模板、图归属、变更包结构 | [`doc-model.md`](references/doc-model.md) |
 | 流程/文档 review、冻结前检查 | [`review-checklist.md`](references/review-checklist.md) |
 | 已经确认可写码 | 派 [`roles/implement`](roles/implement/SKILL.md)（其内读 layered-codebase） |
+| 写码后、请人 Approve 前 | 先派 [`roles/codereview`](roles/codereview/SKILL.md)；无阻塞再派 [`roles/accept`](roles/accept/SKILL.md) |
 | 派某个角色、查该读哪片 pstack | [`references/pstack/README.md`](references/pstack/README.md) 与 `roles/*/SKILL.md` |
 | 接入仓库目录或 AGENTS.md | [`docs-layout.md`](templates/docs-layout.md) / [`AGENTS-snippet.md`](templates/AGENTS-snippet.md) |
 | 查看规范出处（运行时不必读） | [`sources.md`](references/sources.md) |

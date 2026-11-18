@@ -12,13 +12,14 @@
 4. **现行契约/架构补丁**：改到的事件、API、配置写入 `contracts/current`；模块关系变了才改 `architecture/`。
 5. **contract gate **（动协议时）：有未决拍板点才问一个字母。不请人读表。
 6. **确认可写码** → 派 [`pd-implement`](../roles/implement/SKILL.md)（其内读 layered-codebase）。
-7. **验收**：派 [`pd-accept`](../roles/accept/SKILL.md)。有界面则证据包（已有 verify 脚本优先，否则 agent-browser）；无界面则脚本输出。付费边界走 trace，真调用规则见 [`gates.md`](gates.md)。**人**说「过」。
-8. **人说「过」之后冻结**：
+7. **分层 review（写了业务码则必做）**：派 [`pd-codereview`](../roles/codereview/SKILL.md)，对照 layered-codebase 审本期 diff。有阻塞 → 修 → 复审；**禁止**跳过或带着阻塞请人 Approve。
+8. **验收**：分层无阻塞后派 [`pd-accept`](../roles/accept/SKILL.md)。有界面则证据包（已有 verify 脚本优先，否则 agent-browser）；无界面则脚本输出。付费边界走 trace，真调用规则见 [`gates.md`](gates.md)。**人**说「过」。
+9. **人说「过」之后冻结**：
    - CHANGELOG 一行；
    - 变更包 `brief` 状态 → **Frozen**（gate进度写验收通过）；
    - 本包推进的 CAP：`CAPABILITIES` **Next → Launch**（若开包时写的是 Next）；MVP 仍写「未实现」则改掉；
    - 若仓库有「Approve 后收尾」清单（如 `AGENTS.md`），按其执行。
-9. **禁止**回写其它 Frozen 包正文；**禁止**无故改 `product/MVP`（纠正「未实现」标注除外）。
+10. **禁止**回写其它 Frozen 包正文；**禁止**无故改 `product/MVP`（纠正「未实现」标注除外）。
 
 ## brief 最小模板
 
@@ -36,6 +37,7 @@
 
 - brief 已写给实现 agent，实现未超出 In/Out。人只确认过拍板字母（若有）。
 - 现行契约及必要 `architecture/` 已更新。
+- 有业务码则 pd-codereview 无未消化阻塞项。
 - 有界面则探路证据已交，且人说「过」。付费调用未超过 3 次。
 - CHANGELOG 已写；若开了变更包，brief 已 Frozen，关联 CAP 已 Launch（若适用）。
 - 写码是否做完不在本清单。

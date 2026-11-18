@@ -9,11 +9,12 @@
 1. **复述范围**（一句）：改什么、不改什么。请求已无歧义可省略。
 2. **必要时 5 分钟 explore**：确认真是小面；若发现多调用点/多契约 → **升档**，改走 M/L。
 3. **改代码**（若需要）：确认范围后读 layered-codebase。单文件级补丁指挥者可自己改；若仍派切片，走 [`pd-implement`](../roles/implement/SKILL.md)。
-4. **活文档**：
+4. **分层自检（写了码则必做）**：对照 layered-codebase `review-checklist.md` 过一遍；吃不准或改动跨多层时派 [`pd-codereview`](../roles/codereview/SKILL.md)。有阻塞先修，再收尾。
+5. **活文档**：
    - 对外行为变了 → `CHANGELOG` 一行
    - 协议/配置形状变了 → 同步 `contracts/current` 或再生生成物
    - 模块关系未变 → 不动 `architecture/overview`
-5. **收尾**：按 S 的 DoD 自检；回复里说明改了什么、如何验证。
+6. **收尾**：按 S 的 DoD 自检；回复里说明改了什么、如何验证。
 
 ## 禁止
 
@@ -31,6 +32,7 @@
 ## 完成标准
 
 - 范围一致且不越界。
+- 写了码则分层 checklist 已过（无未消化阻塞）。
 - CHANGELOG、现行契约与必要活文档该写已写。
 - 写码是否做完不在本清单。
 - 回复说明改了什么、如何验证。

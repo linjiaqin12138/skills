@@ -28,4 +28,4 @@ disable-model-invocation: true
 
 ## 交回
 
-改了哪些路径、如何在本地验证、未做项。验收探路不是本角色的事。
+改了哪些路径、如何在本地验证、未做项。分层 code review 与验收探路不是本角色的事（由指挥者接着派 `pd-codereview` / `pd-accept`）。

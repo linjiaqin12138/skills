@@ -17,7 +17,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 | D 契约 | 先钉角色；对齐可感知契约 | [`pd-contract`](../roles/contract/SKILL.md) | contract gate |
 | E 设计 | Grill 待决、合并 design；消化 review | [`pd-design`](../roles/design/SKILL.md) | design 定稿 |
 | F 编码 | 集成与歧义升级 | [`pd-implement`](../roles/implement/SKILL.md)（大项目） | （已确认可写码） |
-| G 验收 | 主持「过/不过」 | [`pd-accept`](../roles/accept/SKILL.md) | acceptance gate |
+| G 验收 | 分层 review → 探路 → 主持「过/不过」 | 先 [`pd-codereview`](../roles/codereview/SKILL.md)，无阻塞再 [`pd-accept`](../roles/accept/SKILL.md) | acceptance gate |
 | H 冻结 | 标 Frozen、提升图、CHANGELOG | — | — |
 
 列名是 **默认派**，不是「可有可无」。例外见下表。
@@ -35,7 +35,8 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 | 分领域 `design-*` | **派** [`pd-design`](../roles/design/SKILL.md)（按需并行，禁止凑齐） | 用户确认只需一个极短领域且半页内 |
 | **design 定稿前：对照代码+文档的矛盾 / 未决可感知点 / 写码歧义 review** | **派** `pd-design` | 无例外 |
 | 实现切片 | **派** [`pd-implement`](../roles/implement/SKILL.md)（大项目） | 单文件级补丁 |
-| 验收探路（证据包；有界面才用 agent-browser） | **派** [`pd-accept`](../roles/accept/SKILL.md) | 无界面时主代理跑脚本即可 |
+| **写码后、请人 Approve 前：对照 layered-codebase 的分层 review** | **派** [`pd-codereview`](../roles/codereview/SKILL.md) | 本期无业务码变更；有阻塞须修后复审，禁止跳过 |
+| 验收探路（证据包；有界面才用 agent-browser） | **派** [`pd-accept`](../roles/accept/SKILL.md)（须在 codereview 无阻塞之后） | 无界面时主代理跑脚本即可 |
 | 验收勾选跑脚本 | 可派 accept | 主代理主持「过/不过」对话 |
 | 已有 Demo 上的**小补丁**（加一按钮、改文案、加一条已确认分支） | 主代理改即可 | 若补丁牵动整页结构 → 仍派 experience |
 
@@ -72,7 +73,7 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 7. **已有 Demo 的小补丁**（单按钮、文案、已确认的一条分支）：仅当本期仍碰该 GUI；主代理改即可；若牵动整页结构 → 仍派。无 GUI 变更不要顺手改旧 Demo。
 8. Demo **不是**视觉规格，也不是成品控件清单。交互只抽原则（如软跳、确认闸、反馈闭环）。成品视觉另开简规或设计向任务。主导航已够用仍加的演示捷径，不得默认进实现。
 9. 文案用用户差异化句子回检，不套竞品/旧品类默认（关卡式流程、缺中间产物就锁导航、照搬其按钮文案）。
-10. **experience gate**：有 GUI → 给人 Demo 路径 + 怎么点；无 GUI → 给人操作/命令清单。人说「过」或改哪几点。低保真可点 Demo（含「仅演示」模拟按钮）给人路径即可。仅当有 GUI 且 Demo 刻意做成与成品 UI 一致、靠 HTML 动画模拟交互时，才另附体验视频（直接出动画页，不派 agent 点网页）。验收闸（G）派 [`pd-accept`](../roles/accept/SKILL.md)。细则见 [`gates.md`](gates.md)。
+10. **experience gate**：有 GUI → 给人 Demo 路径 + 怎么点；无 GUI → 给人操作/命令清单。人说「过」或改哪几点。低保真可点 Demo（含「仅演示」模拟按钮）给人路径即可。仅当有 GUI 且 Demo 刻意做成与成品 UI 一致、靠 HTML 动画模拟交互时，才另附体验视频（直接出动画页，不派 agent 点网页）。验收闸（G）先派 [`pd-codereview`](../roles/codereview/SKILL.md)，无阻塞再派 [`pd-accept`](../roles/accept/SKILL.md)。细则见 [`gates.md`](gates.md)。
 
 ## D — 契约
 
@@ -114,9 +115,10 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 
 ## G — 验收
 
-1. 派 [`pd-accept`](../roles/accept/SKILL.md)。有界面：已有 verify/control 脚本优先，否则用 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态）。无界面：可复现脚本输出。付费边界按 [`gates.md`](gates.md) 走 trace。真调用只按该仓库 `docs/conventions/project-rules.md`。
-2. 另核：「仅演示」控件没有变成产品控件。每条已回字母一行：`Dn=字母 仍成立，因为 <证据指针>`。对不上就停。
-3. 主会话把短证据交给人；**人说「过」之后再 H**。agent 探路 ≠ 通过。测试绿不能代替人拍板。未探路不得说「待验收」。
+1. **先派** [`pd-codereview`](../roles/codereview/SKILL.md)：对照 **layered-codebase** 审本期实现 diff。kickoff 给出 product-delivery 根、layered-codebase 根、改动范围。有阻塞项 → 派 [`pd-implement`](../roles/implement/SKILL.md) 修 → **再派** codereview；**禁止**带着分层阻塞请人 Approve 或进入下一步探路充数。本期无业务码变更可跳过本步。
+2. 分层无阻塞后，派 [`pd-accept`](../roles/accept/SKILL.md)。有界面：已有 verify/control 脚本优先，否则用 **agent-browser** 点通主路径，交短证据（截图路径、settle 文案、命令/generation 状态）。无界面：可复现脚本输出。付费边界按 [`gates.md`](gates.md) 走 trace。真调用只按该仓库 `docs/conventions/project-rules.md`。
+3. 另核：「仅演示」控件没有变成产品控件。每条已回字母一行：`Dn=字母 仍成立，因为 <证据指针>`。对不上就停。
+4. 主会话把短证据交给人；**人说「过」之后再 H**。分层 review 无阻塞 ≠ 通过；agent 探路 ≠ 通过。测试绿不能代替人拍板。未做分层 review（有码时）或未探路不得说「待验收」。
 
 ## H — 冻结
 
@@ -130,11 +132,12 @@ gate细则见 [`gates.md`](gates.md)。拷问题库见 [`discovery.md`](discover
 6. CHANGELOG。
 7. 若承诺交付 Agent SKILL：核对权威路径已在仓库；回复里点出路径。
 8. 若仓库有「Approve 后收尾」清单（如 `AGENTS.md`），按其执行（格式化 / 生成物 / 全量检查等）。
-9. 对人只报：探路证据指针、`brief Frozen，CAP-x Launch`、本次动了哪条验收点。不附散文。
+9. 对人只报：分层 review 无阻塞、探路证据指针、`brief Frozen，CAP-x Launch`、本次动了哪条验收点。不附散文。
 
 ## 完成标准
 
 - A–E 的拍板字母已回，核对报告已消化。
+- 本期有业务码则 pd-codereview 已交且无未消化阻塞项。
 - 有界面则 agent-browser 探路证据已交，且人已说「过」；有 GUI Demo 时视觉未从 Demo 照抄，演示专用控件未进产品。无 GUI 则体验闸仅 ops/interaction，无 `demo.html`。
 - 付费边界有 trace。若发生真调用，符合该仓库 `project-rules.md`。
 - 现行契约一致，长期图已入 `architecture/`，`product/*` 宏观变化已更新。
