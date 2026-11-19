@@ -25,6 +25,7 @@
 - [ ] 付费验收没有 trace，或真调用不符合该仓库 `project-rules.md`
 - [ ] 人说不过或打断后原样重试；重复纠正没有改 API / 校验 / lint / schema / skill
 - [ ] 收尾未做 Frozen / CAP Launch，或没点明动了哪条验收点
+- [ ] 活文档（issues / 新变更包 contracts 等）维护了手写文件索引表，而非 props + `list-doc-props.mjs`
 
 ## 建议项（可商量）
 

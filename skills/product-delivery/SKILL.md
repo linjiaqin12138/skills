@@ -145,7 +145,8 @@ L 按意图 → 体验 → 契约 → 设计定稿 → 编码 → 分层 review 
 - 付费验收默认 trace。能否真调用、用什么档，只看该仓库 `docs/conventions/project-rules.md`。
 - 验收探路优先已有 verify/control 脚本，否则 agent-browser（加命令/日志证据）。不默认录屏。
 - 人说不过、打断、或同一纠正第二次：开会升格。禁止原样重试，禁止只写「记住了」。
-- 项目专有规则写 `docs/conventions/project-rules.md`。待修事项写 `docs/issues/`，由用户写，或用户叫 agent 写。
+- 项目专有规则写 `docs/conventions/project-rules.md`。待修事项写 `docs/issues/`（带 frontmatter；**不维护索引表**；关单删文件；列表用 `scripts/list-doc-props.mjs`），由用户写，或用户叫 agent 写。
+- 本 skill 维护的文档禁止手写「文件→摘要」索引；发现靠路径命名 + props + 上述脚本。
 - L 的长产出默认派对应角色，主会话只留决策、gate 状态与产物指针。角色不得自行开启 arena / interrogate / swarm / 新建 verify skill。
 
 完整行为约束见 [`agent-rules.md`](references/agent-rules.md)。

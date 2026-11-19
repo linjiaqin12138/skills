@@ -59,7 +59,7 @@
 
 ### `adr/NNNN-*.md`
 
-标准 ADR：背景、决策、后果。状态：Proposed / Accepted / Superseded。
+标准 ADR：背景、决策、后果。状态：Proposed / Accepted / Superseded（写在 frontmatter 的 `status`/`状态`，或文首 bullet；用 `list-doc-props.mjs` 查询，不另建 ADR 索引表）。
 
 ## 3. 现行契约 `contracts/current/`
 
@@ -172,10 +172,35 @@
 
 禁止把 Frozen 变更包当现行架构唯一出处，或在 `product/` 里画实现级类图。变更包内的图在 Frozen 前若成为长期行为，复制或改写进 `architecture/`，变更包内保留快照即可。
 
-## 7. 命名
+## 7. 命名与发现（不维护索引）
 
 - 变更包：`NNNN` 四位递增 + kebab-case slug；不复用编号。
+- 待修 issue：`docs/issues/NNNN-slug.md`，**必须**带四位编号（与变更包各用各的序号，不混用）；`list-doc-props.mjs` 按文件名 leading `NNNN` 数值排序。
 - 目录名可用 `changes/` 或历史遗留的 `requirements/`；语义都是「变更包」，在 conventions 里声明一种即可。
+- **禁止**在 README / INDEX 里维护「文件清单 + 摘要」表。发现靠有意义的目录名、文件名，以及文件头 props；列表用 [`scripts/list-doc-props.mjs`](../scripts/list-doc-props.mjs)。
+- 新变更包的 `contracts/`：**不要**再建「契约索引」README 表。需要入口时只写现行面指针（`contracts/current` / openapi）与一句话。已 Frozen 的索引 README 不回写。
+- 例外：运行时给 Agent 的**策展子集**（如 home `experience/INDEX.md`「已批准先读哪些」）不是目录索引，可保留。
+
+### Props（YAML frontmatter）
+
+可查询的文档在正文前加：
+
+```markdown
+---
+status: open
+summary: 一句话摘要（列表用；可省略则回退到一级标题）
+---
+
+# 标题
+```
+
+常用键：`status`、`summary`。ADR / brief 可用既有中文子弹（`状态`）或英文；脚本两者都认。issue 的 `status`：`open`（磁盘上只留仍待修的；修好或被取代则**删文件**，历史以 `changes/` 为准）。
+
+```bash
+node <product-delivery>/scripts/list-doc-props.mjs docs/issues
+node <product-delivery>/scripts/list-doc-props.mjs docs/architecture/adr --status Accepted
+node <product-delivery>/scripts/list-doc-props.mjs docs/changes --glob '**/brief.md' --status Frozen
+```
 
 ## 8. 项目规则 `conventions/project-rules.md`
 
@@ -185,6 +210,8 @@
 
 ## 9. 待修 `issues/`
 
-`docs/issues/NNNN-slug.md`。用户自己写，或用户明确叫 agent 写。一条一个文件：现象、期望、相关路径。不写进产品宪法，也不当成已确认的需求。
+`docs/issues/NNNN-slug.md`（四位递增，与 `changes/` 编号独立）。用户自己写，或用户明确叫 agent 写。一条一个文件：现象、期望、相关路径。不写进产品宪法，也不当成已确认的需求。
 
-agent 只在用户点名某条 issue 时去修。修完把该文件标成 done，不删历史。
+- `issues/README.md`（若有）**只写约定**，不写文件索引表；查看用 `list-doc-props.mjs`（按 `NNNN` 排序）。
+- 每条带 frontmatter（`status` / `summary`）；样板见 [`templates/issue.md`](../templates/issue.md)。
+- agent 只在用户点名某条时去修。关单：**删除该文件**（勿另维护 closed 清单）；被变更包取代时同样删，并在变更包 `brief` 关联里留指针即可。

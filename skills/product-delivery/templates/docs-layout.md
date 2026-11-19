@@ -28,9 +28,10 @@ docs/
   conventions/
     product-delivery.md         # 短指针：产品流程读本 skill
     project-rules.md            # 只对这个仓库成立的规则：付费档位、进程模型等
-  issues/                       # 待修事项。用户写，或用户叫 agent 写。不替代产品文档
-    NNNN-slug.md
+  issues/                       # 待修。用户写或叫 agent 写。无索引表；list-doc-props 按 NNNN 排序
+    NNNN-slug.md                # 四位编号必带；YAML frontmatter：status / summary；关单删文件
 CHANGELOG.md                    # 仓库根或 docs/CHANGELOG.md
 ```
 
-字段、章节与图归属：[`../references/doc-model.md`](../references/doc-model.md)。
+字段、章节与图归属：[`../references/doc-model.md`](../references/doc-model.md)。  
+**不维护** README/INDEX 文件清单；靠目录名、文件名与 props，用 [`../scripts/list-doc-props.mjs`](../scripts/list-doc-props.mjs) 查询。

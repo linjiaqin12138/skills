@@ -11,6 +11,7 @@
 
 现行产品读 `docs/product/` 与 `docs/architecture/`；现行契约读 `docs/contracts/current/`（或生成物）；
 `docs/changes/`（或 `docs/requirements/`）在落地后视为历史快照，不回写正文。
+待修 `docs/issues/`：不维护索引表；列表用 product-delivery 的 `scripts/list-doc-props.mjs`；关单删文件。
 
 ## 编码
 
