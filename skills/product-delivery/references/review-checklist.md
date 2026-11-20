@@ -9,6 +9,8 @@
 - [ ] gate未过已有业务实现（或「先跑一版」）
 - [ ] 已确认 / 建议 / 待确认未区分，把推测写成确认
 - [ ] 对外契约变了，`contracts/current`（或生成物）未同步
+- [ ] 共享契约变更只改一侧（CLI/HTTP/Web/shared 不同步），或无截止的双字段 / 双解析兼容层（项目未要求保兼容）
+- [ ] 契约 / Demo / ops 声称未调查或未实现的能力；或用自由文本猜测代替可配置参数档字段
 - [ ] 长期模块关系/关键时序只存在于变更包，未进 `architecture/`
 - [ ] L 无操作对齐（有 GUI 无 Demo，或无 GUI 无 ops/interaction）却宣称交互已定
 - [ ] **无 GUI 表面仍写了 / 派了 `prototypes/demo.html` 或整页可点 HTML**
