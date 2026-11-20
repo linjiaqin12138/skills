@@ -42,7 +42,8 @@ CLI、HTTP API、MCP、消息队列消费者、Webhook、定时任务触发器�
 
 设计偏好：
 - 新 Protocol 先抄同仓邻近命令/handler 的模式，再考虑差异
-- 跨层引用优先标量（path / id）；共享契约变更时各 Protocol 面一次改完
+- 跨层引用优先标量（path / id）；不要无谓 `{ <params> }` 包装；共享契约变更时各 Protocol 面一次改完
+- 需要对外兼容时：协议带显式 **version**（如 HTTP header），按 version 分支到各自的 validation → parse；不要在同一 version 内叠旧字段 / 双解析
 
 ### Service（对外门面）
 
@@ -161,7 +162,7 @@ run(input):
 - 不放：每个 UseCase 自己的 Input/Output（那些属于 UseCase 旁边）、纯 I/O 形状的请求响应类、所有 Pydantic 类的收集站
 - 判据是**语义**而非技术：继承自 BaseModel、有校验，只说明结构，不说明它是领域概念
 - `Error` 载体**不含**协议序列化方法（不要 `toResponse()` / 协议 DTO 转换）；序列化只在 Protocol
-- 跨层引用形状从简：能用 path / id 字符串表达的，不要升成多字段身份对象或无谓 wrapper；能从已有字段推导的，不要平行再存一份
+- 跨层引用形状从简：能用 path / id 字符串表达的，不要升成多字段身份对象或无谓 `{ <params> }` 包装；能从已有字段推导的，不要平行再存一份
 
 ## 3. 引擎（Engine）
 
