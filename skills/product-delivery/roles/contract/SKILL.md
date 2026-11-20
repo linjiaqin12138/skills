@@ -24,5 +24,8 @@ disable-model-invocation: true
 
 - 写入 `null` 占位键、运行时快照（pid、端口）、为以后扩展堆的字段。
 - 把能查到的事实做成给人的拍板题。有未决拍板点时，交回一条 A/B/C，不请人读整表。
+- 为「兼容旧形状」在**同一 version** 里叠双字段 / 双解析 / 无谓 `{ <params> }` 包装（正确形状一次写清；破坏性变更标清）。项目若要对外保兼容：契约写明 version（优先 header / 信封），各 version 各自 validation → parse。
+- 把本可配置的能力分类写成「从描述文本猜测」或临时代码映射表；优先可配置参数档字段。
+- 声称未调查的宿主 / provider 能力。
 
-交回短列表 + 契约路径。写法以 [`doc-model.md`](../../references/doc-model.md) 为准。
+交回短列表 + 契约路径。写法以 [`doc-model.md`](../../references/doc-model.md) 为准。数据形状从简：跨端引用优先标量（path / id），不要无谓对象包装。
